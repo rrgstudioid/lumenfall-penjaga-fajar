@@ -1,0 +1,25 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "LUMENFALL - Start Localhost",
+      "type": "shell",
+      "command": "corepack pnpm dev",
+      "isBackground": true,
+      "problemMatcher": {
+        "owner": "lumenfall-dev-server",
+        "pattern": {
+          "regexp": ".*"
+        },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": ".*vinext dev.*",
+          "endsPattern": "Local:\\s+http://localhost:3000"
+        }
+      },
+      "runOptions": {
+        "runOn": "folderOpen"
+      }
+    }
+  ]
+}

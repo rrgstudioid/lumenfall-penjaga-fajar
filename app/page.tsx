@@ -117,6 +117,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import type { Game, Snapshot } from '@/lib/game/world';
 import { registerGameTools } from '@/lib/game/webmcp';
+import { useBrowserInteractionGuard } from '@/hooks/use-browser-interaction-guard';
 import {
   CITIES,
   FIELDS,
@@ -206,6 +207,8 @@ const questCategoryLabel = (category: QuestJournalEntry['category']) =>
         : 'Side Quest';
 
 export default function Home() {
+  useBrowserInteractionGuard();
+
   const host = useRef<HTMLDivElement>(null),
     labels = useRef<HTMLDivElement>(null),
     map = useRef<HTMLCanvasElement>(null),

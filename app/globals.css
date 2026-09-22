@@ -31,6 +31,43 @@
   --radius-xl: 14px;
   --font-sans: Arial, Helvetica, sans-serif;
 }
+
+html,
+body,
+#__next,
+.game-shell,
+.world,
+[data-world-surface],
+.game-root,
+.game-shell * {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+img,
+video,
+canvas,
+svg,
+[draggable='true'] {
+  -webkit-user-drag: none;
+  user-drag: none;
+}
+
+input,
+textarea,
+select,
+[contenteditable='true'],
+[contenteditable='plaintext-only'] {
+  -webkit-user-select: text;
+  -moz-user-select: text;
+  -ms-user-select: text;
+  user-select: text;
+  -webkit-touch-callout: default;
+}
+
 .save-slot {
   padding: 0 10px;
 }
