@@ -1,0 +1,25 @@
+{
+  "id": "terrain.arunika.rocky_grass",
+  "displayName": "Rocky Terrain 02",
+  "scope": "Padang Arunika only",
+  "revision": 2,
+  "source": "rocky_terrain_02_4k.blend",
+  "runtimeMaps": {
+    "baseColor": "rocky_terrain_02_diff_2k.jpg",
+    "normalOpenGL": "rocky_terrain_02_nor_gl_2k_v2.webp",
+    "roughness": "rocky_terrain_02_rough_2k_v2.webp",
+    "surfaceMask": "arunika_surface_mask_v2.webp"
+  },
+  "metalness": 0,
+  "normalStrength": 0.58,
+  "runtimeResolution": 2048,
+  "surfaceMaskResolution": 512,
+  "worldTileSize": 12,
+  "orientation": "All runtime images top-down, flipY=true. Normal and roughness use linear data; diffuse uses sRGB.",
+  "conversion": "EXR rows corrected vertically; 2x2 average and normal renormalization; lossless WebP normal/roughness/mask.",
+  "blend": "Prebaked spatial mask: fractal value noise, exact road distance, rock proximity, slope, height, cliff distance. Full rocky interiors; feathered transitions; shared albedo/normal/roughness mask.",
+  "coverage": { "rocky": 0.281923, "grass": 0.586667, "road": 0.056687, "transition": 0.074723 },
+  "displacement": "not used as runtime geometry",
+  "specular": "not used in metallic-roughness workflow",
+  "fallback": "terrain procedural material"
+}

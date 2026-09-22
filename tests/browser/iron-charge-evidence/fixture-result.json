@@ -1,0 +1,449 @@
+{
+  "result": {
+    "a": {
+      "castAccepted": true,
+      "impact": true,
+      "startDistance": 3.7,
+      "travelDistance": 2.5,
+      "targetDistance": 1.2000000000000002,
+      "targetHpBefore": 30000,
+      "targetHpAfter": 29844,
+      "damage": 156,
+      "stunEligible": false,
+      "stunned": false,
+      "stunExpiresAt": null,
+      "trace": [
+        {
+          "system": "iron-charge-fixture",
+          "stage": "target_snapshot",
+          "time": 0,
+          "targetId": "fixture-target",
+          "targetValid": true,
+          "actorPosition": {
+            "x": 0,
+            "z": 0
+          },
+          "targetPosition": {
+            "x": 0,
+            "z": 3.7
+          }
+        },
+        {
+          "system": "iron-charge-fixture",
+          "stage": "cast_accepted",
+          "time": 0,
+          "targetId": "fixture-target"
+        },
+        {
+          "system": "iron-charge-fixture",
+          "stage": "movement_command",
+          "time": 0,
+          "targetId": "fixture-target",
+          "start": {
+            "x": 0,
+            "z": 0
+          },
+          "stopDistance": 1.2,
+          "impactRange": 1,
+          "requestedDistance": 2.5
+        },
+        {
+          "system": "iron-charge-fixture",
+          "stage": "movement_complete",
+          "time": 0,
+          "targetId": "fixture-target",
+          "end": {
+            "x": 0,
+            "z": 2.5
+          },
+          "travelDistance": 2.5,
+          "remainingTargetDistance": 1.2000000000000002
+        },
+        {
+          "system": "iron-charge-fixture",
+          "stage": "impact_callback",
+          "time": 0,
+          "targetId": "fixture-target",
+          "travelDistance": 2.5,
+          "targetDistance": 1.2000000000000002
+        },
+        {
+          "system": "iron-charge-fixture",
+          "stage": "damage_resolver",
+          "time": 0,
+          "targetId": "fixture-target",
+          "amountBeforeMitigation": 156,
+          "hpBefore": 30000
+        },
+        {
+          "system": "iron-charge-fixture",
+          "stage": "target_hp_changed",
+          "time": 0,
+          "targetId": "fixture-target",
+          "hpBefore": 30000,
+          "hpAfter": 29844,
+          "damage": 156
+        },
+        {
+          "system": "iron-charge-fixture",
+          "stage": "stun_eligibility",
+          "time": 0,
+          "targetId": "fixture-target",
+          "travelDistance": 2.5,
+          "minimumTravelDistance": 3.5,
+          "eligible": false,
+          "immune": false
+        }
+      ]
+    },
+    "b": {
+      "castAccepted": true,
+      "impact": true,
+      "startDistance": 6,
+      "travelDistance": 4.8,
+      "targetDistance": 1.2000000000000002,
+      "targetHpBefore": 30000,
+      "targetHpAfter": 29844,
+      "damage": 156,
+      "stunEligible": true,
+      "stunned": true,
+      "stunExpiresAt": 1.5,
+      "trace": [
+        {
+          "system": "iron-charge-fixture",
+          "stage": "target_snapshot",
+          "time": 0,
+          "targetId": "fixture-target",
+          "targetValid": true,
+          "actorPosition": {
+            "x": 0,
+            "z": 0
+          },
+          "targetPosition": {
+            "x": 0,
+            "z": 6
+          }
+        },
+        {
+          "system": "iron-charge-fixture",
+          "stage": "cast_accepted",
+          "time": 0,
+          "targetId": "fixture-target"
+        },
+        {
+          "system": "iron-charge-fixture",
+          "stage": "movement_command",
+          "time": 0,
+          "targetId": "fixture-target",
+          "start": {
+            "x": 0,
+            "z": 0
+          },
+          "stopDistance": 1.2,
+          "impactRange": 1,
+          "requestedDistance": 4.8
+        },
+        {
+          "system": "iron-charge-fixture",
+          "stage": "movement_complete",
+          "time": 0,
+          "targetId": "fixture-target",
+          "end": {
+            "x": 0,
+            "z": 4.8
+          },
+          "travelDistance": 4.8,
+          "remainingTargetDistance": 1.2000000000000002
+        },
+        {
+          "system": "iron-charge-fixture",
+          "stage": "impact_callback",
+          "time": 0,
+          "targetId": "fixture-target",
+          "travelDistance": 4.8,
+          "targetDistance": 1.2000000000000002
+        },
+        {
+          "system": "iron-charge-fixture",
+          "stage": "damage_resolver",
+          "time": 0,
+          "targetId": "fixture-target",
+          "amountBeforeMitigation": 156,
+          "hpBefore": 30000
+        },
+        {
+          "system": "iron-charge-fixture",
+          "stage": "target_hp_changed",
+          "time": 0,
+          "targetId": "fixture-target",
+          "hpBefore": 30000,
+          "hpAfter": 29844,
+          "damage": 156
+        },
+        {
+          "system": "iron-charge-fixture",
+          "stage": "stun_eligibility",
+          "time": 0,
+          "targetId": "fixture-target",
+          "travelDistance": 4.8,
+          "minimumTravelDistance": 3.5,
+          "eligible": true,
+          "immune": false
+        },
+        {
+          "system": "iron-charge-fixture",
+          "stage": "stun_applied",
+          "time": 0,
+          "targetId": "fixture-target",
+          "expiresAt": 1.5
+        }
+      ]
+    },
+    "c": {
+      "castAccepted": true,
+      "impact": true,
+      "startDistance": 6,
+      "travelDistance": 4.8,
+      "targetDistance": 1.2000000000000002,
+      "targetHpBefore": 30000,
+      "targetHpAfter": 29844,
+      "damage": 156,
+      "stunEligible": true,
+      "stunned": true,
+      "stunExpiresAt": 1.5,
+      "trace": [
+        {
+          "system": "iron-charge-fixture",
+          "stage": "target_snapshot",
+          "time": 0,
+          "targetId": "fixture-target",
+          "targetValid": true,
+          "actorPosition": {
+            "x": 0,
+            "z": 0
+          },
+          "targetPosition": {
+            "x": 0,
+            "z": 6
+          }
+        },
+        {
+          "system": "iron-charge-fixture",
+          "stage": "cast_accepted",
+          "time": 0,
+          "targetId": "fixture-target"
+        },
+        {
+          "system": "iron-charge-fixture",
+          "stage": "movement_command",
+          "time": 0,
+          "targetId": "fixture-target",
+          "start": {
+            "x": 0,
+            "z": 0
+          },
+          "stopDistance": 1.2,
+          "impactRange": 1,
+          "requestedDistance": 4.8
+        },
+        {
+          "system": "iron-charge-fixture",
+          "stage": "movement_complete",
+          "time": 0,
+          "targetId": "fixture-target",
+          "end": {
+            "x": 0,
+            "z": 4.8
+          },
+          "travelDistance": 4.8,
+          "remainingTargetDistance": 1.2000000000000002
+        },
+        {
+          "system": "iron-charge-fixture",
+          "stage": "impact_callback",
+          "time": 0,
+          "targetId": "fixture-target",
+          "travelDistance": 4.8,
+          "targetDistance": 1.2000000000000002
+        },
+        {
+          "system": "iron-charge-fixture",
+          "stage": "damage_resolver",
+          "time": 0,
+          "targetId": "fixture-target",
+          "amountBeforeMitigation": 156,
+          "hpBefore": 30000
+        },
+        {
+          "system": "iron-charge-fixture",
+          "stage": "target_hp_changed",
+          "time": 0,
+          "targetId": "fixture-target",
+          "hpBefore": 30000,
+          "hpAfter": 29844,
+          "damage": 156
+        },
+        {
+          "system": "iron-charge-fixture",
+          "stage": "stun_eligibility",
+          "time": 0,
+          "targetId": "fixture-target",
+          "travelDistance": 4.8,
+          "minimumTravelDistance": 3.5,
+          "eligible": true,
+          "immune": false
+        },
+        {
+          "system": "iron-charge-fixture",
+          "stage": "stun_applied",
+          "time": 0,
+          "targetId": "fixture-target",
+          "expiresAt": 1.5
+        }
+      ],
+      "attempts": [
+        {
+          "action": "movement",
+          "accepted": false
+        },
+        {
+          "action": "basic_attack",
+          "accepted": false
+        },
+        {
+          "action": "active_skill",
+          "accepted": false
+        }
+      ]
+    },
+    "d": {
+      "movement": {
+        "action": "movement",
+        "accepted": true
+      },
+      "basicAttack": {
+        "action": "basic_attack",
+        "accepted": true
+      },
+      "activeSkill": {
+        "action": "active_skill",
+        "accepted": true
+      },
+      "stunned": false,
+      "remaining": 0
+    },
+    "e": {
+      "castAccepted": true,
+      "impact": true,
+      "startDistance": 6,
+      "travelDistance": 4.8,
+      "targetDistance": 1.2000000000000002,
+      "targetHpBefore": 30000,
+      "targetHpAfter": 29844,
+      "damage": 156,
+      "stunEligible": true,
+      "stunned": false,
+      "stunExpiresAt": null,
+      "trace": [
+        {
+          "system": "iron-charge-fixture",
+          "stage": "target_snapshot",
+          "time": 0,
+          "targetId": "fixture-target",
+          "targetValid": true,
+          "actorPosition": {
+            "x": 0,
+            "z": 0
+          },
+          "targetPosition": {
+            "x": 0,
+            "z": 6
+          }
+        },
+        {
+          "system": "iron-charge-fixture",
+          "stage": "cast_accepted",
+          "time": 0,
+          "targetId": "fixture-target"
+        },
+        {
+          "system": "iron-charge-fixture",
+          "stage": "movement_command",
+          "time": 0,
+          "targetId": "fixture-target",
+          "start": {
+            "x": 0,
+            "z": 0
+          },
+          "stopDistance": 1.2,
+          "impactRange": 1,
+          "requestedDistance": 4.8
+        },
+        {
+          "system": "iron-charge-fixture",
+          "stage": "movement_complete",
+          "time": 0,
+          "targetId": "fixture-target",
+          "end": {
+            "x": 0,
+            "z": 4.8
+          },
+          "travelDistance": 4.8,
+          "remainingTargetDistance": 1.2000000000000002
+        },
+        {
+          "system": "iron-charge-fixture",
+          "stage": "impact_callback",
+          "time": 0,
+          "targetId": "fixture-target",
+          "travelDistance": 4.8,
+          "targetDistance": 1.2000000000000002
+        },
+        {
+          "system": "iron-charge-fixture",
+          "stage": "damage_resolver",
+          "time": 0,
+          "targetId": "fixture-target",
+          "amountBeforeMitigation": 156,
+          "hpBefore": 30000
+        },
+        {
+          "system": "iron-charge-fixture",
+          "stage": "target_hp_changed",
+          "time": 0,
+          "targetId": "fixture-target",
+          "hpBefore": 30000,
+          "hpAfter": 29844,
+          "damage": 156
+        },
+        {
+          "system": "iron-charge-fixture",
+          "stage": "stun_eligibility",
+          "time": 0,
+          "targetId": "fixture-target",
+          "travelDistance": 4.8,
+          "minimumTravelDistance": 3.5,
+          "eligible": true,
+          "immune": true
+        }
+      ]
+    },
+    "basic": {
+      "damage": 199,
+      "stunned": false,
+      "knockback": 0,
+      "targetPosition": {
+        "x": 0,
+        "z": 2.5
+      }
+    },
+    "elapsedMs": 1.3999999910593033,
+    "consoleErrors": [],
+    "pageErrors": [],
+    "requestFailures": []
+  },
+  "consoleErrors": [],
+  "pageErrors": [],
+  "requestFailures": [],
+  "browser": "151.0.7922.108"
+}

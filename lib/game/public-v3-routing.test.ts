@@ -1,0 +1,52 @@
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { createNewCharacter, chooseCoreJob, chooseSpecialization, learnSkill, resetSkillPoints, parseSave, activeSkills } from './rules.ts';
+import { getJobSkillNodes, getJobProgression } from './character-view.ts';
+import { getVisibleJobArchitecture } from './job-presentation.ts';
+
+test('public creation opts into V3 without migrating legacy character creation', () => {
+  const old = createNewCharacter('slot-1','Legacy Test');
+  const saved = JSON.stringify(old);
+  const modern = createNewCharacter('slot-2','Modern Test',{},'v3_adventurer');
+  assert.equal(old.progressionArchitecture,'v2_test');
+  assert.equal(modern.skillArchitectureVersion,3);
+  assert(modern.primaryHotbar.every(slot=>slot===null));
+  assert.equal(JSON.stringify(old),saved);
+  assert.equal(parseSave(saved)!.progressionArchitecture,'v2_test');
+  assert(getJobSkillNodes(modern,'adventurer').active.every(s=>s.id.startsWith('v3-adventurer-')));
+});
+
+test('public job routing preserves V3 budget/ancestry, enforces gates and buys Berserker ranks', () => {
+  const hero=createNewCharacter('slot-2','Public Routing',{},'v3_adventurer');
+  hero.skillProgressionV3!.totalEarnedSP=200;
+  hero.level=14;
+  assert.equal(chooseCoreJob(hero,'warrior'),false);
+  hero.level=15;
+  const allocated=JSON.stringify(hero.allocatedStats), equipment=JSON.stringify(hero.equipment);
+  assert.equal(chooseCoreJob(hero,'wizard'),false);
+  assert.equal(chooseCoreJob(hero,'warrior'),true);
+  assert.equal(JSON.stringify(hero.allocatedStats),allocated);
+  assert.equal(JSON.stringify(hero.equipment),equipment);
+  assert.equal(getJobSkillNodes(hero,'core').active.length,11);
+  assert.equal(learnSkill(hero,'v3-warrior-strike'),true);
+  hero.level=59;
+  assert.equal(chooseSpecialization(hero,'berserker'),false);
+  hero.level=60;
+  assert.equal(chooseSpecialization(hero,'gatotkaca'),false);
+  assert.equal(chooseSpecialization(hero,'berserker'),true);
+  assert.equal(hero.skillProgressionV3!.totalEarnedSP,200);
+  assert.equal(hero.skillLevels['v3-warrior-strike'],0);
+  assert.equal(learnSkill(hero,'v3-berserker-two-hand-mastery'),true);
+  assert.equal(getJobSkillNodes(hero,'specialization').active.length,9);
+  assert.deepEqual(getJobProgression(hero).map(e=>e.level),[1,15,60]);
+  assert.equal(getVisibleJobArchitecture(hero).legacyProgression,false);
+  assert.equal(activeSkills(hero).some(s=>s.id.startsWith('v2-')),false);
+  hero.gold=1000;
+  const reset=resetSkillPoints(hero);
+  assert.equal(reset.ok,true);
+  assert.equal(reset.returnedPoints,4);
+  assert.equal(reset.hero.gold,500);
+  assert.equal(reset.hero.skillProgressionV3!.chosenSpecialization,'berserker');
+  assert.equal(reset.hero.skillProgressionV3!.totalEarnedSP,200);
+  assert.equal(reset.hero.skillProgressionV3!.skillRanks['v3-berserker-two-hand-mastery'],undefined);
+});

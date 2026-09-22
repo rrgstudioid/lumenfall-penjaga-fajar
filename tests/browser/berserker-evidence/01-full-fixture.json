@@ -1,0 +1,567 @@
+{
+  "payload": {
+    "name": "SPV3-5 Berserker V3 clean runtime fixture",
+    "worldImported": false,
+    "cases": {
+      "raging": {
+        "targetCap": 8,
+        "actualTargetsHit": 8,
+        "results": [
+          {
+            "id": "target-1",
+            "amount": 369,
+            "hpBefore": 10000,
+            "hpAfter": 9631,
+            "hit": {
+              "delay": 0,
+              "baseDamage": 60.75,
+              "physicalCoefficient": 1.55,
+              "magicCoefficient": 0,
+              "skillPowerCoefficient": 0,
+              "knockbackStrength": 0,
+              "damageType": "physical",
+              "damageMultiplier": 1,
+              "canCrit": false,
+              "criticalRate": 0,
+              "criticalDamage": 150,
+              "accuracy": 149,
+              "statuses": []
+            },
+            "eligible": true,
+            "stunned": true,
+            "remainingStun": 1.5,
+            "knockback": 0
+          },
+          {
+            "id": "target-2",
+            "amount": 369,
+            "hpBefore": 10000,
+            "hpAfter": 9631,
+            "hit": {
+              "delay": 0,
+              "baseDamage": 60.75,
+              "physicalCoefficient": 1.55,
+              "magicCoefficient": 0,
+              "skillPowerCoefficient": 0,
+              "knockbackStrength": 0,
+              "damageType": "physical",
+              "damageMultiplier": 1,
+              "canCrit": false,
+              "criticalRate": 0,
+              "criticalDamage": 150,
+              "accuracy": 149,
+              "statuses": []
+            },
+            "eligible": true,
+            "stunned": true,
+            "remainingStun": 1.5,
+            "knockback": 0
+          },
+          {
+            "id": "target-3",
+            "amount": 369,
+            "hpBefore": 10000,
+            "hpAfter": 9631,
+            "hit": {
+              "delay": 0,
+              "baseDamage": 60.75,
+              "physicalCoefficient": 1.55,
+              "magicCoefficient": 0,
+              "skillPowerCoefficient": 0,
+              "knockbackStrength": 0,
+              "damageType": "physical",
+              "damageMultiplier": 1,
+              "canCrit": false,
+              "criticalRate": 0,
+              "criticalDamage": 150,
+              "accuracy": 149,
+              "statuses": []
+            },
+            "eligible": true,
+            "stunned": true,
+            "remainingStun": 1.5,
+            "knockback": 0
+          },
+          {
+            "id": "target-4",
+            "amount": 369,
+            "hpBefore": 10000,
+            "hpAfter": 9631,
+            "hit": {
+              "delay": 0,
+              "baseDamage": 60.75,
+              "physicalCoefficient": 1.55,
+              "magicCoefficient": 0,
+              "skillPowerCoefficient": 0,
+              "knockbackStrength": 0,
+              "damageType": "physical",
+              "damageMultiplier": 1,
+              "canCrit": false,
+              "criticalRate": 0,
+              "criticalDamage": 150,
+              "accuracy": 149,
+              "statuses": []
+            },
+            "eligible": true,
+            "stunned": true,
+            "remainingStun": 1.5,
+            "knockback": 0
+          },
+          {
+            "id": "target-5",
+            "amount": 369,
+            "hpBefore": 10000,
+            "hpAfter": 9631,
+            "hit": {
+              "delay": 0,
+              "baseDamage": 60.75,
+              "physicalCoefficient": 1.55,
+              "magicCoefficient": 0,
+              "skillPowerCoefficient": 0,
+              "knockbackStrength": 0,
+              "damageType": "physical",
+              "damageMultiplier": 1,
+              "canCrit": false,
+              "criticalRate": 0,
+              "criticalDamage": 150,
+              "accuracy": 149,
+              "statuses": []
+            },
+            "eligible": true,
+            "stunned": true,
+            "remainingStun": 1.5,
+            "knockback": 0
+          },
+          {
+            "id": "target-6",
+            "amount": 369,
+            "hpBefore": 10000,
+            "hpAfter": 9631,
+            "hit": {
+              "delay": 0,
+              "baseDamage": 60.75,
+              "physicalCoefficient": 1.55,
+              "magicCoefficient": 0,
+              "skillPowerCoefficient": 0,
+              "knockbackStrength": 0,
+              "damageType": "physical",
+              "damageMultiplier": 1,
+              "canCrit": false,
+              "criticalRate": 0,
+              "criticalDamage": 150,
+              "accuracy": 149,
+              "statuses": []
+            },
+            "eligible": true,
+            "stunned": true,
+            "remainingStun": 1.5,
+            "knockback": 0
+          },
+          {
+            "id": "target-7",
+            "amount": 369,
+            "hpBefore": 10000,
+            "hpAfter": 9631,
+            "hit": {
+              "delay": 0,
+              "baseDamage": 60.75,
+              "physicalCoefficient": 1.55,
+              "magicCoefficient": 0,
+              "skillPowerCoefficient": 0,
+              "knockbackStrength": 0,
+              "damageType": "physical",
+              "damageMultiplier": 1,
+              "canCrit": false,
+              "criticalRate": 0,
+              "criticalDamage": 150,
+              "accuracy": 149,
+              "statuses": []
+            },
+            "eligible": true,
+            "stunned": true,
+            "remainingStun": 1.5,
+            "knockback": 0
+          },
+          {
+            "id": "target-8",
+            "amount": 369,
+            "hpBefore": 10000,
+            "hpAfter": 9631,
+            "hit": {
+              "delay": 0,
+              "baseDamage": 60.75,
+              "physicalCoefficient": 1.55,
+              "magicCoefficient": 0,
+              "skillPowerCoefficient": 0,
+              "knockbackStrength": 0,
+              "damageType": "physical",
+              "damageMultiplier": 1,
+              "canCrit": false,
+              "criticalRate": 0,
+              "criticalDamage": 150,
+              "accuracy": 149,
+              "statuses": []
+            },
+            "eligible": true,
+            "stunned": false,
+            "remainingStun": 0,
+            "knockback": 0
+          }
+        ]
+      },
+      "fury": {
+        "actualTargetsHit": 7,
+        "heal": 50,
+        "hp": 1000,
+        "hits": [
+          {
+            "amount": 287,
+            "hpBefore": 9631,
+            "hpAfter": 9344,
+            "hit": {
+              "delay": 0,
+              "baseDamage": 37.800000000000004,
+              "physicalCoefficient": 1.25,
+              "magicCoefficient": 0,
+              "skillPowerCoefficient": 0,
+              "knockbackStrength": 0,
+              "damageType": "physical",
+              "damageMultiplier": 1,
+              "canCrit": false,
+              "criticalRate": 0,
+              "criticalDamage": 150,
+              "accuracy": 149,
+              "statuses": []
+            }
+          },
+          {
+            "amount": 287,
+            "hpBefore": 9631,
+            "hpAfter": 9344,
+            "hit": {
+              "delay": 0,
+              "baseDamage": 37.800000000000004,
+              "physicalCoefficient": 1.25,
+              "magicCoefficient": 0,
+              "skillPowerCoefficient": 0,
+              "knockbackStrength": 0,
+              "damageType": "physical",
+              "damageMultiplier": 1,
+              "canCrit": false,
+              "criticalRate": 0,
+              "criticalDamage": 150,
+              "accuracy": 149,
+              "statuses": []
+            }
+          },
+          {
+            "amount": 287,
+            "hpBefore": 9631,
+            "hpAfter": 9344,
+            "hit": {
+              "delay": 0,
+              "baseDamage": 37.800000000000004,
+              "physicalCoefficient": 1.25,
+              "magicCoefficient": 0,
+              "skillPowerCoefficient": 0,
+              "knockbackStrength": 0,
+              "damageType": "physical",
+              "damageMultiplier": 1,
+              "canCrit": false,
+              "criticalRate": 0,
+              "criticalDamage": 150,
+              "accuracy": 149,
+              "statuses": []
+            }
+          },
+          {
+            "amount": 287,
+            "hpBefore": 9631,
+            "hpAfter": 9344,
+            "hit": {
+              "delay": 0,
+              "baseDamage": 37.800000000000004,
+              "physicalCoefficient": 1.25,
+              "magicCoefficient": 0,
+              "skillPowerCoefficient": 0,
+              "knockbackStrength": 0,
+              "damageType": "physical",
+              "damageMultiplier": 1,
+              "canCrit": false,
+              "criticalRate": 0,
+              "criticalDamage": 150,
+              "accuracy": 149,
+              "statuses": []
+            }
+          },
+          {
+            "amount": 287,
+            "hpBefore": 9631,
+            "hpAfter": 9344,
+            "hit": {
+              "delay": 0,
+              "baseDamage": 37.800000000000004,
+              "physicalCoefficient": 1.25,
+              "magicCoefficient": 0,
+              "skillPowerCoefficient": 0,
+              "knockbackStrength": 0,
+              "damageType": "physical",
+              "damageMultiplier": 1,
+              "canCrit": false,
+              "criticalRate": 0,
+              "criticalDamage": 150,
+              "accuracy": 149,
+              "statuses": []
+            }
+          },
+          {
+            "amount": 287,
+            "hpBefore": 9631,
+            "hpAfter": 9344,
+            "hit": {
+              "delay": 0,
+              "baseDamage": 37.800000000000004,
+              "physicalCoefficient": 1.25,
+              "magicCoefficient": 0,
+              "skillPowerCoefficient": 0,
+              "knockbackStrength": 0,
+              "damageType": "physical",
+              "damageMultiplier": 1,
+              "canCrit": false,
+              "criticalRate": 0,
+              "criticalDamage": 150,
+              "accuracy": 149,
+              "statuses": []
+            }
+          },
+          {
+            "amount": 287,
+            "hpBefore": 9631,
+            "hpAfter": 9344,
+            "hit": {
+              "delay": 0,
+              "baseDamage": 37.800000000000004,
+              "physicalCoefficient": 1.25,
+              "magicCoefficient": 0,
+              "skillPowerCoefficient": 0,
+              "knockbackStrength": 0,
+              "damageType": "physical",
+              "damageMultiplier": 1,
+              "canCrit": false,
+              "criticalRate": 0,
+              "criticalDamage": 150,
+              "accuracy": 149,
+              "statuses": []
+            }
+          }
+        ]
+      },
+      "trance": {
+        "duration": 16,
+        "finalDamageBonus": 0.1,
+        "targetCap": 8,
+        "actualTargetsHit": 8,
+        "frenzyGuard": {
+          "reductionPercent": 6,
+          "expiresAt": 4
+        },
+        "hits": [
+          {
+            "amount": 332,
+            "hpBefore": 9344,
+            "hpAfter": 9012,
+            "hit": {
+              "delay": 0,
+              "baseDamage": 43.2,
+              "physicalCoefficient": 1.3,
+              "magicCoefficient": 0,
+              "skillPowerCoefficient": 0,
+              "knockbackStrength": 0,
+              "damageType": "physical",
+              "damageMultiplier": 1,
+              "canCrit": false,
+              "criticalRate": 0,
+              "criticalDamage": 150,
+              "accuracy": 149,
+              "statuses": []
+            }
+          },
+          {
+            "amount": 332,
+            "hpBefore": 9344,
+            "hpAfter": 9012,
+            "hit": {
+              "delay": 0,
+              "baseDamage": 43.2,
+              "physicalCoefficient": 1.3,
+              "magicCoefficient": 0,
+              "skillPowerCoefficient": 0,
+              "knockbackStrength": 0,
+              "damageType": "physical",
+              "damageMultiplier": 1,
+              "canCrit": false,
+              "criticalRate": 0,
+              "criticalDamage": 150,
+              "accuracy": 149,
+              "statuses": []
+            }
+          },
+          {
+            "amount": 332,
+            "hpBefore": 9344,
+            "hpAfter": 9012,
+            "hit": {
+              "delay": 0,
+              "baseDamage": 43.2,
+              "physicalCoefficient": 1.3,
+              "magicCoefficient": 0,
+              "skillPowerCoefficient": 0,
+              "knockbackStrength": 0,
+              "damageType": "physical",
+              "damageMultiplier": 1,
+              "canCrit": false,
+              "criticalRate": 0,
+              "criticalDamage": 150,
+              "accuracy": 149,
+              "statuses": []
+            }
+          },
+          {
+            "amount": 332,
+            "hpBefore": 9344,
+            "hpAfter": 9012,
+            "hit": {
+              "delay": 0,
+              "baseDamage": 43.2,
+              "physicalCoefficient": 1.3,
+              "magicCoefficient": 0,
+              "skillPowerCoefficient": 0,
+              "knockbackStrength": 0,
+              "damageType": "physical",
+              "damageMultiplier": 1,
+              "canCrit": false,
+              "criticalRate": 0,
+              "criticalDamage": 150,
+              "accuracy": 149,
+              "statuses": []
+            }
+          },
+          {
+            "amount": 332,
+            "hpBefore": 9344,
+            "hpAfter": 9012,
+            "hit": {
+              "delay": 0,
+              "baseDamage": 43.2,
+              "physicalCoefficient": 1.3,
+              "magicCoefficient": 0,
+              "skillPowerCoefficient": 0,
+              "knockbackStrength": 0,
+              "damageType": "physical",
+              "damageMultiplier": 1,
+              "canCrit": false,
+              "criticalRate": 0,
+              "criticalDamage": 150,
+              "accuracy": 149,
+              "statuses": []
+            }
+          },
+          {
+            "amount": 332,
+            "hpBefore": 9344,
+            "hpAfter": 9012,
+            "hit": {
+              "delay": 0,
+              "baseDamage": 43.2,
+              "physicalCoefficient": 1.3,
+              "magicCoefficient": 0,
+              "skillPowerCoefficient": 0,
+              "knockbackStrength": 0,
+              "damageType": "physical",
+              "damageMultiplier": 1,
+              "canCrit": false,
+              "criticalRate": 0,
+              "criticalDamage": 150,
+              "accuracy": 149,
+              "statuses": []
+            }
+          },
+          {
+            "amount": 332,
+            "hpBefore": 9344,
+            "hpAfter": 9012,
+            "hit": {
+              "delay": 0,
+              "baseDamage": 43.2,
+              "physicalCoefficient": 1.3,
+              "magicCoefficient": 0,
+              "skillPowerCoefficient": 0,
+              "knockbackStrength": 0,
+              "damageType": "physical",
+              "damageMultiplier": 1,
+              "canCrit": false,
+              "criticalRate": 0,
+              "criticalDamage": 150,
+              "accuracy": 149,
+              "statuses": []
+            }
+          },
+          {
+            "amount": 332,
+            "hpBefore": 9631,
+            "hpAfter": 9299,
+            "hit": {
+              "delay": 0,
+              "baseDamage": 43.2,
+              "physicalCoefficient": 1.3,
+              "magicCoefficient": 0,
+              "skillPowerCoefficient": 0,
+              "knockbackStrength": 0,
+              "damageType": "physical",
+              "damageMultiplier": 1,
+              "canCrit": false,
+              "criticalRate": 0,
+              "criticalDamage": 150,
+              "accuracy": 149,
+              "statuses": []
+            }
+          }
+        ]
+      },
+      "breaker": {
+        "impact": true,
+        "breakerEntryActive": true
+      },
+      "breakerFollowup": {
+        "accepted": true,
+        "consumed": true,
+        "amount": 163,
+        "hpBefore": 9012,
+        "hpAfter": 8849,
+        "hit": {
+          "delay": 0,
+          "baseDamage": 13.5,
+          "physicalCoefficient": 0.75,
+          "magicCoefficient": 0,
+          "skillPowerCoefficient": 0,
+          "knockbackStrength": 0,
+          "damageType": "physical",
+          "damageMultiplier": 1,
+          "canCrit": false,
+          "criticalRate": 0,
+          "criticalDamage": 150,
+          "accuracy": 149,
+          "statuses": []
+        }
+      }
+    },
+    "trace": [
+      {
+        "stage": "iron_charge_impact",
+        "breakerEntryExpiresAt": 6
+      }
+    ],
+    "browserErrors": []
+  },
+  "errors": []
+}

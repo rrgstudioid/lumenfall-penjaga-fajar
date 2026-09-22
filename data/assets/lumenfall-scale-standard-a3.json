@@ -1,0 +1,111 @@
+{
+  "schemaVersion": 1,
+  "status": "PILOT_CALIBRATED_NOT_GLOBAL_CONTENT_MIGRATION",
+  "units": "LUMENFALL world units; no independent real-world metre calibration implied",
+  "character": {
+    "source": "lib/game/character-model.ts",
+    "asset": "/assets/characters/astra-hunyuan/astra-hunyuan-rigged.glb",
+    "runtimeHeight": 2.4,
+    "observed": {
+      "asset": "astra-hunyuan",
+      "height": 2.4,
+      "loaded": "ready"
+    },
+    "capsuleRadius": 0.45
+  },
+  "packFactors": {
+    "Medieval_Village_MegaKit": 1.5,
+    "Fantasy_Props_MegaKit": 1.5,
+    "tree_small_02_2k": 1,
+    "boulder_01_2k": 1
+  },
+  "basis": "1.5 is an authored pilot pack calibration against the actual 2.4-unit character and sampled gate clearance; BLEND nature uses METRIC unit_scale=1 and exporter axis conversion. No individual scale correction.",
+  "sourceScaleConsistency": "No unrelated per-object scale factors required; oversized decorative roof and long bench are authored proportions, not corrected silently",
+  "measured": {
+    "doorwayFrameHeight": 3.879257061285898,
+    "testedDoorClearance": {
+      "width": 1.6500000000000008,
+      "height": 2.6,
+      "note": "sampled central clear rectangle, not full arch height; actual WASD traversal passed"
+    },
+    "wallDimensions": [
+      3.0000001788139343,
+      4.68717697262764,
+      0.6097230613231659
+    ],
+    "floorSlabThickness": 0.0300005623139441,
+    "houseWallFootprint": [
+      6,
+      6
+    ],
+    "houseStoreyHeight": 4.5,
+    "houseRoofFootprint": [
+      8.475781917572021,
+      8.140649557113647
+    ],
+    "houseOverallHeight": 14.683223247528076,
+    "towerWallFootprint": [
+      6,
+      6
+    ],
+    "towerBodyHeight": 9,
+    "towerOverallHeight": 19.183223247528076,
+    "stairs": {
+      "lowZ": 13.5,
+      "highZ": 10.384131073951721,
+      "rise": 1.4999998211860657,
+      "run": 3.115868926048279,
+      "horizontalSurfaceHeights": [
+        0.3353,
+        0.3562,
+        0.6122,
+        0.6457,
+        0.9173,
+        0.9226,
+        1.2276
+      ],
+      "observedRiserIntervals": [
+        0.0209,
+        0.256,
+        0.0335,
+        0.2716,
+        0.0053,
+        0.305
+      ],
+      "collision": "authored walk ramp + source landing; render stair preserved",
+      "direction": -1
+    }
+  },
+  "designReferences": {
+    "normalDoor": {
+      "width": 1.65,
+      "minimumClearHeight": 2.6,
+      "state": "tested pilot"
+    },
+    "largeGate": {
+      "width": 3,
+      "minimumClearHeight": 4.8,
+      "state": "future design recommendation, not built/tested"
+    },
+    "houseStorey": {
+      "height": 4.5,
+      "state": "pilot assembly"
+    },
+    "mainRoadWidth": {
+      "value": 6,
+      "state": "pilot neutral street; final city traffic not tested"
+    },
+    "alleyWidth": {
+      "value": 3,
+      "state": "proposed 3-unit module, not traversal stress-tested"
+    },
+    "cityWall": {
+      "value": 4.687,
+      "state": "pilot visual wall height only, not finalized defensible city wall"
+    },
+    "defensiveTower": {
+      "bodyHeight": 9,
+      "state": "pilot two-storey composition; tall roof not a final fortification asset"
+    }
+  }
+}

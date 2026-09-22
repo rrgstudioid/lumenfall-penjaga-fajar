@@ -1,0 +1,28 @@
+{
+  "name": "Lumenfall Stylized Tree Runtime Pack",
+  "source": "Stylized Tree Pack",
+  "format": "glb",
+  "status": "integrated",
+  "usage": "Decorative trees are loaded asynchronously for Arunika, Verdant Plains, East Gate Arunika, and Sands Location.",
+  "families": [
+    "acacia",
+    "beech",
+    "joshua",
+    "maple",
+    "oak",
+    "pine",
+    "spruce",
+    "willow"
+  ],
+  "meshes": [
+    "meshes/acacia-sm_stylized_tree_acacia_01.glb",
+    "meshes/beech-sm_stylized_tree_beech_03.glb",
+    "meshes/joshua-sm_stylized_tree_joshua_02.glb",
+    "meshes/maple-sm_stylized_tree_maple_04.glb",
+    "meshes/oak-sm_stylized_tree_oak_02.glb",
+    "meshes/pine-sm_stylized_tree_pine_03.glb",
+    "meshes/spruce-sm_stylized_tree_spruce_02.glb",
+    "meshes/willow-sm_stylized_tree_willow_02.glb"
+  ],
+  "materials": "/assets/materials/stylized-tree/"
+}

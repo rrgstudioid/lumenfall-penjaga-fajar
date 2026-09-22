@@ -1,0 +1,65 @@
+/* Only UI roots are scaled. Never scale body, game-shell, world canvas or portal parents. */
+:root { --lumenfall-ui-scale: 1; }
+
+.game-shell > :is(.player-card, .quest-card, .map-panel, .toast, .boss-bar, .start-screen, .shrine-prompt, .touch-movement),
+.topbar > :is(.brand, .location, .top-tools),
+.game-footer > :is(.journey-note, .experience),
+.lumenfall-draggable-window[data-slot],
+.primary-hotbar-panel {
+  scale: var(--lumenfall-ui-scale);
+}
+
+.game-shell > :is(.player-card, .quest-card), .topbar > .brand {
+  transform-origin: top left;
+}
+.game-shell > .map-panel, .topbar > .top-tools { transform-origin: top right; }
+.game-footer > .journey-note, .touch-movement { transform-origin: bottom left; }
+.game-footer > .experience { transform-origin: bottom right; }
+.primary-hotbar-panel { transform-origin: top left; }
+.game-shell > :is(.toast, .boss-bar, .shrine-prompt), .topbar > .location {
+  /* Existing translateX(-50%) remains part of transform; this keeps the screen anchor fixed. */
+  transform-origin: 0 0;
+}
+.game-shell > .start-screen { transform-origin: 0 0; }
+.lumenfall-draggable-window[data-slot] { transform-origin: center; }
+.lumenfall-draggable-window[data-ui-positioned='true'] {
+  transform-origin: top left;
+  /* Pointer coordinates are applied immediately; never tween left/top/translate. */
+  transition-property: opacity;
+}
+
+/* Constrain the *visual* bounds, including oversized panels and portaled dialogs. */
+html .game-dialog.lumenfall-draggable-window[data-slot='dialog-content'],
+.lumenfall-draggable-window[data-slot='alert-dialog-content'] {
+  width: min(calc(100% - 32px), calc((100vw - 32px) / var(--lumenfall-ui-scale)));
+  max-height: calc(86dvh / var(--lumenfall-ui-scale));
+  overflow-y: auto;
+}
+.primary-hotbar-panel:not(.quick-hotbar-panel) {
+  /* PrimaryHotbar is intentionally 25% more compact than the other UI. */
+  scale: calc(var(--lumenfall-ui-scale) * var(--primary-hotbar-scale));
+  width: min(880px, calc((100vw - 16px) / (var(--lumenfall-ui-scale) * var(--primary-hotbar-scale))));
+  transform-origin: top left;
+}
+.inventory-dialog .inventory-grid { max-height: min(281.25px, calc(32dvh / var(--lumenfall-ui-scale))); }
+.inventory-drops-panel { max-height: calc(86dvh / var(--lumenfall-ui-scale) - 60px); }
+
+/* Popup layout scales rather than only its paint, so the existing popup positioner
+   can measure it and retain viewport collision handling. These are portal roots. */
+[data-slot='tooltip-content'], [data-slot='select-content'] {
+  zoom: var(--lumenfall-ui-scale);
+  max-width: calc((100vw - 24px) / var(--lumenfall-ui-scale));
+}
+
+.game-shell > .quest-card {
+  top: calc(var(--ui-player-bottom, 256px) + 16px);
+  max-height: calc((100dvh - var(--ui-player-bottom, 256px) - 70px) / var(--lumenfall-ui-scale));
+  overflow-y: auto;
+}
+
+.interface-settings { display: grid; gap: 12px; padding: 14px; border: 1px solid #bdcea243; border-radius: 7px; }
+.interface-scale-label { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.interface-scale-label output { color: #eed67e; font-variant-numeric: tabular-nums; }
+.interface-scale-controls { display: grid; grid-template-columns: 36px minmax(0, 1fr) 36px; align-items: center; gap: 12px; }
+.interface-scale-controls button { justify-content: center; padding: 6px; font-size: 18px; }
+.interface-settings .muted-copy { margin: 0; }

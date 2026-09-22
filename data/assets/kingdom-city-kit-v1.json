@@ -1,0 +1,115 @@
+﻿{
+    "schemaVersion":  "1.0",
+    "kitId":  "kingdom_city_kit_v1",
+    "status":  "SHORTLISTED",
+    "selectionBasis":  "Curated from indexed real assets; no production import or license approval implied.",
+    "target":  "Original medieval fantasy kingdom city",
+    "assets":  {
+                   "castle_palace":  [
+                                         "env_package_large_castle_door_2k",
+                                         "env_package_modular_fort_01_2k"
+                                     ],
+                   "wall_modules":  [
+                                        "env_model_wall_arch",
+                                        "env_model_wall_bottomcover",
+                                        "env_model_wall_plaster_door_flat",
+                                        "env_model_wall_plaster_door_round",
+                                        "env_model_wall_plaster_door_roundinset",
+                                        "env_model_wall_plaster_straight"
+                                    ],
+                   "gates_arches":  [
+                                        "env_model_doorframe_flat_brick",
+                                        "env_model_doorframe_flat_wooddark",
+                                        "env_model_doorframe_round_brick",
+                                        "env_model_doorframe_round_wooddark"
+                                    ],
+                   "towers":  "env_model_roof_tower_roundtiles",
+                   "houses":  [
+                                  "env_model_corner_exteriorwide_brick",
+                                  "env_model_corner_exteriorwide_wood",
+                                  "env_model_corner_exterior_brick",
+                                  "env_model_corner_exterior_topdown",
+                                  "env_model_corner_exterior_toponly",
+                                  "env_model_corner_exterior_wood",
+                                  "env_model_floor_brick",
+                                  "env_model_floor_redbrick",
+                                  "env_model_floor_unevenbrick",
+                                  "env_model_floor_wooddark",
+                                  "env_model_floor_wooddark_half1",
+                                  "env_model_floor_wooddark_half2"
+                              ],
+                   "shops_civic":  [
+                                       "env_model_anvil",
+                                       "env_model_anvil_log",
+                                       "env_model_stall_cart_empty",
+                                       "env_model_stall_empty",
+                                       "env_model_workbench",
+                                       "env_model_workbench_drawers",
+                                       "env_model_prop_wagon"
+                                   ],
+                   "religious_landmark":  {
+
+                                          },
+                   "bridges_stairs":  [
+                                          "env_model_stairs_exterior_nofirststep",
+                                          "env_model_stairs_exterior_platform",
+                                          "env_model_stairs_exterior_platform45",
+                                          "env_model_stairs_exterior_platform45clean",
+                                          "env_model_stairs_exterior_platformu",
+                                          "env_model_stairs_exterior_sideplatform",
+                                          "env_model_stairs_exterior_sides",
+                                          "env_model_stairs_exterior_sides45"
+                                      ],
+                   "roads_plaza":  [
+                                       "env_model_floor_brick",
+                                       "env_model_floor_redbrick"
+                                   ],
+                   "market_props":  [
+                                        "env_model_barrel",
+                                        "env_model_barrel_apples",
+                                        "env_model_barrel_holder",
+                                        "env_model_bench",
+                                        "env_model_crate_metal",
+                                        "env_model_crate_wooden",
+                                        "env_model_farmcrate_apple",
+                                        "env_model_farmcrate_carrot",
+                                        "env_model_farmcrate_empty",
+                                        "env_model_lantern_wall"
+                                    ],
+                   "street_props":  [
+                                        "env_model_torch_metal",
+                                        "env_model_prop_metalfence_ornament",
+                                        "env_model_prop_metalfence_simple",
+                                        "env_model_prop_woodenfence_extension1",
+                                        "env_model_prop_woodenfence_extension2",
+                                        "env_model_prop_woodenfence_single"
+                                    ],
+                   "banners":  [
+                                   "env_model_banner_1",
+                                   "env_model_banner_1_cloth",
+                                   "env_model_banner_2"
+                               ],
+                   "vegetation":  [
+                                      "env_package_fern_02_2k",
+                                      "env_package_grass_medium_01_2k",
+                                      "env_package_grass_medium_02_2k",
+                                      "env_package_shrub_03_2k",
+                                      "env_package_shrub_04_2k",
+                                      "env_package_wild_rooibos_bush_2k",
+                                      "env_package_dead_tree_trunk_02_2k",
+                                      "env_package_fir_tree_01_2k"
+                                  ],
+                   "rocks":  [
+                                 "env_package_boulder_01_2k",
+                                 "env_package_namaqualand_boulders_01_2k",
+                                 "env_package_rock_07_2k",
+                                 "env_package_rock_09_2k",
+                                 "env_package_rock_face_02_2k"
+                             ]
+               },
+    "notes":  [
+                  "The village kit is mostly modular construction pieces, not complete finished houses.",
+                  "Castle/palace coverage is limited: modular fort plus large castle door are present, but a complete palace shell was not confirmed from archive names.",
+                  "All selected assets remain INDEXED/SHORTLISTED and must pass license, visual, scale, collision and performance review."
+              ]
+}

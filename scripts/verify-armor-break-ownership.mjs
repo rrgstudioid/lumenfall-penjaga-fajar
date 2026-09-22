@@ -1,0 +1,18 @@
+import assert from 'node:assert/strict';
+import { build } from 'vite';
+import { mkdir, writeFile } from 'node:fs/promises';
+import { resolve } from 'node:path';
+import { pathToFileURL } from 'node:url';
+const runtime=process.env.CODEX_NODE_MODULES || 'C:/Users/USER/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules';
+const {chromium}=await import(pathToFileURL(`${runtime}/playwright/index.mjs`).href);
+const out=resolve('output/release-audit/armor-break-ownership');await mkdir(out,{recursive:true});
+const built=await build({configFile:false,logLevel:'error',build:{write:false,minify:false,lib:{entry:resolve('tests/browser/armor-break-ownership-fixture.ts'),formats:['iife'],name:'ArmorBreakOwnershipFixture'}}});
+const code=(Array.isArray(built)?built:[built]).flatMap(b=>b.output).find(c=>c.type==='chunk').code;
+const browser=await chromium.launch({channel:'chrome',headless:true});const page=await browser.newPage();const errors=[];
+page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(['error','warning'].includes(m.type()))errors.push(m.text());});
+await page.route('http://armor-break.test/**',route=>route.fulfill({status:200,contentType:route.request().url().includes('.bundle.js')?'application/javascript':'text/html',body:route.request().url().includes('.bundle.js')?code:'<pre id="result"></pre><script type="module" src="/tests/browser/armor-break-ownership-fixture.bundle.js"></script>'}));
+await page.goto('http://armor-break.test/tests/browser/armor-break-ownership-fixture.html',{waitUntil:'networkidle'});await page.waitForFunction(()=>Boolean(window.__armorBreakOwnershipFixture));
+const payload=await page.evaluate(()=>window.__armorBreakOwnershipFixture);assert.deepEqual(errors,[]);
+assert.equal(payload.aFinale.payoffApplied,true);assert.equal(payload.bFinale.payoffApplied,false);assert.equal(payload.aRuinous.payoffApplied,true);assert.equal(payload.bRuinous.payoffApplied,false);
+assert.equal(payload.strongest.effectiveReduction,12);assert.equal(payload.afterB.effectiveReduction,6);assert.equal(payload.afterAll.effectiveReduction,0);assert.equal(payload.refreshed.active.length,1);
+await page.screenshot({path:resolve(out,'ownership.png'),fullPage:true});await writeFile(resolve(out,'results.json'),JSON.stringify({status:'PASS',payload,errors},null,2));console.log(JSON.stringify({status:'PASS',errors,payload},null,2));await browser.close();

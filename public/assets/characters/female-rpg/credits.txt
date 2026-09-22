@@ -1,0 +1,12 @@
+Female Body base for rpg
+Original creator: Ilya.Anchouz.Danilov
+Creator: https://sketchfab.com/Ilya.Anchouz.Danilov
+Source: https://sketchfab.com/3d-models/female-body-base-for-rpg-a0be862b658d4b4e9aff461219281315
+License recorded in supplied asset: Creative Commons Attribution 4.0
+License: https://creativecommons.org/licenses/by/4.0/
+
+Changes for Lumenfall: forward-axis conversion, seam welding for skinning,
+humanoid rig and skin weights, hand/equipment sockets, and retargeted game animations.
+Original model design, UVs and textures retained.
+Running motion: user-supplied Army_man_Running asset; combat: user's Dual Sword assets.
+These animation sources have their own licenses; they are not relicensed by this notice.

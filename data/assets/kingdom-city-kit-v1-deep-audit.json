@@ -1,0 +1,71 @@
+{
+  "schemaVersion": "A1.5-candidates",
+  "generatedAt": "2026-09-20T14:38:16.995Z",
+  "sourceRoot": "D:\\Model_Asset_Lumenfall",
+  "status": "CANDIDATE_ONLY",
+  "noProductionImport": true,
+  "recommendation": {
+    "castle": [
+      "env_building_large_castle_door_2k",
+      "env_building_modular_fort_01_2k"
+    ],
+    "walls": [
+      "env_building_lantern_wall",
+      "env_building_wall_arch",
+      "env_building_wall_bottomcover",
+      "env_building_wall_plaster_door_flat",
+      "env_building_wall_plaster_door_round",
+      "env_building_wall_plaster_door_roundinset",
+      "env_building_wall_plaster_straight",
+      "env_building_wall_plaster_straight_base",
+      "env_building_wall_plaster_straight_l",
+      "env_building_wall_plaster_straight_r",
+      "env_building_wall_plaster_window_thin_round",
+      "env_building_wall_plaster_window_wide_flat",
+      "env_building_wall_plaster_window_wide_flat2",
+      "env_building_wall_plaster_window_wide_round",
+      "env_building_wall_plaster_woodgrid",
+      "env_building_wall_unevenbrick_door_flat",
+      "env_building_wall_unevenbrick_door_round",
+      "env_building_wall_unevenbrick_straight",
+      "env_building_wall_unevenbrick_window_thin_round",
+      "env_building_wall_unevenbrick_window_wide_flat"
+    ],
+    "gates": [],
+    "towers": [
+      "env_building_roof_tower_roundtiles"
+    ],
+    "stairs": [
+      "env_building_holecover_90stairs",
+      "env_building_stairs_exterior_nofirststep",
+      "env_building_stairs_exterior_platform",
+      "env_building_stairs_exterior_platform45",
+      "env_building_stairs_exterior_platform45clean",
+      "env_building_stairs_exterior_platformu",
+      "env_building_stairs_exterior_sideplatform",
+      "env_building_stairs_exterior_sides",
+      "env_building_stairs_exterior_sides45",
+      "env_building_stairs_exterior_sidesu",
+      "env_building_stairs_exterior_singleside",
+      "env_building_stairs_exterior_singlesidethick",
+      "env_building_stairs_exterior_straight",
+      "env_building_stairs_exterior_straight_center",
+      "env_building_stairs_exterior_straight_l",
+      "env_building_stairs_exterior_straight_r",
+      "env_building_stair_interior_rails",
+      "env_building_stair_interior_simple",
+      "env_building_stair_interior_solid",
+      "env_building_stair_interior_solidextended"
+    ],
+    "bridges": [],
+    "roadsPlazas": [],
+    "religious": []
+  },
+  "gapAssessment": {
+    "castlePalace": "PARTIAL",
+    "religiousLandmark": "NOT_FOUND",
+    "roadPlazaKit": "PARTIAL",
+    "stairsBridgeKit": "PARTIAL"
+  },
+  "note": "This is an audit candidate list, not an approval or production-ready kit."
+}

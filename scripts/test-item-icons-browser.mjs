@@ -1,0 +1,161 @@
+// Isolated browser fixtures only; never touches the user's browser profile or production saves.
+import assert from 'node:assert/strict';
+import { mkdir, writeFile } from 'node:fs/promises';
+import { pathToFileURL } from 'node:url';
+import { resolve } from 'node:path';
+import { ITEM_CATALOG, createItem } from '../lib/game/items.ts';
+import { freshHero, SAVE_KEY } from '../lib/game/rules.ts';
+import { CITIES } from '../lib/game/regions.ts';
+import { getItemIconPath } from '../lib/game/item-icons.ts';
+
+const { chromium } = await import(process.env.PLAYWRIGHT_MODULE
+  ? pathToFileURL(process.env.PLAYWRIGHT_MODULE).href : 'playwright');
+const out = resolve('work/item-icons');
+await mkdir(out, { recursive: true });
+const browser = await chromium.launch({channel:'chrome',headless:true, args:['--enable-unsafe-swiftshader']});
+const context = await browser.newContext({ viewport: {width:1440,height:1000} });
+const errors = [], missing = [], checks = [];
+const ids = ['field-verdant-plains-sword','field-sunken-ruins-bow','jayantara-two-hand-sword','garda-shield','rune-might','rune-raja-meteor','magnifier','health-potion-1','mana-potion-3'];
+const hero = freshHero();
+hero.characterName = 'Icon QA';
+hero.level = 50; hero.gold = 100000; hero.hp = 1000; hero.mana = 1;
+hero.coreJob = 'warrior'; hero.job = 'warrior'; hero.jobTier = 'specialization'; hero.specialization = 'garda';
+hero.inventoryCapacity = 160;
+hero.inventory = [...ids, ...Object.keys(ITEM_CATALOG).filter(id => !ids.includes(id))].map(id => createItem(id,{id:`qa-${id}`,quantity:ITEM_CATALOG[id].stackable?5:1}));
+const mace = hero.inventory.find(i=>i.templateId==='garda-mace');
+mace.sockets = [{id:'qa-socket-1',rune:null},{id:'qa-socket-2',rune:null}];
+hero.equipment.mainHand = mace.id;
+hero.equipment.offHand = 'qa-garda-shield';
+hero.primaryHotbar[4] = 'health-potion-1';
+hero.primaryHotbar[5] = 'mana-potion-3';
+hero.primaryHotbar[9] = null;
+const merchant = CITIES.arunika.npcList.find(npc=>npc.service==='consumable');
+hero.x = merchant.x; hero.z = merchant.z + 2;
+const seed = {version:3,activeSlot:'slot-1',characters:{'slot-1':hero}};
+await context.addInitScript(({key,seed}) => {
+  if (!localStorage.getItem('icon-qa-seeded')) {
+    localStorage.setItem(key,JSON.stringify(seed));
+    localStorage.setItem('icon-qa-seeded','1');
+  }
+  const registered = {};
+  Object.defineProperty(document,'modelContext',{value:{registerTool(tool){registered[tool.name]=tool;}}});
+  window.iconQaProgress=()=>registered.get_adventure_progress?.execute({});
+},{key:SAVE_KEY,seed});
+const page = await context.newPage();
+page.on('pageerror',e=>errors.push(String(e)));
+page.on('console',m=>{ if(m.type()==='error') errors.push(`${m.text()} ${m.location().url}`); });
+page.on('response',r=>{if(r.status()>=400)missing.push(`${r.status()} ${r.url()}`);});
+const check = (name) => { checks.push(name); console.log(`PASS ${name}`); };
+const screenshot = name => page.screenshot({path:resolve(out,`${name}.png`)});
+const progress = () => page.evaluate(()=>window.iconQaProgress().hero);
+async function drag(source, target) {
+  await source.scrollIntoViewIfNeeded();
+  const a=await source.boundingBox(), b=await target.boundingBox();
+  assert(a&&b);
+  await page.mouse.move(a.x+a.width/2,a.y+a.height/2);
+  await page.mouse.down();
+  await page.mouse.move(a.x+a.width/2+12,a.y+a.height/2,{steps:3});
+  await page.mouse.move(b.x+b.width/2,b.y+b.height/2,{steps:20});
+  await page.mouse.up();
+}
+async function loadedIcons(scope=page) {
+  await scope.locator('[data-item-icon] img').first().waitFor();
+  await scope.locator('[data-item-icon] img').evaluateAll(images=>Promise.all(images.map(i=>i.decode().catch(()=>{}))));
+  const icons = await scope.locator('[data-item-icon] img').evaluateAll(images=>images.map(i=>({src:i.getAttribute('src'),loaded:i.complete&&i.naturalWidth===256})));
+  assert(icons.length>0);
+  assert(icons.every(i=>i.loaded),JSON.stringify(icons.filter(i=>!i.loaded)));
+  return icons;
+}
+try {
+  await page.goto('http://localhost:3001/',{waitUntil:'networkidle'});
+  await page.getByRole('button',{name:'Lanjutkan perjalanan',exact:true}).click();
+  await page.locator('.primary-hotbar-panel').first().waitFor();
+  await loadedIcons(page.locator('.primary-hotbar-panel').first());
+  check('PrimaryHotbar uses canonical item art');
+  await page.keyboard.press('i');
+  const inventory=page.getByRole('dialog');
+  await inventory.locator('.inventory-grid').waitFor();
+  await loadedIcons(inventory);
+  for (const id of ids) {
+    const icon=inventory.locator(`[data-item-icon="${id}"] img`).first();
+    assert.equal(await icon.getAttribute('src'),getItemIconPath(id));
+  }
+  check('All nine representative items use their correct canonical art');
+  const all=await inventory.locator('.inventory-grid [data-item-icon]').count();
+  assert.equal(all,104);
+  check('104/104 actual Inventory images loaded');
+  await screenshot('inventory');
+  await inventory.locator('[data-item-id="qa-magnifier"]').click();
+  await inventory.locator('.item-detail [data-item-icon="magnifier"]').waitFor();
+  assert.match(await inventory.locator('.item-detail').innerText(),/Arcane Magnifier/);
+  check('Item detail resolves the same image and description');
+  await screenshot('item-detail');
+  await inventory.getByRole('button',{name:'Tutup detail item'}).click();
+  const beforeDrag=await progress();
+  await drag(inventory.locator('[data-inventory-index="0"]'),inventory.locator('[data-inventory-index="1"]'));
+  await page.waitForFunction(()=>document.querySelector('[data-inventory-index="1"]')?.getAttribute('data-item-id')==='qa-field-verdant-plains-sword');
+  assert.deepEqual((await progress()).inventory,beforeDrag.inventory);
+  check('Inventory swap preserves all item data, stack counts and ownership');
+  await page.locator('.primary-edit-toggle').first().click();
+  await drag(inventory.locator('[data-item-id="qa-health-potion-1"]'),page.getByRole('button',{name:'Slot 0: Kosong',exact:true}));
+  await page.getByRole('button',{name:'Slot 0: Health Potion I',exact:true}).waitFor();
+  assert.deepEqual((await progress()).inventory,beforeDrag.inventory);
+  check('Item drag to slot 0 is reference-only and uses canonical art');
+  await page.locator('.primary-edit-toggle').first().click();
+  await page.keyboard.press('Escape');
+  await page.getByRole('button',{name:'Slot 0: Health Potion I',exact:true}).hover();
+  await page.locator('.primary-tooltip').waitFor();
+  await loadedIcons(page.locator('.primary-tooltip'));
+  check('Hotbar tooltip has correct icon, description and quantity');
+  await page.mouse.move(1400,990);
+  await page.keyboard.press('6');
+  await page.waitForFunction(()=>window.iconQaProgress().hero.inventory.find(i=>i.templateId==='mana-potion-3').quantity===4);
+  assert(await page.getByRole('button',{name:'Slot 6: Mana Potion III',exact:true}).locator('.primary-cooldown').count());
+  check('Item hotkey consumes once and retains quantity/cooldown overlay');
+  await screenshot('hotbar');
+  await page.keyboard.press('c');
+  await page.getByRole('tab',{name:'Equipment',exact:true}).click();
+  await loadedIcons(page.getByRole('dialog'));
+  await page.getByRole('dialog').locator('[data-item-icon="garda-shield"]').first().waitFor();
+  check('Character Equipment uses canonical weapon/shield art and dynamic rarity');
+  await screenshot('equipment');
+  await page.keyboard.press('Escape');
+  await page.keyboard.press('m');
+  await page.getByRole('button',{name:/Nyi Raras/}).click();
+  await page.locator('[data-shop-item="mana-potion-3"]').waitFor();
+  await loadedIcons(page.getByRole('dialog'));
+  check('Actual nearby NPC shop loads canonical potion artwork');
+  await screenshot('shop');
+  await page.keyboard.press('Escape');
+  await page.keyboard.press('i');
+  await page.getByRole('dialog').locator('[data-item-id="qa-garda-mace"]').click();
+  await page.getByRole('dialog').locator('.socket-button').first().click();
+  await page.getByRole('dialog').locator('.rune-picker [data-item-icon="rune-might"]').waitFor();
+  await loadedIcons(page.getByRole('dialog').locator('.rune-picker'));
+  check('Rune picker uses each canonical Rune icon');
+  await screenshot('runes');
+  await page.getByRole('dialog').locator('.rune-picker button').filter({has:page.locator('[data-item-icon="rune-might"]')}).click();
+  await page.getByRole('alertdialog').getByRole('button',{name:'Konfirmasi',exact:true}).click();
+  await page.getByRole('dialog').locator('.socket-button [data-item-icon="rune-might"]').waitFor();
+  const socketed = (await progress()).inventory.find(i=>i.templateId==='garda-mace');
+  assert.equal(socketed.sockets[0].rune.templateId,'rune-might');
+  assert.equal((await progress()).inventory.some(i=>i.id==='qa-rune-might'),false);
+  check('Installed Rune retains canonical art and moves into socket without duplication');
+  await page.getByRole('dialog').getByRole('button',{name:'Rune Optimizer',exact:true}).click();
+  await page.locator('.rune-optimizer-dialog').waitFor();
+  await loadedIcons(page.locator('.rune-optimizer-dialog'));
+  await page.locator('.rune-optimizer-dialog [data-item-icon="rune-might"]').waitFor();
+  check('Rune Optimizer uses canonical equipment, installed Rune and optimizer artwork');
+  await screenshot('optimizer');
+  await page.keyboard.press('Escape');
+  await page.reload({waitUntil:'networkidle'});
+  await page.getByRole('button',{name:'Lanjutkan perjalanan',exact:true}).click();
+  await page.getByRole('button',{name:'Slot 0: Health Potion I',exact:true}).waitFor();
+  assert.equal((await progress()).inventory.find(i=>i.templateId==='mana-potion-3').quantity,4);
+  assert.equal((await progress()).inventory.find(i=>i.templateId==='garda-mace').sockets[0].rune.templateId,'rune-might');
+  check('Reload preserves existing inventory layout/bindings and resolves new art');
+  assert.deepEqual(missing,[]); assert.deepEqual(errors,[]);
+} finally {
+  await writeFile(resolve(out,'browser-results.json'),JSON.stringify({checks,errors,missing},null,2));
+  await browser.close();
+}

@@ -1,0 +1,22 @@
+{
+  "schema": "CFV3-1.1",
+  "basePrimaryStat": 15,
+  "statPointsPerLevel": 2,
+  "basePhysicalAttack": "7 + floor(level * 1.1)",
+  "interpretation": "Rows use base 15 in all four stats, zero allocated points, and the level-1 Dawnblade/starter weapon (+8 attack). Basic Attack is Physical Attack Power * 1.0 before combo/critical/mitigation.",
+  "rows": [
+    {"level":1,"baseStats":{"str":15,"vit":15,"dex":15,"int":15},"earnedStatPoints":0,"basePhysicalAttack":8,"strContribution":0,"weaponContribution":8,"totalPhysicalAttack":16,"unarmedBasicAttack":8,"normalWeaponBasicAttack":16},
+    {"level":10,"baseStats":{"str":15,"vit":15,"dex":15,"int":15},"earnedStatPoints":18,"basePhysicalAttack":18,"strContribution":0,"weaponContribution":8,"totalPhysicalAttack":26,"unarmedBasicAttack":18,"normalWeaponBasicAttack":26},
+    {"level":14,"baseStats":{"str":15,"vit":15,"dex":15,"int":15},"earnedStatPoints":26,"basePhysicalAttack":22,"strContribution":0,"weaponContribution":8,"totalPhysicalAttack":30,"unarmedBasicAttack":22,"normalWeaponBasicAttack":30},
+    {"level":15,"baseStats":{"str":15,"vit":15,"dex":15,"int":15},"earnedStatPoints":28,"basePhysicalAttack":23,"strContribution":0,"weaponContribution":8,"totalPhysicalAttack":31,"unarmedBasicAttack":23,"normalWeaponBasicAttack":31},
+    {"level":30,"baseStats":{"str":15,"vit":15,"dex":15,"int":15},"earnedStatPoints":58,"basePhysicalAttack":40,"strContribution":0,"weaponContribution":8,"totalPhysicalAttack":48,"unarmedBasicAttack":40,"normalWeaponBasicAttack":48},
+    {"level":59,"baseStats":{"str":15,"vit":15,"dex":15,"int":15},"earnedStatPoints":116,"basePhysicalAttack":71,"strContribution":0,"weaponContribution":8,"totalPhysicalAttack":79,"unarmedBasicAttack":71,"normalWeaponBasicAttack":79},
+    {"level":60,"baseStats":{"str":15,"vit":15,"dex":15,"int":15},"earnedStatPoints":118,"basePhysicalAttack":73,"strContribution":0,"weaponContribution":8,"totalPhysicalAttack":81,"unarmedBasicAttack":73,"normalWeaponBasicAttack":81},
+    {"level":70,"baseStats":{"str":15,"vit":15,"dex":15,"int":15},"earnedStatPoints":138,"basePhysicalAttack":84,"strContribution":0,"weaponContribution":8,"totalPhysicalAttack":92,"unarmedBasicAttack":84,"normalWeaponBasicAttack":92},
+    {"level":80,"baseStats":{"str":15,"vit":15,"dex":15,"int":15},"earnedStatPoints":158,"basePhysicalAttack":95,"strContribution":0,"weaponContribution":8,"totalPhysicalAttack":103,"unarmedBasicAttack":95,"normalWeaponBasicAttack":103},
+    {"level":100,"baseStats":{"str":15,"vit":15,"dex":15,"int":15},"earnedStatPoints":198,"basePhysicalAttack":117,"strContribution":0,"weaponContribution":8,"totalPhysicalAttack":125,"unarmedBasicAttack":117,"normalWeaponBasicAttack":125}
+  ],
+  "lv15ExampleFinalStats":{"str":43,"vit":15,"dex":15,"int":15,"allocated":{"str":28,"vit":0,"dex":0,"int":0},"basePhysicalAttack":23,"strContribution":28,"weaponContribution":8,"totalPhysicalAttack":59,"unarmedBasicAttack":51,"normalWeaponBasicAttack":59},
+  "lv59To60":{"lv59":{"basePhysicalAttack":71,"earnedStatPoints":116},"lv60":{"basePhysicalAttack":73,"earnedStatPoints":118}},
+  "weaponFactorConfig":{"physicalFamilies":"1 provisional factor","weaponless":0}
+}

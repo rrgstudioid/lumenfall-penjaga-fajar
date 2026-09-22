@@ -1,0 +1,30 @@
+{
+  "source": "FootageCrate-Blue_Inferno_Breath_Loopable.zip",
+  "sourceSha256": "496604e8cae52ee8b02720f92068542c0d4ed608ccd402dc859874a15dc7fb74",
+  "sourceFrames": 41,
+  "sourceResolution": [
+    3840,
+    2160
+  ],
+  "frames": 41,
+  "fps": 18,
+  "columns": 7,
+  "rows": 6,
+  "tileSize": [
+    160,
+    256
+  ],
+  "padding": 2,
+  "atlasSize": [
+    1120,
+    1536
+  ],
+  "bytes": 160936,
+  "cropOn384pxProxy": [
+    19,
+    82,
+    379,
+    132
+  ],
+  "sourceUnmodified": true
+}

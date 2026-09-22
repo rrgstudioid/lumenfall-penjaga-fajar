@@ -1,0 +1,1881 @@
+﻿{
+    "sourceRoot":  "D:\\Model_Asset_Lumenfall",
+    "requestedSource":  "D:\\Model\\_Asset\\_Lumenfall",
+    "sourceCorrection":  "D:\\Model_Asset_Lumenfall",
+    "fileCount":  94,
+    "totalBytes":  3444954245,
+    "archiveCount":  93,
+    "archiveBytes":  3444954181,
+    "topLevel":  [
+                     "Master_ Material_ Lumenfall",
+                     "Master_Model_Lumenfall"
+                 ],
+    "tree":  [
+                 {
+                     "path":  "Master_ Material_ Lumenfall",
+                     "fileCount":  66
+                 },
+                 {
+                     "path":  "Master_Model_Lumenfall",
+                     "fileCount":  26
+                 },
+                 {
+                     "path":  "Master_ Material_ Lumenfall/Fabric_Banner",
+                     "fileCount":  2
+                 },
+                 {
+                     "path":  "Master_ Material_ Lumenfall/Metal",
+                     "fileCount":  5
+                 },
+                 {
+                     "path":  "Master_ Material_ Lumenfall/Plaster_Brick",
+                     "fileCount":  5
+                 },
+                 {
+                     "path":  "Master_ Material_ Lumenfall/Rock_Cliff",
+                     "fileCount":  13
+                 },
+                 {
+                     "path":  "Master_ Material_ Lumenfall/Roof",
+                     "fileCount":  2
+                 },
+                 {
+                     "path":  "Master_ Material_ Lumenfall/Stone_Architecture",
+                     "fileCount":  4
+                 },
+                 {
+                     "path":  "Master_ Material_ Lumenfall/Terrain",
+                     "fileCount":  18
+                 },
+                 {
+                     "path":  "Master_ Material_ Lumenfall/Tree_bark",
+                     "fileCount":  9
+                 },
+                 {
+                     "path":  "Master_ Material_ Lumenfall/Water",
+                     "fileCount":  3
+                 },
+                 {
+                     "path":  "Master_ Material_ Lumenfall/Wood",
+                     "fileCount":  5
+                 },
+                 {
+                     "path":  "Master_Model_Lumenfall/Environment",
+                     "fileCount":  26
+                 },
+                 {
+                     "path":  "Master_Model_Lumenfall/Environment/Building",
+                     "fileCount":  5
+                 },
+                 {
+                     "path":  "Master_Model_Lumenfall/Environment/Ground_Vegatation",
+                     "fileCount":  10
+                 },
+                 {
+                     "path":  "Master_Model_Lumenfall/Environment/Rock",
+                     "fileCount":  5
+                 },
+                 {
+                     "path":  "Master_Model_Lumenfall/Environment/Tree",
+                     "fileCount":  6
+                 }
+             ],
+    "archives":  [
+                     {
+                         "path":  "D:\\Model_Asset_Lumenfall\\gb_nomadwaveundercut.mhpkg",
+                         "relativePath":  "gb_nomadwaveundercut.mhpkg",
+                         "extension":  ".mhpkg",
+                         "sizeBytes":  178144135,
+                         "readable":  true,
+                         "packageType":  "MHPKG_ZIP_CONTAINER",
+                         "contentFileCount":  30,
+                         "contentExtensions":  [
+                                                   ".json",
+                                                   ".uasset"
+                                               ],
+                         "kind":  "OTHER",
+                         "nestedArchiveEntries":  null,
+                         "modelRelevance":  "MATERIAL_OR_OTHER"
+                     },
+                     {
+                         "path":  "D:\\Model_Asset_Lumenfall\\Master_ Material_ Lumenfall\\Fabric_Banner\\fabric_pattern_05_2k.blend.zip",
+                         "relativePath":  "Master_ Material_ Lumenfall/Fabric_Banner/fabric_pattern_05_2k.blend.zip",
+                         "extension":  ".zip",
+                         "sizeBytes":  19315127,
+                         "readable":  true,
+                         "packageType":  "ZIP",
+                         "contentFileCount":  4,
+                         "contentExtensions":  [
+                                                   ".blend",
+                                                   ".exr",
+                                                   ".jpg",
+                                                   ".png"
+                                               ],
+                         "kind":  "MATERIAL",
+                         "nestedArchiveEntries":  null,
+                         "modelRelevance":  "RELEVANT"
+                     },
+                     {
+                         "path":  "D:\\Model_Asset_Lumenfall\\Master_ Material_ Lumenfall\\Fabric_Banner\\velour_velvet_2k.blend.zip",
+                         "relativePath":  "Master_ Material_ Lumenfall/Fabric_Banner/velour_velvet_2k.blend.zip",
+                         "extension":  ".zip",
+                         "sizeBytes":  46330065,
+                         "readable":  true,
+                         "packageType":  "ZIP",
+                         "contentFileCount":  9,
+                         "contentExtensions":  [
+                                                   ".blend",
+                                                   ".exr",
+                                                   ".jpg",
+                                                   ".png"
+                                               ],
+                         "kind":  "MATERIAL",
+                         "nestedArchiveEntries":  null,
+                         "modelRelevance":  "RELEVANT"
+                     },
+                     {
+                         "path":  "D:\\Model_Asset_Lumenfall\\Master_ Material_ Lumenfall\\Metal\\corrugated_iron_2k.blend.zip",
+                         "relativePath":  "Master_ Material_ Lumenfall/Metal/corrugated_iron_2k.blend.zip",
+                         "extension":  ".zip",
+                         "sizeBytes":  20034450,
+                         "readable":  true,
+                         "packageType":  "ZIP",
+                         "contentFileCount":  6,
+                         "contentExtensions":  [
+                                                   ".blend",
+                                                   ".exr",
+                                                   ".jpg",
+                                                   ".png"
+                                               ],
+                         "kind":  "MATERIAL",
+                         "nestedArchiveEntries":  null,
+                         "modelRelevance":  "RELEVANT"
+                     },
+                     {
+                         "path":  "D:\\Model_Asset_Lumenfall\\Master_ Material_ Lumenfall\\Metal\\metal_plate_02_2k.blend.zip",
+                         "relativePath":  "Master_ Material_ Lumenfall/Metal/metal_plate_02_2k.blend.zip",
+                         "extension":  ".zip",
+                         "sizeBytes":  15093989,
+                         "readable":  true,
+                         "packageType":  "ZIP",
+                         "contentFileCount":  6,
+                         "contentExtensions":  [
+                                                   ".blend",
+                                                   ".exr",
+                                                   ".jpg",
+                                                   ".png"
+                                               ],
+                         "kind":  "MATERIAL",
+                         "nestedArchiveEntries":  null,
+                         "modelRelevance":  "RELEVANT"
+                     },
+                     {
+                         "path":  "D:\\Model_Asset_Lumenfall\\Master_ Material_ Lumenfall\\Metal\\rusty_metal_sheet_2k.blend.zip",
+                         "relativePath":  "Master_ Material_ Lumenfall/Metal/rusty_metal_sheet_2k.blend.zip",
+                         "extension":  ".zip",
+                         "sizeBytes":  19114059,
+                         "readable":  true,
+                         "packageType":  "ZIP",
+                         "contentFileCount":  5,
+                         "contentExtensions":  [
+                                                   ".blend",
+                                                   ".exr",
+                                                   ".jpg",
+                                                   ".png"
+                                               ],
+                         "kind":  "MATERIAL",
+                         "nestedArchiveEntries":  null,
+                         "modelRelevance":  "RELEVANT"
+                     },
+                     {
+                         "path":  "D:\\Model_Asset_Lumenfall\\Master_ Material_ Lumenfall\\Metal\\rust_coarse_01_2k.blend.zip",
+                         "relativePath":  "Master_ Material_ Lumenfall/Metal/rust_coarse_01_2k.blend.zip",
+                         "extension":  ".zip",
+                         "sizeBytes":  23983289,
+                         "readable":  true,
+                         "packageType":  "ZIP",
+                         "contentFileCount":  5,
+                         "contentExtensions":  [
+                                                   ".blend",
+                                                   ".exr",
+                                                   ".jpg",
+                                                   ".png"
+                                               ],
+                         "kind":  "MATERIAL",
+                         "nestedArchiveEntries":  null,
+                         "modelRelevance":  "RELEVANT"
+                     },
+                     {
+                         "path":  "D:\\Model_Asset_Lumenfall\\Master_ Material_ Lumenfall\\Metal\\worn_corrugated_iron_2k.blend.zip",
+                         "relativePath":  "Master_ Material_ Lumenfall/Metal/worn_corrugated_iron_2k.blend.zip",
+                         "extension":  ".zip",
+                         "sizeBytes":  20708951,
+                         "readable":  true,
+                         "packageType":  "ZIP",
+                         "contentFileCount":  5,
+                         "contentExtensions":  [
+                                                   ".blend",
+                                                   ".exr",
+                                                   ".jpg",
+                                                   ".png"
+                                               ],
+                         "kind":  "MATERIAL",
+                         "nestedArchiveEntries":  null,
+                         "modelRelevance":  "RELEVANT"
+                     },
+                     {
+                         "path":  "D:\\Model_Asset_Lumenfall\\Master_ Material_ Lumenfall\\Plaster_Brick\\plastered_wall_02_2k.blend.zip",
+                         "relativePath":  "Master_ Material_ Lumenfall/Plaster_Brick/plastered_wall_02_2k.blend.zip",
+                         "extension":  ".zip",
+                         "sizeBytes":  17187207,
+                         "readable":  true,
+                         "packageType":  "ZIP",
+                         "contentFileCount":  5,
+                         "contentExtensions":  [
+                                                   ".blend",
+                                                   ".exr",
+                                                   ".jpg",
+                                                   ".png"
+                                               ],
+                         "kind":  "MATERIAL",
+                         "nestedArchiveEntries":  null,
+                         "modelRelevance":  "RELEVANT"
+                     },
+                     {
+                         "path":  "D:\\Model_Asset_Lumenfall\\Master_ Material_ Lumenfall\\Plaster_Brick\\red_brick_2k.blend.zip",
+                         "relativePath":  "Master_ Material_ Lumenfall/Plaster_Brick/red_brick_2k.blend.zip",
+                         "extension":  ".zip",
+                         "sizeBytes":  19108818,
+                         "readable":  true,
+                         "packageType":  "ZIP",
+                         "contentFileCount":  5,
+                         "contentExtensions":  [
+                                                   ".blend",
+                                                   ".exr",
+                                                   ".jpg",
+                                                   ".png"
+                                               ],
+                         "kind":  "MATERIAL",
+                         "nestedArchiveEntries":  null,
+                         "modelRelevance":  "RELEVANT"
+                     },
+                     {
+                         "path":  "D:\\Model_Asset_Lumenfall\\Master_ Material_ Lumenfall\\Plaster_Brick\\white_bricks_2k.blend.zip",
+                         "relativePath":  "Master_ Material_ Lumenfall/Plaster_Brick/white_bricks_2k.blend.zip",
+                         "extension":  ".zip",
+                         "sizeBytes":  19341909,
+                         "readable":  true,
+                         "packageType":  "ZIP",
+                         "contentFileCount":  5,
+                         "contentExtensions":  [
+                                                   ".blend",
+                                                   ".exr",
+                                                   ".jpg",
+                                                   ".png"
+                                               ],
+                         "kind":  "MATERIAL",
+                         "nestedArchiveEntries":  null,
+                         "modelRelevance":  "RELEVANT"
+                     },
+                     {
+                         "path":  "D:\\Model_Asset_Lumenfall\\Master_ Material_ Lumenfall\\Plaster_Brick\\white_plaster_02_2k.blend.zip",
+                         "relativePath":  "Master_ Material_ Lumenfall/Plaster_Brick/white_plaster_02_2k.blend.zip",
+                         "extension":  ".zip",
+                         "sizeBytes":  20864904,
+                         "readable":  true,
+                         "packageType":  "ZIP",
+                         "contentFileCount":  5,
+                         "contentExtensions":  [
+                                                   ".blend",
+                                                   ".exr",
+                                                   ".jpg",
+                                                   ".png"
+                                               ],
+                         "kind":  "MATERIAL",
+                         "nestedArchiveEntries":  null,
+                         "modelRelevance":  "RELEVANT"
+                     },
+                     {
+                         "path":  "D:\\Model_Asset_Lumenfall\\Master_ Material_ Lumenfall\\Plaster_Brick\\yellow_plaster_2k.blend.zip",
+                         "relativePath":  "Master_ Material_ Lumenfall/Plaster_Brick/yellow_plaster_2k.blend.zip",
+                         "extension":  ".zip",
+                         "sizeBytes":  15281647,
+                         "readable":  true,
+                         "packageType":  "ZIP",
+                         "contentFileCount":  5,
+                         "contentExtensions":  [
+                                                   ".blend",
+                                                   ".exr",
+                                                   ".jpg",
+                                                   ".png"
+                                               ],
+                         "kind":  "MATERIAL",
+                         "nestedArchiveEntries":  null,
+                         "modelRelevance":  "RELEVANT"
+                     },
+                     {
+                         "path":  "D:\\Model_Asset_Lumenfall\\Master_ Material_ Lumenfall\\Rock_Cliff\\aerial_rocks_01_2k.blend.zip",
+                         "relativePath":  "Master_ Material_ Lumenfall/Rock_Cliff/aerial_rocks_01_2k.blend.zip",
+                         "extension":  ".zip",
+                         "sizeBytes":  22120093,
+                         "readable":  true,
+                         "packageType":  "ZIP",
+                         "contentFileCount":  5,
+                         "contentExtensions":  [
+                                                   ".blend",
+                                                   ".exr",
+                                                   ".jpg",
+                                                   ".png"
+                                               ],
+                         "kind":  "MATERIAL",
+                         "nestedArchiveEntries":  null,
+                         "modelRelevance":  "RELEVANT"
+                     },
+                     {
+                         "path":  "D:\\Model_Asset_Lumenfall\\Master_ Material_ Lumenfall\\Rock_Cliff\\cliff_side_2k.blend.zip",
+                         "relativePath":  "Master_ Material_ Lumenfall/Rock_Cliff/cliff_side_2k.blend.zip",
+                         "extension":  ".zip",
+                         "sizeBytes":  18236922,
+                         "readable":  true,
+                         "packageType":  "ZIP",
+                         "contentFileCount":  5,
+                         "contentExtensions":  [
+                                                   ".blend",
+                                                   ".exr",
+                                                   ".jpg",
+                                                   ".png"
+                                               ],
+                         "kind":  "MATERIAL",
+                         "nestedArchiveEntries":  null,
+                         "modelRelevance":  "RELEVANT"
+                     },
+                     {
+                         "path":  "D:\\Model_Asset_Lumenfall\\Master_ Material_ Lumenfall\\Rock_Cliff\\dark_rock_2k.blend.zip",
+                         "relativePath":  "Master_ Material_ Lumenfall/Rock_Cliff/dark_rock_2k.blend.zip",
+                         "extension":  ".zip",
+                         "sizeBytes":  18517743,
+                         "readable":  true,
+                         "packageType":  "ZIP",
+                         "contentFileCount":  5,
+                         "contentExtensions":  [
+                                                   ".blend",
+                                                   ".exr",
+                                                   ".jpg",
+                                                   ".png"
+                                               ],
+                         "kind":  "MATERIAL",
+                         "nestedArchiveEntries":  null,
+                         "modelRelevance":  "RELEVANT"
+                     },
+                     {
+                         "path":  "D:\\Model_Asset_Lumenfall\\Master_ Material_ Lumenfall\\Rock_Cliff\\marble_cliff_03_2k.blend.zip",
+                         "relativePath":  "Master_ Material_ Lumenfall/Rock_Cliff/marble_cliff_03_2k.blend.zip",
+                         "extension":  ".zip",
+                         "sizeBytes":  15017038,
+                         "readable":  true,
+                         "packageType":  "ZIP",
+                         "contentFileCount":  5,
+                         "contentExtensions":  [
+                                                   ".blend",
+                                                   ".exr",
+                                                   ".jpg",
+                                                   ".png"
+                                               ],
+                         "kind":  "MATERIAL",
+                         "nestedArchiveEntries":  null,
+                         "modelRelevance":  "RELEVANT"
+                     },
+                     {
+                         "path":  "D:\\Model_Asset_Lumenfall\\Master_ Material_ Lumenfall\\Rock_Cliff\\marble_cliff_05_2k.blend.zip",
+                         "relativePath":  "Master_ Material_ Lumenfall/Rock_Cliff/marble_cliff_05_2k.blend.zip",
+                         "extension":  ".zip",
+                         "sizeBytes":  18492301,
+                         "readable":  true,
+                         "packageType":  "ZIP",
+                         "contentFileCount":  5,
+                         "contentExtensions":  [
+                                                   ".blend",
+                                                   ".exr",
+                                                   ".jpg",
+                                                   ".png"
+                                               ],
+                         "kind":  "MATERIAL",
+                         "nestedArchiveEntries":  null,
+                         "modelRelevance":  "RELEVANT"
+                     },
+                     {
+                         "path":  "D:\\Model_Asset_Lumenfall\\Master_ Material_ Lumenfall\\Rock_Cliff\\mossy_rock_2k.blend.zip",
+                         "relativePath":  "Master_ Material_ Lumenfall/Rock_Cliff/mossy_rock_2k.blend.zip",
+                         "extension":  ".zip",
+                         "sizeBytes":  24394013,
+                         "readable":  true,
+                         "packageType":  "ZIP",
+                         "contentFileCount":  5,
+                         "contentExtensions":  [
+                                                   ".blend",
+                                                   ".exr",
+                                                   ".jpg",
+                                                   ".png"
+                                               ],
+                         "kind":  "MATERIAL",
+                         "nestedArchiveEntries":  null,
+                         "modelRelevance":  "RELEVANT"
+                     },
+                     {
+                         "path":  "D:\\Model_Asset_Lumenfall\\Master_ Material_ Lumenfall\\Rock_Cliff\\rock_06_2k.blend.zip",
+                         "relativePath":  "Master_ Material_ Lumenfall/Rock_Cliff/rock_06_2k.blend.zip",
+                         "extension":  ".zip",
+                         "sizeBytes":  19601622,
+                         "readable":  true,
+                         "packageType":  "ZIP",
+                         "contentFileCount":  5,
+                         "contentExtensions":  [
+                                                   ".blend",
+                                                   ".exr",
+                                                   ".jpg",
+                                                   ".png"
+                                               ],
+                         "kind":  "MATERIAL",
+                         "nestedArchiveEntries":  null,
+                         "modelRelevance":  "RELEVANT"
+                     },
+                     {
+                         "path":  "D:\\Model_Asset_Lumenfall\\Master_ Material_ Lumenfall\\Rock_Cliff\\rock_boulder_dry_2k.blend.zip",
+                         "relativePath":  "Master_ Material_ Lumenfall/Rock_Cliff/rock_boulder_dry_2k.blend.zip",
+                         "extension":  ".zip",
+                         "sizeBytes":  21990369,
+                         "readable":  true,
+                         "packageType":  "ZIP",
+                         "contentFileCount":  5,
+                         "contentExtensions":  [
+                                                   ".blend",
+                                                   ".exr",
+                                                   ".jpg",
+                                                   ".png"
+                                               ],
+                         "kind":  "MATERIAL",
+                         "nestedArchiveEntries":  null,
+                         "modelRelevance":  "RELEVANT"
+                     },
+                     {
+                         "path":  "D:\\Model_Asset_Lumenfall\\Master_ Material_ Lumenfall\\Rock_Cliff\\rock_face_03_2k.blend.zip",
+                         "relativePath":  "Master_ Material_ Lumenfall/Rock_Cliff/rock_face_03_2k.blend.zip",
+                         "extension":  ".zip",
+                         "sizeBytes":  21740400,
+                         "readable":  true,
+                         "packageType":  "ZIP",
+                         "contentFileCount":  5,
+                         "contentExtensions":  [
+                                                   ".blend",
+                                                   ".exr",
+                                                   ".jpg",
+                                                   ".png"
+                                               ],
+                         "kind":  "MATERIAL",
+                         "nestedArchiveEntries":  null,
+                         "modelRelevance":  "RELEVANT"
+                     },
+                     {
+                         "path":  "D:\\Model_Asset_Lumenfall\\Master_ Material_ Lumenfall\\Rock_Cliff\\rock_face_04_2k.blend.zip",
+                         "relativePath":  "Master_ Material_ Lumenfall/Rock_Cliff/rock_face_04_2k.blend.zip",
+                         "extension":  ".zip",
+                         "sizeBytes":  20893554,
+                         "readable":  true,
+                         "packageType":  "ZIP",
+                         "contentFileCount":  5,
+                         "contentExtensions":  [
+                                                   ".blend",
+                                                   ".exr",
+                                                   ".jpg",
+                                                   ".png"
+                                               ],
+                         "kind":  "MATERIAL",
+                         "nestedArchiveEntries":  null,
+                         "modelRelevance":  "RELEVANT"
+                     },
+                     {
+                         "path":  "D:\\Model_Asset_Lumenfall\\Master_ Material_ Lumenfall\\Rock_Cliff\\rock_face_2k.blend.zip",
+                         "relativePath":  "Master_ Material_ Lumenfall/Rock_Cliff/rock_face_2k.blend.zip",
+                         "extension":  ".zip",
+                         "sizeBytes":  18489530,
+                         "readable":  true,
+                         "packageType":  "ZIP",
+                         "contentFileCount":  5,
+                         "contentExtensions":  [
+                                                   ".blend",
+                                                   ".exr",
+                                                   ".jpg",
+                                                   ".png"
+                                               ],
+                         "kind":  "MATERIAL",
+                         "nestedArchiveEntries":  null,
+                         "modelRelevance":  "RELEVANT"
+                     },
+                     {
+                         "path":  "D:\\Model_Asset_Lumenfall\\Master_ Material_ Lumenfall\\Rock_Cliff\\rock_surface_2k.blend.zip",
+                         "relativePath":  "Master_ Material_ Lumenfall/Rock_Cliff/rock_surface_2k.blend.zip",
+                         "extension":  ".zip",
+                         "sizeBytes":  24610431,
+                         "readable":  true,
+                         "packageType":  "ZIP",
+                         "contentFileCount":  5,
+                         "contentExtensions":  [
+                                                   ".blend",
+                                                   ".exr",
+                                                   ".jpg",
+                                                   ".png"
+                                               ],
+                         "kind":  "MATERIAL",
+                         "nestedArchiveEntries":  null,
+                         "modelRelevance":  "RELEVANT"
+                     },
+                     {
+                         "path":  "D:\\Model_Asset_Lumenfall\\Master_ Material_ Lumenfall\\Rock_Cliff\\seaside_rock_2k.blend.zip",
+                         "relativePath":  "Master_ Material_ Lumenfall/Rock_Cliff/seaside_rock_2k.blend.zip",
+                         "extension":  ".zip",
+                         "sizeBytes":  20965564,
+                         "readable":  true,
+                         "packageType":  "ZIP",
+                         "contentFileCount":  5,
+                         "contentExtensions":  [
+                                                   ".blend",
+                                                   ".exr",
+                                                   ".jpg",
+                                                   ".png"
+                                               ],
+                         "kind":  "MATERIAL",
+                         "nestedArchiveEntries":  null,
+                         "modelRelevance":  "RELEVANT"
+                     },
+                     {
+                         "path":  "D:\\Model_Asset_Lumenfall\\Master_ Material_ Lumenfall\\Roof\\clay_roof_tiles_2k.blend.zip",
+                         "relativePath":  "Master_ Material_ Lumenfall/Roof/clay_roof_tiles_2k.blend.zip",
+                         "extension":  ".zip",
+                         "sizeBytes":  19117167,
+                         "readable":  true,
+                         "packageType":  "ZIP",
+                         "contentFileCount":  5,
+                         "contentExtensions":  [
+                                                   ".blend",
+                                                   ".exr",
+                                                   ".jpg",
+                                                   ".png"
+                                               ],
+                         "kind":  "MATERIAL",
+                         "nestedArchiveEntries":  null,
+                         "modelRelevance":  "RELEVANT"
+                     },
+                     {
+                         "path":  "D:\\Model_Asset_Lumenfall\\Master_ Material_ Lumenfall\\Roof\\roof_slates_03_2k.blend.zip",
+                         "relativePath":  "Master_ Material_ Lumenfall/Roof/roof_slates_03_2k.blend.zip",
+                         "extension":  ".zip",
+                         "sizeBytes":  13521175,
+                         "readable":  true,
+                         "packageType":  "ZIP",
+                         "contentFileCount":  5,
+                         "contentExtensions":  [
+                                                   ".blend",
+                                                   ".exr",
+                                                   ".jpg",
+                                                   ".png"
+                                               ],
+                         "kind":  "MATERIAL",
+                         "nestedArchiveEntries":  null,
+                         "modelRelevance":  "RELEVANT"
+                     },
+                     {
+                         "path":  "D:\\Model_Asset_Lumenfall\\Master_ Material_ Lumenfall\\Stone_Architecture\\castle_brick_01_2k.blend.zip",
+                         "relativePath":  "Master_ Material_ Lumenfall/Stone_Architecture/castle_brick_01_2k.blend.zip",
+                         "extension":  ".zip",
+                         "sizeBytes":  20322688,
+                         "readable":  true,
+                         "packageType":  "ZIP",
+                         "contentFileCount":  5,
+                         "contentExtensions":  [
+                                                   ".blend",
+                                                   ".exr",
+                                                   ".jpg",
+                                                   ".png"
+                                               ],
+                         "kind":  "MATERIAL",
+                         "nestedArchiveEntries":  null,
+                         "modelRelevance":  "RELEVANT"
+                     },
+                     {
+                         "path":  "D:\\Model_Asset_Lumenfall\\Master_ Material_ Lumenfall\\Stone_Architecture\\castle_brick_02_white_2k.blend.zip",
+                         "relativePath":  "Master_ Material_ Lumenfall/Stone_Architecture/castle_brick_02_white_2k.blend.zip",
+                         "extension":  ".zip",
+                         "sizeBytes":  20771365,
+                         "readable":  true,
+                         "packageType":  "ZIP",
+                         "contentFileCount":  5,
+                         "contentExtensions":  [
+                                                   ".blend",
+                                                   ".exr",
+                                                   ".jpg",
+                                                   ".png"
+                                               ],
+                         "kind":  "MATERIAL",
+                         "nestedArchiveEntries":  null,
+                         "modelRelevance":  "RELEVANT"
+                     },
+                     {
+                         "path":  "D:\\Model_Asset_Lumenfall\\Master_ Material_ Lumenfall\\Stone_Architecture\\medieval_blocks_03_2k.blend.zip",
+                         "relativePath":  "Master_ Material_ Lumenfall/Stone_Architecture/medieval_blocks_03_2k.blend.zip",
+                         "extension":  ".zip",
+                         "sizeBytes":  17482264,
+                         "readable":  true,
+                         "packageType":  "ZIP",
+                         "contentFileCount":  5,
+                         "contentExtensions":  [
+                                                   ".blend",
+                                                   ".exr",
+                                                   ".jpg",
+                                                   ".png"
+                                               ],
+                         "kind":  "MATERIAL",
+                         "nestedArchiveEntries":  null,
+                         "modelRelevance":  "RELEVANT"
+                     },
+                     {
+                         "path":  "D:\\Model_Asset_Lumenfall\\Master_ Material_ Lumenfall\\Stone_Architecture\\stone_wall_2k.blend.zip",
+                         "relativePath":  "Master_ Material_ Lumenfall/Stone_Architecture/stone_wall_2k.blend.zip",
+                         "extension":  ".zip",
+                         "sizeBytes":  18579428,
+                         "readable":  true,
+                         "packageType":  "ZIP",
+                         "contentFileCount":  5,
+                         "contentExtensions":  [
+                                                   ".blend",
+                                                   ".exr",
+                                                   ".jpg",
+                                                   ".png"
+                                               ],
+                         "kind":  "MATERIAL",
+                         "nestedArchiveEntries":  null,
+                         "modelRelevance":  "RELEVANT"
+                     },
+                     {
+                         "path":  "D:\\Model_Asset_Lumenfall\\Master_ Material_ Lumenfall\\Terrain\\cobblestone_02_2k.blend.zip",
+                         "relativePath":  "Master_ Material_ Lumenfall/Terrain/cobblestone_02_2k.blend.zip",
+                         "extension":  ".zip",
+                         "sizeBytes":  23204558,
+                         "readable":  true,
+                         "packageType":  "ZIP",
+                         "contentFileCount":  5,
+                         "contentExtensions":  [
+                                                   ".blend",
+                                                   ".exr",
+                                                   ".jpg",
+                                                   ".png"
+                                               ],
+                         "kind":  "MATERIAL",
+                         "nestedArchiveEntries":  null,
+                         "modelRelevance":  "RELEVANT"
+                     },
+                     {
+                         "path":  "D:\\Model_Asset_Lumenfall\\Master_ Material_ Lumenfall\\Terrain\\dirt_2k.blend.zip",
+                         "relativePath":  "Master_ Material_ Lumenfall/Terrain/dirt_2k.blend.zip",
+                         "extension":  ".zip",
+                         "sizeBytes":  20321514,
+                         "readable":  true,
+                         "packageType":  "ZIP",
+                         "contentFileCount":  5,
+                         "contentExtensions":  [
+                                                   ".blend",
+                                                   ".exr",
+                                                   ".jpg",
+                                                   ".png"
+                                               ],
+                         "kind":  "MATERIAL",
+                         "nestedArchiveEntries":  null,
+                         "modelRelevance":  "RELEVANT"
+                     },
+                     {
+                         "path":  "D:\\Model_Asset_Lumenfall\\Master_ Material_ Lumenfall\\Terrain\\dry_ground_01_2k.blend.zip",
+                         "relativePath":  "Master_ Material_ Lumenfall/Terrain/dry_ground_01_2k.blend.zip",
+                         "extension":  ".zip",
+                         "sizeBytes":  20237158,
+                         "readable":  true,
+                         "packageType":  "ZIP",
+                         "contentFileCount":  5,
+                         "contentExtensions":  [
+                                                   ".blend",
+                                                   ".exr",
+                                                   ".jpg",
+                                                   ".png"
+                                               ],
+                         "kind":  "MATERIAL",
+                         "nestedArchiveEntries":  null,
+                         "modelRelevance":  "RELEVANT"
+                     },
+                     {
+                         "path":  "D:\\Model_Asset_Lumenfall\\Master_ Material_ Lumenfall\\Terrain\\forrest_ground_01_2k.blend.zip",
+                         "relativePath":  "Master_ Material_ Lumenfall/Terrain/forrest_ground_01_2k.blend.zip",
+                         "extension":  ".zip",
+                         "sizeBytes":  22850178,
+                         "readable":  true,
+                         "packageType":  "ZIP",
+                         "contentFileCount":  5,
+                         "contentExtensions":  [
+                                                   ".blend",
+                                                   ".exr",
+                                                   ".jpg",
+                                                   ".png"
+                                               ],
+                         "kind":  "MATERIAL",
+                         "nestedArchiveEntries":  null,
+                         "modelRelevance":  "RELEVANT"
+                     },
+                     {
+                         "path":  "D:\\Model_Asset_Lumenfall\\Master_ Material_ Lumenfall\\Terrain\\forrest_ground_03_2k.blend.zip",
+                         "relativePath":  "Master_ Material_ Lumenfall/Terrain/forrest_ground_03_2k.blend.zip",
+                         "extension":  ".zip",
+                         "sizeBytes":  25814866,
+                         "readable":  true,
+                         "packageType":  "ZIP",
+                         "contentFileCount":  5,
+                         "contentExtensions":  [
+                                                   ".blend",
+                                                   ".exr",
+                                                   ".jpg",
+                                                   ".png"
+                                               ],
+                         "kind":  "MATERIAL",
+                         "nestedArchiveEntries":  null,
+                         "modelRelevance":  "RELEVANT"
+                     },
+                     {
+                         "path":  "D:\\Model_Asset_Lumenfall\\Master_ Material_ Lumenfall\\Terrain\\grass_ground_2k.blend.zip",
+                         "relativePath":  "Master_ Material_ Lumenfall/Terrain/grass_ground_2k.blend.zip",
+                         "extension":  ".zip",
+                         "sizeBytes":  23808280,
+                         "readable":  true,
+                         "packageType":  "ZIP",
+                         "contentFileCount":  5,
+                         "contentExtensions":  [
+                                                   ".blend",
+                                                   ".exr",
+                                                   ".jpg",
+                                                   ".png"
+                                               ],
+                         "kind":  "MATERIAL",
+                         "nestedArchiveEntries":  null,
+                         "modelRelevance":  "RELEVANT"
+                     },
+                     {
+                         "path":  "D:\\Model_Asset_Lumenfall\\Master_ Material_ Lumenfall\\Terrain\\grass_path_2_2k.blend.zip",
+                         "relativePath":  "Master_ Material_ Lumenfall/Terrain/grass_path_2_2k.blend.zip",
+                         "extension":  ".zip",
+                         "sizeBytes":  17233050,
+                         "readable":  true,
+                         "packageType":  "ZIP",
+                         "contentFileCount":  5,
+                         "contentExtensions":  [
+                                                   ".blend",
+                                                   ".exr",
+                                                   ".jpg",
+                                                   ".png"
+                                               ],
+                         "kind":  "MATERIAL",
+                         "nestedArchiveEntries":  null,
+                         "modelRelevance":  "RELEVANT"
+                     },
+                     {
+                         "path":  "D:\\Model_Asset_Lumenfall\\Master_ Material_ Lumenfall\\Terrain\\leafy_grass_2k.blend.zip",
+                         "relativePath":  "Master_ Material_ Lumenfall/Terrain/leafy_grass_2k.blend.zip",
+                         "extension":  ".zip",
+                         "sizeBytes":  35440758,
+                         "readable":  true,
+                         "packageType":  "ZIP",
+                         "contentFileCount":  6,
+                         "contentExtensions":  [
+                                                   ".blend",
+                                                   ".exr",
+                                                   ".jpg",
+                                                   ".png"
+                                               ],
+                         "kind":  "MATERIAL",
+                         "nestedArchiveEntries":  null,
+                         "modelRelevance":  "RELEVANT"
+                     },
+                     {
+                         "path":  "D:\\Model_Asset_Lumenfall\\Master_ Material_ Lumenfall\\Terrain\\leaves_forest_ground_2k.blend.zip",
+                         "relativePath":  "Master_ Material_ Lumenfall/Terrain/leaves_forest_ground_2k.blend.zip",
+                         "extension":  ".zip",
+                         "sizeBytes":  23589565,
+                         "readable":  true,
+                         "packageType":  "ZIP",
+                         "contentFileCount":  5,
+                         "contentExtensions":  [
+                                                   ".blend",
+                                                   ".exr",
+                                                   ".jpg",
+                                                   ".png"
+                                               ],
+                         "kind":  "MATERIAL",
+                         "nestedArchiveEntries":  null,
+                         "modelRelevance":  "RELEVANT"
+                     },
+                     {
+                         "path":  "D:\\Model_Asset_Lumenfall\\Master_ Material_ Lumenfall\\Terrain\\mud_forest_2k.blend.zip",
+                         "relativePath":  "Master_ Material_ Lumenfall/Terrain/mud_forest_2k.blend.zip",
+                         "extension":  ".zip",
+                         "sizeBytes":  25151201,
+                         "readable":  true,
+                         "packageType":  "ZIP",
+                         "contentFileCount":  5,
+                         "contentExtensions":  [
+                                                   ".blend",
+                                                   ".exr",
+                                                   ".jpg",
+                                                   ".png"
+                                               ],
+                         "kind":  "MATERIAL",
+                         "nestedArchiveEntries":  null,
+                         "modelRelevance":  "RELEVANT"
+                     },
+                     {
+                         "path":  "D:\\Model_Asset_Lumenfall\\Master_ Material_ Lumenfall\\Terrain\\rocky_terrain_02_2k.blend.zip",
+                         "relativePath":  "Master_ Material_ Lumenfall/Terrain/rocky_terrain_02_2k.blend.zip",
+                         "extension":  ".zip",
+                         "sizeBytes":  26950717,
+                         "readable":  true,
+                         "packageType":  "ZIP",
+                         "contentFileCount":  6,
+                         "contentExtensions":  [
+                                                   ".blend",
+                                                   ".exr",
+                                                   ".jpg",
+                                                   ".png"
+                                               ],
+                         "kind":  "MATERIAL",
+                         "nestedArchiveEntries":  null,
+                         "modelRelevance":  "RELEVANT"
+                     },
+                     {
+                         "path":  "D:\\Model_Asset_Lumenfall\\Master_ Material_ Lumenfall\\Terrain\\rock_ground_02_2k.blend.zip",
+                         "relativePath":  "Master_ Material_ Lumenfall/Terrain/rock_ground_02_2k.blend.zip",
+                         "extension":  ".zip",
+                         "sizeBytes":  24418231,
+                         "readable":  true,
+                         "packageType":  "ZIP",
+                         "contentFileCount":  5,
+                         "contentExtensions":  [
+                                                   ".blend",
+                                                   ".exr",
+                                                   ".jpg",
+                                                   ".png"
+                                               ],
+                         "kind":  "MATERIAL",
+                         "nestedArchiveEntries":  null,
+                         "modelRelevance":  "RELEVANT"
+                     },
+                     {
+                         "path":  "D:\\Model_Asset_Lumenfall\\Master_ Material_ Lumenfall\\Terrain\\rock_ground_2k.blend.zip",
+                         "relativePath":  "Master_ Material_ Lumenfall/Terrain/rock_ground_2k.blend.zip",
+                         "extension":  ".zip",
+                         "sizeBytes":  23604303,
+                         "readable":  true,
+                         "packageType":  "ZIP",
+                         "contentFileCount":  5,
+                         "contentExtensions":  [
+                                                   ".blend",
+                                                   ".exr",
+                                                   ".jpg",
+                                                   ".png"
+                                               ],
+                         "kind":  "MATERIAL",
+                         "nestedArchiveEntries":  null,
+                         "modelRelevance":  "RELEVANT"
+                     },
+                     {
+                         "path":  "D:\\Model_Asset_Lumenfall\\Master_ Material_ Lumenfall\\Terrain\\sandy_gravel_02_2k.blend.zip",
+                         "relativePath":  "Master_ Material_ Lumenfall/Terrain/sandy_gravel_02_2k.blend.zip",
+                         "extension":  ".zip",
+                         "sizeBytes":  23074660,
+                         "readable":  true,
+                         "packageType":  "ZIP",
+                         "contentFileCount":  5,
+                         "contentExtensions":  [
+                                                   ".blend",
+                                                   ".exr",
+                                                   ".jpg",
+                                                   ".png"
+                                               ],
+                         "kind":  "MATERIAL",
+                         "nestedArchiveEntries":  null,
+                         "modelRelevance":  "RELEVANT"
+                     },
+                     {
+                         "path":  "D:\\Model_Asset_Lumenfall\\Master_ Material_ Lumenfall\\Terrain\\snow_02_2k.blend.zip",
+                         "relativePath":  "Master_ Material_ Lumenfall/Terrain/snow_02_2k.blend.zip",
+                         "extension":  ".zip",
+                         "sizeBytes":  22612339,
+                         "readable":  true,
+                         "packageType":  "ZIP",
+                         "contentFileCount":  6,
+                         "contentExtensions":  [
+                                                   ".blend",
+                                                   ".exr",
+                                                   ".jpg",
+                                                   ".png"
+                                               ],
+                         "kind":  "MATERIAL",
+                         "nestedArchiveEntries":  null,
+                         "modelRelevance":  "RELEVANT"
+                     },
+                     {
+                         "path":  "D:\\Model_Asset_Lumenfall\\Master_ Material_ Lumenfall\\Terrain\\snow_03_2k.blend.zip",
+                         "relativePath":  "Master_ Material_ Lumenfall/Terrain/snow_03_2k.blend.zip",
+                         "extension":  ".zip",
+                         "sizeBytes":  21114447,
+                         "readable":  true,
+                         "packageType":  "ZIP",
+                         "contentFileCount":  5,
+                         "contentExtensions":  [
+                                                   ".blend",
+                                                   ".exr",
+                                                   ".jpg",
+                                                   ".png"
+                                               ],
+                         "kind":  "MATERIAL",
+                         "nestedArchiveEntries":  null,
+                         "modelRelevance":  "RELEVANT"
+                     },
+                     {
+                         "path":  "D:\\Model_Asset_Lumenfall\\Master_ Material_ Lumenfall\\Terrain\\sparse_grass_2k.blend.zip",
+                         "relativePath":  "Master_ Material_ Lumenfall/Terrain/sparse_grass_2k.blend.zip",
+                         "extension":  ".zip",
+                         "sizeBytes":  29723328,
+                         "readable":  true,
+                         "packageType":  "ZIP",
+                         "contentFileCount":  6,
+                         "contentExtensions":  [
+                                                   ".blend",
+                                                   ".exr",
+                                                   ".jpg",
+                                                   ".png"
+                                               ],
+                         "kind":  "MATERIAL",
+                         "nestedArchiveEntries":  null,
+                         "modelRelevance":  "RELEVANT"
+                     },
+                     {
+                         "path":  "D:\\Model_Asset_Lumenfall\\Master_ Material_ Lumenfall\\Terrain\\stone_tiles_02_2k.blend.zip",
+                         "relativePath":  "Master_ Material_ Lumenfall/Terrain/stone_tiles_02_2k.blend.zip",
+                         "extension":  ".zip",
+                         "sizeBytes":  22091799,
+                         "readable":  true,
+                         "packageType":  "ZIP",
+                         "contentFileCount":  5,
+                         "contentExtensions":  [
+                                                   ".blend",
+                                                   ".exr",
+                                                   ".jpg",
+                                                   ".png"
+                                               ],
+                         "kind":  "MATERIAL",
+                         "nestedArchiveEntries":  null,
+                         "modelRelevance":  "RELEVANT"
+                     },
+                     {
+                         "path":  "D:\\Model_Asset_Lumenfall\\Master_ Material_ Lumenfall\\Tree_bark\\bark_platanus_2k.blend.zip",
+                         "relativePath":  "Master_ Material_ Lumenfall/Tree_bark/bark_platanus_2k.blend.zip",
+                         "extension":  ".zip",
+                         "sizeBytes":  19827894,
+                         "readable":  true,
+                         "packageType":  "ZIP",
+                         "contentFileCount":  5,
+                         "contentExtensions":  [
+                                                   ".blend",
+                                                   ".exr",
+                                                   ".jpg",
+                                                   ".png"
+                                               ],
+                         "kind":  "MATERIAL",
+                         "nestedArchiveEntries":  null,
+                         "modelRelevance":  "RELEVANT"
+                     },
+                     {
+                         "path":  "D:\\Model_Asset_Lumenfall\\Master_ Material_ Lumenfall\\Tree_bark\\bark_willow_2k.blend.zip",
+                         "relativePath":  "Master_ Material_ Lumenfall/Tree_bark/bark_willow_2k.blend.zip",
+                         "extension":  ".zip",
+                         "sizeBytes":  21909293,
+                         "readable":  true,
+                         "packageType":  "ZIP",
+                         "contentFileCount":  5,
+                         "contentExtensions":  [
+                                                   ".blend",
+                                                   ".exr",
+                                                   ".jpg",
+                                                   ".png"
+                                               ],
+                         "kind":  "MATERIAL",
+                         "nestedArchiveEntries":  null,
+                         "modelRelevance":  "RELEVANT"
+                     },
+                     {
+                         "path":  "D:\\Model_Asset_Lumenfall\\Master_ Material_ Lumenfall\\Tree_bark\\chinese_hackberry_bark_2k.blend.zip",
+                         "relativePath":  "Master_ Material_ Lumenfall/Tree_bark/chinese_hackberry_bark_2k.blend.zip",
+                         "extension":  ".zip",
+                         "sizeBytes":  33266300,
+                         "readable":  true,
+                         "packageType":  "ZIP",
+                         "contentFileCount":  5,
+                         "contentExtensions":  [
+                                                   ".blend",
+                                                   ".exr",
+                                                   ".jpg",
+                                                   ".png"
+                                               ],
+                         "kind":  "MATERIAL",
+                         "nestedArchiveEntries":  null,
+                         "modelRelevance":  "RELEVANT"
+                     },
+                     {
+                         "path":  "D:\\Model_Asset_Lumenfall\\Master_ Material_ Lumenfall\\Tree_bark\\japanese_cedar_bark_2k.blend.zip",
+                         "relativePath":  "Master_ Material_ Lumenfall/Tree_bark/japanese_cedar_bark_2k.blend.zip",
+                         "extension":  ".zip",
+                         "sizeBytes":  35590305,
+                         "readable":  true,
+                         "packageType":  "ZIP",
+                         "contentFileCount":  5,
+                         "contentExtensions":  [
+                                                   ".blend",
+                                                   ".exr",
+                                                   ".jpg",
+                                                   ".png"
+                                               ],
+                         "kind":  "MATERIAL",
+                         "nestedArchiveEntries":  null,
+                         "modelRelevance":  "RELEVANT"
+                     },
+                     {
+                         "path":  "D:\\Model_Asset_Lumenfall\\Master_ Material_ Lumenfall\\Tree_bark\\japanese_hackberry_bark_2k.blend.zip",
+                         "relativePath":  "Master_ Material_ Lumenfall/Tree_bark/japanese_hackberry_bark_2k.blend.zip",
+                         "extension":  ".zip",
+                         "sizeBytes":  23748523,
+                         "readable":  true,
+                         "packageType":  "ZIP",
+                         "contentFileCount":  5,
+                         "contentExtensions":  [
+                                                   ".blend",
+                                                   ".exr",
+                                                   ".jpg",
+                                                   ".png"
+                                               ],
+                         "kind":  "MATERIAL",
+                         "nestedArchiveEntries":  null,
+                         "modelRelevance":  "RELEVANT"
+                     },
+                     {
+                         "path":  "D:\\Model_Asset_Lumenfall\\Master_ Material_ Lumenfall\\Tree_bark\\palm_bark_2k.blend.zip",
+                         "relativePath":  "Master_ Material_ Lumenfall/Tree_bark/palm_bark_2k.blend.zip",
+                         "extension":  ".zip",
+                         "sizeBytes":  21060014,
+                         "readable":  true,
+                         "packageType":  "ZIP",
+                         "contentFileCount":  5,
+                         "contentExtensions":  [
+                                                   ".blend",
+                                                   ".exr",
+                                                   ".jpg",
+                                                   ".png"
+                                               ],
+                         "kind":  "MATERIAL",
+                         "nestedArchiveEntries":  null,
+                         "modelRelevance":  "RELEVANT"
+                     },
+                     {
+                         "path":  "D:\\Model_Asset_Lumenfall\\Master_ Material_ Lumenfall\\Tree_bark\\pine_bark_2k.blend.zip",
+                         "relativePath":  "Master_ Material_ Lumenfall/Tree_bark/pine_bark_2k.blend.zip",
+                         "extension":  ".zip",
+                         "sizeBytes":  21475449,
+                         "readable":  true,
+                         "packageType":  "ZIP",
+                         "contentFileCount":  5,
+                         "contentExtensions":  [
+                                                   ".blend",
+                                                   ".exr",
+                                                   ".jpg",
+                                                   ".png"
+                                               ],
+                         "kind":  "MATERIAL",
+                         "nestedArchiveEntries":  null,
+                         "modelRelevance":  "RELEVANT"
+                     },
+                     {
+                         "path":  "D:\\Model_Asset_Lumenfall\\Master_ Material_ Lumenfall\\Tree_bark\\sakura_bark_2k.blend.zip",
+                         "relativePath":  "Master_ Material_ Lumenfall/Tree_bark/sakura_bark_2k.blend.zip",
+                         "extension":  ".zip",
+                         "sizeBytes":  23335578,
+                         "readable":  true,
+                         "packageType":  "ZIP",
+                         "contentFileCount":  5,
+                         "contentExtensions":  [
+                                                   ".blend",
+                                                   ".exr",
+                                                   ".jpg",
+                                                   ".png"
+                                               ],
+                         "kind":  "MATERIAL",
+                         "nestedArchiveEntries":  null,
+                         "modelRelevance":  "RELEVANT"
+                     },
+                     {
+                         "path":  "D:\\Model_Asset_Lumenfall\\Master_ Material_ Lumenfall\\Tree_bark\\tree_bark_03_2k.blend.zip",
+                         "relativePath":  "Master_ Material_ Lumenfall/Tree_bark/tree_bark_03_2k.blend.zip",
+                         "extension":  ".zip",
+                         "sizeBytes":  23619177,
+                         "readable":  true,
+                         "packageType":  "ZIP",
+                         "contentFileCount":  5,
+                         "contentExtensions":  [
+                                                   ".blend",
+                                                   ".exr",
+                                                   ".jpg",
+                                                   ".png"
+                                               ],
+                         "kind":  "MATERIAL",
+                         "nestedArchiveEntries":  null,
+                         "modelRelevance":  "RELEVANT"
+                     },
+                     {
+                         "path":  "D:\\Model_Asset_Lumenfall\\Master_ Material_ Lumenfall\\Water\\water_ocean_normal_map_1k_pbr.zip",
+                         "relativePath":  "Master_ Material_ Lumenfall/Water/water_ocean_normal_map_1k_pbr.zip",
+                         "extension":  ".zip",
+                         "sizeBytes":  3024316,
+                         "readable":  true,
+                         "packageType":  "ZIP",
+                         "contentFileCount":  5,
+                         "contentExtensions":  [
+                                                   ".png"
+                                               ],
+                         "kind":  "MATERIAL",
+                         "nestedArchiveEntries":  null,
+                         "modelRelevance":  "MATERIAL_OR_OTHER"
+                     },
+                     {
+                         "path":  "D:\\Model_Asset_Lumenfall\\Master_ Material_ Lumenfall\\Water\\water_surface_1k_pbr.zip",
+                         "relativePath":  "Master_ Material_ Lumenfall/Water/water_surface_1k_pbr.zip",
+                         "extension":  ".zip",
+                         "sizeBytes":  1553717,
+                         "readable":  true,
+                         "packageType":  "ZIP",
+                         "contentFileCount":  5,
+                         "contentExtensions":  [
+                                                   ".png"
+                                               ],
+                         "kind":  "MATERIAL",
+                         "nestedArchiveEntries":  null,
+                         "modelRelevance":  "MATERIAL_OR_OTHER"
+                     },
+                     {
+                         "path":  "D:\\Model_Asset_Lumenfall\\Master_ Material_ Lumenfall\\Water\\water_wave_normal_map_1k_pbr.zip",
+                         "relativePath":  "Master_ Material_ Lumenfall/Water/water_wave_normal_map_1k_pbr.zip",
+                         "extension":  ".zip",
+                         "sizeBytes":  2707134,
+                         "readable":  true,
+                         "packageType":  "ZIP",
+                         "contentFileCount":  5,
+                         "contentExtensions":  [
+                                                   ".png"
+                                               ],
+                         "kind":  "MATERIAL",
+                         "nestedArchiveEntries":  null,
+                         "modelRelevance":  "MATERIAL_OR_OTHER"
+                     },
+                     {
+                         "path":  "D:\\Model_Asset_Lumenfall\\Master_ Material_ Lumenfall\\Wood\\dark_wooden_planks_2k.blend.zip",
+                         "relativePath":  "Master_ Material_ Lumenfall/Wood/dark_wooden_planks_2k.blend.zip",
+                         "extension":  ".zip",
+                         "sizeBytes":  19770059,
+                         "readable":  true,
+                         "packageType":  "ZIP",
+                         "contentFileCount":  5,
+                         "contentExtensions":  [
+                                                   ".blend",
+                                                   ".exr",
+                                                   ".jpg",
+                                                   ".png"
+                                               ],
+                         "kind":  "MATERIAL",
+                         "nestedArchiveEntries":  null,
+                         "modelRelevance":  "RELEVANT"
+                     },
+                     {
+                         "path":  "D:\\Model_Asset_Lumenfall\\Master_ Material_ Lumenfall\\Wood\\medieval_wood_2k.blend.zip",
+                         "relativePath":  "Master_ Material_ Lumenfall/Wood/medieval_wood_2k.blend.zip",
+                         "extension":  ".zip",
+                         "sizeBytes":  20178649,
+                         "readable":  true,
+                         "packageType":  "ZIP",
+                         "contentFileCount":  5,
+                         "contentExtensions":  [
+                                                   ".blend",
+                                                   ".exr",
+                                                   ".jpg",
+                                                   ".png"
+                                               ],
+                         "kind":  "MATERIAL",
+                         "nestedArchiveEntries":  null,
+                         "modelRelevance":  "RELEVANT"
+                     },
+                     {
+                         "path":  "D:\\Model_Asset_Lumenfall\\Master_ Material_ Lumenfall\\Wood\\oak_wood_planks_2k.blend.zip",
+                         "relativePath":  "Master_ Material_ Lumenfall/Wood/oak_wood_planks_2k.blend.zip",
+                         "extension":  ".zip",
+                         "sizeBytes":  19586839,
+                         "readable":  true,
+                         "packageType":  "ZIP",
+                         "contentFileCount":  5,
+                         "contentExtensions":  [
+                                                   ".blend",
+                                                   ".exr",
+                                                   ".jpg",
+                                                   ".png"
+                                               ],
+                         "kind":  "MATERIAL",
+                         "nestedArchiveEntries":  null,
+                         "modelRelevance":  "RELEVANT"
+                     },
+                     {
+                         "path":  "D:\\Model_Asset_Lumenfall\\Master_ Material_ Lumenfall\\Wood\\wooden_planks_2k.blend.zip",
+                         "relativePath":  "Master_ Material_ Lumenfall/Wood/wooden_planks_2k.blend.zip",
+                         "extension":  ".zip",
+                         "sizeBytes":  15262473,
+                         "readable":  true,
+                         "packageType":  "ZIP",
+                         "contentFileCount":  5,
+                         "contentExtensions":  [
+                                                   ".blend",
+                                                   ".exr",
+                                                   ".jpg",
+                                                   ".png"
+                                               ],
+                         "kind":  "MATERIAL",
+                         "nestedArchiveEntries":  null,
+                         "modelRelevance":  "RELEVANT"
+                     },
+                     {
+                         "path":  "D:\\Model_Asset_Lumenfall\\Master_ Material_ Lumenfall\\Wood\\wood_planks_2k.blend.zip",
+                         "relativePath":  "Master_ Material_ Lumenfall/Wood/wood_planks_2k.blend.zip",
+                         "extension":  ".zip",
+                         "sizeBytes":  18095129,
+                         "readable":  true,
+                         "packageType":  "ZIP",
+                         "contentFileCount":  5,
+                         "contentExtensions":  [
+                                                   ".blend",
+                                                   ".exr",
+                                                   ".jpg",
+                                                   ".png"
+                                               ],
+                         "kind":  "MATERIAL",
+                         "nestedArchiveEntries":  null,
+                         "modelRelevance":  "RELEVANT"
+                     },
+                     {
+                         "path":  "D:\\Model_Asset_Lumenfall\\Master_Model_Lumenfall\\Environment\\Building\\Fantasy_Props_MegaKit.zip",
+                         "relativePath":  "Master_Model_Lumenfall/Environment/Building/Fantasy_Props_MegaKit.zip",
+                         "extension":  ".zip",
+                         "sizeBytes":  150213360,
+                         "readable":  true,
+                         "packageType":  "ZIP",
+                         "contentFileCount":  517,
+                         "contentExtensions":  [
+                                                   ".bin",
+                                                   ".fbx",
+                                                   ".gltf",
+                                                   ".jpg",
+                                                   ".mtl",
+                                                   ".obj",
+                                                   ".png",
+                                                   ".txt"
+                                               ],
+                         "kind":  "MODEL",
+                         "nestedArchiveEntries":  null,
+                         "modelRelevance":  "RELEVANT"
+                     },
+                     {
+                         "path":  "D:\\Model_Asset_Lumenfall\\Master_Model_Lumenfall\\Environment\\Building\\large_castle_door_2k.blend.zip",
+                         "relativePath":  "Master_Model_Lumenfall/Environment/Building/large_castle_door_2k.blend.zip",
+                         "extension":  ".zip",
+                         "sizeBytes":  17616570,
+                         "readable":  true,
+                         "packageType":  "ZIP",
+                         "contentFileCount":  5,
+                         "contentExtensions":  [
+                                                   ".blend",
+                                                   ".exr",
+                                                   ".jpg"
+                                               ],
+                         "kind":  "MODEL",
+                         "nestedArchiveEntries":  null,
+                         "modelRelevance":  "RELEVANT"
+                     },
+                     {
+                         "path":  "D:\\Model_Asset_Lumenfall\\Master_Model_Lumenfall\\Environment\\Building\\Medieval_Village_MegaKit.zip",
+                         "relativePath":  "Master_Model_Lumenfall/Environment/Building/Medieval_Village_MegaKit.zip",
+                         "extension":  ".zip",
+                         "sizeBytes":  161003471,
+                         "readable":  true,
+                         "packageType":  "ZIP",
+                         "contentFileCount":  936,
+                         "contentExtensions":  [
+                                                   ".bin",
+                                                   ".fbx",
+                                                   ".gltf",
+                                                   ".jpg",
+                                                   ".mtl",
+                                                   ".obj",
+                                                   ".png",
+                                                   ".txt"
+                                               ],
+                         "kind":  "MODEL",
+                         "nestedArchiveEntries":  null,
+                         "modelRelevance":  "RELEVANT"
+                     },
+                     {
+                         "path":  "D:\\Model_Asset_Lumenfall\\Master_Model_Lumenfall\\Environment\\Building\\modular_fort_01_2k.blend.zip",
+                         "relativePath":  "Master_Model_Lumenfall/Environment/Building/modular_fort_01_2k.blend.zip",
+                         "extension":  ".zip",
+                         "sizeBytes":  170687655,
+                         "readable":  true,
+                         "packageType":  "ZIP",
+                         "contentFileCount":  11,
+                         "contentExtensions":  [
+                                                   ".blend",
+                                                   ".png"
+                                               ],
+                         "kind":  "MODEL",
+                         "nestedArchiveEntries":  null,
+                         "modelRelevance":  "RELEVANT"
+                     },
+                     {
+                         "path":  "D:\\Model_Asset_Lumenfall\\Master_Model_Lumenfall\\Environment\\Building\\modular_wooden_pier_2k.blend.zip",
+                         "relativePath":  "Master_Model_Lumenfall/Environment/Building/modular_wooden_pier_2k.blend.zip",
+                         "extension":  ".zip",
+                         "sizeBytes":  93412697,
+                         "readable":  true,
+                         "packageType":  "ZIP",
+                         "contentFileCount":  8,
+                         "contentExtensions":  [
+                                                   ".blend",
+                                                   ".png"
+                                               ],
+                         "kind":  "MODEL",
+                         "nestedArchiveEntries":  null,
+                         "modelRelevance":  "RELEVANT"
+                     },
+                     {
+                         "path":  "D:\\Model_Asset_Lumenfall\\Master_Model_Lumenfall\\Environment\\Ground_Vegatation\\celandine_01_2k.blend.zip",
+                         "relativePath":  "Master_Model_Lumenfall/Environment/Ground_Vegatation/celandine_01_2k.blend.zip",
+                         "extension":  ".zip",
+                         "sizeBytes":  7120108,
+                         "readable":  true,
+                         "packageType":  "ZIP",
+                         "contentFileCount":  5,
+                         "contentExtensions":  [
+                                                   ".blend",
+                                                   ".exr",
+                                                   ".jpg",
+                                                   ".png"
+                                               ],
+                         "kind":  "MODEL",
+                         "nestedArchiveEntries":  null,
+                         "modelRelevance":  "RELEVANT"
+                     },
+                     {
+                         "path":  "D:\\Model_Asset_Lumenfall\\Master_Model_Lumenfall\\Environment\\Ground_Vegatation\\cheiridopsis_succulent_2k.blend.zip",
+                         "relativePath":  "Master_Model_Lumenfall/Environment/Ground_Vegatation/cheiridopsis_succulent_2k.blend.zip",
+                         "extension":  ".zip",
+                         "sizeBytes":  17074874,
+                         "readable":  true,
+                         "packageType":  "ZIP",
+                         "contentFileCount":  6,
+                         "contentExtensions":  [
+                                                   ".blend",
+                                                   ".exr",
+                                                   ".jpg",
+                                                   ".png"
+                                               ],
+                         "kind":  "MODEL",
+                         "nestedArchiveEntries":  null,
+                         "modelRelevance":  "RELEVANT"
+                     },
+                     {
+                         "path":  "D:\\Model_Asset_Lumenfall\\Master_Model_Lumenfall\\Environment\\Ground_Vegatation\\fern_02_2k.blend.zip",
+                         "relativePath":  "Master_Model_Lumenfall/Environment/Ground_Vegatation/fern_02_2k.blend.zip",
+                         "extension":  ".zip",
+                         "sizeBytes":  5283793,
+                         "readable":  true,
+                         "packageType":  "ZIP",
+                         "contentFileCount":  5,
+                         "contentExtensions":  [
+                                                   ".blend",
+                                                   ".exr",
+                                                   ".jpg",
+                                                   ".png"
+                                               ],
+                         "kind":  "MODEL",
+                         "nestedArchiveEntries":  null,
+                         "modelRelevance":  "RELEVANT"
+                     },
+                     {
+                         "path":  "D:\\Model_Asset_Lumenfall\\Master_Model_Lumenfall\\Environment\\Ground_Vegatation\\grass_medium_01_2k.blend.zip",
+                         "relativePath":  "Master_Model_Lumenfall/Environment/Ground_Vegatation/grass_medium_01_2k.blend.zip",
+                         "extension":  ".zip",
+                         "sizeBytes":  21250551,
+                         "readable":  true,
+                         "packageType":  "ZIP",
+                         "contentFileCount":  6,
+                         "contentExtensions":  [
+                                                   ".blend",
+                                                   ".exr",
+                                                   ".jpg",
+                                                   ".png"
+                                               ],
+                         "kind":  "MODEL",
+                         "nestedArchiveEntries":  null,
+                         "modelRelevance":  "RELEVANT"
+                     },
+                     {
+                         "path":  "D:\\Model_Asset_Lumenfall\\Master_Model_Lumenfall\\Environment\\Ground_Vegatation\\grass_medium_02_2k.blend.zip",
+                         "relativePath":  "Master_Model_Lumenfall/Environment/Ground_Vegatation/grass_medium_02_2k.blend.zip",
+                         "extension":  ".zip",
+                         "sizeBytes":  5857133,
+                         "readable":  true,
+                         "packageType":  "ZIP",
+                         "contentFileCount":  6,
+                         "contentExtensions":  [
+                                                   ".blend",
+                                                   ".exr",
+                                                   ".jpg",
+                                                   ".png"
+                                               ],
+                         "kind":  "MODEL",
+                         "nestedArchiveEntries":  null,
+                         "modelRelevance":  "RELEVANT"
+                     },
+                     {
+                         "path":  "D:\\Model_Asset_Lumenfall\\Master_Model_Lumenfall\\Environment\\Ground_Vegatation\\moss_01_2k.blend.zip",
+                         "relativePath":  "Master_Model_Lumenfall/Environment/Ground_Vegatation/moss_01_2k.blend.zip",
+                         "extension":  ".zip",
+                         "sizeBytes":  6102281,
+                         "readable":  true,
+                         "packageType":  "ZIP",
+                         "contentFileCount":  5,
+                         "contentExtensions":  [
+                                                   ".blend",
+                                                   ".exr",
+                                                   ".jpg",
+                                                   ".png"
+                                               ],
+                         "kind":  "MODEL",
+                         "nestedArchiveEntries":  null,
+                         "modelRelevance":  "RELEVANT"
+                     },
+                     {
+                         "path":  "D:\\Model_Asset_Lumenfall\\Master_Model_Lumenfall\\Environment\\Ground_Vegatation\\shrub_03_2k.blend.zip",
+                         "relativePath":  "Master_Model_Lumenfall/Environment/Ground_Vegatation/shrub_03_2k.blend.zip",
+                         "extension":  ".zip",
+                         "sizeBytes":  5868355,
+                         "readable":  true,
+                         "packageType":  "ZIP",
+                         "contentFileCount":  5,
+                         "contentExtensions":  [
+                                                   ".blend",
+                                                   ".exr",
+                                                   ".jpg",
+                                                   ".png"
+                                               ],
+                         "kind":  "MODEL",
+                         "nestedArchiveEntries":  null,
+                         "modelRelevance":  "RELEVANT"
+                     },
+                     {
+                         "path":  "D:\\Model_Asset_Lumenfall\\Master_Model_Lumenfall\\Environment\\Ground_Vegatation\\shrub_04_2k.blend.zip",
+                         "relativePath":  "Master_Model_Lumenfall/Environment/Ground_Vegatation/shrub_04_2k.blend.zip",
+                         "extension":  ".zip",
+                         "sizeBytes":  6701479,
+                         "readable":  true,
+                         "packageType":  "ZIP",
+                         "contentFileCount":  6,
+                         "contentExtensions":  [
+                                                   ".blend",
+                                                   ".exr",
+                                                   ".jpg",
+                                                   ".png"
+                                               ],
+                         "kind":  "MODEL",
+                         "nestedArchiveEntries":  null,
+                         "modelRelevance":  "RELEVANT"
+                     },
+                     {
+                         "path":  "D:\\Model_Asset_Lumenfall\\Master_Model_Lumenfall\\Environment\\Ground_Vegatation\\weed_plant_02_2k.blend.zip",
+                         "relativePath":  "Master_Model_Lumenfall/Environment/Ground_Vegatation/weed_plant_02_2k.blend.zip",
+                         "extension":  ".zip",
+                         "sizeBytes":  10064457,
+                         "readable":  true,
+                         "packageType":  "ZIP",
+                         "contentFileCount":  5,
+                         "contentExtensions":  [
+                                                   ".blend",
+                                                   ".exr",
+                                                   ".jpg",
+                                                   ".png"
+                                               ],
+                         "kind":  "MODEL",
+                         "nestedArchiveEntries":  null,
+                         "modelRelevance":  "RELEVANT"
+                     },
+                     {
+                         "path":  "D:\\Model_Asset_Lumenfall\\Master_Model_Lumenfall\\Environment\\Ground_Vegatation\\wild_rooibos_bush_2k.blend.zip",
+                         "relativePath":  "Master_Model_Lumenfall/Environment/Ground_Vegatation/wild_rooibos_bush_2k.blend.zip",
+                         "extension":  ".zip",
+                         "sizeBytes":  9041946,
+                         "readable":  true,
+                         "packageType":  "ZIP",
+                         "contentFileCount":  5,
+                         "contentExtensions":  [
+                                                   ".blend",
+                                                   ".exr",
+                                                   ".jpg",
+                                                   ".png"
+                                               ],
+                         "kind":  "MODEL",
+                         "nestedArchiveEntries":  null,
+                         "modelRelevance":  "RELEVANT"
+                     },
+                     {
+                         "path":  "D:\\Model_Asset_Lumenfall\\Master_Model_Lumenfall\\Environment\\Rock\\boulder_01_2k.blend.zip",
+                         "relativePath":  "Master_Model_Lumenfall/Environment/Rock/boulder_01_2k.blend.zip",
+                         "extension":  ".zip",
+                         "sizeBytes":  20263036,
+                         "readable":  true,
+                         "packageType":  "ZIP",
+                         "contentFileCount":  4,
+                         "contentExtensions":  [
+                                                   ".blend",
+                                                   ".exr",
+                                                   ".jpg"
+                                               ],
+                         "kind":  "MODEL",
+                         "nestedArchiveEntries":  null,
+                         "modelRelevance":  "RELEVANT"
+                     },
+                     {
+                         "path":  "D:\\Model_Asset_Lumenfall\\Master_Model_Lumenfall\\Environment\\Rock\\namaqualand_boulders_01_2k.blend.zip",
+                         "relativePath":  "Master_Model_Lumenfall/Environment/Rock/namaqualand_boulders_01_2k.blend.zip",
+                         "extension":  ".zip",
+                         "sizeBytes":  15485276,
+                         "readable":  true,
+                         "packageType":  "ZIP",
+                         "contentFileCount":  4,
+                         "contentExtensions":  [
+                                                   ".blend",
+                                                   ".exr",
+                                                   ".jpg"
+                                               ],
+                         "kind":  "MODEL",
+                         "nestedArchiveEntries":  null,
+                         "modelRelevance":  "RELEVANT"
+                     },
+                     {
+                         "path":  "D:\\Model_Asset_Lumenfall\\Master_Model_Lumenfall\\Environment\\Rock\\rock_07_2k.blend.zip",
+                         "relativePath":  "Master_Model_Lumenfall/Environment/Rock/rock_07_2k.blend.zip",
+                         "extension":  ".zip",
+                         "sizeBytes":  10577854,
+                         "readable":  true,
+                         "packageType":  "ZIP",
+                         "contentFileCount":  4,
+                         "contentExtensions":  [
+                                                   ".blend",
+                                                   ".exr",
+                                                   ".jpg"
+                                               ],
+                         "kind":  "MODEL",
+                         "nestedArchiveEntries":  null,
+                         "modelRelevance":  "RELEVANT"
+                     },
+                     {
+                         "path":  "D:\\Model_Asset_Lumenfall\\Master_Model_Lumenfall\\Environment\\Rock\\rock_09_2k.blend.zip",
+                         "relativePath":  "Master_Model_Lumenfall/Environment/Rock/rock_09_2k.blend.zip",
+                         "extension":  ".zip",
+                         "sizeBytes":  9932506,
+                         "readable":  true,
+                         "packageType":  "ZIP",
+                         "contentFileCount":  4,
+                         "contentExtensions":  [
+                                                   ".blend",
+                                                   ".exr",
+                                                   ".jpg"
+                                               ],
+                         "kind":  "MODEL",
+                         "nestedArchiveEntries":  null,
+                         "modelRelevance":  "RELEVANT"
+                     },
+                     {
+                         "path":  "D:\\Model_Asset_Lumenfall\\Master_Model_Lumenfall\\Environment\\Rock\\rock_face_02_2k.blend.zip",
+                         "relativePath":  "Master_Model_Lumenfall/Environment/Rock/rock_face_02_2k.blend.zip",
+                         "extension":  ".zip",
+                         "sizeBytes":  14924929,
+                         "readable":  true,
+                         "packageType":  "ZIP",
+                         "contentFileCount":  4,
+                         "contentExtensions":  [
+                                                   ".blend",
+                                                   ".exr",
+                                                   ".jpg"
+                                               ],
+                         "kind":  "MODEL",
+                         "nestedArchiveEntries":  null,
+                         "modelRelevance":  "RELEVANT"
+                     },
+                     {
+                         "path":  "D:\\Model_Asset_Lumenfall\\Master_Model_Lumenfall\\Environment\\Tree\\dead_tree_trunk_02_2k.blend.zip",
+                         "relativePath":  "Master_Model_Lumenfall/Environment/Tree/dead_tree_trunk_02_2k.blend.zip",
+                         "extension":  ".zip",
+                         "sizeBytes":  20752360,
+                         "readable":  true,
+                         "packageType":  "ZIP",
+                         "contentFileCount":  4,
+                         "contentExtensions":  [
+                                                   ".blend",
+                                                   ".exr",
+                                                   ".jpg"
+                                               ],
+                         "kind":  "MODEL",
+                         "nestedArchiveEntries":  null,
+                         "modelRelevance":  "RELEVANT"
+                     },
+                     {
+                         "path":  "D:\\Model_Asset_Lumenfall\\Master_Model_Lumenfall\\Environment\\Tree\\fir_tree_01_2k.blend.zip",
+                         "relativePath":  "Master_Model_Lumenfall/Environment/Tree/fir_tree_01_2k.blend.zip",
+                         "extension":  ".zip",
+                         "sizeBytes":  425653734,
+                         "readable":  true,
+                         "packageType":  "ZIP",
+                         "contentFileCount":  19,
+                         "contentExtensions":  [
+                                                   ".blend",
+                                                   ".png"
+                                               ],
+                         "kind":  "MODEL",
+                         "nestedArchiveEntries":  null,
+                         "modelRelevance":  "RELEVANT"
+                     },
+                     {
+                         "path":  "D:\\Model_Asset_Lumenfall\\Master_Model_Lumenfall\\Environment\\Tree\\island_tree_03_2k.blend.zip",
+                         "relativePath":  "Master_Model_Lumenfall/Environment/Tree/island_tree_03_2k.blend.zip",
+                         "extension":  ".zip",
+                         "sizeBytes":  151486897,
+                         "readable":  true,
+                         "packageType":  "ZIP",
+                         "contentFileCount":  11,
+                         "contentExtensions":  [
+                                                   ".blend",
+                                                   ".exr",
+                                                   ".jpg",
+                                                   ".png"
+                                               ],
+                         "kind":  "MODEL",
+                         "nestedArchiveEntries":  null,
+                         "modelRelevance":  "RELEVANT"
+                     },
+                     {
+                         "path":  "D:\\Model_Asset_Lumenfall\\Master_Model_Lumenfall\\Environment\\Tree\\jacaranda_tree_2k.blend.zip",
+                         "relativePath":  "Master_Model_Lumenfall/Environment/Tree/jacaranda_tree_2k.blend.zip",
+                         "extension":  ".zip",
+                         "sizeBytes":  300044430,
+                         "readable":  true,
+                         "packageType":  "ZIP",
+                         "contentFileCount":  11,
+                         "contentExtensions":  [
+                                                   ".blend",
+                                                   ".png"
+                                               ],
+                         "kind":  "MODEL",
+                         "nestedArchiveEntries":  null,
+                         "modelRelevance":  "RELEVANT"
+                     },
+                     {
+                         "path":  "D:\\Model_Asset_Lumenfall\\Master_Model_Lumenfall\\Environment\\Tree\\quiver_tree_01_2k.blend.zip",
+                         "relativePath":  "Master_Model_Lumenfall/Environment/Tree/quiver_tree_01_2k.blend.zip",
+                         "extension":  ".zip",
+                         "sizeBytes":  94856058,
+                         "readable":  true,
+                         "packageType":  "ZIP",
+                         "contentFileCount":  7,
+                         "contentExtensions":  [
+                                                   ".blend",
+                                                   ".png"
+                                               ],
+                         "kind":  "MODEL",
+                         "nestedArchiveEntries":  null,
+                         "modelRelevance":  "RELEVANT"
+                     },
+                     {
+                         "path":  "D:\\Model_Asset_Lumenfall\\Master_Model_Lumenfall\\Environment\\Tree\\tree_small_02_2k.blend.zip",
+                         "relativePath":  "Master_Model_Lumenfall/Environment/Tree/tree_small_02_2k.blend.zip",
+                         "extension":  ".zip",
+                         "sizeBytes":  129054353,
+                         "readable":  true,
+                         "packageType":  "ZIP",
+                         "contentFileCount":  11,
+                         "contentExtensions":  [
+                                                   ".blend",
+                                                   ".exr",
+                                                   ".jpg",
+                                                   ".png"
+                                               ],
+                         "kind":  "MODEL",
+                         "nestedArchiveEntries":  null,
+                         "modelRelevance":  "RELEVANT"
+                     }
+                 ],
+    "entryExtensionCounts":  [
+                                 {
+                                     "extension":  ".jpg",
+                                     "count":  102
+                                 },
+                                 {
+                                     "extension":  ".uasset",
+                                     "count":  28
+                                 },
+                                 {
+                                     "extension":  ".obj",
+                                     "count":  270
+                                 },
+                                 {
+                                     "extension":  ".mtl",
+                                     "count":  270
+                                 },
+                                 {
+                                     "extension":  ".blend",
+                                     "count":  87
+                                 },
+                                 {
+                                     "extension":  ".txt",
+                                     "count":  2
+                                 },
+                                 {
+                                     "extension":  ".png",
+                                     "count":  261
+                                 },
+                                 {
+                                     "extension":  ".exr",
+                                     "count":  151
+                                 },
+                                 {
+                                     "extension":  ".bin",
+                                     "count":  270
+                                 },
+                                 {
+                                     "extension":  ".fbx",
+                                     "count":  270
+                                 },
+                                 {
+                                     "extension":  ".gltf",
+                                     "count":  270
+                                 },
+                                 {
+                                     "extension":  ".json",
+                                     "count":  2
+                                 }
+                             ],
+    "modelFormatCounts":  {
+                              "GLTF":  270,
+                              "BLEND":  24
+                          },
+    "modelRecordCount":  294,
+    "materialRecordCount":  66,
+    "modelCategoryCounts":  [
+                                {
+                                    "category":  "RUINS",
+                                    "count":  1
+                                },
+                                {
+                                    "category":  "BUILDING",
+                                    "count":  179
+                                },
+                                {
+                                    "category":  "NATURE",
+                                    "count":  19
+                                },
+                                {
+                                    "category":  "PROPS",
+                                    "count":  62
+                                },
+                                {
+                                    "category":  "OTHER",
+                                    "count":  31
+                                },
+                                {
+                                    "category":  "ARCHITECTURE",
+                                    "count":  2
+                                }
+                            ],
+    "materialFamilyCounts":  [
+                                 {
+                                     "family":  "tree_bark",
+                                     "count":  9
+                                 },
+                                 {
+                                     "family":  "terrain",
+                                     "count":  18
+                                 },
+                                 {
+                                     "family":  "wood",
+                                     "count":  5
+                                 },
+                                 {
+                                     "family":  "water",
+                                     "count":  3
+                                 },
+                                 {
+                                     "family":  "roof_tile",
+                                     "count":  2
+                                 },
+                                 {
+                                     "family":  "metal",
+                                     "count":  5
+                                 },
+                                 {
+                                     "family":  "fabric_banner",
+                                     "count":  2
+                                 },
+                                 {
+                                     "family":  "rock_cliff",
+                                     "count":  13
+                                 },
+                                 {
+                                     "family":  "stone_architecture",
+                                     "count":  9
+                                 }
+                             ],
+    "highPolyOrHeavy":  [
+
+                        ],
+    "archivesWithNoNestedArchives":  true,
+    "mhpkg":  [
+                  {
+                      "path":  "D:\\Model_Asset_Lumenfall\\gb_nomadwaveundercut.mhpkg",
+                      "relativePath":  "gb_nomadwaveundercut.mhpkg",
+                      "extension":  ".mhpkg",
+                      "sizeBytes":  178144135,
+                      "readable":  true,
+                      "packageType":  "MHPKG_ZIP_CONTAINER",
+                      "contentFileCount":  30,
+                      "contentExtensions":  [
+                                                ".json",
+                                                ".uasset"
+                                            ],
+                      "kind":  "OTHER",
+                      "nestedArchiveEntries":  null,
+                      "modelRelevance":  "MATERIAL_OR_OTHER"
+                  }
+              ]
+}

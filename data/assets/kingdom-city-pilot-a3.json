@@ -1,0 +1,2849 @@
+{
+  "schemaVersion": 1,
+  "phase": "A3",
+  "devOnly": true,
+  "generatedAt": "2026-09-20T12:37:04.828Z",
+  "sourceRoot": "D:/Model_Asset_Lumenfall",
+  "style": "STYLE_A_MEDIEVAL_VILLAGE_MODULAR",
+  "status": "TECH_VALIDATED_WITH_EXPLICIT_PRODUCTION_HOLDS",
+  "productionReadyCandidateCount": 0,
+  "assetCount": 15,
+  "assets": [
+    {
+      "id": "env_model_wall_plaster_straight",
+      "sourceArchive": "D:\\Model_Asset_Lumenfall\\Master_Model_Lumenfall\\Environment\\Building\\Medieval_Village_MegaKit.zip",
+      "sourceEntry": "Medieval Village MegaKit[Standard]/glTF/Wall_Plaster_Straight.gltf",
+      "pack": "medieval",
+      "scale": 1.5,
+      "url": "/dev-assets/kingdom-city-pilot-a3/models/env_model_wall_plaster_straight/model.gltf",
+      "licenseStatus": "LICENSE_OK",
+      "licenseEvidence": [
+        "Medieval Village MegaKit[Standard]/License_Standard.txt"
+      ],
+      "status": "TECH_VALIDATED",
+      "productionReadyCandidate": false,
+      "validationScope": "Local load, source-material rendering, geometry inspection, uniform pack scale and documented collision policy; not production certification",
+      "blockers": [
+        "SIMPLIFIED_LOD_HOLD_USE_SOURCE_LOD0"
+      ],
+      "performanceClass": "LIGHT",
+      "measurements": {
+        "id": "env_model_wall_plaster_straight",
+        "meshCount": 2,
+        "vertices": 134,
+        "triangles": 86,
+        "bounds": {
+          "min": [
+            -1.5000001788139343,
+            -0.003143817186355591,
+            -0.47105298936367035
+          ],
+          "max": [
+            1.5,
+            4.684033155441284,
+            0.13867007195949554
+          ]
+        },
+        "dimensions": [
+          3.0000001788139343,
+          4.68717697262764,
+          0.6097230613231659
+        ],
+        "materials": [
+          "MI_WoodTrim",
+          "MI_Plaster"
+        ],
+        "textures": [
+          {
+            "material": "MI_WoodTrim",
+            "role": "map",
+            "width": 1024,
+            "height": 1024,
+            "source": "embedded",
+            "colorSpace": "srgb"
+          },
+          {
+            "material": "MI_WoodTrim",
+            "role": "normalMap",
+            "width": 1024,
+            "height": 1024,
+            "source": "embedded",
+            "colorSpace": ""
+          },
+          {
+            "material": "MI_WoodTrim",
+            "role": "roughnessMap",
+            "width": 1024,
+            "height": 1024,
+            "source": "embedded",
+            "colorSpace": ""
+          },
+          {
+            "material": "MI_WoodTrim",
+            "role": "metalnessMap",
+            "width": 1024,
+            "height": 1024,
+            "source": "embedded",
+            "colorSpace": ""
+          },
+          {
+            "material": "MI_Plaster",
+            "role": "map",
+            "width": 1024,
+            "height": 1024,
+            "source": "embedded",
+            "colorSpace": "srgb"
+          },
+          {
+            "material": "MI_Plaster",
+            "role": "normalMap",
+            "width": 1024,
+            "height": 1024,
+            "source": "embedded",
+            "colorSpace": ""
+          },
+          {
+            "material": "MI_Plaster",
+            "role": "roughnessMap",
+            "width": 1024,
+            "height": 1024,
+            "source": "embedded",
+            "colorSpace": ""
+          },
+          {
+            "material": "MI_Plaster",
+            "role": "metalnessMap",
+            "width": 1024,
+            "height": 1024,
+            "source": "embedded",
+            "colorSpace": ""
+          }
+        ],
+        "hierarchy": [
+          {
+            "name": "env_model_wall_plaster_straight",
+            "type": "Group",
+            "position": [
+              0,
+              0,
+              0
+            ],
+            "scale": [
+              1.5,
+              1.5,
+              1.5
+            ]
+          },
+          {
+            "name": "Wall_Plaster_Straight",
+            "type": "Group",
+            "position": [
+              0,
+              0,
+              0
+            ],
+            "scale": [
+              1,
+              1,
+              1
+            ]
+          },
+          {
+            "name": "Cube027",
+            "type": "Mesh",
+            "position": [
+              0,
+              0,
+              0
+            ],
+            "scale": [
+              1,
+              1,
+              1
+            ]
+          },
+          {
+            "name": "Cube027_1",
+            "type": "Mesh",
+            "position": [
+              0,
+              0,
+              0
+            ],
+            "scale": [
+              1,
+              1,
+              1
+            ]
+          }
+        ],
+        "badNumbers": 0,
+        "missingNormals": 0,
+        "missingUV": 0,
+        "invalidIndices": 0,
+        "degenerate": 0,
+        "negativeScale": false
+      },
+      "pivotPolicy": "source pivot preserved",
+      "collisionPolicy": "composed wall/jamb/lintel boxes; no automatic per-mesh collision"
+    },
+    {
+      "id": "env_model_wall_plaster_door_round",
+      "sourceArchive": "D:\\Model_Asset_Lumenfall\\Master_Model_Lumenfall\\Environment\\Building\\Medieval_Village_MegaKit.zip",
+      "sourceEntry": "Medieval Village MegaKit[Standard]/glTF/Wall_Plaster_Door_Round.gltf",
+      "pack": "medieval",
+      "scale": 1.5,
+      "url": "/dev-assets/kingdom-city-pilot-a3/models/env_model_wall_plaster_door_round/model.gltf",
+      "licenseStatus": "LICENSE_OK",
+      "licenseEvidence": [
+        "Medieval Village MegaKit[Standard]/License_Standard.txt"
+      ],
+      "status": "TECH_VALIDATED",
+      "productionReadyCandidate": false,
+      "validationScope": "Local load, source-material rendering, geometry inspection, uniform pack scale and documented collision policy; not production certification",
+      "blockers": [
+        "SIMPLIFIED_LOD_HOLD_USE_SOURCE_LOD0"
+      ],
+      "performanceClass": "LIGHT",
+      "measurements": {
+        "id": "env_model_wall_plaster_door_round",
+        "meshCount": 3,
+        "vertices": 201,
+        "triangles": 137,
+        "bounds": {
+          "min": [
+            -1.5000001788139343,
+            0,
+            -0.47105298936367035
+          ],
+          "max": [
+            1.5,
+            4.684033155441284,
+            0.13867007195949554
+          ]
+        },
+        "dimensions": [
+          3.0000001788139343,
+          4.684033155441284,
+          0.6097230613231659
+        ],
+        "materials": [
+          "MI_WoodTrim",
+          "MI_Plaster",
+          "MI_RockTrim"
+        ],
+        "textures": [
+          {
+            "material": "MI_WoodTrim",
+            "role": "map",
+            "width": 1024,
+            "height": 1024,
+            "source": "embedded",
+            "colorSpace": "srgb"
+          },
+          {
+            "material": "MI_WoodTrim",
+            "role": "normalMap",
+            "width": 1024,
+            "height": 1024,
+            "source": "embedded",
+            "colorSpace": ""
+          },
+          {
+            "material": "MI_WoodTrim",
+            "role": "roughnessMap",
+            "width": 1024,
+            "height": 1024,
+            "source": "embedded",
+            "colorSpace": ""
+          },
+          {
+            "material": "MI_WoodTrim",
+            "role": "metalnessMap",
+            "width": 1024,
+            "height": 1024,
+            "source": "embedded",
+            "colorSpace": ""
+          },
+          {
+            "material": "MI_Plaster",
+            "role": "map",
+            "width": 1024,
+            "height": 1024,
+            "source": "embedded",
+            "colorSpace": "srgb"
+          },
+          {
+            "material": "MI_Plaster",
+            "role": "normalMap",
+            "width": 1024,
+            "height": 1024,
+            "source": "embedded",
+            "colorSpace": ""
+          },
+          {
+            "material": "MI_Plaster",
+            "role": "roughnessMap",
+            "width": 1024,
+            "height": 1024,
+            "source": "embedded",
+            "colorSpace": ""
+          },
+          {
+            "material": "MI_Plaster",
+            "role": "metalnessMap",
+            "width": 1024,
+            "height": 1024,
+            "source": "embedded",
+            "colorSpace": ""
+          },
+          {
+            "material": "MI_RockTrim",
+            "role": "map",
+            "width": 1024,
+            "height": 1024,
+            "source": "embedded",
+            "colorSpace": "srgb"
+          },
+          {
+            "material": "MI_RockTrim",
+            "role": "normalMap",
+            "width": 1024,
+            "height": 1024,
+            "source": "embedded",
+            "colorSpace": ""
+          },
+          {
+            "material": "MI_RockTrim",
+            "role": "roughnessMap",
+            "width": 1024,
+            "height": 1024,
+            "source": "embedded",
+            "colorSpace": ""
+          },
+          {
+            "material": "MI_RockTrim",
+            "role": "metalnessMap",
+            "width": 1024,
+            "height": 1024,
+            "source": "embedded",
+            "colorSpace": ""
+          }
+        ],
+        "hierarchy": [
+          {
+            "name": "env_model_wall_plaster_door_round",
+            "type": "Group",
+            "position": [
+              0,
+              0,
+              0
+            ],
+            "scale": [
+              1.5,
+              1.5,
+              1.5
+            ]
+          },
+          {
+            "name": "Wall_Plaster_Door_Round",
+            "type": "Group",
+            "position": [
+              0,
+              0,
+              0
+            ],
+            "scale": [
+              1,
+              1,
+              1
+            ]
+          },
+          {
+            "name": "Cube227",
+            "type": "Mesh",
+            "position": [
+              0,
+              0,
+              0
+            ],
+            "scale": [
+              1,
+              1,
+              1
+            ]
+          },
+          {
+            "name": "Cube227_1",
+            "type": "Mesh",
+            "position": [
+              0,
+              0,
+              0
+            ],
+            "scale": [
+              1,
+              1,
+              1
+            ]
+          },
+          {
+            "name": "Cube227_2",
+            "type": "Mesh",
+            "position": [
+              0,
+              0,
+              0
+            ],
+            "scale": [
+              1,
+              1,
+              1
+            ]
+          }
+        ],
+        "badNumbers": 0,
+        "missingNormals": 0,
+        "missingUV": 0,
+        "invalidIndices": 0,
+        "degenerate": 0,
+        "negativeScale": false
+      },
+      "pivotPolicy": "source pivot preserved",
+      "collisionPolicy": "composed wall/jamb/lintel boxes; no automatic per-mesh collision"
+    },
+    {
+      "id": "env_model_doorframe_round_brick",
+      "sourceArchive": "D:\\Model_Asset_Lumenfall\\Master_Model_Lumenfall\\Environment\\Building\\Medieval_Village_MegaKit.zip",
+      "sourceEntry": "Medieval Village MegaKit[Standard]/glTF/DoorFrame_Round_Brick.gltf",
+      "pack": "medieval",
+      "scale": 1.5,
+      "url": "/dev-assets/kingdom-city-pilot-a3/models/env_model_doorframe_round_brick/model.gltf",
+      "licenseStatus": "LICENSE_OK",
+      "licenseEvidence": [
+        "Medieval Village MegaKit[Standard]/License_Standard.txt"
+      ],
+      "status": "TECH_VALIDATED",
+      "productionReadyCandidate": false,
+      "validationScope": "Local load, source-material rendering, geometry inspection, uniform pack scale and documented collision policy; not production certification",
+      "blockers": [
+        "SIMPLIFIED_LOD_HOLD_USE_SOURCE_LOD0"
+      ],
+      "performanceClass": "MEDIUM",
+      "measurements": {
+        "id": "env_model_doorframe_round_brick",
+        "meshCount": 1,
+        "vertices": 1616,
+        "triangles": 2046,
+        "bounds": {
+          "min": [
+            -1.206173837184906,
+            -0.0025387785863131285,
+            -0.4427006095647812
+          ],
+          "max": [
+            1.1985062062740326,
+            3.876718282699585,
+            0.2730543538928032
+          ]
+        },
+        "dimensions": [
+          2.4046800434589386,
+          3.879257061285898,
+          0.7157549634575844
+        ],
+        "materials": [
+          "MI_RockTrim"
+        ],
+        "textures": [
+          {
+            "material": "MI_RockTrim",
+            "role": "map",
+            "width": 1024,
+            "height": 1024,
+            "source": "embedded",
+            "colorSpace": "srgb"
+          },
+          {
+            "material": "MI_RockTrim",
+            "role": "normalMap",
+            "width": 1024,
+            "height": 1024,
+            "source": "embedded",
+            "colorSpace": ""
+          },
+          {
+            "material": "MI_RockTrim",
+            "role": "roughnessMap",
+            "width": 1024,
+            "height": 1024,
+            "source": "embedded",
+            "colorSpace": ""
+          },
+          {
+            "material": "MI_RockTrim",
+            "role": "metalnessMap",
+            "width": 1024,
+            "height": 1024,
+            "source": "embedded",
+            "colorSpace": ""
+          }
+        ],
+        "hierarchy": [
+          {
+            "name": "env_model_doorframe_round_brick",
+            "type": "Group",
+            "position": [
+              0,
+              0,
+              0
+            ],
+            "scale": [
+              1.5,
+              1.5,
+              1.5
+            ]
+          },
+          {
+            "name": "DoorFrame_Round_Brick",
+            "type": "Mesh",
+            "position": [
+              0,
+              0,
+              0
+            ],
+            "scale": [
+              1,
+              1,
+              1
+            ]
+          }
+        ],
+        "badNumbers": 0,
+        "missingNormals": 0,
+        "missingUV": 0,
+        "invalidIndices": 0,
+        "degenerate": 0,
+        "negativeScale": false
+      },
+      "pivotPolicy": "source pivot preserved",
+      "collisionPolicy": "composed wall/jamb/lintel boxes; no automatic per-mesh collision"
+    },
+    {
+      "id": "env_model_roof_tower_roundtiles",
+      "sourceArchive": "D:\\Model_Asset_Lumenfall\\Master_Model_Lumenfall\\Environment\\Building\\Medieval_Village_MegaKit.zip",
+      "sourceEntry": "Medieval Village MegaKit[Standard]/glTF/Roof_Tower_RoundTiles.gltf",
+      "pack": "medieval",
+      "scale": 1.5,
+      "url": "/dev-assets/kingdom-city-pilot-a3/models/env_model_roof_tower_roundtiles/model.gltf",
+      "licenseStatus": "LICENSE_OK",
+      "licenseEvidence": [
+        "Medieval Village MegaKit[Standard]/License_Standard.txt"
+      ],
+      "status": "TECH_VALIDATED",
+      "productionReadyCandidate": false,
+      "validationScope": "Local load, source-material rendering, geometry inspection, uniform pack scale and documented collision policy; not production certification",
+      "blockers": [
+        "SIMPLIFIED_LOD_HOLD_USE_SOURCE_LOD0"
+      ],
+      "performanceClass": "MEDIUM",
+      "measurements": {
+        "id": "env_model_roof_tower_roundtiles",
+        "meshCount": 4,
+        "vertices": 4479,
+        "triangles": 4024,
+        "bounds": {
+          "min": [
+            -4.237890958786011,
+            -0.8579375445842743,
+            -4.070324778556824
+          ],
+          "max": [
+            4.237890958786011,
+            10.183223247528076,
+            4.070324778556824
+          ]
+        },
+        "dimensions": [
+          8.475781917572021,
+          11.04116079211235,
+          8.140649557113647
+        ],
+        "materials": [
+          "MI_WoodTrim",
+          "MI_RockTrim",
+          "MI_RoundTiles",
+          "MI_MetalOrnaments"
+        ],
+        "textures": [
+          {
+            "material": "MI_WoodTrim",
+            "role": "map",
+            "width": 1024,
+            "height": 1024,
+            "source": "embedded",
+            "colorSpace": "srgb"
+          },
+          {
+            "material": "MI_WoodTrim",
+            "role": "normalMap",
+            "width": 1024,
+            "height": 1024,
+            "source": "embedded",
+            "colorSpace": ""
+          },
+          {
+            "material": "MI_WoodTrim",
+            "role": "roughnessMap",
+            "width": 1024,
+            "height": 1024,
+            "source": "embedded",
+            "colorSpace": ""
+          },
+          {
+            "material": "MI_WoodTrim",
+            "role": "metalnessMap",
+            "width": 1024,
+            "height": 1024,
+            "source": "embedded",
+            "colorSpace": ""
+          },
+          {
+            "material": "MI_RockTrim",
+            "role": "map",
+            "width": 1024,
+            "height": 1024,
+            "source": "embedded",
+            "colorSpace": "srgb"
+          },
+          {
+            "material": "MI_RockTrim",
+            "role": "normalMap",
+            "width": 1024,
+            "height": 1024,
+            "source": "embedded",
+            "colorSpace": ""
+          },
+          {
+            "material": "MI_RockTrim",
+            "role": "roughnessMap",
+            "width": 1024,
+            "height": 1024,
+            "source": "embedded",
+            "colorSpace": ""
+          },
+          {
+            "material": "MI_RockTrim",
+            "role": "metalnessMap",
+            "width": 1024,
+            "height": 1024,
+            "source": "embedded",
+            "colorSpace": ""
+          },
+          {
+            "material": "MI_RoundTiles",
+            "role": "map",
+            "width": 1024,
+            "height": 1024,
+            "source": "embedded",
+            "colorSpace": "srgb"
+          },
+          {
+            "material": "MI_RoundTiles",
+            "role": "normalMap",
+            "width": 1024,
+            "height": 1024,
+            "source": "embedded",
+            "colorSpace": ""
+          },
+          {
+            "material": "MI_RoundTiles",
+            "role": "roughnessMap",
+            "width": 1024,
+            "height": 1024,
+            "source": "embedded",
+            "colorSpace": ""
+          },
+          {
+            "material": "MI_RoundTiles",
+            "role": "metalnessMap",
+            "width": 1024,
+            "height": 1024,
+            "source": "embedded",
+            "colorSpace": ""
+          },
+          {
+            "material": "MI_MetalOrnaments",
+            "role": "map",
+            "width": 1024,
+            "height": 1024,
+            "source": "embedded",
+            "colorSpace": "srgb"
+          },
+          {
+            "material": "MI_MetalOrnaments",
+            "role": "roughnessMap",
+            "width": 512,
+            "height": 512,
+            "source": "embedded",
+            "colorSpace": ""
+          },
+          {
+            "material": "MI_MetalOrnaments",
+            "role": "metalnessMap",
+            "width": 512,
+            "height": 512,
+            "source": "embedded",
+            "colorSpace": ""
+          }
+        ],
+        "hierarchy": [
+          {
+            "name": "env_model_roof_tower_roundtiles",
+            "type": "Group",
+            "position": [
+              0,
+              0,
+              0
+            ],
+            "scale": [
+              1.5,
+              1.5,
+              1.5
+            ]
+          },
+          {
+            "name": "Roof_Tower_RoundTiles",
+            "type": "Group",
+            "position": [
+              0,
+              0,
+              0
+            ],
+            "scale": [
+              1,
+              1,
+              1
+            ]
+          },
+          {
+            "name": "Cube037",
+            "type": "Mesh",
+            "position": [
+              0,
+              0,
+              0
+            ],
+            "scale": [
+              1,
+              1,
+              1
+            ]
+          },
+          {
+            "name": "Cube037_1",
+            "type": "Mesh",
+            "position": [
+              0,
+              0,
+              0
+            ],
+            "scale": [
+              1,
+              1,
+              1
+            ]
+          },
+          {
+            "name": "Cube037_2",
+            "type": "Mesh",
+            "position": [
+              0,
+              0,
+              0
+            ],
+            "scale": [
+              1,
+              1,
+              1
+            ]
+          },
+          {
+            "name": "Cube037_3",
+            "type": "Mesh",
+            "position": [
+              0,
+              0,
+              0
+            ],
+            "scale": [
+              1,
+              1,
+              1
+            ]
+          }
+        ],
+        "badNumbers": 0,
+        "missingNormals": 0,
+        "missingUV": 0,
+        "invalidIndices": 0,
+        "degenerate": 0,
+        "negativeScale": false
+      },
+      "pivotPolicy": "source pivot preserved",
+      "collisionPolicy": "none (decorative/roof/small prop)"
+    },
+    {
+      "id": "env_model_floor_brick",
+      "sourceArchive": "D:\\Model_Asset_Lumenfall\\Master_Model_Lumenfall\\Environment\\Building\\Medieval_Village_MegaKit.zip",
+      "sourceEntry": "Medieval Village MegaKit[Standard]/glTF/Floor_Brick.gltf",
+      "pack": "medieval",
+      "scale": 1.5,
+      "url": "/dev-assets/kingdom-city-pilot-a3/models/env_model_floor_brick/model.gltf",
+      "licenseStatus": "LICENSE_OK",
+      "licenseEvidence": [
+        "Medieval Village MegaKit[Standard]/License_Standard.txt"
+      ],
+      "status": "TECH_VALIDATED",
+      "productionReadyCandidate": false,
+      "validationScope": "Local load, source-material rendering, geometry inspection, uniform pack scale and documented collision policy; not production certification",
+      "blockers": [],
+      "performanceClass": "LIGHT",
+      "measurements": {
+        "id": "env_model_floor_brick",
+        "meshCount": 1,
+        "vertices": 8,
+        "triangles": 4,
+        "bounds": {
+          "min": [
+            -1.5,
+            -0.015000576619058847,
+            -1.5
+          ],
+          "max": [
+            1.5,
+            0.014999985694885254,
+            1.5
+          ]
+        },
+        "dimensions": [
+          3,
+          0.0300005623139441,
+          3
+        ],
+        "materials": [
+          "MI_Brick"
+        ],
+        "textures": [
+          {
+            "material": "MI_Brick",
+            "role": "map",
+            "width": 1024,
+            "height": 1024,
+            "source": "embedded",
+            "colorSpace": "srgb"
+          },
+          {
+            "material": "MI_Brick",
+            "role": "normalMap",
+            "width": 1024,
+            "height": 1024,
+            "source": "embedded",
+            "colorSpace": ""
+          },
+          {
+            "material": "MI_Brick",
+            "role": "roughnessMap",
+            "width": 1024,
+            "height": 1024,
+            "source": "embedded",
+            "colorSpace": ""
+          },
+          {
+            "material": "MI_Brick",
+            "role": "metalnessMap",
+            "width": 1024,
+            "height": 1024,
+            "source": "embedded",
+            "colorSpace": ""
+          }
+        ],
+        "hierarchy": [
+          {
+            "name": "env_model_floor_brick",
+            "type": "Group",
+            "position": [
+              0,
+              0,
+              0
+            ],
+            "scale": [
+              1.5,
+              1.5,
+              1.5
+            ]
+          },
+          {
+            "name": "Floor_Brick",
+            "type": "Mesh",
+            "position": [
+              0,
+              0,
+              0
+            ],
+            "scale": [
+              1,
+              1,
+              1
+            ]
+          }
+        ],
+        "badNumbers": 0,
+        "missingNormals": 0,
+        "missingUV": 0,
+        "invalidIndices": 0,
+        "degenerate": 0,
+        "negativeScale": false
+      },
+      "pivotPolicy": "source pivot preserved",
+      "collisionPolicy": "ImportedMapGround floor/ramp; source landing"
+    },
+    {
+      "id": "env_model_corner_exterior_brick",
+      "sourceArchive": "D:\\Model_Asset_Lumenfall\\Master_Model_Lumenfall\\Environment\\Building\\Medieval_Village_MegaKit.zip",
+      "sourceEntry": "Medieval Village MegaKit[Standard]/glTF/Corner_Exterior_Brick.gltf",
+      "pack": "medieval",
+      "scale": 1.5,
+      "url": "/dev-assets/kingdom-city-pilot-a3/models/env_model_corner_exterior_brick/model.gltf",
+      "licenseStatus": "LICENSE_OK",
+      "licenseEvidence": [
+        "Medieval Village MegaKit[Standard]/License_Standard.txt"
+      ],
+      "status": "TECH_VALIDATED",
+      "productionReadyCandidate": false,
+      "validationScope": "Local load, source-material rendering, geometry inspection, uniform pack scale and documented collision policy; not production certification",
+      "blockers": [
+        "SIMPLIFIED_LOD_HOLD_USE_SOURCE_LOD0"
+      ],
+      "performanceClass": "MEDIUM",
+      "measurements": {
+        "id": "env_model_corner_exterior_brick",
+        "meshCount": 1,
+        "vertices": 2424,
+        "triangles": 3102,
+        "bounds": {
+          "min": [
+            -0.5294125378131866,
+            -0.010636657476425171,
+            -0.2987012341618538
+          ],
+          "max": [
+            0.26659344881772995,
+            4.512803792953491,
+            0.5650494396686554
+          ]
+        },
+        "dimensions": [
+          0.7960059866309166,
+          4.523440450429916,
+          0.8637506738305092
+        ],
+        "materials": [
+          "MI_RockTrim"
+        ],
+        "textures": [
+          {
+            "material": "MI_RockTrim",
+            "role": "map",
+            "width": 1024,
+            "height": 1024,
+            "source": "embedded",
+            "colorSpace": "srgb"
+          },
+          {
+            "material": "MI_RockTrim",
+            "role": "normalMap",
+            "width": 1024,
+            "height": 1024,
+            "source": "embedded",
+            "colorSpace": ""
+          },
+          {
+            "material": "MI_RockTrim",
+            "role": "roughnessMap",
+            "width": 1024,
+            "height": 1024,
+            "source": "embedded",
+            "colorSpace": ""
+          },
+          {
+            "material": "MI_RockTrim",
+            "role": "metalnessMap",
+            "width": 1024,
+            "height": 1024,
+            "source": "embedded",
+            "colorSpace": ""
+          }
+        ],
+        "hierarchy": [
+          {
+            "name": "env_model_corner_exterior_brick",
+            "type": "Group",
+            "position": [
+              0,
+              0,
+              0
+            ],
+            "scale": [
+              1.5,
+              1.5,
+              1.5
+            ]
+          },
+          {
+            "name": "Corner_Exterior_Brick",
+            "type": "Mesh",
+            "position": [
+              0,
+              0,
+              0
+            ],
+            "scale": [
+              1,
+              1,
+              1
+            ]
+          }
+        ],
+        "badNumbers": 0,
+        "missingNormals": 0,
+        "missingUV": 0,
+        "invalidIndices": 0,
+        "degenerate": 0,
+        "negativeScale": false
+      },
+      "pivotPolicy": "source pivot preserved",
+      "collisionPolicy": "composed wall/jamb/lintel boxes; no automatic per-mesh collision"
+    },
+    {
+      "id": "env_model_stairs_exterior_platform",
+      "sourceArchive": "D:\\Model_Asset_Lumenfall\\Master_Model_Lumenfall\\Environment\\Building\\Medieval_Village_MegaKit.zip",
+      "sourceEntry": "Medieval Village MegaKit[Standard]/glTF/Stairs_Exterior_Platform.gltf",
+      "pack": "medieval",
+      "scale": 1.5,
+      "url": "/dev-assets/kingdom-city-pilot-a3/models/env_model_stairs_exterior_platform/model.gltf",
+      "licenseStatus": "LICENSE_OK",
+      "licenseEvidence": [
+        "Medieval Village MegaKit[Standard]/License_Standard.txt"
+      ],
+      "status": "TECH_VALIDATED",
+      "productionReadyCandidate": false,
+      "validationScope": "Local load, source-material rendering, geometry inspection, uniform pack scale and documented collision policy; not production certification",
+      "blockers": [],
+      "performanceClass": "LIGHT",
+      "measurements": {
+        "id": "env_model_stairs_exterior_platform",
+        "meshCount": 2,
+        "vertices": 63,
+        "triangles": 32,
+        "bounds": {
+          "min": [
+            -1.5000003576278687,
+            -5.731013274419571e-16,
+            -1.501007080078125
+          ],
+          "max": [
+            1.5000003576278687,
+            1.5,
+            1.501007080078125
+          ]
+        },
+        "dimensions": [
+          3.0000007152557373,
+          1.5000000000000007,
+          3.00201416015625
+        ],
+        "materials": [
+          "MI_RockTrim",
+          "MI_Brick"
+        ],
+        "textures": [
+          {
+            "material": "MI_RockTrim",
+            "role": "map",
+            "width": 1024,
+            "height": 1024,
+            "source": "embedded",
+            "colorSpace": "srgb"
+          },
+          {
+            "material": "MI_RockTrim",
+            "role": "normalMap",
+            "width": 1024,
+            "height": 1024,
+            "source": "embedded",
+            "colorSpace": ""
+          },
+          {
+            "material": "MI_RockTrim",
+            "role": "roughnessMap",
+            "width": 1024,
+            "height": 1024,
+            "source": "embedded",
+            "colorSpace": ""
+          },
+          {
+            "material": "MI_RockTrim",
+            "role": "metalnessMap",
+            "width": 1024,
+            "height": 1024,
+            "source": "embedded",
+            "colorSpace": ""
+          },
+          {
+            "material": "MI_Brick",
+            "role": "map",
+            "width": 1024,
+            "height": 1024,
+            "source": "embedded",
+            "colorSpace": "srgb"
+          },
+          {
+            "material": "MI_Brick",
+            "role": "normalMap",
+            "width": 1024,
+            "height": 1024,
+            "source": "embedded",
+            "colorSpace": ""
+          },
+          {
+            "material": "MI_Brick",
+            "role": "roughnessMap",
+            "width": 1024,
+            "height": 1024,
+            "source": "embedded",
+            "colorSpace": ""
+          },
+          {
+            "material": "MI_Brick",
+            "role": "metalnessMap",
+            "width": 1024,
+            "height": 1024,
+            "source": "embedded",
+            "colorSpace": ""
+          }
+        ],
+        "hierarchy": [
+          {
+            "name": "env_model_stairs_exterior_platform",
+            "type": "Group",
+            "position": [
+              0,
+              0,
+              0
+            ],
+            "scale": [
+              1.5,
+              1.5,
+              1.5
+            ]
+          },
+          {
+            "name": "Stairs_Exterior_Platform",
+            "type": "Group",
+            "position": [
+              0,
+              0,
+              0
+            ],
+            "scale": [
+              1,
+              1,
+              1
+            ]
+          },
+          {
+            "name": "Cube090",
+            "type": "Mesh",
+            "position": [
+              0,
+              0,
+              0
+            ],
+            "scale": [
+              1,
+              1,
+              1
+            ]
+          },
+          {
+            "name": "Cube090_1",
+            "type": "Mesh",
+            "position": [
+              0,
+              0,
+              0
+            ],
+            "scale": [
+              1,
+              1,
+              1
+            ]
+          }
+        ],
+        "badNumbers": 0,
+        "missingNormals": 0,
+        "missingUV": 0,
+        "invalidIndices": 0,
+        "degenerate": 0,
+        "negativeScale": false
+      },
+      "pivotPolicy": "source pivot preserved",
+      "collisionPolicy": "ImportedMapGround floor/ramp; source landing"
+    },
+    {
+      "id": "env_model_stairs_exterior_nofirststep",
+      "sourceArchive": "D:\\Model_Asset_Lumenfall\\Master_Model_Lumenfall\\Environment\\Building\\Medieval_Village_MegaKit.zip",
+      "sourceEntry": "Medieval Village MegaKit[Standard]/glTF/Stairs_Exterior_NoFirstStep.gltf",
+      "pack": "medieval",
+      "scale": 1.5,
+      "url": "/dev-assets/kingdom-city-pilot-a3/models/env_model_stairs_exterior_nofirststep/model.gltf",
+      "licenseStatus": "LICENSE_OK",
+      "licenseEvidence": [
+        "Medieval Village MegaKit[Standard]/License_Standard.txt"
+      ],
+      "status": "TECH_VALIDATED",
+      "productionReadyCandidate": false,
+      "validationScope": "Local load, source-material rendering, geometry inspection, uniform pack scale and documented collision policy; not production certification",
+      "blockers": [],
+      "performanceClass": "LIGHT",
+      "measurements": {
+        "id": "env_model_stairs_exterior_nofirststep",
+        "meshCount": 2,
+        "vertices": 100,
+        "triangles": 52,
+        "bounds": {
+          "min": [
+            -1.5000003576278687,
+            -7.641351032559428e-16,
+            -1.6158689260482788
+          ],
+          "max": [
+            1.5000003576278687,
+            1.4999998211860657,
+            1.5
+          ]
+        },
+        "dimensions": [
+          3.0000007152557373,
+          1.4999998211860663,
+          3.115868926048279
+        ],
+        "materials": [
+          "MI_RockTrim",
+          "MI_Brick"
+        ],
+        "textures": [
+          {
+            "material": "MI_RockTrim",
+            "role": "map",
+            "width": 1024,
+            "height": 1024,
+            "source": "embedded",
+            "colorSpace": "srgb"
+          },
+          {
+            "material": "MI_RockTrim",
+            "role": "normalMap",
+            "width": 1024,
+            "height": 1024,
+            "source": "embedded",
+            "colorSpace": ""
+          },
+          {
+            "material": "MI_RockTrim",
+            "role": "roughnessMap",
+            "width": 1024,
+            "height": 1024,
+            "source": "embedded",
+            "colorSpace": ""
+          },
+          {
+            "material": "MI_RockTrim",
+            "role": "metalnessMap",
+            "width": 1024,
+            "height": 1024,
+            "source": "embedded",
+            "colorSpace": ""
+          },
+          {
+            "material": "MI_Brick",
+            "role": "map",
+            "width": 1024,
+            "height": 1024,
+            "source": "embedded",
+            "colorSpace": "srgb"
+          },
+          {
+            "material": "MI_Brick",
+            "role": "normalMap",
+            "width": 1024,
+            "height": 1024,
+            "source": "embedded",
+            "colorSpace": ""
+          },
+          {
+            "material": "MI_Brick",
+            "role": "roughnessMap",
+            "width": 1024,
+            "height": 1024,
+            "source": "embedded",
+            "colorSpace": ""
+          },
+          {
+            "material": "MI_Brick",
+            "role": "metalnessMap",
+            "width": 1024,
+            "height": 1024,
+            "source": "embedded",
+            "colorSpace": ""
+          }
+        ],
+        "hierarchy": [
+          {
+            "name": "env_model_stairs_exterior_nofirststep",
+            "type": "Group",
+            "position": [
+              0,
+              0,
+              0
+            ],
+            "scale": [
+              1.5,
+              1.5,
+              1.5
+            ]
+          },
+          {
+            "name": "Stairs_Exterior_NoFirstStep",
+            "type": "Group",
+            "position": [
+              0,
+              0,
+              0
+            ],
+            "scale": [
+              1,
+              1,
+              1
+            ]
+          },
+          {
+            "name": "Cube048",
+            "type": "Mesh",
+            "position": [
+              0,
+              0,
+              0
+            ],
+            "scale": [
+              1,
+              1,
+              1
+            ]
+          },
+          {
+            "name": "Cube048_1",
+            "type": "Mesh",
+            "position": [
+              0,
+              0,
+              0
+            ],
+            "scale": [
+              1,
+              1,
+              1
+            ]
+          }
+        ],
+        "badNumbers": 0,
+        "missingNormals": 0,
+        "missingUV": 0,
+        "invalidIndices": 0,
+        "degenerate": 0,
+        "negativeScale": false
+      },
+      "pivotPolicy": "source pivot preserved",
+      "collisionPolicy": "ImportedMapGround floor/ramp; source landing"
+    },
+    {
+      "id": "env_model_barrel",
+      "sourceArchive": "D:\\Model_Asset_Lumenfall\\Master_Model_Lumenfall\\Environment\\Building\\Fantasy_Props_MegaKit.zip",
+      "sourceEntry": "Exports/glTF/Barrel.gltf",
+      "pack": "props",
+      "scale": 1.5,
+      "url": "/dev-assets/kingdom-city-pilot-a3/models/env_model_barrel/model.gltf",
+      "licenseStatus": "LICENSE_OK",
+      "licenseEvidence": [
+        "License_Standard.txt"
+      ],
+      "status": "TECH_VALIDATED",
+      "productionReadyCandidate": false,
+      "validationScope": "Local load, source-material rendering, geometry inspection, uniform pack scale and documented collision policy; not production certification",
+      "blockers": [
+        "TWO_SOURCE_DEGENERATE_TRIANGLES_RETAINED"
+      ],
+      "performanceClass": "LIGHT",
+      "measurements": {
+        "id": "env_model_barrel",
+        "meshCount": 2,
+        "vertices": 1305,
+        "triangles": 824,
+        "bounds": {
+          "min": [
+            -0.5235233455896378,
+            0.005155116319656372,
+            -0.523523211479187
+          ],
+          "max": [
+            0.5235231667757034,
+            1.3520926237106323,
+            0.5235232561826706
+          ]
+        },
+        "dimensions": [
+          1.0470465123653412,
+          1.346937507390976,
+          1.0470464676618576
+        ],
+        "materials": [
+          "MI_Trim_Furniture",
+          "MI_Trim_Metal"
+        ],
+        "textures": [
+          {
+            "material": "MI_Trim_Furniture",
+            "role": "map",
+            "width": 1024,
+            "height": 1024,
+            "source": "embedded",
+            "colorSpace": "srgb"
+          },
+          {
+            "material": "MI_Trim_Furniture",
+            "role": "normalMap",
+            "width": 1024,
+            "height": 1024,
+            "source": "embedded",
+            "colorSpace": ""
+          },
+          {
+            "material": "MI_Trim_Furniture",
+            "role": "roughnessMap",
+            "width": 1024,
+            "height": 1024,
+            "source": "embedded",
+            "colorSpace": ""
+          },
+          {
+            "material": "MI_Trim_Furniture",
+            "role": "metalnessMap",
+            "width": 1024,
+            "height": 1024,
+            "source": "embedded",
+            "colorSpace": ""
+          },
+          {
+            "material": "MI_Trim_Metal",
+            "role": "map",
+            "width": 1024,
+            "height": 1024,
+            "source": "embedded",
+            "colorSpace": "srgb"
+          },
+          {
+            "material": "MI_Trim_Metal",
+            "role": "normalMap",
+            "width": 1024,
+            "height": 1024,
+            "source": "embedded",
+            "colorSpace": ""
+          },
+          {
+            "material": "MI_Trim_Metal",
+            "role": "roughnessMap",
+            "width": 1024,
+            "height": 1024,
+            "source": "embedded",
+            "colorSpace": ""
+          },
+          {
+            "material": "MI_Trim_Metal",
+            "role": "metalnessMap",
+            "width": 1024,
+            "height": 1024,
+            "source": "embedded",
+            "colorSpace": ""
+          }
+        ],
+        "hierarchy": [
+          {
+            "name": "env_model_barrel",
+            "type": "Group",
+            "position": [
+              0,
+              0,
+              0
+            ],
+            "scale": [
+              1.5,
+              1.5,
+              1.5
+            ]
+          },
+          {
+            "name": "Barrel",
+            "type": "Group",
+            "position": [
+              0,
+              0,
+              0
+            ],
+            "scale": [
+              1,
+              1,
+              1
+            ]
+          },
+          {
+            "name": "Cylinder",
+            "type": "Mesh",
+            "position": [
+              0,
+              0,
+              0
+            ],
+            "scale": [
+              1,
+              1,
+              1
+            ]
+          },
+          {
+            "name": "Cylinder_1",
+            "type": "Mesh",
+            "position": [
+              0,
+              0,
+              0
+            ],
+            "scale": [
+              1,
+              1,
+              1
+            ]
+          }
+        ],
+        "badNumbers": 0,
+        "missingNormals": 0,
+        "missingUV": 0,
+        "invalidIndices": 0,
+        "degenerate": 2,
+        "negativeScale": false
+      },
+      "pivotPolicy": "source hierarchy intact; runtime wrapper offsets bbox minimum Y to ground",
+      "collisionPolicy": "none (decorative/roof/small prop)"
+    },
+    {
+      "id": "env_model_crate_wooden",
+      "sourceArchive": "D:\\Model_Asset_Lumenfall\\Master_Model_Lumenfall\\Environment\\Building\\Fantasy_Props_MegaKit.zip",
+      "sourceEntry": "Exports/glTF/Crate_Wooden.gltf",
+      "pack": "props",
+      "scale": 1.5,
+      "url": "/dev-assets/kingdom-city-pilot-a3/models/env_model_crate_wooden/model.gltf",
+      "licenseStatus": "LICENSE_OK",
+      "licenseEvidence": [
+        "License_Standard.txt"
+      ],
+      "status": "TECH_VALIDATED",
+      "productionReadyCandidate": false,
+      "validationScope": "Local load, source-material rendering, geometry inspection, uniform pack scale and documented collision policy; not production certification",
+      "blockers": [],
+      "performanceClass": "LIGHT",
+      "measurements": {
+        "id": "env_model_crate_wooden",
+        "meshCount": 2,
+        "vertices": 1426,
+        "triangles": 1576,
+        "bounds": {
+          "min": [
+            -0.6387671688702561,
+            -0.07864738851377906,
+            -0.68121997321526
+          ],
+          "max": [
+            0.6246206507929415,
+            1.3177445255813787,
+            0.68121997321526
+          ]
+        },
+        "dimensions": [
+          1.2633878196631976,
+          1.3963919140951577,
+          1.36243994643052
+        ],
+        "materials": [
+          "MI_Trim_Furniture",
+          "MI_Trim_Metal"
+        ],
+        "textures": [
+          {
+            "material": "MI_Trim_Furniture",
+            "role": "map",
+            "width": 1024,
+            "height": 1024,
+            "source": "embedded",
+            "colorSpace": "srgb"
+          },
+          {
+            "material": "MI_Trim_Furniture",
+            "role": "normalMap",
+            "width": 1024,
+            "height": 1024,
+            "source": "embedded",
+            "colorSpace": ""
+          },
+          {
+            "material": "MI_Trim_Furniture",
+            "role": "roughnessMap",
+            "width": 1024,
+            "height": 1024,
+            "source": "embedded",
+            "colorSpace": ""
+          },
+          {
+            "material": "MI_Trim_Furniture",
+            "role": "metalnessMap",
+            "width": 1024,
+            "height": 1024,
+            "source": "embedded",
+            "colorSpace": ""
+          },
+          {
+            "material": "MI_Trim_Metal",
+            "role": "map",
+            "width": 1024,
+            "height": 1024,
+            "source": "embedded",
+            "colorSpace": "srgb"
+          },
+          {
+            "material": "MI_Trim_Metal",
+            "role": "normalMap",
+            "width": 1024,
+            "height": 1024,
+            "source": "embedded",
+            "colorSpace": ""
+          },
+          {
+            "material": "MI_Trim_Metal",
+            "role": "roughnessMap",
+            "width": 1024,
+            "height": 1024,
+            "source": "embedded",
+            "colorSpace": ""
+          },
+          {
+            "material": "MI_Trim_Metal",
+            "role": "metalnessMap",
+            "width": 1024,
+            "height": 1024,
+            "source": "embedded",
+            "colorSpace": ""
+          }
+        ],
+        "hierarchy": [
+          {
+            "name": "env_model_crate_wooden",
+            "type": "Group",
+            "position": [
+              0,
+              0,
+              0
+            ],
+            "scale": [
+              1.5,
+              1.5,
+              1.5
+            ]
+          },
+          {
+            "name": "Crate_Wooden",
+            "type": "Group",
+            "position": [
+              0,
+              0,
+              0
+            ],
+            "scale": [
+              0.7800000309944153,
+              0.7800000309944153,
+              0.7800000309944153
+            ]
+          },
+          {
+            "name": "Cube017",
+            "type": "Mesh",
+            "position": [
+              0,
+              0,
+              0
+            ],
+            "scale": [
+              1,
+              1,
+              1
+            ]
+          },
+          {
+            "name": "Cube017_1",
+            "type": "Mesh",
+            "position": [
+              0,
+              0,
+              0
+            ],
+            "scale": [
+              1,
+              1,
+              1
+            ]
+          }
+        ],
+        "badNumbers": 0,
+        "missingNormals": 0,
+        "missingUV": 0,
+        "invalidIndices": 0,
+        "degenerate": 0,
+        "negativeScale": false
+      },
+      "pivotPolicy": "source hierarchy intact; runtime wrapper offsets bbox minimum Y to ground",
+      "collisionPolicy": "none (decorative/roof/small prop)"
+    },
+    {
+      "id": "env_model_bench",
+      "sourceArchive": "D:\\Model_Asset_Lumenfall\\Master_Model_Lumenfall\\Environment\\Building\\Fantasy_Props_MegaKit.zip",
+      "sourceEntry": "Exports/glTF/Bench.gltf",
+      "pack": "props",
+      "scale": 1.5,
+      "url": "/dev-assets/kingdom-city-pilot-a3/models/env_model_bench/model.gltf",
+      "licenseStatus": "LICENSE_OK",
+      "licenseEvidence": [
+        "License_Standard.txt"
+      ],
+      "status": "TECH_VALIDATED",
+      "productionReadyCandidate": false,
+      "validationScope": "Local load, source-material rendering, geometry inspection, uniform pack scale and documented collision policy; not production certification",
+      "blockers": [],
+      "performanceClass": "LIGHT",
+      "measurements": {
+        "id": "env_model_bench",
+        "meshCount": 2,
+        "vertices": 422,
+        "triangles": 404,
+        "bounds": {
+          "min": [
+            -2.082511246204376,
+            -0.010893258964642882,
+            -0.39318041503429413
+          ],
+          "max": [
+            2.082511246204376,
+            0.788927435874939,
+            0.40822018682956696
+          ]
+        },
+        "dimensions": [
+          4.165022492408752,
+          0.7998206948395818,
+          0.8014006018638611
+        ],
+        "materials": [
+          "MI_Trim_Furniture",
+          "MI_Trim_Metal"
+        ],
+        "textures": [
+          {
+            "material": "MI_Trim_Furniture",
+            "role": "map",
+            "width": 1024,
+            "height": 1024,
+            "source": "embedded",
+            "colorSpace": "srgb"
+          },
+          {
+            "material": "MI_Trim_Furniture",
+            "role": "normalMap",
+            "width": 1024,
+            "height": 1024,
+            "source": "embedded",
+            "colorSpace": ""
+          },
+          {
+            "material": "MI_Trim_Furniture",
+            "role": "roughnessMap",
+            "width": 1024,
+            "height": 1024,
+            "source": "embedded",
+            "colorSpace": ""
+          },
+          {
+            "material": "MI_Trim_Furniture",
+            "role": "metalnessMap",
+            "width": 1024,
+            "height": 1024,
+            "source": "embedded",
+            "colorSpace": ""
+          },
+          {
+            "material": "MI_Trim_Metal",
+            "role": "map",
+            "width": 1024,
+            "height": 1024,
+            "source": "embedded",
+            "colorSpace": "srgb"
+          },
+          {
+            "material": "MI_Trim_Metal",
+            "role": "normalMap",
+            "width": 1024,
+            "height": 1024,
+            "source": "embedded",
+            "colorSpace": ""
+          },
+          {
+            "material": "MI_Trim_Metal",
+            "role": "roughnessMap",
+            "width": 1024,
+            "height": 1024,
+            "source": "embedded",
+            "colorSpace": ""
+          },
+          {
+            "material": "MI_Trim_Metal",
+            "role": "metalnessMap",
+            "width": 1024,
+            "height": 1024,
+            "source": "embedded",
+            "colorSpace": ""
+          }
+        ],
+        "hierarchy": [
+          {
+            "name": "env_model_bench",
+            "type": "Group",
+            "position": [
+              0,
+              0,
+              0
+            ],
+            "scale": [
+              1.5,
+              1.5,
+              1.5
+            ]
+          },
+          {
+            "name": "Bench",
+            "type": "Group",
+            "position": [
+              0,
+              0,
+              0
+            ],
+            "scale": [
+              1,
+              1,
+              1
+            ]
+          },
+          {
+            "name": "Cube011",
+            "type": "Mesh",
+            "position": [
+              0,
+              0,
+              0
+            ],
+            "scale": [
+              1,
+              1,
+              1
+            ]
+          },
+          {
+            "name": "Cube011_1",
+            "type": "Mesh",
+            "position": [
+              0,
+              0,
+              0
+            ],
+            "scale": [
+              1,
+              1,
+              1
+            ]
+          }
+        ],
+        "badNumbers": 0,
+        "missingNormals": 0,
+        "missingUV": 0,
+        "invalidIndices": 0,
+        "degenerate": 0,
+        "negativeScale": false
+      },
+      "pivotPolicy": "source hierarchy intact; runtime wrapper offsets bbox minimum Y to ground",
+      "collisionPolicy": "none (decorative/roof/small prop)"
+    },
+    {
+      "id": "env_model_lantern_wall",
+      "sourceArchive": "D:\\Model_Asset_Lumenfall\\Master_Model_Lumenfall\\Environment\\Building\\Fantasy_Props_MegaKit.zip",
+      "sourceEntry": "Exports/glTF/Lantern_Wall.gltf",
+      "pack": "props",
+      "scale": 1.5,
+      "url": "/dev-assets/kingdom-city-pilot-a3/models/env_model_lantern_wall/model.gltf",
+      "licenseStatus": "LICENSE_OK",
+      "licenseEvidence": [
+        "License_Standard.txt"
+      ],
+      "status": "TECH_VALIDATED",
+      "productionReadyCandidate": false,
+      "validationScope": "Local load, source-material rendering, geometry inspection, uniform pack scale and documented collision policy; not production certification",
+      "blockers": [
+        "SIMPLIFIED_LOD_HOLD_USE_SOURCE_LOD0"
+      ],
+      "performanceClass": "MEDIUM",
+      "measurements": {
+        "id": "env_model_lantern_wall",
+        "meshCount": 1,
+        "vertices": 3222,
+        "triangles": 2822,
+        "bounds": {
+          "min": [
+            -0.2680060788989067,
+            0.12275633588433266,
+            -0.07646592892706394
+          ],
+          "max": [
+            0.2680061012506485,
+            2.128267765045166,
+            1.8770057559013367
+          ]
+        },
+        "dimensions": [
+          0.5360121801495552,
+          2.0055114291608334,
+          1.9534716848284006
+        ],
+        "materials": [
+          "MI_Trim_Metal"
+        ],
+        "textures": [
+          {
+            "material": "MI_Trim_Metal",
+            "role": "map",
+            "width": 1024,
+            "height": 1024,
+            "source": "embedded",
+            "colorSpace": "srgb"
+          },
+          {
+            "material": "MI_Trim_Metal",
+            "role": "normalMap",
+            "width": 1024,
+            "height": 1024,
+            "source": "embedded",
+            "colorSpace": ""
+          },
+          {
+            "material": "MI_Trim_Metal",
+            "role": "roughnessMap",
+            "width": 1024,
+            "height": 1024,
+            "source": "embedded",
+            "colorSpace": ""
+          },
+          {
+            "material": "MI_Trim_Metal",
+            "role": "metalnessMap",
+            "width": 1024,
+            "height": 1024,
+            "source": "embedded",
+            "colorSpace": ""
+          }
+        ],
+        "hierarchy": [
+          {
+            "name": "env_model_lantern_wall",
+            "type": "Group",
+            "position": [
+              0,
+              0,
+              0
+            ],
+            "scale": [
+              1.5,
+              1.5,
+              1.5
+            ]
+          },
+          {
+            "name": "Lantern_Wall",
+            "type": "Mesh",
+            "position": [
+              0,
+              0,
+              0
+            ],
+            "scale": [
+              1,
+              1,
+              1
+            ]
+          }
+        ],
+        "badNumbers": 0,
+        "missingNormals": 0,
+        "missingUV": 0,
+        "invalidIndices": 0,
+        "degenerate": 0,
+        "negativeScale": false
+      },
+      "pivotPolicy": "source mounting pivot; wall-mounted wrapper",
+      "collisionPolicy": "composed wall/jamb/lintel boxes; no automatic per-mesh collision"
+    },
+    {
+      "id": "env_model_banner_1",
+      "sourceArchive": "D:\\Model_Asset_Lumenfall\\Master_Model_Lumenfall\\Environment\\Building\\Fantasy_Props_MegaKit.zip",
+      "sourceEntry": "Exports/glTF/Banner_1.gltf",
+      "pack": "props",
+      "scale": 1.5,
+      "url": "/dev-assets/kingdom-city-pilot-a3/models/env_model_banner_1/model.gltf",
+      "licenseStatus": "LICENSE_OK",
+      "licenseEvidence": [
+        "License_Standard.txt"
+      ],
+      "status": "TECH_VALIDATED",
+      "productionReadyCandidate": false,
+      "validationScope": "Local load, source-material rendering, geometry inspection, uniform pack scale and documented collision policy; not production certification",
+      "blockers": [],
+      "performanceClass": "LIGHT",
+      "measurements": {
+        "id": "env_model_banner_1",
+        "meshCount": 3,
+        "vertices": 381,
+        "triangles": 448,
+        "bounds": {
+          "min": [
+            -0.0012115058780182153,
+            -2.323078215122223,
+            -0.13943922892212868
+          ],
+          "max": [
+            2.4184500575065613,
+            1.2652611136436462,
+            0.1464160569012165
+          ]
+        },
+        "dimensions": [
+          2.4196615633845795,
+          3.588339328765869,
+          0.2858552858233452
+        ],
+        "materials": [
+          "MI_Trim_Furniture",
+          "MI_Trim_Metal",
+          "MI_Banner"
+        ],
+        "textures": [
+          {
+            "material": "MI_Trim_Furniture",
+            "role": "map",
+            "width": 1024,
+            "height": 1024,
+            "source": "embedded",
+            "colorSpace": "srgb"
+          },
+          {
+            "material": "MI_Trim_Furniture",
+            "role": "normalMap",
+            "width": 1024,
+            "height": 1024,
+            "source": "embedded",
+            "colorSpace": ""
+          },
+          {
+            "material": "MI_Trim_Furniture",
+            "role": "roughnessMap",
+            "width": 1024,
+            "height": 1024,
+            "source": "embedded",
+            "colorSpace": ""
+          },
+          {
+            "material": "MI_Trim_Furniture",
+            "role": "metalnessMap",
+            "width": 1024,
+            "height": 1024,
+            "source": "embedded",
+            "colorSpace": ""
+          },
+          {
+            "material": "MI_Trim_Metal",
+            "role": "map",
+            "width": 1024,
+            "height": 1024,
+            "source": "embedded",
+            "colorSpace": "srgb"
+          },
+          {
+            "material": "MI_Trim_Metal",
+            "role": "normalMap",
+            "width": 1024,
+            "height": 1024,
+            "source": "embedded",
+            "colorSpace": ""
+          },
+          {
+            "material": "MI_Trim_Metal",
+            "role": "roughnessMap",
+            "width": 1024,
+            "height": 1024,
+            "source": "embedded",
+            "colorSpace": ""
+          },
+          {
+            "material": "MI_Trim_Metal",
+            "role": "metalnessMap",
+            "width": 1024,
+            "height": 1024,
+            "source": "embedded",
+            "colorSpace": ""
+          },
+          {
+            "material": "MI_Banner",
+            "role": "map",
+            "width": 1024,
+            "height": 1024,
+            "source": "embedded",
+            "colorSpace": "srgb"
+          },
+          {
+            "material": "MI_Banner",
+            "role": "normalMap",
+            "width": 1024,
+            "height": 1024,
+            "source": "embedded",
+            "colorSpace": ""
+          },
+          {
+            "material": "MI_Banner",
+            "role": "roughnessMap",
+            "width": 1024,
+            "height": 1024,
+            "source": "embedded",
+            "colorSpace": ""
+          },
+          {
+            "material": "MI_Banner",
+            "role": "metalnessMap",
+            "width": 1024,
+            "height": 1024,
+            "source": "embedded",
+            "colorSpace": ""
+          }
+        ],
+        "hierarchy": [
+          {
+            "name": "env_model_banner_1",
+            "type": "Group",
+            "position": [
+              0,
+              0,
+              0
+            ],
+            "scale": [
+              1.5,
+              1.5,
+              1.5
+            ]
+          },
+          {
+            "name": "Banner_1",
+            "type": "Group",
+            "position": [
+              0,
+              0,
+              0
+            ],
+            "scale": [
+              1,
+              1,
+              1
+            ]
+          },
+          {
+            "name": "Cube187",
+            "type": "Mesh",
+            "position": [
+              0,
+              0,
+              0
+            ],
+            "scale": [
+              1,
+              1,
+              1
+            ]
+          },
+          {
+            "name": "Cube187_1",
+            "type": "Mesh",
+            "position": [
+              0,
+              0,
+              0
+            ],
+            "scale": [
+              1,
+              1,
+              1
+            ]
+          },
+          {
+            "name": "Cube187_2",
+            "type": "Mesh",
+            "position": [
+              0,
+              0,
+              0
+            ],
+            "scale": [
+              1,
+              1,
+              1
+            ]
+          }
+        ],
+        "badNumbers": 0,
+        "missingNormals": 0,
+        "missingUV": 0,
+        "invalidIndices": 0,
+        "degenerate": 0,
+        "negativeScale": false
+      },
+      "pivotPolicy": "source hierarchy intact; runtime wrapper offsets bbox minimum Y to ground",
+      "collisionPolicy": "none (decorative/roof/small prop)"
+    },
+    {
+      "id": "env_package_tree_small_02_2k",
+      "sourceArchive": "D:\\Model_Asset_Lumenfall\\Master_Model_Lumenfall\\Environment\\Tree\\tree_small_02_2k.blend.zip",
+      "sourceEntry": "tree_small_02_2k.blend",
+      "pack": "env_package_tree_small_02_2k",
+      "scale": 1,
+      "url": "/dev-assets/kingdom-city-pilot-a3/models/env_package_tree_small_02_2k/model.glb",
+      "licenseStatus": "LICENSE_UNKNOWN",
+      "status": "TECH_VALIDATED",
+      "productionReadyCandidate": false,
+      "validationScope": "Local load, source-material rendering, geometry inspection, uniform pack scale and documented collision policy; not production certification",
+      "blockers": [
+        "LICENSE_UNKNOWN",
+        "HIGH_POLY_REPEATED_USE_NOT_APPROVED",
+        "DERIVED_FOLIAGE_LOD_NEEDS_ART_REVIEW"
+      ],
+      "performanceClass": "HEAVY",
+      "measurements": {
+        "id": "env_package_tree_small_02_2k",
+        "meshCount": 3,
+        "vertices": 1777278,
+        "triangles": 2062487,
+        "bounds": {
+          "min": [
+            -1.3089934587478638,
+            -0.02410384640097618,
+            -1.3826267719268799
+          ],
+          "max": [
+            1.6077065467834473,
+            4.532637119293213,
+            2.9098503589630127
+          ]
+        },
+        "dimensions": [
+          2.916700005531311,
+          4.556740965694189,
+          4.292477130889893
+        ],
+        "materials": [
+          "tree_small_02_branches",
+          "tree_small_02_leaves",
+          "tree_small_02_trunk"
+        ],
+        "textures": [
+          {
+            "material": "tree_small_02_branches",
+            "role": "map",
+            "width": 2048,
+            "height": 2048,
+            "source": "embedded",
+            "colorSpace": "srgb"
+          },
+          {
+            "material": "tree_small_02_branches",
+            "role": "normalMap",
+            "width": 2048,
+            "height": 2048,
+            "source": "embedded",
+            "colorSpace": ""
+          },
+          {
+            "material": "tree_small_02_branches",
+            "role": "roughnessMap",
+            "width": 2048,
+            "height": 2048,
+            "source": "embedded",
+            "colorSpace": ""
+          },
+          {
+            "material": "tree_small_02_branches",
+            "role": "metalnessMap",
+            "width": 2048,
+            "height": 2048,
+            "source": "embedded",
+            "colorSpace": ""
+          },
+          {
+            "material": "tree_small_02_leaves",
+            "role": "map",
+            "width": 2048,
+            "height": 2048,
+            "source": "embedded",
+            "colorSpace": "srgb"
+          },
+          {
+            "material": "tree_small_02_leaves",
+            "role": "normalMap",
+            "width": 2048,
+            "height": 2048,
+            "source": "embedded",
+            "colorSpace": ""
+          },
+          {
+            "material": "tree_small_02_leaves",
+            "role": "roughnessMap",
+            "width": 2048,
+            "height": 2048,
+            "source": "embedded",
+            "colorSpace": ""
+          },
+          {
+            "material": "tree_small_02_leaves",
+            "role": "metalnessMap",
+            "width": 2048,
+            "height": 2048,
+            "source": "embedded",
+            "colorSpace": ""
+          },
+          {
+            "material": "tree_small_02_trunk",
+            "role": "map",
+            "width": 2048,
+            "height": 2048,
+            "source": "embedded",
+            "colorSpace": "srgb"
+          },
+          {
+            "material": "tree_small_02_trunk",
+            "role": "normalMap",
+            "width": 2048,
+            "height": 2048,
+            "source": "embedded",
+            "colorSpace": ""
+          },
+          {
+            "material": "tree_small_02_trunk",
+            "role": "roughnessMap",
+            "width": 2048,
+            "height": 2048,
+            "source": "embedded",
+            "colorSpace": ""
+          },
+          {
+            "material": "tree_small_02_trunk",
+            "role": "metalnessMap",
+            "width": 2048,
+            "height": 2048,
+            "source": "embedded",
+            "colorSpace": ""
+          }
+        ],
+        "hierarchy": [
+          {
+            "name": "env_package_tree_small_02_2k",
+            "type": "Group",
+            "position": [
+              0,
+              0,
+              0
+            ],
+            "scale": [
+              1,
+              1,
+              1
+            ]
+          },
+          {
+            "name": "tree_small_02_LOD0",
+            "type": "Group",
+            "position": [
+              0,
+              0,
+              0
+            ],
+            "scale": [
+              1,
+              1,
+              1
+            ]
+          },
+          {
+            "name": "BezierCurve002",
+            "type": "Mesh",
+            "position": [
+              0,
+              0,
+              0
+            ],
+            "scale": [
+              1,
+              1,
+              1
+            ]
+          },
+          {
+            "name": "BezierCurve002_1",
+            "type": "Mesh",
+            "position": [
+              0,
+              0,
+              0
+            ],
+            "scale": [
+              1,
+              1,
+              1
+            ]
+          },
+          {
+            "name": "BezierCurve002_2",
+            "type": "Mesh",
+            "position": [
+              0,
+              0,
+              0
+            ],
+            "scale": [
+              1,
+              1,
+              1
+            ]
+          }
+        ],
+        "badNumbers": 0,
+        "missingNormals": 0,
+        "missingUV": 0,
+        "invalidIndices": 0,
+        "degenerate": 0,
+        "negativeScale": false
+      },
+      "pivotPolicy": "source pivot preserved",
+      "collisionPolicy": "sampled lower trunk cylinder"
+    },
+    {
+      "id": "env_package_boulder_01_2k",
+      "sourceArchive": "D:\\Model_Asset_Lumenfall\\Master_Model_Lumenfall\\Environment\\Rock\\boulder_01_2k.blend.zip",
+      "sourceEntry": "boulder_01_2k.blend",
+      "pack": "env_package_boulder_01_2k",
+      "scale": 1,
+      "url": "/dev-assets/kingdom-city-pilot-a3/models/env_package_boulder_01_2k/model.glb",
+      "licenseStatus": "LICENSE_UNKNOWN",
+      "status": "TECH_VALIDATED",
+      "productionReadyCandidate": false,
+      "validationScope": "Local load, source-material rendering, geometry inspection, uniform pack scale and documented collision policy; not production certification",
+      "blockers": [
+        "LICENSE_UNKNOWN",
+        "HIGH_POLY_REPEATED_USE_NOT_APPROVED",
+        "CONSERVATIVE_BOX_NOT_FINAL_CONVEX_COLLISION"
+      ],
+      "performanceClass": "HEAVY",
+      "measurements": {
+        "id": "env_package_boulder_01_2k",
+        "meshCount": 1,
+        "vertices": 68130,
+        "triangles": 66122,
+        "bounds": {
+          "min": [
+            -0.7481597065925598,
+            -0.07364296913146973,
+            -0.9484404921531677
+          ],
+          "max": [
+            0.5239759087562561,
+            0.9301872253417969,
+            0.8818937540054321
+          ]
+        },
+        "dimensions": [
+          1.272135615348816,
+          1.0038301944732666,
+          1.8303342461585999
+        ],
+        "materials": [
+          "boulder_01"
+        ],
+        "textures": [
+          {
+            "material": "boulder_01",
+            "role": "map",
+            "width": 2048,
+            "height": 2048,
+            "source": "embedded",
+            "colorSpace": "srgb"
+          },
+          {
+            "material": "boulder_01",
+            "role": "normalMap",
+            "width": 2048,
+            "height": 2048,
+            "source": "embedded",
+            "colorSpace": ""
+          },
+          {
+            "material": "boulder_01",
+            "role": "roughnessMap",
+            "width": 2048,
+            "height": 2048,
+            "source": "embedded",
+            "colorSpace": ""
+          },
+          {
+            "material": "boulder_01",
+            "role": "metalnessMap",
+            "width": 2048,
+            "height": 2048,
+            "source": "embedded",
+            "colorSpace": ""
+          }
+        ],
+        "hierarchy": [
+          {
+            "name": "env_package_boulder_01_2k",
+            "type": "Group",
+            "position": [
+              0,
+              0,
+              0
+            ],
+            "scale": [
+              1,
+              1,
+              1
+            ]
+          },
+          {
+            "name": "boulder_01_LOD0",
+            "type": "Mesh",
+            "position": [
+              0,
+              0,
+              0
+            ],
+            "scale": [
+              1,
+              1,
+              1
+            ]
+          }
+        ],
+        "badNumbers": 0,
+        "missingNormals": 0,
+        "missingUV": 0,
+        "invalidIndices": 0,
+        "degenerate": 0,
+        "negativeScale": false
+      },
+      "pivotPolicy": "source hierarchy intact; runtime wrapper offsets bbox minimum Y to ground",
+      "collisionPolicy": "conservative AABB; refinement pending"
+    }
+  ],
+  "scaleStandard": "data/assets/lumenfall-scale-standard-a3.json",
+  "collision": "data/assets/kingdom-city-pilot-collision-a3.json",
+  "materials": "data/assets/kingdom-city-pilot-materials-a3.json",
+  "sourceHashes": [
+    {
+      "path": "D:\\Model_Asset_Lumenfall\\Master_Model_Lumenfall\\Environment\\Building\\Medieval_Village_MegaKit.zip",
+      "bytes": 161003471,
+      "sha256Before": "e60dea67c10f30dccccfbff92a7933f5ea5cfe99be0e2a0fa5118cceabeec5c4",
+      "sha256After": "e60dea67c10f30dccccfbff92a7933f5ea5cfe99be0e2a0fa5118cceabeec5c4",
+      "unchanged": true,
+      "sha256Final": "e60dea67c10f30dccccfbff92a7933f5ea5cfe99be0e2a0fa5118cceabeec5c4"
+    },
+    {
+      "path": "D:\\Model_Asset_Lumenfall\\Master_Model_Lumenfall\\Environment\\Building\\Fantasy_Props_MegaKit.zip",
+      "bytes": 150213360,
+      "sha256Before": "8b6f7e806d222e585478f0e1bdc6b271bbc7bc6f84dd6af8ca703a7c64f0cb1e",
+      "sha256After": "8b6f7e806d222e585478f0e1bdc6b271bbc7bc6f84dd6af8ca703a7c64f0cb1e",
+      "unchanged": true,
+      "sha256Final": "8b6f7e806d222e585478f0e1bdc6b271bbc7bc6f84dd6af8ca703a7c64f0cb1e"
+    },
+    {
+      "path": "D:\\Model_Asset_Lumenfall\\Master_Model_Lumenfall\\Environment\\Tree\\tree_small_02_2k.blend.zip",
+      "bytes": 129054353,
+      "sha256Before": "4f004f1ca68fbaf64571ba81370bb6051c2275f76e971e9b7d02c62f5da58a6b",
+      "sha256After": "4f004f1ca68fbaf64571ba81370bb6051c2275f76e971e9b7d02c62f5da58a6b",
+      "unchanged": true,
+      "sha256Final": "4f004f1ca68fbaf64571ba81370bb6051c2275f76e971e9b7d02c62f5da58a6b"
+    },
+    {
+      "path": "D:\\Model_Asset_Lumenfall\\Master_Model_Lumenfall\\Environment\\Rock\\boulder_01_2k.blend.zip",
+      "bytes": 20263036,
+      "sha256Before": "fa54238e9b60a4692bb497544e45157c15b23bf3854b26d89255d09f650ab7c7",
+      "sha256After": "fa54238e9b60a4692bb497544e45157c15b23bf3854b26d89255d09f650ab7c7",
+      "unchanged": true,
+      "sha256Final": "fa54238e9b60a4692bb497544e45157c15b23bf3854b26d89255d09f650ab7c7"
+    },
+    {
+      "path": "D:\\Model_Asset_Lumenfall\\Master_ Material_ Lumenfall\\Stone_Architecture\\castle_brick_01_2k.blend.zip",
+      "bytes": 20322688,
+      "sha256Before": "b4016798c9f07016644f8b7c7e87b2641a2359c6419e5f7d352858d13d73b70a",
+      "sha256After": "b4016798c9f07016644f8b7c7e87b2641a2359c6419e5f7d352858d13d73b70a",
+      "unchanged": true,
+      "sha256Final": "b4016798c9f07016644f8b7c7e87b2641a2359c6419e5f7d352858d13d73b70a"
+    },
+    {
+      "path": "D:\\Model_Asset_Lumenfall\\Master_ Material_ Lumenfall\\Wood\\medieval_wood_2k.blend.zip",
+      "bytes": 20178649,
+      "sha256Before": "47c1480dc828261042a673ca6755354b63364d221dc8983f02b0879cd658a7e6",
+      "sha256After": "47c1480dc828261042a673ca6755354b63364d221dc8983f02b0879cd658a7e6",
+      "unchanged": true,
+      "sha256Final": "47c1480dc828261042a673ca6755354b63364d221dc8983f02b0879cd658a7e6"
+    },
+    {
+      "path": "D:\\Model_Asset_Lumenfall\\Master_ Material_ Lumenfall\\Plaster_Brick\\plastered_wall_02_2k.blend.zip",
+      "bytes": 17187207,
+      "sha256Before": "7e68402d4af3fac5d6853dffe14cfa81b250147dd873690efa2aa78c1c4a8d0c",
+      "sha256After": "7e68402d4af3fac5d6853dffe14cfa81b250147dd873690efa2aa78c1c4a8d0c",
+      "unchanged": true,
+      "sha256Final": "7e68402d4af3fac5d6853dffe14cfa81b250147dd873690efa2aa78c1c4a8d0c"
+    },
+    {
+      "path": "D:\\Model_Asset_Lumenfall\\Master_ Material_ Lumenfall\\Roof\\clay_roof_tiles_2k.blend.zip",
+      "bytes": 19117167,
+      "sha256Before": "5abcff996179ec5f92201c5573df2a0c1f5c8cf2d21507d1d95af0f9ec9559fd",
+      "sha256After": "5abcff996179ec5f92201c5573df2a0c1f5c8cf2d21507d1d95af0f9ec9559fd",
+      "unchanged": true,
+      "sha256Final": "5abcff996179ec5f92201c5573df2a0c1f5c8cf2d21507d1d95af0f9ec9559fd"
+    },
+    {
+      "path": "D:\\Model_Asset_Lumenfall\\Master_ Material_ Lumenfall\\Metal\\metal_plate_02_2k.blend.zip",
+      "bytes": 15093989,
+      "sha256Before": "3247c5bef504dd6f0e2abe80b8654a00c9cc0f2dd41e54c2493fe794b43fce87",
+      "sha256After": "3247c5bef504dd6f0e2abe80b8654a00c9cc0f2dd41e54c2493fe794b43fce87",
+      "unchanged": true,
+      "sha256Final": "3247c5bef504dd6f0e2abe80b8654a00c9cc0f2dd41e54c2493fe794b43fce87"
+    },
+    {
+      "path": "D:\\Model_Asset_Lumenfall\\Master_ Material_ Lumenfall\\Fabric_Banner\\fabric_pattern_05_2k.blend.zip",
+      "bytes": 19315127,
+      "sha256Before": "0dbcebe51a5789bc3dc962907e0b730f8f79551ed52a748f4b9ee6d2cccf038d",
+      "sha256After": "0dbcebe51a5789bc3dc962907e0b730f8f79551ed52a748f4b9ee6d2cccf038d",
+      "unchanged": true,
+      "sha256Final": "0dbcebe51a5789bc3dc962907e0b730f8f79551ed52a748f4b9ee6d2cccf038d"
+    }
+  ],
+  "licenseRecords": [
+    {
+      "archive": "D:\\Model_Asset_Lumenfall\\Master_Model_Lumenfall\\Environment\\Building\\Medieval_Village_MegaKit.zip",
+      "entry": "Medieval Village MegaKit[Standard]/License_Standard.txt",
+      "text": "This is the standard FREE version of the Medieval Village MegaKit, which only contains \r\na portion of the models . You can buy the PRO version which has all the models,\r\nor the SOURCE version which has all the models and also includes Unity(URP), Unreal Engine and Godot projects\r\nwith custom shaders already set up.\r\n\r\nYou can get the other versions from the website https://quaternius.com\r\n\r\n-------------------------------------------------------\r\nLicense:\r\nCC0 1.0 Universal (CC0 1.0) \r\nPublic Domain Dedication\r\nhttps://creativecommons.org/publicdomain/zero/1.0/\r\n\r\n------------------------------------------------------\r\nModels by @Quaternius\r\nConsider supporting me on Patreon!\r\n\r\nhttps://www.patreon.com/quaternius\r\n\r\n-------------------------------------------------------\r\nJoin the Discord Server:\r\nhttps://discord.gg/vJqnRUYRfT\r\n"
+    },
+    {
+      "archive": "D:\\Model_Asset_Lumenfall\\Master_Model_Lumenfall\\Environment\\Building\\Fantasy_Props_MegaKit.zip",
+      "entry": "License_Standard.txt",
+      "text": "This is the standard FREE version of the Fantasy Props MegaKit, which only contains \r\na portion of the models . You can buy the PRO version which has all the models,\r\nor the SOURCE version which has all the models and also includes Unity(URP), Unreal Engine and Godot projects\r\nwith custom shaders already set up.\r\n\r\nYou can get the other versions from the website https://quaternius.com\r\n\r\n-------------------------------------------------------\r\nLicense:\r\nCC0 1.0 Universal (CC0 1.0) \r\nPublic Domain Dedication\r\nhttps://creativecommons.org/publicdomain/zero/1.0/\r\n\r\n------------------------------------------------------\r\nModels by @Quaternius\r\nConsider supporting me on Patreon!\r\n\r\nhttps://www.patreon.com/quaternius\r\n\r\n-------------------------------------------------------\r\nJoin the Discord Server:\r\nhttps://discord.gg/vJqnRUYRfT\r\n"
+    }
+  ],
+  "benchmarks": [
+    {
+      "mode": "individual",
+      "samples": 90,
+      "fps": 37.9730813046818,
+      "meanFrameMs": 26.334444444378217,
+      "p95FrameMs": 33.400000000001455,
+      "drawCalls": 662,
+      "triangles": 80461790,
+      "counts": {
+        "houses": 10,
+        "walls": 24,
+        "towers": 4,
+        "trees": 20,
+        "props": 40
+      },
+      "resources": {
+        "materials": 16,
+        "textures": 38,
+        "estimatedTextureMiB": 390.6666666666666,
+        "estimate": "RGBA8+mips; excludes driver overhead, framebuffer and character; not measured VRAM"
+      },
+      "materialSwitches": "NOT_DIRECTLY_INSTRUMENTED; draw calls + unique material count reported",
+      "viewport": [
+        1600,
+        950
+      ],
+      "shadows": true,
+      "lod": 0
+    },
+    {
+      "mode": "instanced",
+      "samples": 90,
+      "fps": 37.49843756528768,
+      "meanFrameMs": 26.667777777645338,
+      "p95FrameMs": 33.400000000001455,
+      "drawCalls": 36,
+      "triangles": 80461790,
+      "counts": {
+        "houses": 10,
+        "walls": 24,
+        "towers": 4,
+        "trees": 20,
+        "props": 40
+      },
+      "resources": {
+        "materials": 16,
+        "textures": 38,
+        "estimatedTextureMiB": 390.6666666666666,
+        "estimate": "RGBA8+mips; excludes driver overhead, framebuffer and character; not measured VRAM"
+      },
+      "materialSwitches": "NOT_DIRECTLY_INSTRUMENTED; draw calls + unique material count reported",
+      "viewport": [
+        1600,
+        950
+      ],
+      "shadows": true,
+      "lod": 0
+    },
+    {
+      "mode": "individual",
+      "samples": 90,
+      "fps": 60.30958922492773,
+      "meanFrameMs": 16.58111111104485,
+      "p95FrameMs": 16.799999999999272,
+      "drawCalls": 662,
+      "triangles": 4976266,
+      "counts": {
+        "houses": 10,
+        "walls": 24,
+        "towers": 4,
+        "trees": 20,
+        "props": 40
+      },
+      "resources": {
+        "materials": 16,
+        "textures": 38,
+        "estimatedTextureMiB": 390.6666666666666,
+        "estimate": "RGBA8+mips; excludes driver overhead, framebuffer and character; not measured VRAM"
+      },
+      "materialSwitches": "NOT_DIRECTLY_INSTRUMENTED; draw calls + unique material count reported",
+      "viewport": [
+        1600,
+        950
+      ],
+      "shadows": true,
+      "lod": 1
+    },
+    {
+      "mode": "instanced",
+      "samples": 90,
+      "fps": 60.056052315255705,
+      "meanFrameMs": 16.651111111177308,
+      "p95FrameMs": 16.700000000004366,
+      "drawCalls": 36,
+      "triangles": 4976266,
+      "counts": {
+        "houses": 10,
+        "walls": 24,
+        "towers": 4,
+        "trees": 20,
+        "props": 40
+      },
+      "resources": {
+        "materials": 16,
+        "textures": 38,
+        "estimatedTextureMiB": 390.6666666666666,
+        "estimate": "RGBA8+mips; excludes driver overhead, framebuffer and character; not measured VRAM"
+      },
+      "materialSwitches": "NOT_DIRECTLY_INSTRUMENTED; draw calls + unique material count reported",
+      "viewport": [
+        1600,
+        950
+      ],
+      "shadows": true,
+      "lod": 1
+    }
+  ],
+  "verification": {
+    "browser": {
+      "headed": true,
+      "version": "151.0.7922.108",
+      "checks": {
+        "wallBlocked": true,
+        "gatePasses": true,
+        "houseEntered": true,
+        "treeBlocked": true,
+        "rockBlocked": true,
+        "stairsClimbed": true,
+        "cameraUsable": true
+      },
+      "errors": [],
+      "warnings": [],
+      "failed": []
+    },
+    "typescript": {
+      "observedPrimaryBefore": 5,
+      "primaryAfter": 5,
+      "primaryDiagnostics": [
+        "lib/game/rules.ts(364,74): error TS2345: Argument of type 'string' is not assignable to parameter of type '\"face_default\" | \"face_soft\" | \"face_sharp\"'.",
+        "lib/game/rules.ts(365,74): error TS2345: Argument of type 'string' is not assignable to parameter of type '\"hair_default\" | \"hair_short\" | \"hair_wild\" | \"hair_swept\"'.",
+        "lib/game/rules.ts(366,74): error TS2345: Argument of type 'string' is not assignable to parameter of type '\"light_brown\" | \"black\" | \"dark_brown\" | \"brown\" | \"blonde\" | \"white\" | \"silver\" | \"dark_red\"'.",
+        "lib/game/rules.ts(367,71): error TS2345: Argument of type 'string' is not assignable to parameter of type '\"tone_02\" | \"tone_01\" | \"tone_03\" | \"tone_04\"'.",
+        "lib/game/ui-layout.ts(64,48): error TS2339: Property 'scale' does not exist on type '{ x: number; y: number; }'."
+      ],
+      "newPilotDiagnostics": [],
+      "fullWorkspaceDiagnosticCount": 75,
+      "note": "Prior historical six-error claim is not substituted for current baseline. Other existing old dev/output trees included in whole-workspace diagnostics."
+    },
+    "isolatedBuild": {
+      "exitCode": 0,
+      "note": "DEV guard produces production rejection stub; assets excluded (copyPublicDir=false). Not a full gameplay production build."
+    },
+    "fullGameRegression": "NOT_RUN; no production game code changes in A3"
+  },
+  "stagingBytesAtAudit": 646928913,
+  "stagingIncludes": "selected source copies, derivatives, LODs, evidence and local build; not production payload",
+  "sourceVaultUntouched": true,
+  "productionMapsChanged": false,
+  "published": false,
+  "evidenceDirectory": "dev-assets/kingdom-city-pilot-a3/evidence"
+}

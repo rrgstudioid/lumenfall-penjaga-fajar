@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>LUMENFALL — Mahkota Fajar Blender Candidate V1</title>
+  </head>
+  <body>
+    <div id="world" tabindex="0"></div>
+    <div id="labels"></div>
+    <canvas id="map" hidden></canvas>
+    <header>
+      <small>LUMENFALL · MAP INGEST / 1:1 PRESERVATION</small>
+      <h1>Ibu Kota Mahkota Fajar</h1>
+      <p id="status">Memuat scene Blender staging…</p>
+    </header>
+    <aside>
+      <button data-view="overview">45° Overview</button><button data-view="top">Top-down</button>
+      <button data-view="gate">Main Entrance</button><button data-view="center">City Center</button>
+      <button data-view="castle">Castle</button><button data-view="street">Main Street</button>
+      <button data-view="player">WASD Player</button>
+      <p>F8 membuka Map Review Mode<br />Map source: Blender scene, tanpa redesign</p>
+      <pre id="metrics"></pre>
+      <small>DEV ONLY · gameplay belum ditambahkan.<br />Source Blender tetap read-only.</small>
+    </aside>
+    <footer id="location">Blender Candidate V1 · preserved scene</footer>
+    <section id="review-panel" hidden aria-label="Map Review Mode">
+      <div class="review-title"><strong>MAP REVIEW MODE</strong><span>F8</span></div>
+      <div class="review-tools">
+        <button id="review-pin" data-review-mode="PIN">Pin</button><button id="review-area" data-review-mode="AREA">Area</button><button id="review-object" data-review-mode="OBJECT">Objek</button><button id="review-measure" data-review-mode="MEASURE">Ukur</button><button id="review-finish-area">Selesaikan area</button><button id="review-clear-measure">Hapus ukur</button>
+      </div>
+      <div class="review-tools review-checks">
+        <label><input id="review-pins" type="checkbox" checked /> Pins</label><label><input id="review-areas" type="checkbox" checked /> Areas</label><label><input id="review-objects" type="checkbox" checked /> Objects</label><label><input id="review-zones" type="checkbox" /> Zones</label><label><input id="review-anchors" type="checkbox" /> Anchors</label><label><input id="review-grid" type="checkbox" /> Grid 25m</label><label><input id="review-hud" type="checkbox" checked /> HUD</label>
+      </div>
+      <div class="review-tools review-cameras"><button data-review-camera="player">Player</button><button data-review-camera="overview">45°</button><button data-review-camera="top">Top</button><button data-review-camera="focus">Focus</button><button data-review-camera="return">Kembali</button></div>
+      <div class="review-tools review-focus-row"><input id="review-focus-id" placeholder="Focus ID P/A/O" /><button id="review-focus-go">Focus ID</button><button id="review-export">Export Review</button></div>
+      <div id="review-inspector" class="review-inspector">Mode PIN · klik terrain untuk membuat catatan.</div>
+      <div id="review-edit" class="review-edit" hidden><select id="review-category" aria-label="Kategori review"><option>GENERAL</option><option>ADD</option><option>REMOVE</option><option>MOVE</option><option>TERRAIN</option><option>ROAD</option><option>BUILDING</option><option>PROP</option><option>VEGETATION</option><option>GAMEPLAY</option><option>BUG</option></select><select id="review-item-status" aria-label="Status review"><option>OPEN</option><option>IMPLEMENTED</option><option>HOLD</option><option>REJECTED</option></select><textarea id="review-note" aria-label="Catatan review" placeholder="Catatan owner"></textarea><button id="review-save-item">Simpan detail</button><button id="review-delete-item">Hapus item</button></div>
+      <div id="review-status" class="review-status"></div>
+    </section>
+    <div id="review-hud" hidden></div>
+    <script type="module" src="/tests/browser/mahkota-fajar-blend.ts"></script>
+  </body>
+</html>

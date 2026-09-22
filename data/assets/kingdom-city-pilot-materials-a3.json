@@ -1,0 +1,157 @@
+{
+  "schemaVersion": 1,
+  "defaultPolicy": "KEEP_SOURCE_MATERIAL",
+  "examples": [
+    {
+      "family": "stone_architecture",
+      "id": "mat_castle_brick_01_2k",
+      "sourceArchive": "D:\\Model_Asset_Lumenfall\\Master_ Material_ Lumenfall\\Stone_Architecture\\castle_brick_01_2k.blend.zip",
+      "maps": {
+        "color": "/dev-assets/kingdom-city-pilot-a3/materials/stone_architecture/color.png",
+        "normal": "/dev-assets/kingdom-city-pilot-a3/materials/stone_architecture/normal.png",
+        "roughness": "/dev-assets/kingdom-city-pilot-a3/materials/stone_architecture/roughness.png"
+      },
+      "licenseStatus": "LICENSE_UNKNOWN",
+      "mapping": "CONTROLLED_DEVELOPMENT_EXAMPLE"
+    },
+    {
+      "family": "wood",
+      "id": "mat_medieval_wood_2k",
+      "sourceArchive": "D:\\Model_Asset_Lumenfall\\Master_ Material_ Lumenfall\\Wood\\medieval_wood_2k.blend.zip",
+      "maps": {
+        "color": "/dev-assets/kingdom-city-pilot-a3/materials/wood/color.png",
+        "normal": "/dev-assets/kingdom-city-pilot-a3/materials/wood/normal.png",
+        "roughness": "/dev-assets/kingdom-city-pilot-a3/materials/wood/roughness.png"
+      },
+      "licenseStatus": "LICENSE_UNKNOWN",
+      "mapping": "CONTROLLED_DEVELOPMENT_EXAMPLE"
+    },
+    {
+      "family": "plaster_brick",
+      "id": "mat_plastered_wall_02_2k",
+      "sourceArchive": "D:\\Model_Asset_Lumenfall\\Master_ Material_ Lumenfall\\Plaster_Brick\\plastered_wall_02_2k.blend.zip",
+      "maps": {
+        "color": "/dev-assets/kingdom-city-pilot-a3/materials/plaster_brick/color.png",
+        "normal": "/dev-assets/kingdom-city-pilot-a3/materials/plaster_brick/normal.png",
+        "roughness": "/dev-assets/kingdom-city-pilot-a3/materials/plaster_brick/roughness.png"
+      },
+      "licenseStatus": "LICENSE_UNKNOWN",
+      "mapping": "CONTROLLED_DEVELOPMENT_EXAMPLE"
+    },
+    {
+      "family": "roof_tile",
+      "id": "mat_clay_roof_tiles_2k",
+      "sourceArchive": "D:\\Model_Asset_Lumenfall\\Master_ Material_ Lumenfall\\Roof\\clay_roof_tiles_2k.blend.zip",
+      "maps": {
+        "color": "/dev-assets/kingdom-city-pilot-a3/materials/roof_tile/color.png",
+        "normal": "/dev-assets/kingdom-city-pilot-a3/materials/roof_tile/normal.png",
+        "roughness": "/dev-assets/kingdom-city-pilot-a3/materials/roof_tile/roughness.png"
+      },
+      "licenseStatus": "LICENSE_UNKNOWN",
+      "mapping": "CONTROLLED_DEVELOPMENT_EXAMPLE"
+    },
+    {
+      "family": "metal",
+      "id": "mat_metal_plate_02_2k",
+      "sourceArchive": "D:\\Model_Asset_Lumenfall\\Master_ Material_ Lumenfall\\Metal\\metal_plate_02_2k.blend.zip",
+      "maps": {
+        "color": "/dev-assets/kingdom-city-pilot-a3/materials/metal/color.png",
+        "normal": "/dev-assets/kingdom-city-pilot-a3/materials/metal/normal.png",
+        "roughness": "/dev-assets/kingdom-city-pilot-a3/materials/metal/roughness.png",
+        "metalness": "/dev-assets/kingdom-city-pilot-a3/materials/metal/metalness.png"
+      },
+      "licenseStatus": "LICENSE_UNKNOWN",
+      "mapping": "CONTROLLED_DEVELOPMENT_EXAMPLE"
+    },
+    {
+      "family": "fabric_banner",
+      "id": "mat_fabric_pattern_05_2k",
+      "sourceArchive": "D:\\Model_Asset_Lumenfall\\Master_ Material_ Lumenfall\\Fabric_Banner\\fabric_pattern_05_2k.blend.zip",
+      "maps": {
+        "color": "/dev-assets/kingdom-city-pilot-a3/materials/fabric_banner/color.png",
+        "normal": "/dev-assets/kingdom-city-pilot-a3/materials/fabric_banner/normal.png",
+        "roughness": "/dev-assets/kingdom-city-pilot-a3/materials/fabric_banner/roughness.png"
+      },
+      "licenseStatus": "LICENSE_UNKNOWN",
+      "mapping": "CONTROLLED_DEVELOPMENT_EXAMPLE"
+    }
+  ],
+  "bindings": [
+    {
+      "material": "MI_WoodTrim",
+      "family": "wood",
+      "policy": "CONTROLLED_REMAP_EXAMPLE",
+      "default": "KEEP_SOURCE_MATERIAL",
+      "uv": "source UV retained; atlas-to-tiling seams require artist review"
+    },
+    {
+      "material": "MI_Plaster",
+      "family": "plaster_brick",
+      "policy": "CONTROLLED_REMAP_EXAMPLE",
+      "default": "KEEP_SOURCE_MATERIAL",
+      "uv": "source UV retained; atlas-to-tiling seams require artist review"
+    },
+    {
+      "material": "MI_RockTrim",
+      "family": "stone_architecture",
+      "policy": "CONTROLLED_REMAP_EXAMPLE",
+      "default": "KEEP_SOURCE_MATERIAL",
+      "uv": "source UV retained; atlas-to-tiling seams require artist review"
+    },
+    {
+      "material": "MI_RoundTiles",
+      "family": "roof_tile",
+      "policy": "CONTROLLED_REMAP_EXAMPLE",
+      "default": "KEEP_SOURCE_MATERIAL",
+      "uv": "source UV retained; atlas-to-tiling seams require artist review"
+    },
+    {
+      "material": "MI_MetalOrnaments",
+      "family": "metal",
+      "policy": "CONTROLLED_REMAP_EXAMPLE",
+      "default": "KEEP_SOURCE_MATERIAL",
+      "uv": "source UV retained; atlas-to-tiling seams require artist review"
+    },
+    {
+      "material": "MI_Brick",
+      "family": "stone_architecture",
+      "policy": "CONTROLLED_REMAP_EXAMPLE",
+      "default": "KEEP_SOURCE_MATERIAL",
+      "uv": "source UV retained; atlas-to-tiling seams require artist review"
+    },
+    {
+      "material": "MI_Trim_Furniture",
+      "family": "wood",
+      "policy": "CONTROLLED_REMAP_EXAMPLE",
+      "default": "KEEP_SOURCE_MATERIAL",
+      "uv": "source UV retained; atlas-to-tiling seams require artist review"
+    },
+    {
+      "material": "MI_Trim_Metal",
+      "family": "metal",
+      "policy": "CONTROLLED_REMAP_EXAMPLE",
+      "default": "KEEP_SOURCE_MATERIAL",
+      "uv": "source UV retained; atlas-to-tiling seams require artist review"
+    },
+    {
+      "material": "MI_Banner",
+      "family": "fabric_banner",
+      "policy": "CONTROLLED_REMAP_EXAMPLE",
+      "default": "KEEP_SOURCE_MATERIAL",
+      "uv": "source UV retained; atlas-to-tiling seams require artist review"
+    }
+  ],
+  "decision": "Remap examples are local technical proofs, not final art approval. Source trim-atlas UVs retained; texel density/seams need authored UV or trim-compatible remap.",
+  "texturePolicy": {
+    "architectureProps": "derived 1K PNG maps, shared by pack",
+    "nature": "2K staged maps",
+    "examples": "1K RGB PNG; EXR normal/roughness/metal data decoded as Non-Color",
+    "future": "Evaluate KTX2 and per-material memory budget before city scale. Do not copy all source maps."
+  },
+  "resourceEstimate": {
+    "materials": 16,
+    "textures": 38,
+    "estimatedTextureMiB": 390.6666666666666,
+    "estimate": "RGBA8+mips; excludes driver overhead, framebuffer and character; not measured VRAM"
+  }
+}

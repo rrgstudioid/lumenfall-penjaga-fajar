@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" href="data:," />
+    <title>LUMENFALL Kingdom City Kit V1 · A2 Viewer</title>
+  </head>
+  <body>
+    <main id="app">
+      <header class="topbar">
+        <div>
+          <div class="eyebrow">LUMENFALL · MASTER ASSET LIBRARY · PHASE A2</div>
+          <h1>Kingdom City Kit Visual Validation</h1>
+          <p id="status">Loading staged shortlist…</p>
+        </div>
+        <div class="pill" id="stats">—</div>
+      </header>
+      <section class="workspace">
+        <aside class="catalog-panel">
+          <div class="filter-row">
+            <input id="search" type="search" placeholder="Search asset ID / name" />
+            <select id="style-filter"><option value="all">All style groups</option></select>
+          </div>
+          <div class="filter-row compact">
+            <select id="category-filter"><option value="all">All categories</option></select>
+            <label><input id="renderable-only" type="checkbox" /> GLTF only</label>
+          </div>
+          <div id="asset-list" class="asset-list"></div>
+        </aside>
+        <section class="viewer-panel">
+          <div id="viewport" class="viewport"></div>
+          <div class="viewer-controls">
+            <button id="reset-camera">Reset camera</button>
+            <label><input id="wireframe" type="checkbox" /> Wireframe</label>
+            <label><input id="bounds" type="checkbox" /> Bounds</label>
+            <label><input id="proxy" type="checkbox" checked /> 1.75m proxy</label>
+            <label><input id="ground" type="checkbox" checked /> Ground</label>
+          </div>
+          <div id="asset-detail" class="asset-detail">Pilih asset di kiri.</div>
+        </section>
+      </section>
+      <section class="validation-notes">
+        <div><b>Scale policy</b><span>Source scale ditampilkan apa adanya; tidak ada per-object rescale pada viewer.</span></div>
+        <div><b>Approval policy</b><span>GLTF dapat divalidasi visual. BLEND tetap HOLD sampai conversion terkontrol.</span></div>
+        <div><b>Character reference</b><span>Proxy/current LUMENFALL character digunakan hanya sebagai pembanding tinggi.</span></div>
+      </section>
+    </main>
+    <script type="module" src="/tests/browser/kingdom-city-kit.tsx"></script>
+  </body>
+</html>

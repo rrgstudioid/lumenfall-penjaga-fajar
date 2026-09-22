@@ -1,0 +1,67 @@
+# dependencies
+/node_modules
+/.pnpm-store
+/.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+
+# testing
+/coverage
+
+# next.js
+/.next/
+/.vinext/
+/out/
+
+# misc
+.DS_Store
+*.pem
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# local environment
+.env*
+
+# deployment and generated files
+.vercel
+next-env.d.ts
+/dist/
+/.wrangler/
+/outputs/
+/work/
+*.tsbuildinfo
+
+# The complete Unreal Normandy source library stays local; only runtime-ready
+# assets that fit the web build are published.
+/public/assets/maps/unreal-normandy/
+/public/assets/maps/unreal-normandy-smoke/
+
+# Reproducible local build/QA and previous publication copies are not source.
+/output/
+/.package-stage/
+/.site-package-*/
+/.site-tmp-*/
+/sites-reconcile*/
+/sites-source-staging/
+/*.tar.gz
+/lumenfall-localhost.*.log
+/.sites-runtime/
+
+# Local-only experiments and historical source/export packages.
+/dev-assets/
+/dev-prototypes/
+/dev-imports/
+/exports/
+/sites-reconcile-v2/
+/blend-map-audit.json
+/unreal-normandy-export-report.json
+/*-publish-*.tar
+/*-publish-*.tar.gz

@@ -1,0 +1,862 @@
+﻿{
+    "schemaVersion":  "1.0",
+    "generatedAt":  "2026-09-20T11:37:41.4009056Z",
+    "sourceCatalog":  "master-material-catalog.json",
+    "mappings":  [
+                     {
+                         "assetId":  "env_model_anvil",
+                         "status":  "APPROVED",
+                         "sourceMaterialFamilies":  [
+                                                        "metal",
+                                                        "wood"
+                                                    ],
+                         "recommendedLumenfallFamily":  "metal",
+                         "recommendedMaterialAssetId":  "mat_corrugated_iron_2k",
+                         "mappingStatus":  "RECOMMENDATION_ONLY",
+                         "notes":  "Do not replace source material during A2."
+                     },
+                     {
+                         "assetId":  "env_model_anvil_log",
+                         "status":  "APPROVED",
+                         "sourceMaterialFamilies":  [
+                                                        "metal",
+                                                        "wood"
+                                                    ],
+                         "recommendedLumenfallFamily":  "metal",
+                         "recommendedMaterialAssetId":  "mat_corrugated_iron_2k",
+                         "mappingStatus":  "RECOMMENDATION_ONLY",
+                         "notes":  "Do not replace source material during A2."
+                     },
+                     {
+                         "assetId":  "env_model_banner_1",
+                         "status":  "APPROVED",
+                         "sourceMaterialFamilies":  [
+                                                        "fabric_banner",
+                                                        "metal",
+                                                        "wood"
+                                                    ],
+                         "recommendedLumenfallFamily":  "fabric_banner",
+                         "recommendedMaterialAssetId":  "mat_fabric_pattern_05_2k",
+                         "mappingStatus":  "RECOMMENDATION_ONLY",
+                         "notes":  "Do not replace source material during A2."
+                     },
+                     {
+                         "assetId":  "env_model_banner_1_cloth",
+                         "status":  "APPROVED",
+                         "sourceMaterialFamilies":  [
+                                                        "fabric_banner",
+                                                        "metal",
+                                                        "wood"
+                                                    ],
+                         "recommendedLumenfallFamily":  "fabric_banner",
+                         "recommendedMaterialAssetId":  "mat_fabric_pattern_05_2k",
+                         "mappingStatus":  "RECOMMENDATION_ONLY",
+                         "notes":  "Do not replace source material during A2."
+                     },
+                     {
+                         "assetId":  "env_model_banner_2",
+                         "status":  "APPROVED",
+                         "sourceMaterialFamilies":  [
+                                                        "fabric_banner",
+                                                        "metal",
+                                                        "wood"
+                                                    ],
+                         "recommendedLumenfallFamily":  "fabric_banner",
+                         "recommendedMaterialAssetId":  "mat_fabric_pattern_05_2k",
+                         "mappingStatus":  "RECOMMENDATION_ONLY",
+                         "notes":  "Do not replace source material during A2."
+                     },
+                     {
+                         "assetId":  "env_model_barrel",
+                         "status":  "APPROVED",
+                         "sourceMaterialFamilies":  [
+                                                        "metal",
+                                                        "wood"
+                                                    ],
+                         "recommendedLumenfallFamily":  "wood",
+                         "recommendedMaterialAssetId":  "mat_dark_wooden_planks_2k",
+                         "mappingStatus":  "RECOMMENDATION_ONLY",
+                         "notes":  "Do not replace source material during A2."
+                     },
+                     {
+                         "assetId":  "env_model_barrel_apples",
+                         "status":  "APPROVED",
+                         "sourceMaterialFamilies":  [
+                                                        "metal",
+                                                        "wood"
+                                                    ],
+                         "recommendedLumenfallFamily":  "wood",
+                         "recommendedMaterialAssetId":  "mat_dark_wooden_planks_2k",
+                         "mappingStatus":  "RECOMMENDATION_ONLY",
+                         "notes":  "Do not replace source material during A2."
+                     },
+                     {
+                         "assetId":  "env_model_barrel_holder",
+                         "status":  "APPROVED",
+                         "sourceMaterialFamilies":  [
+                                                        "metal",
+                                                        "wood"
+                                                    ],
+                         "recommendedLumenfallFamily":  "wood",
+                         "recommendedMaterialAssetId":  "mat_dark_wooden_planks_2k",
+                         "mappingStatus":  "RECOMMENDATION_ONLY",
+                         "notes":  "Do not replace source material during A2."
+                     },
+                     {
+                         "assetId":  "env_model_bench",
+                         "status":  "APPROVED",
+                         "sourceMaterialFamilies":  [
+                                                        "metal",
+                                                        "wood"
+                                                    ],
+                         "recommendedLumenfallFamily":  "wood",
+                         "recommendedMaterialAssetId":  "mat_dark_wooden_planks_2k",
+                         "mappingStatus":  "RECOMMENDATION_ONLY",
+                         "notes":  "Do not replace source material during A2."
+                     },
+                     {
+                         "assetId":  "env_model_crate_metal",
+                         "status":  "HOLD",
+                         "sourceMaterialFamilies":  [
+                                                        "metal",
+                                                        "wood"
+                                                    ],
+                         "recommendedLumenfallFamily":  "metal",
+                         "recommendedMaterialAssetId":  "mat_corrugated_iron_2k",
+                         "mappingStatus":  "RECOMMENDATION_ONLY",
+                         "notes":  "Do not replace source material during A2."
+                     },
+                     {
+                         "assetId":  "env_model_crate_wooden",
+                         "status":  "APPROVED",
+                         "sourceMaterialFamilies":  [
+                                                        "metal",
+                                                        "wood"
+                                                    ],
+                         "recommendedLumenfallFamily":  "wood",
+                         "recommendedMaterialAssetId":  "mat_dark_wooden_planks_2k",
+                         "mappingStatus":  "RECOMMENDATION_ONLY",
+                         "notes":  "Do not replace source material during A2."
+                     },
+                     {
+                         "assetId":  "env_model_farmcrate_apple",
+                         "status":  "HOLD",
+                         "sourceMaterialFamilies":  [
+                                                        "metal",
+                                                        "wood"
+                                                    ],
+                         "recommendedLumenfallFamily":  "wood",
+                         "recommendedMaterialAssetId":  "mat_dark_wooden_planks_2k",
+                         "mappingStatus":  "RECOMMENDATION_ONLY",
+                         "notes":  "Do not replace source material during A2."
+                     },
+                     {
+                         "assetId":  "env_model_farmcrate_carrot",
+                         "status":  "HOLD",
+                         "sourceMaterialFamilies":  [
+                                                        "metal",
+                                                        "wood"
+                                                    ],
+                         "recommendedLumenfallFamily":  "wood",
+                         "recommendedMaterialAssetId":  "mat_dark_wooden_planks_2k",
+                         "mappingStatus":  "RECOMMENDATION_ONLY",
+                         "notes":  "Do not replace source material during A2."
+                     },
+                     {
+                         "assetId":  "env_model_farmcrate_empty",
+                         "status":  "HOLD",
+                         "sourceMaterialFamilies":  [
+                                                        "metal",
+                                                        "wood"
+                                                    ],
+                         "recommendedLumenfallFamily":  "wood",
+                         "recommendedMaterialAssetId":  "mat_dark_wooden_planks_2k",
+                         "mappingStatus":  "RECOMMENDATION_ONLY",
+                         "notes":  "Do not replace source material during A2."
+                     },
+                     {
+                         "assetId":  "env_model_lantern_wall",
+                         "status":  "APPROVED",
+                         "sourceMaterialFamilies":  [
+                                                        "metal",
+                                                        "stone_architecture",
+                                                        "wood"
+                                                    ],
+                         "recommendedLumenfallFamily":  "stone_architecture",
+                         "recommendedMaterialAssetId":  "mat_plastered_wall_02_2k",
+                         "mappingStatus":  "RECOMMENDATION_ONLY",
+                         "notes":  "Do not replace source material during A2."
+                     },
+                     {
+                         "assetId":  "env_model_stall_cart_empty",
+                         "status":  "APPROVED",
+                         "sourceMaterialFamilies":  [
+                                                        "fabric_banner",
+                                                        "metal",
+                                                        "wood"
+                                                    ],
+                         "recommendedLumenfallFamily":  "wood",
+                         "recommendedMaterialAssetId":  "mat_dark_wooden_planks_2k",
+                         "mappingStatus":  "RECOMMENDATION_ONLY",
+                         "notes":  "Do not replace source material during A2."
+                     },
+                     {
+                         "assetId":  "env_model_stall_empty",
+                         "status":  "APPROVED",
+                         "sourceMaterialFamilies":  [
+                                                        "fabric_banner",
+                                                        "metal",
+                                                        "wood"
+                                                    ],
+                         "recommendedLumenfallFamily":  "wood",
+                         "recommendedMaterialAssetId":  "mat_dark_wooden_planks_2k",
+                         "mappingStatus":  "RECOMMENDATION_ONLY",
+                         "notes":  "Do not replace source material during A2."
+                     },
+                     {
+                         "assetId":  "env_model_torch_metal",
+                         "status":  "APPROVED",
+                         "sourceMaterialFamilies":  [
+                                                        "metal",
+                                                        "wood"
+                                                    ],
+                         "recommendedLumenfallFamily":  "metal",
+                         "recommendedMaterialAssetId":  "mat_corrugated_iron_2k",
+                         "mappingStatus":  "RECOMMENDATION_ONLY",
+                         "notes":  "Do not replace source material during A2."
+                     },
+                     {
+                         "assetId":  "env_model_workbench",
+                         "status":  "APPROVED",
+                         "sourceMaterialFamilies":  [
+                                                        "metal",
+                                                        "wood"
+                                                    ],
+                         "recommendedLumenfallFamily":  "wood",
+                         "recommendedMaterialAssetId":  "mat_dark_wooden_planks_2k",
+                         "mappingStatus":  "RECOMMENDATION_ONLY",
+                         "notes":  "Do not replace source material during A2."
+                     },
+                     {
+                         "assetId":  "env_model_workbench_drawers",
+                         "status":  "APPROVED",
+                         "sourceMaterialFamilies":  [
+                                                        "metal",
+                                                        "wood"
+                                                    ],
+                         "recommendedLumenfallFamily":  "wood",
+                         "recommendedMaterialAssetId":  "mat_dark_wooden_planks_2k",
+                         "mappingStatus":  "RECOMMENDATION_ONLY",
+                         "notes":  "Do not replace source material during A2."
+                     },
+                     {
+                         "assetId":  "env_model_corner_exteriorwide_brick",
+                         "status":  "APPROVED",
+                         "sourceMaterialFamilies":  [
+                                                        "stone_architecture",
+                                                        "tree_bark",
+                                                        "wood"
+                                                    ],
+                         "recommendedLumenfallFamily":  "stone_architecture",
+                         "recommendedMaterialAssetId":  "mat_plastered_wall_02_2k",
+                         "mappingStatus":  "RECOMMENDATION_ONLY",
+                         "notes":  "Do not replace source material during A2."
+                     },
+                     {
+                         "assetId":  "env_model_corner_exteriorwide_wood",
+                         "status":  "APPROVED",
+                         "sourceMaterialFamilies":  [
+                                                        "wood"
+                                                    ],
+                         "recommendedLumenfallFamily":  "stone_architecture",
+                         "recommendedMaterialAssetId":  "mat_plastered_wall_02_2k",
+                         "mappingStatus":  "RECOMMENDATION_ONLY",
+                         "notes":  "Do not replace source material during A2."
+                     },
+                     {
+                         "assetId":  "env_model_corner_exterior_brick",
+                         "status":  "APPROVED",
+                         "sourceMaterialFamilies":  [
+                                                        "stone_architecture",
+                                                        "tree_bark",
+                                                        "wood"
+                                                    ],
+                         "recommendedLumenfallFamily":  "stone_architecture",
+                         "recommendedMaterialAssetId":  "mat_plastered_wall_02_2k",
+                         "mappingStatus":  "RECOMMENDATION_ONLY",
+                         "notes":  "Do not replace source material during A2."
+                     },
+                     {
+                         "assetId":  "env_model_corner_exterior_topdown",
+                         "status":  "APPROVED",
+                         "sourceMaterialFamilies":  [
+                                                        "wood"
+                                                    ],
+                         "recommendedLumenfallFamily":  "stone_architecture",
+                         "recommendedMaterialAssetId":  "mat_plastered_wall_02_2k",
+                         "mappingStatus":  "RECOMMENDATION_ONLY",
+                         "notes":  "Do not replace source material during A2."
+                     },
+                     {
+                         "assetId":  "env_model_corner_exterior_toponly",
+                         "status":  "HOLD",
+                         "sourceMaterialFamilies":  [
+                                                        "wood"
+                                                    ],
+                         "recommendedLumenfallFamily":  "stone_architecture",
+                         "recommendedMaterialAssetId":  "mat_plastered_wall_02_2k",
+                         "mappingStatus":  "RECOMMENDATION_ONLY",
+                         "notes":  "Do not replace source material during A2."
+                     },
+                     {
+                         "assetId":  "env_model_corner_exterior_wood",
+                         "status":  "APPROVED",
+                         "sourceMaterialFamilies":  [
+                                                        "wood"
+                                                    ],
+                         "recommendedLumenfallFamily":  "stone_architecture",
+                         "recommendedMaterialAssetId":  "mat_plastered_wall_02_2k",
+                         "mappingStatus":  "RECOMMENDATION_ONLY",
+                         "notes":  "Do not replace source material during A2."
+                     },
+                     {
+                         "assetId":  "env_model_doorframe_flat_brick",
+                         "status":  "APPROVED",
+                         "sourceMaterialFamilies":  [
+                                                        "stone_architecture",
+                                                        "tree_bark",
+                                                        "wood"
+                                                    ],
+                         "recommendedLumenfallFamily":  "stone_architecture",
+                         "recommendedMaterialAssetId":  "mat_plastered_wall_02_2k",
+                         "mappingStatus":  "RECOMMENDATION_ONLY",
+                         "notes":  "Do not replace source material during A2."
+                     },
+                     {
+                         "assetId":  "env_model_doorframe_flat_wooddark",
+                         "status":  "APPROVED",
+                         "sourceMaterialFamilies":  [
+                                                        "wood"
+                                                    ],
+                         "recommendedLumenfallFamily":  "stone_architecture",
+                         "recommendedMaterialAssetId":  "mat_plastered_wall_02_2k",
+                         "mappingStatus":  "RECOMMENDATION_ONLY",
+                         "notes":  "Do not replace source material during A2."
+                     },
+                     {
+                         "assetId":  "env_model_doorframe_round_brick",
+                         "status":  "APPROVED",
+                         "sourceMaterialFamilies":  [
+                                                        "stone_architecture",
+                                                        "tree_bark",
+                                                        "wood"
+                                                    ],
+                         "recommendedLumenfallFamily":  "stone_architecture",
+                         "recommendedMaterialAssetId":  "mat_plastered_wall_02_2k",
+                         "mappingStatus":  "RECOMMENDATION_ONLY",
+                         "notes":  "Do not replace source material during A2."
+                     },
+                     {
+                         "assetId":  "env_model_doorframe_round_wooddark",
+                         "status":  "APPROVED",
+                         "sourceMaterialFamilies":  [
+                                                        "wood"
+                                                    ],
+                         "recommendedLumenfallFamily":  "stone_architecture",
+                         "recommendedMaterialAssetId":  "mat_plastered_wall_02_2k",
+                         "mappingStatus":  "RECOMMENDATION_ONLY",
+                         "notes":  "Do not replace source material during A2."
+                     },
+                     {
+                         "assetId":  "env_model_floor_brick",
+                         "status":  "APPROVED",
+                         "sourceMaterialFamilies":  [
+                                                        "stone_architecture"
+                                                    ],
+                         "recommendedLumenfallFamily":  "stone_architecture",
+                         "recommendedMaterialAssetId":  "mat_plastered_wall_02_2k",
+                         "mappingStatus":  "RECOMMENDATION_ONLY",
+                         "notes":  "Do not replace source material during A2."
+                     },
+                     {
+                         "assetId":  "env_model_floor_redbrick",
+                         "status":  "APPROVED",
+                         "sourceMaterialFamilies":  [
+                                                        "stone_architecture"
+                                                    ],
+                         "recommendedLumenfallFamily":  "stone_architecture",
+                         "recommendedMaterialAssetId":  "mat_plastered_wall_02_2k",
+                         "mappingStatus":  "RECOMMENDATION_ONLY",
+                         "notes":  "Do not replace source material during A2."
+                     },
+                     {
+                         "assetId":  "env_model_floor_unevenbrick",
+                         "status":  "APPROVED",
+                         "sourceMaterialFamilies":  [
+                                                        "stone_architecture"
+                                                    ],
+                         "recommendedLumenfallFamily":  "stone_architecture",
+                         "recommendedMaterialAssetId":  "mat_plastered_wall_02_2k",
+                         "mappingStatus":  "RECOMMENDATION_ONLY",
+                         "notes":  "Do not replace source material during A2."
+                     },
+                     {
+                         "assetId":  "env_model_floor_wooddark",
+                         "status":  "APPROVED",
+                         "sourceMaterialFamilies":  [
+                                                        "wood"
+                                                    ],
+                         "recommendedLumenfallFamily":  "stone_architecture",
+                         "recommendedMaterialAssetId":  "mat_plastered_wall_02_2k",
+                         "mappingStatus":  "RECOMMENDATION_ONLY",
+                         "notes":  "Do not replace source material during A2."
+                     },
+                     {
+                         "assetId":  "env_model_floor_wooddark_half1",
+                         "status":  "APPROVED",
+                         "sourceMaterialFamilies":  [
+                                                        "wood"
+                                                    ],
+                         "recommendedLumenfallFamily":  "stone_architecture",
+                         "recommendedMaterialAssetId":  "mat_plastered_wall_02_2k",
+                         "mappingStatus":  "RECOMMENDATION_ONLY",
+                         "notes":  "Do not replace source material during A2."
+                     },
+                     {
+                         "assetId":  "env_model_floor_wooddark_half2",
+                         "status":  "APPROVED",
+                         "sourceMaterialFamilies":  [
+                                                        "wood"
+                                                    ],
+                         "recommendedLumenfallFamily":  "stone_architecture",
+                         "recommendedMaterialAssetId":  "mat_plastered_wall_02_2k",
+                         "mappingStatus":  "RECOMMENDATION_ONLY",
+                         "notes":  "Do not replace source material during A2."
+                     },
+                     {
+                         "assetId":  "env_model_prop_metalfence_ornament",
+                         "status":  "APPROVED",
+                         "sourceMaterialFamilies":  [
+                                                        "metal"
+                                                    ],
+                         "recommendedLumenfallFamily":  "metal",
+                         "recommendedMaterialAssetId":  "mat_corrugated_iron_2k",
+                         "mappingStatus":  "RECOMMENDATION_ONLY",
+                         "notes":  "Do not replace source material during A2."
+                     },
+                     {
+                         "assetId":  "env_model_prop_metalfence_simple",
+                         "status":  "APPROVED",
+                         "sourceMaterialFamilies":  [
+                                                        "metal"
+                                                    ],
+                         "recommendedLumenfallFamily":  "metal",
+                         "recommendedMaterialAssetId":  "mat_corrugated_iron_2k",
+                         "mappingStatus":  "RECOMMENDATION_ONLY",
+                         "notes":  "Do not replace source material during A2."
+                     },
+                     {
+                         "assetId":  "env_model_prop_wagon",
+                         "status":  "APPROVED",
+                         "sourceMaterialFamilies":  [
+                                                        "wood"
+                                                    ],
+                         "recommendedLumenfallFamily":  "wood",
+                         "recommendedMaterialAssetId":  "mat_dark_wooden_planks_2k",
+                         "mappingStatus":  "RECOMMENDATION_ONLY",
+                         "notes":  "Do not replace source material during A2."
+                     },
+                     {
+                         "assetId":  "env_model_prop_woodenfence_extension1",
+                         "status":  "APPROVED",
+                         "sourceMaterialFamilies":  [
+                                                        "wood"
+                                                    ],
+                         "recommendedLumenfallFamily":  "metal",
+                         "recommendedMaterialAssetId":  "mat_corrugated_iron_2k",
+                         "mappingStatus":  "RECOMMENDATION_ONLY",
+                         "notes":  "Do not replace source material during A2."
+                     },
+                     {
+                         "assetId":  "env_model_prop_woodenfence_extension2",
+                         "status":  "HOLD",
+                         "sourceMaterialFamilies":  [
+                                                        "wood"
+                                                    ],
+                         "recommendedLumenfallFamily":  "metal",
+                         "recommendedMaterialAssetId":  "mat_corrugated_iron_2k",
+                         "mappingStatus":  "RECOMMENDATION_ONLY",
+                         "notes":  "Do not replace source material during A2."
+                     },
+                     {
+                         "assetId":  "env_model_prop_woodenfence_single",
+                         "status":  "APPROVED",
+                         "sourceMaterialFamilies":  [
+                                                        "wood"
+                                                    ],
+                         "recommendedLumenfallFamily":  "metal",
+                         "recommendedMaterialAssetId":  "mat_corrugated_iron_2k",
+                         "mappingStatus":  "RECOMMENDATION_ONLY",
+                         "notes":  "Do not replace source material during A2."
+                     },
+                     {
+                         "assetId":  "env_model_roof_tower_roundtiles",
+                         "status":  "APPROVED",
+                         "sourceMaterialFamilies":  [
+                                                        "metal",
+                                                        "roof_tile",
+                                                        "stone_architecture",
+                                                        "tree_bark",
+                                                        "wood"
+                                                    ],
+                         "recommendedLumenfallFamily":  "roof_tile",
+                         "recommendedMaterialAssetId":  "mat_clay_roof_tiles_2k",
+                         "mappingStatus":  "RECOMMENDATION_ONLY",
+                         "notes":  "Do not replace source material during A2."
+                     },
+                     {
+                         "assetId":  "env_model_stairs_exterior_nofirststep",
+                         "status":  "APPROVED",
+                         "sourceMaterialFamilies":  [
+                                                        "stone_architecture",
+                                                        "tree_bark",
+                                                        "wood"
+                                                    ],
+                         "recommendedLumenfallFamily":  "stone_architecture",
+                         "recommendedMaterialAssetId":  "mat_plastered_wall_02_2k",
+                         "mappingStatus":  "RECOMMENDATION_ONLY",
+                         "notes":  "Do not replace source material during A2."
+                     },
+                     {
+                         "assetId":  "env_model_stairs_exterior_platform",
+                         "status":  "APPROVED",
+                         "sourceMaterialFamilies":  [
+                                                        "stone_architecture",
+                                                        "tree_bark",
+                                                        "wood"
+                                                    ],
+                         "recommendedLumenfallFamily":  "stone_architecture",
+                         "recommendedMaterialAssetId":  "mat_plastered_wall_02_2k",
+                         "mappingStatus":  "RECOMMENDATION_ONLY",
+                         "notes":  "Do not replace source material during A2."
+                     },
+                     {
+                         "assetId":  "env_model_stairs_exterior_platform45",
+                         "status":  "APPROVED",
+                         "sourceMaterialFamilies":  [
+                                                        "stone_architecture",
+                                                        "tree_bark",
+                                                        "wood"
+                                                    ],
+                         "recommendedLumenfallFamily":  "stone_architecture",
+                         "recommendedMaterialAssetId":  "mat_plastered_wall_02_2k",
+                         "mappingStatus":  "RECOMMENDATION_ONLY",
+                         "notes":  "Do not replace source material during A2."
+                     },
+                     {
+                         "assetId":  "env_model_stairs_exterior_platform45clean",
+                         "status":  "HOLD",
+                         "sourceMaterialFamilies":  [
+                                                        "stone_architecture",
+                                                        "tree_bark",
+                                                        "wood"
+                                                    ],
+                         "recommendedLumenfallFamily":  "stone_architecture",
+                         "recommendedMaterialAssetId":  "mat_plastered_wall_02_2k",
+                         "mappingStatus":  "RECOMMENDATION_ONLY",
+                         "notes":  "Do not replace source material during A2."
+                     },
+                     {
+                         "assetId":  "env_model_stairs_exterior_platformu",
+                         "status":  "APPROVED",
+                         "sourceMaterialFamilies":  [
+                                                        "stone_architecture",
+                                                        "tree_bark",
+                                                        "wood"
+                                                    ],
+                         "recommendedLumenfallFamily":  "stone_architecture",
+                         "recommendedMaterialAssetId":  "mat_plastered_wall_02_2k",
+                         "mappingStatus":  "RECOMMENDATION_ONLY",
+                         "notes":  "Do not replace source material during A2."
+                     },
+                     {
+                         "assetId":  "env_model_stairs_exterior_sideplatform",
+                         "status":  "HOLD",
+                         "sourceMaterialFamilies":  [
+                                                        "stone_architecture",
+                                                        "tree_bark",
+                                                        "wood"
+                                                    ],
+                         "recommendedLumenfallFamily":  "stone_architecture",
+                         "recommendedMaterialAssetId":  "mat_plastered_wall_02_2k",
+                         "mappingStatus":  "RECOMMENDATION_ONLY",
+                         "notes":  "Do not replace source material during A2."
+                     },
+                     {
+                         "assetId":  "env_model_stairs_exterior_sides",
+                         "status":  "HOLD",
+                         "sourceMaterialFamilies":  [
+                                                        "stone_architecture"
+                                                    ],
+                         "recommendedLumenfallFamily":  "stone_architecture",
+                         "recommendedMaterialAssetId":  "mat_plastered_wall_02_2k",
+                         "mappingStatus":  "RECOMMENDATION_ONLY",
+                         "notes":  "Do not replace source material during A2."
+                     },
+                     {
+                         "assetId":  "env_model_stairs_exterior_sides45",
+                         "status":  "HOLD",
+                         "sourceMaterialFamilies":  [
+                                                        "stone_architecture"
+                                                    ],
+                         "recommendedLumenfallFamily":  "stone_architecture",
+                         "recommendedMaterialAssetId":  "mat_plastered_wall_02_2k",
+                         "mappingStatus":  "RECOMMENDATION_ONLY",
+                         "notes":  "Do not replace source material during A2."
+                     },
+                     {
+                         "assetId":  "env_model_wall_arch",
+                         "status":  "APPROVED",
+                         "sourceMaterialFamilies":  [
+                                                        "stone_architecture",
+                                                        "wood"
+                                                    ],
+                         "recommendedLumenfallFamily":  "stone_architecture",
+                         "recommendedMaterialAssetId":  "mat_plastered_wall_02_2k",
+                         "mappingStatus":  "RECOMMENDATION_ONLY",
+                         "notes":  "Do not replace source material during A2."
+                     },
+                     {
+                         "assetId":  "env_model_wall_bottomcover",
+                         "status":  "APPROVED",
+                         "sourceMaterialFamilies":  [
+                                                        "stone_architecture",
+                                                        "wood"
+                                                    ],
+                         "recommendedLumenfallFamily":  "stone_architecture",
+                         "recommendedMaterialAssetId":  "mat_plastered_wall_02_2k",
+                         "mappingStatus":  "RECOMMENDATION_ONLY",
+                         "notes":  "Do not replace source material during A2."
+                     },
+                     {
+                         "assetId":  "env_model_wall_plaster_door_flat",
+                         "status":  "APPROVED",
+                         "sourceMaterialFamilies":  [
+                                                        "stone_architecture",
+                                                        "tree_bark",
+                                                        "wood"
+                                                    ],
+                         "recommendedLumenfallFamily":  "stone_architecture",
+                         "recommendedMaterialAssetId":  "mat_plastered_wall_02_2k",
+                         "mappingStatus":  "RECOMMENDATION_ONLY",
+                         "notes":  "Do not replace source material during A2."
+                     },
+                     {
+                         "assetId":  "env_model_wall_plaster_door_round",
+                         "status":  "APPROVED",
+                         "sourceMaterialFamilies":  [
+                                                        "stone_architecture",
+                                                        "tree_bark",
+                                                        "wood"
+                                                    ],
+                         "recommendedLumenfallFamily":  "stone_architecture",
+                         "recommendedMaterialAssetId":  "mat_plastered_wall_02_2k",
+                         "mappingStatus":  "RECOMMENDATION_ONLY",
+                         "notes":  "Do not replace source material during A2."
+                     },
+                     {
+                         "assetId":  "env_model_wall_plaster_door_roundinset",
+                         "status":  "APPROVED",
+                         "sourceMaterialFamilies":  [
+                                                        "stone_architecture",
+                                                        "tree_bark",
+                                                        "wood"
+                                                    ],
+                         "recommendedLumenfallFamily":  "stone_architecture",
+                         "recommendedMaterialAssetId":  "mat_plastered_wall_02_2k",
+                         "mappingStatus":  "RECOMMENDATION_ONLY",
+                         "notes":  "Do not replace source material during A2."
+                     },
+                     {
+                         "assetId":  "env_model_wall_plaster_straight",
+                         "status":  "APPROVED",
+                         "sourceMaterialFamilies":  [
+                                                        "stone_architecture",
+                                                        "wood"
+                                                    ],
+                         "recommendedLumenfallFamily":  "stone_architecture",
+                         "recommendedMaterialAssetId":  "mat_plastered_wall_02_2k",
+                         "mappingStatus":  "RECOMMENDATION_ONLY",
+                         "notes":  "Do not replace source material during A2."
+                     },
+                     {
+                         "assetId":  "env_package_large_castle_door_2k",
+                         "status":  "HOLD",
+                         "sourceMaterialFamilies":  [
+                                                        "metal"
+                                                    ],
+                         "recommendedLumenfallFamily":  "UNKNOWN",
+                         "recommendedMaterialAssetId":  null,
+                         "mappingStatus":  "RECOMMENDATION_ONLY",
+                         "notes":  "Do not replace source material during A2."
+                     },
+                     {
+                         "assetId":  "env_package_modular_fort_01_2k",
+                         "status":  "HOLD",
+                         "sourceMaterialFamilies":  [
+                                                        "stone_architecture",
+                                                        "wood"
+                                                    ],
+                         "recommendedLumenfallFamily":  "stone_architecture",
+                         "recommendedMaterialAssetId":  "mat_plastered_wall_02_2k",
+                         "mappingStatus":  "RECOMMENDATION_ONLY",
+                         "notes":  "Do not replace source material during A2."
+                     },
+                     {
+                         "assetId":  "env_package_fern_02_2k",
+                         "status":  "HOLD",
+                         "sourceMaterialFamilies":  [
+                                                        "tree_bark"
+                                                    ],
+                         "recommendedLumenfallFamily":  "UNKNOWN",
+                         "recommendedMaterialAssetId":  null,
+                         "mappingStatus":  "RECOMMENDATION_ONLY",
+                         "notes":  "Do not replace source material during A2."
+                     },
+                     {
+                         "assetId":  "env_package_grass_medium_01_2k",
+                         "status":  "HOLD",
+                         "sourceMaterialFamilies":  [
+                                                        "tree_bark"
+                                                    ],
+                         "recommendedLumenfallFamily":  "UNKNOWN",
+                         "recommendedMaterialAssetId":  null,
+                         "mappingStatus":  "RECOMMENDATION_ONLY",
+                         "notes":  "Do not replace source material during A2."
+                     },
+                     {
+                         "assetId":  "env_package_grass_medium_02_2k",
+                         "status":  "HOLD",
+                         "sourceMaterialFamilies":  [
+                                                        "tree_bark"
+                                                    ],
+                         "recommendedLumenfallFamily":  "UNKNOWN",
+                         "recommendedMaterialAssetId":  null,
+                         "mappingStatus":  "RECOMMENDATION_ONLY",
+                         "notes":  "Do not replace source material during A2."
+                     },
+                     {
+                         "assetId":  "env_package_shrub_03_2k",
+                         "status":  "HOLD",
+                         "sourceMaterialFamilies":  [
+                                                        "tree_bark"
+                                                    ],
+                         "recommendedLumenfallFamily":  "UNKNOWN",
+                         "recommendedMaterialAssetId":  null,
+                         "mappingStatus":  "RECOMMENDATION_ONLY",
+                         "notes":  "Do not replace source material during A2."
+                     },
+                     {
+                         "assetId":  "env_package_shrub_04_2k",
+                         "status":  "HOLD",
+                         "sourceMaterialFamilies":  [
+                                                        "tree_bark"
+                                                    ],
+                         "recommendedLumenfallFamily":  "UNKNOWN",
+                         "recommendedMaterialAssetId":  null,
+                         "mappingStatus":  "RECOMMENDATION_ONLY",
+                         "notes":  "Do not replace source material during A2."
+                     },
+                     {
+                         "assetId":  "env_package_wild_rooibos_bush_2k",
+                         "status":  "HOLD",
+                         "sourceMaterialFamilies":  [
+                                                        "UNKNOWN"
+                                                    ],
+                         "recommendedLumenfallFamily":  "UNKNOWN",
+                         "recommendedMaterialAssetId":  null,
+                         "mappingStatus":  "RECOMMENDATION_ONLY",
+                         "notes":  "Do not replace source material during A2."
+                     },
+                     {
+                         "assetId":  "env_package_boulder_01_2k",
+                         "status":  "HOLD",
+                         "sourceMaterialFamilies":  [
+                                                        "tree_bark"
+                                                    ],
+                         "recommendedLumenfallFamily":  "UNKNOWN",
+                         "recommendedMaterialAssetId":  null,
+                         "mappingStatus":  "RECOMMENDATION_ONLY",
+                         "notes":  "Do not replace source material during A2."
+                     },
+                     {
+                         "assetId":  "env_package_namaqualand_boulders_01_2k",
+                         "status":  "HOLD",
+                         "sourceMaterialFamilies":  [
+                                                        "tree_bark"
+                                                    ],
+                         "recommendedLumenfallFamily":  "UNKNOWN",
+                         "recommendedMaterialAssetId":  null,
+                         "mappingStatus":  "RECOMMENDATION_ONLY",
+                         "notes":  "Do not replace source material during A2."
+                     },
+                     {
+                         "assetId":  "env_package_rock_07_2k",
+                         "status":  "HOLD",
+                         "sourceMaterialFamilies":  [
+                                                        "stone_architecture",
+                                                        "tree_bark"
+                                                    ],
+                         "recommendedLumenfallFamily":  "stone_architecture",
+                         "recommendedMaterialAssetId":  "mat_plastered_wall_02_2k",
+                         "mappingStatus":  "RECOMMENDATION_ONLY",
+                         "notes":  "Do not replace source material during A2."
+                     },
+                     {
+                         "assetId":  "env_package_rock_09_2k",
+                         "status":  "HOLD",
+                         "sourceMaterialFamilies":  [
+                                                        "stone_architecture",
+                                                        "tree_bark"
+                                                    ],
+                         "recommendedLumenfallFamily":  "stone_architecture",
+                         "recommendedMaterialAssetId":  "mat_plastered_wall_02_2k",
+                         "mappingStatus":  "RECOMMENDATION_ONLY",
+                         "notes":  "Do not replace source material during A2."
+                     },
+                     {
+                         "assetId":  "env_package_rock_face_02_2k",
+                         "status":  "HOLD",
+                         "sourceMaterialFamilies":  [
+                                                        "stone_architecture",
+                                                        "tree_bark"
+                                                    ],
+                         "recommendedLumenfallFamily":  "stone_architecture",
+                         "recommendedMaterialAssetId":  "mat_plastered_wall_02_2k",
+                         "mappingStatus":  "RECOMMENDATION_ONLY",
+                         "notes":  "Do not replace source material during A2."
+                     },
+                     {
+                         "assetId":  "env_package_dead_tree_trunk_02_2k",
+                         "status":  "HOLD",
+                         "sourceMaterialFamilies":  [
+                                                        "tree_bark"
+                                                    ],
+                         "recommendedLumenfallFamily":  "UNKNOWN",
+                         "recommendedMaterialAssetId":  null,
+                         "mappingStatus":  "RECOMMENDATION_ONLY",
+                         "notes":  "Do not replace source material during A2."
+                     },
+                     {
+                         "assetId":  "env_package_fir_tree_01_2k",
+                         "status":  "HOLD",
+                         "sourceMaterialFamilies":  [
+                                                        "tree_bark"
+                                                    ],
+                         "recommendedLumenfallFamily":  "UNKNOWN",
+                         "recommendedMaterialAssetId":  null,
+                         "mappingStatus":  "RECOMMENDATION_ONLY",
+                         "notes":  "Do not replace source material during A2."
+                     }
+                 ]
+}

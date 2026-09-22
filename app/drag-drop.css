@@ -1,0 +1,155 @@
+.game-drag-preview {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: calc(var(--lumenfall-window-top-z, 1000) + 4);
+  pointer-events: none;
+  width: 190px;
+  max-width: calc(100vw - 16px);
+  max-height: calc(100dvh - 16px);
+  overflow-wrap: anywhere;
+  padding: 12px;
+  color: #ede5d0;
+  background: #172521f5;
+  border: 1px solid var(--drag-accent);
+  border-radius: 9px;
+  box-shadow: 0 8px 28px #0008;
+  display: grid;
+  gap: 7px;
+  will-change: transform;
+  font: 13px/1.4 sans-serif;
+}
+.game-drag-icon {
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  color: #e8dcb7;
+}
+.game-drag-icon > svg {
+  width: 32px;
+  height: 32px;
+}
+.game-drag-preview > span {
+  font-size: 12px;
+  color: #b9c6b8;
+}
+[data-drag-source] {
+  touch-action: none;
+  cursor: grab;
+}
+/* Keep the hit-test source stationary. The generic pressed-button transform
+   otherwise creates scrollbars in slot grids and cancels a valid drag. */
+button[data-drag-source]:not(:disabled):active {
+  transform: none;
+}
+[data-dragging='true'] {
+  opacity: 0.55;
+  cursor: grabbing;
+}
+[data-drop-feedback='valid'] {
+  outline: 2px solid #bfcd9c !important;
+  outline-offset: -3px;
+  box-shadow: inset 0 0 16px #9cab6a35 !important;
+}
+[data-drop-feedback='invalid'] {
+  outline: 2px solid #b7756b !important;
+  outline-offset: -3px;
+}
+body[data-game-dragging] {
+  user-select: none;
+  cursor: grabbing;
+}
+body[data-game-dragging] [role='tooltip'] {
+  visibility: hidden;
+  pointer-events: none;
+}
+/* Draggable windows start at 1000, not the dialog primitive's old z-50.
+   Lift the existing drop destination above the current window stack only
+   while binding; confirmations must retain their blocking behavior. */
+body:has(.binding-window):not(:has([role='alertdialog'])) .primary-hotbar-panel {
+  z-index: calc(var(--lumenfall-window-top-z, 1000) + 2);
+}
+body[data-game-dragging]:not(:has([role='alertdialog'])) .primary-hotbar-panel {
+  z-index: calc(var(--lumenfall-window-top-z, 1000) + 2);
+}
+body:has(.binding-window):not(:has([role='alertdialog']))
+  [data-slot='dialog-overlay'] {
+  pointer-events: none;
+}
+.primary-slot .equipment-visual {
+  width: 25px;
+  height: 25px;
+}
+.primary-tooltip .skill-icon {
+  width: 26px;
+  height: 26px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .game-drag-preview {
+    transition: none !important;
+  }
+}
+.skill-icon {
+  display: inline-flex;
+  position: relative;
+  flex: 0 0 auto;
+  color: currentColor;
+  vertical-align: middle;
+  pointer-events: none;
+}
+.skill-icon > svg:first-child {
+  width: 100%;
+  height: 100%;
+}
+.skill-icon .skill-icon-motif {
+  position: absolute;
+  right: -3px;
+  bottom: -3px;
+  width: 43%;
+  height: 43%;
+  background: #1c2925;
+  border-radius: 50%;
+  box-shadow: 0 0 0 2px #1c2925;
+}
+.js-node {
+  position: relative;
+  overflow: visible;
+  transition:
+    border-color 120ms,
+    background 120ms,
+    opacity 120ms;
+}
+.js-node-icon {
+  width: 62px;
+  height: 62px;
+  border-radius: 16px 4px 16px 4px;
+  background: linear-gradient(145deg, #d8ce9e12, #12241d);
+}
+.js-node.node-learned,
+.js-node.node-maxed {
+  background: linear-gradient(145deg, #aebc8430, #1e302640);
+}
+.js-node.node-locked .skill-icon {
+  opacity: 0.45;
+}
+.js-node > strong {
+  line-height: 1.45;
+}
+.js-node-rank {
+  font-variant-numeric: tabular-nums;
+}
+.inventory-drag-hint {
+  grid-column: 1 / -1;
+  font-size: 12px;
+  line-height: 1.5;
+  color: #b3bea9;
+}
+.inventory-icon > svg {
+  width: 28px;
+  height: 28px;
+}
+.inventory-icon .equipment-visual {
+  width: 100%;
+  height: 100%;
+}

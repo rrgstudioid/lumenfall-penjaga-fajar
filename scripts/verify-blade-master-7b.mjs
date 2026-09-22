@@ -1,0 +1,43 @@
+import assert from 'node:assert/strict';
+import { build } from 'vite';
+import { mkdir, writeFile } from 'node:fs/promises';
+import { resolve } from 'node:path';
+import { pathToFileURL } from 'node:url';
+
+const runtime = process.env.CODEX_NODE_MODULES || 'C:/Users/USER/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules';
+const { chromium } = await import(pathToFileURL(`${runtime}/playwright/index.mjs`).href);
+const out=resolve('output/release-audit/blade-master-7b');
+await mkdir(out,{recursive:true});
+const built=await build({configFile:false,logLevel:'error',build:{write:false,minify:false,lib:{entry:resolve('tests/browser/blade-master-7b-fixture.ts'),formats:['iife'],name:'BladeMaster7BFixture'}}});
+const code=(Array.isArray(built)?built:[built]).flatMap(b=>b.output).find(c=>c.type==='chunk').code;
+const browser=await chromium.launch({channel:'chrome',headless:true});
+try {
+  const page=await browser.newPage(),errors=[];
+  page.on('pageerror',e=>errors.push(e.message));
+  page.on('console',m=>{if(['error','warning'].includes(m.type()))errors.push(m.text());});
+  page.on('requestfailed',r=>errors.push(`${r.url()}: ${r.failure()?.errorText}`));
+  await page.route('http://blade-master-7b.test/**',route=>route.fulfill({status:200,contentType:route.request().url().endsWith('.bundle.js')?'application/javascript':'text/html',body:route.request().url().endsWith('.bundle.js')?code:'<pre id="result"></pre><script type="module" src="/tests/browser/blade-master-7b-fixture.bundle.js"></script>'}));
+  await page.goto('http://blade-master-7b.test/tests/browser/blade-master-7b-fixture.html',{waitUntil:'networkidle'});
+  await page.waitForFunction(()=>Boolean(window.__bladeMaster7BFixture));
+  const data=await page.evaluate(()=>window.__bladeMaster7BFixture);
+  assert.deepEqual(errors,[]);assert.equal(data.status,'PASS');assert.equal(data.exactSkillCount,9);assert.equal(data.worldImported,false);
+  assert.deepEqual(data.cross.hits.map(h=>h.hand),['BOTH']);
+  assert.deepEqual(data.piercingOwn.hits.map(h=>h.hand),['MAIN','MAIN','MAIN']);
+  assert.deepEqual(data.tempest.hits.map(h=>h.hand),['MAIN','OFF','MAIN','OFF','BOTH']);
+  assert.deepEqual(data.tempoLog,[1,2,3,3]);
+  assert.deepEqual(data.drives.map(d=>d.stacks),[1,2,3]);
+  assert.deepEqual(data.drives.map(d=>d.attackSpeedPercent),[12,16,20]);
+  assert.deepEqual(data.drives.map(d=>d.manaReductionPercent),[10,14,18]);
+  assert.equal(data.piercingOwn.hits.at(-1).critRate-data.piercingOther.hits.at(-1).critRate,10);
+  assert.equal(data.piercingFlow.hits[0].critRate-data.piercingOwn.hits[0].critRate,5);
+  assert.equal(data.tempestEnhanced.hits.at(-1).critRate-data.tempest.hits.at(-1).critRate,25);
+  assert.equal(data.tempestFlow.hits.at(-1).critRate-data.tempestEnhanced.hits.at(-1).critRate,5);
+  assert.equal(data.tempestEnhanced.tempoBeforeImpact,3);
+  assert.equal(data.tempestEnhanced.tempoAfterImpact,0);
+  assert.equal(data.tempestFlow.flowBeforeImpact,true);
+  assert.equal(data.tempestFlow.flowAfterImpact,false);
+  assert.equal(data.cross.tempoAfterImpact,1);
+  await page.screenshot({path:resolve(out,'fixture.png'),fullPage:true});
+  await writeFile(resolve(out,'results.json'),JSON.stringify({status:'PASS',data,errors},null,2));
+  console.log(JSON.stringify({status:'PASS',data,errors},null,2));
+} finally {await browser.close();}

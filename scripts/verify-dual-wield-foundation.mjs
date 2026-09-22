@@ -1,0 +1,16 @@
+import assert from 'node:assert/strict';
+import { build } from 'vite';
+import { mkdir, writeFile } from 'node:fs/promises';
+import { resolve } from 'node:path';
+import { pathToFileURL } from 'node:url';
+const runtime=process.env.CODEX_NODE_MODULES || 'C:/Users/USER/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules';
+const {chromium}=await import(pathToFileURL(`${runtime}/playwright/index.mjs`).href);
+const out=resolve('output/release-audit/dual-wield-foundation'); await mkdir(out,{recursive:true});
+const built=await build({configFile:false,logLevel:'error',build:{write:false,minify:false,lib:{entry:resolve('tests/browser/dual-wield-foundation-fixture.ts'),formats:['iife'],name:'DualWieldFoundationFixture'}}});
+const code=(Array.isArray(built)?built:[built]).flatMap(b=>b.output).find(c=>c.type==='chunk').code;
+const browser=await chromium.launch({channel:'chrome',headless:true}); const page=await browser.newPage(); const errors=[];
+page.on('pageerror',e=>errors.push(e.message)); page.on('console',m=>{if(['error','warning'].includes(m.type()))errors.push(m.text());});
+await page.route('http://dual-wield.test/**',route=>route.fulfill({status:200,contentType:route.request().url().includes('.bundle.js')?'application/javascript':'text/html',body:route.request().url().includes('.bundle.js')?code:'<pre id="result"></pre><script type="module" src="/tests/browser/dual-wield-foundation-fixture.bundle.js"></script>'}));
+await page.goto('http://dual-wield.test/tests/browser/dual-wield-foundation-fixture.html',{waitUntil:'networkidle'}); await page.waitForFunction(()=>Boolean(window.__dualWieldFoundationFixture));
+const payload=await page.evaluate(()=>window.__dualWieldFoundationFixture); assert.deepEqual(errors,[]); assert.equal(payload.status,'PASS'); assert.equal(payload.worldImported,false); assert.equal(payload.mainHandWeaponLayer,100); assert.equal(payload.offHandWeaponLayer,70); assert.equal(payload.singleMainRawWeaponAttack,100); assert.equal(payload.dualCombinedRawWeaponAttack,170); assert.equal(payload.equipmentSTR,15); assert.equal(payload.equipmentCritRate,5); assert.equal(payload.activeUniqueEffects.length,1);
+await page.screenshot({path:resolve(out,'fixture.png'),fullPage:true}); await writeFile(resolve(out,'results.json'),JSON.stringify({status:'PASS',payload,errors},null,2)); console.log(JSON.stringify({status:'PASS',payload,errors},null,2)); await browser.close();

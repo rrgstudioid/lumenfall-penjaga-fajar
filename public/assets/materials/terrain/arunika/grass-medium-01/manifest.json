@@ -1,0 +1,28 @@
+{
+  "id": "terrain.arunika.grass_medium_01",
+  "source": "grass_medium_01_4k.blend.zip",
+  "scope": "Padang Arunika ground grass and existing protruding grass tufts only",
+  "ground": {
+    "color": "grass_ground_color_2k.webp",
+    "normalRoughness": "grass_ground_normal_rough_1k.webp",
+    "tileWorldUnits": 4.8,
+    "normalStrength": 0.32,
+    "derivation": "Opaque wrapped tile composited from 2600 rotated source-atlas tufts. Matching alpha, normal rotation, roughness and deterministic seed 73581. Not the complete source atlas pasted on terrain."
+  },
+  "tufts": {
+    "colorAlpha": "grass_tuft_color_alpha_2k.webp",
+    "normalRoughness": "grass_tuft_normal_rough_1k.webp",
+    "alphaTest": 0.42,
+    "trianglesPerTuft": 6,
+    "dimensions": [0.44, 0.7, 0.44],
+    "normalStrength": 0.38,
+    "placement": "Existing instanced matrices and count retained. Three source-atlas cutout cards per tuft."
+  },
+  "normalRoughnessPacking": "RGB = OpenGL tangent-space normal, A = roughness (NOT transparency). Linear data, no alpha premultiplication.",
+  "orientation": "Top-down image rows, Texture.flipY=true. EXR rows corrected before conversion; filtered normals renormalized.",
+  "colorSpace": "Color textures sRGB. Packed normal/roughness linear.",
+  "resolution": { "color": 2048, "normalRoughness": 1024 },
+  "displacement": false,
+  "dryVariant": "Not used; green source selected.",
+  "preserved": "Rocky Terrain textures, rocky mask, roads, terrain geometry, collision, gameplay, all other maps."
+}

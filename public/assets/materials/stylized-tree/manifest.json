@@ -1,0 +1,114 @@
+{
+  "name": "Stylized Tree Pack",
+  "status": "integrated",
+  "source": "C:/ProgramData/Epic/EpicGamesLauncher/VaultCache/Stylizede01395372960V2/data/Content/Stylized_Tree_Pack",
+  "runtimeUsage": "Used by the Stylized Tree runtime decorator on every Lumenfall map.",
+  "exportFormat": "PNG",
+  "textures": [
+    {
+      "asset": "/Game/Stylized_Tree_Pack/Textures/T_WhiteBlack_Gradient",
+      "file": "/assets/materials/stylized-tree/T_WhiteBlack_Gradient.png",
+      "bytes": 27767
+    },
+    {
+      "asset": "/Game/Stylized_Tree_Pack/Textures/T_Snow_Normal",
+      "file": "/assets/materials/stylized-tree/T_Snow_Normal.png",
+      "bytes": 2037776
+    },
+    {
+      "asset": "/Game/Stylized_Tree_Pack/Textures/T_Moss_Normal",
+      "file": "/assets/materials/stylized-tree/T_Moss_Normal.png",
+      "bytes": 6871788
+    },
+    {
+      "asset": "/Game/Stylized_Tree_Pack/Textures/T_BlackWhite_Gradient",
+      "file": "/assets/materials/stylized-tree/T_BlackWhite_Gradient.png",
+      "bytes": 26750
+    },
+    {
+      "asset": "/Game/Stylized_Tree_Pack/Textures/Leaf_Textures/T_Leaf_Texture_Willow",
+      "file": "/assets/materials/stylized-tree/T_Leaf_Texture_Willow.png",
+      "bytes": 114673
+    },
+    {
+      "asset": "/Game/Stylized_Tree_Pack/Textures/Leaf_Textures/T_Leaf_Texture_Spruce_Branch",
+      "file": "/assets/materials/stylized-tree/T_Leaf_Texture_Spruce_Branch.png",
+      "bytes": 128057
+    },
+    {
+      "asset": "/Game/Stylized_Tree_Pack/Textures/Leaf_Textures/T_Leaf_Texture_Spruce",
+      "file": "/assets/materials/stylized-tree/T_Leaf_Texture_Spruce.png",
+      "bytes": 61599
+    },
+    {
+      "asset": "/Game/Stylized_Tree_Pack/Textures/Leaf_Textures/T_Leaf_Texture_Pine_Branch",
+      "file": "/assets/materials/stylized-tree/T_Leaf_Texture_Pine_Branch.png",
+      "bytes": 143809
+    },
+    {
+      "asset": "/Game/Stylized_Tree_Pack/Textures/Leaf_Textures/T_Leaf_Texture_Pine",
+      "file": "/assets/materials/stylized-tree/T_Leaf_Texture_Pine.png",
+      "bytes": 51170
+    },
+    {
+      "asset": "/Game/Stylized_Tree_Pack/Textures/Leaf_Textures/T_Leaf_Texture_Oak_Branch",
+      "file": "/assets/materials/stylized-tree/T_Leaf_Texture_Oak_Branch.png",
+      "bytes": 136091
+    },
+    {
+      "asset": "/Game/Stylized_Tree_Pack/Textures/Leaf_Textures/T_Leaf_Texture_Oak",
+      "file": "/assets/materials/stylized-tree/T_Leaf_Texture_Oak.png",
+      "bytes": 62598
+    },
+    {
+      "asset": "/Game/Stylized_Tree_Pack/Textures/Leaf_Textures/T_Leaf_Texture_Maple",
+      "file": "/assets/materials/stylized-tree/T_Leaf_Texture_Maple.png",
+      "bytes": 67814
+    },
+    {
+      "asset": "/Game/Stylized_Tree_Pack/Textures/Leaf_Textures/T_Leaf_Texture_Junifer_Branch",
+      "file": "/assets/materials/stylized-tree/T_Leaf_Texture_Junifer_Branch.png",
+      "bytes": 149260
+    },
+    {
+      "asset": "/Game/Stylized_Tree_Pack/Textures/Leaf_Textures/T_Leaf_Texture_Junifer",
+      "file": "/assets/materials/stylized-tree/T_Leaf_Texture_Junifer.png",
+      "bytes": 66141
+    },
+    {
+      "asset": "/Game/Stylized_Tree_Pack/Textures/Leaf_Textures/T_Leaf_Texture_Joshua",
+      "file": "/assets/materials/stylized-tree/T_Leaf_Texture_Joshua.png",
+      "bytes": 58608
+    },
+    {
+      "asset": "/Game/Stylized_Tree_Pack/Textures/Leaf_Textures/T_Leaf_Texture_Beech_Branch",
+      "file": "/assets/materials/stylized-tree/T_Leaf_Texture_Beech_Branch.png",
+      "bytes": 104228
+    },
+    {
+      "asset": "/Game/Stylized_Tree_Pack/Textures/Leaf_Textures/T_Leaf_Texture_Beech",
+      "file": "/assets/materials/stylized-tree/T_Leaf_Texture_Beech.png",
+      "bytes": 47213
+    },
+    {
+      "asset": "/Game/Stylized_Tree_Pack/Textures/Leaf_Textures/T_Leaf_Texture_Acacia_Branch",
+      "file": "/assets/materials/stylized-tree/T_Leaf_Texture_Acacia_Branch.png",
+      "bytes": 110273
+    },
+    {
+      "asset": "/Game/Stylized_Tree_Pack/Textures/Leaf_Textures/T_Leaf_Texture_Acacia",
+      "file": "/assets/materials/stylized-tree/T_Leaf_Texture_Acacia.png",
+      "bytes": 44360
+    },
+    {
+      "asset": "/Game/Stylized_Tree_Pack/Textures/Stylized_Bark_Texture/T_Stylized_Bark_1_NORM",
+      "file": "/assets/materials/stylized-tree/T_Stylized_Bark_1_NORM.png",
+      "bytes": 2607238
+    },
+    {
+      "asset": "/Game/Stylized_Tree_Pack/Textures/Stylized_Bark_Texture/T_Stylized_Bark_1_COLOR",
+      "file": "/assets/materials/stylized-tree/T_Stylized_Bark_1_COLOR.png",
+      "bytes": 1147707
+    }
+  ]
+}
