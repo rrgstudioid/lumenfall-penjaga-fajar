@@ -26,6 +26,17 @@ await test('V3 development Adventurer exposes exactly the three canonical skills
   assert.equal(hero.skillProgressionV3?.totalEarnedSP, 0);
 });
 
+await test('Adventurer V3 mana costs match the larger base mana pool', () => {
+  const hero = createV3AdventurerHero();
+  const quick = activeSkills(hero).find((skill) => skill.id === 'v3-adventurer-quick-slash')!;
+  const power = activeSkills(hero).find((skill) => skill.id === 'v3-adventurer-power-strike')!;
+  const heal = activeSkills(hero).find((skill) => skill.id === 'v3-adventurer-minor-heal')!;
+
+  assert.equal(quick.manaCost, 12);
+  assert.equal(power.manaCost, 18);
+  assert.equal(heal.manaCost, 26);
+});
+
 await test('rank gates and SP purchase match Lv1, Lv2, Lv3, Lv4, Lv8, Lv13 and Lv14 matrix', () => {
   const hero = createV3AdventurerHero();
   hero.skillProgressionV3!.totalEarnedSP = 20;

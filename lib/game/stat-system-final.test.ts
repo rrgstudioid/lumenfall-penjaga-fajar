@@ -22,6 +22,8 @@ test('final stat system applies the documented primary-stat increments', () => {
   assert.equal(one('int').maxMana - base.maxMana, 3);
   assert.equal(one('int').magicDefense - base.magicDefense, 0.5);
   assert.equal(one('int').healingPower - base.healingPower, 0.25);
+  assert.equal(base.manaRecovery, 0);
+  assert.ok(Math.abs(one('int').manaRecovery - base.manaRecovery - 0.1) < 1e-9);
 });
 
 test('old STA saves migrate to VIT and removed rune stats are remapped', () => {

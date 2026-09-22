@@ -854,7 +854,15 @@ export function derivedStats(
     staminaMax: staminaDerivedValue(hero, Math.round(100 + vit * 4 + (gear.stamina ?? 0))),
     maxMana: Math.max(1,Math.round(100 + int * INT_MP_FACTOR + (gear.maxMana ?? 0))),
     manaCostReduction: Math.round(Math.min(50,Math.max(0,int*.1+(gear.manaCostReduction??0)))*10)/10,
-    manaRecovery: Math.min(30,Math.max(8,gear.mpRecovery??0)),
+    // No passive MP regeneration at the base INT value. Additional effective
+    // INT grants recovery, while equipment MP Recovery remains an explicit
+    // bonus. This keeps the starting mana pool stable without free sustain.
+    manaRecovery: Math.round(
+      Math.min(
+        30,
+        Math.max(0, Math.max(0, int - BASE_PRIMARY_STAT) * 0.1 + (gear.mpRecovery ?? 0)),
+      ) * 100,
+    ) / 100,
     // Optional secondary skill stat: primary attributes never supply generic Skill Power.
     skillPower: Math.round((gear.skillPower ?? 0) * 10) / 10,
     damageReduction:Math.round((1 - (1 - softCap(gear.damageReduction??0,25,45)/100) * (includeBuffs && hero.activeBuffs.damageReduction > 0 ? .55 : 1)) * 1000)/10,

@@ -23,7 +23,7 @@ Implemented 17 September 2026 against `LUMENFALL_Combat_Power_System_Specificati
 | Evasion | Live dodge chance `min(0.5, evasion/100)`. Expected incoming damage is multiplied by `(1-dodge)`. |
 | Block | Live chance `min(0.5, blockRate/100)`; a block reduces damage by 30%. Expected factor `(1-chance*0.3)`. |
 | HP Regen | `hpRecovery` is derived and displayed, but no world recovery tick uses it. Not credited. |
-| MP Regen | `manaRecovery` actually restores mana every tick (final min 8, max 30 per second). Scored through sustainable skill use, not again as a raw-stat bonus. |
+| MP Regen | `manaRecovery` restores mana every tick. Base INT has no passive recovery; effective INT above the base value and explicit equipment MP Recovery provide it, capped at 30 per second. Scored through sustainable skill use, not again as a raw-stat bonus. |
 | Healing Power | `healingPower` contributes only through a learned, available healing skill's existing `skillHealingPreview`. |
 | Elemental resistance | The old field is zero/deprecated and old values migrate to Magic Defense. No independent resistance mechanic to score. |
 | Damage reduction | `damageReduction` is already soft-capped and combined multiplicatively with the active 45% reduction buff by final stats. Applied once to EHP. |

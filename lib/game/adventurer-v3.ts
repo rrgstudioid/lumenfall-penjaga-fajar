@@ -10,10 +10,10 @@ export const ADVENTURER_V3_SKILLS: readonly SkillDefinitionV3[] = [
     weaponRequirement: ['one_hand_sword'], skillType: 'ACTIVE_DAMAGE',
     targeting: { targetType: 'single', range: 3.8 },
     damageProfile: { physicalCoefficient: 1.05, statScaling: { str: .02 } },
-    resourceCost: { mana: 3 }, cooldown: 3.2,
+    resourceCost: { mana: 12 }, cooldown: 3.2,
     presentation: { description: 'Deliver a quick sword strike to a single enemy.' },
     motion: { motionArchetype: 'QUICK_DIAGONAL_SLASH', motionNotes: 'Fast single diagonal sword slash with a small forward weight shift.', movementIntent: 'SMALL_FORWARD_WEIGHT_SHIFT', hitStyle: 'SINGLE_QUICK_HIT', animationNoGo: ['no spin', 'no jump', 'no knockback', 'no ground slam'] },
-    defaultProfile: { damageProfile: { physicalCoefficient: 1.05, statScaling: { str: .02 } }, resourceCost: { mana: 3 }, cooldown: 3.2 },
+    defaultProfile: { damageProfile: { physicalCoefficient: 1.05, statScaling: { str: .02 } }, resourceCost: { mana: 12 }, cooldown: 3.2 },
     status: 'DESIGN_LOCKED',
   },
   {
@@ -22,18 +22,18 @@ export const ADVENTURER_V3_SKILLS: readonly SkillDefinitionV3[] = [
     weaponRequirement: ['one_hand_sword'], skillType: 'ACTIVE_DAMAGE',
     targeting: { targetType: 'single', range: 3.8 },
     damageProfile: { physicalCoefficient: 1.2, statScaling: { str: .04 } },
-    resourceCost: { mana: 5 }, cooldown: 6,
+    resourceCost: { mana: 18 }, cooldown: 6,
     presentation: { description: 'Deliver a heavy sword strike to a single enemy, trading speed for greater power.' },
     motion: { motionArchetype: 'HEAVY_DIAGONAL_STRIKE', motionNotes: 'A deliberate heavy diagonal/downward sword strike with stronger wind-up and recovery than Quick Slash.', hitStyle: 'SINGLE_HEAVY_HIT', animationNoGo: ['no spin', 'no jump', 'no knockback', 'no AoE shockwave'] },
-    defaultProfile: { damageProfile: { physicalCoefficient: 1.2, statScaling: { str: .04 } }, resourceCost: { mana: 5 }, cooldown: 6 },
+    defaultProfile: { damageProfile: { physicalCoefficient: 1.2, statScaling: { str: .04 } }, resourceCost: { mana: 18 }, cooldown: 6 },
     status: 'DESIGN_LOCKED',
   },
   {
     id: 'v3-adventurer-minor-heal', name: 'Minor Heal', jobId: 'adventurer', jobTier: 'adventurer',
     unlockLevel: 2, maxRank: 3, rankLevelRequirements: [2, 8, 14], spCostPerRank: 1,
     skillType: 'ACTIVE_HEAL', targeting: { targetType: 'self' },
-    resourceCost: { mana: 8 }, cooldown: 30,
-    defaultProfile: { healing: 6, resourceCost: { mana: 8 }, cooldown: 30 },
+    resourceCost: { mana: 26 }, cooldown: 30,
+    defaultProfile: { healing: 6, resourceCost: { mana: 26 }, cooldown: 30 },
     presentation: { description: 'Restore a small amount of your own HP.' },
     motion: { motionArchetype: 'MINOR_SELF_HEAL', motionNotes: 'Short self-recovery pose with a subtle healing glow.', movementIntent: 'NONE', animationNoGo: ['no large spell circle', 'no resurrection-like animation', 'no giant magical burst', 'no attack motion'] },
     status: 'DESIGN_LOCKED',
@@ -41,9 +41,9 @@ export const ADVENTURER_V3_SKILLS: readonly SkillDefinitionV3[] = [
 ];
 
 const rankValues: SkillRankValues[][] = [
-  ranks([{ physicalCoefficient: 1.05, manaCost: 3, cooldown: 3.2 }, { physicalCoefficient: 1.08, manaCost: 3, cooldown: 3.1 }, { physicalCoefficient: 1.12, manaCost: 4, cooldown: 3 }, { physicalCoefficient: 1.16, manaCost: 4, cooldown: 2.9 }, { physicalCoefficient: 1.2, manaCost: 5, cooldown: 2.8 }]),
-  ranks([{ physicalCoefficient: 1.2, manaCost: 5, cooldown: 6 }, { physicalCoefficient: 1.26, manaCost: 5, cooldown: 5.75 }, { physicalCoefficient: 1.32, manaCost: 6, cooldown: 5.5 }, { physicalCoefficient: 1.38, manaCost: 6, cooldown: 5.25 }, { physicalCoefficient: 1.45, manaCost: 7, cooldown: 5 }]),
-  ranks([{ manaCost: 8, cooldown: 30 }, { manaCost: 10, cooldown: 28 }, { manaCost: 12, cooldown: 26 }]),
+  ranks([{ physicalCoefficient: 1.05, manaCost: 12, cooldown: 3.2 }, { physicalCoefficient: 1.08, manaCost: 12, cooldown: 3.1 }, { physicalCoefficient: 1.12, manaCost: 14, cooldown: 3 }, { physicalCoefficient: 1.16, manaCost: 14, cooldown: 2.9 }, { physicalCoefficient: 1.2, manaCost: 16, cooldown: 2.8 }]),
+  ranks([{ physicalCoefficient: 1.2, manaCost: 18, cooldown: 6 }, { physicalCoefficient: 1.26, manaCost: 18, cooldown: 5.75 }, { physicalCoefficient: 1.32, manaCost: 20, cooldown: 5.5 }, { physicalCoefficient: 1.38, manaCost: 20, cooldown: 5.25 }, { physicalCoefficient: 1.45, manaCost: 22, cooldown: 5 }]),
+  ranks([{ manaCost: 26, cooldown: 30 }, { manaCost: 28, cooldown: 28 }, { manaCost: 30, cooldown: 26 }]),
 ];
 
 export const ADVENTURER_V3_RUNTIME_SKILLS: readonly SkillDefinition[] = ADVENTURER_V3_SKILLS.map((definition, index) => ({
