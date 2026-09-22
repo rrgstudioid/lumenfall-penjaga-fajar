@@ -1731,8 +1731,10 @@ export class Game {
       return true;
     }
     this.message(
-      this.hero.level < 25
-        ? 'Specialization terbuka mulai level 25.'
+      this.hero.level < (this.hero.skillArchitectureVersion === 3 ? 60 : 25)
+        ? `Specialization terbuka mulai level ${this.hero.skillArchitectureVersion === 3 ? 60 : 25}.`
+        : this.hero.specialization
+          ? `Specialization ${combatProfile(this.hero).label} sudah dipilih dan tidak dapat digabung dengan cabang saudaranya.`
         : 'Pilihan Special Job tidak sesuai Core Job.',
     );
     return false;

@@ -43,8 +43,9 @@ import { rankSource } from '@/lib/game/rank-ownership';
 import { ADVENTURER_V3_SKILL_MAP } from '@/lib/game/adventurer-v3';
 import { WARRIOR_V3_SKILL_MAP } from '@/lib/game/warrior-v3';
 import { BERSERKER_V3_SKILL_MAP } from '@/lib/game/berserker-v3';
+import { BLADE_MASTER_V3_SKILL_MAP } from '@/lib/game/blade-master-v3';
 import { availableSkillPointsV3, skillCostThroughRank } from '@/lib/game/skill-progression-v3';
-const v3Definitions = { ...ADVENTURER_V3_SKILL_MAP, ...WARRIOR_V3_SKILL_MAP, ...BERSERKER_V3_SKILL_MAP };
+const v3Definitions = { ...ADVENTURER_V3_SKILL_MAP, ...WARRIOR_V3_SKILL_MAP, ...BERSERKER_V3_SKILL_MAP, ...BLADE_MASTER_V3_SKILL_MAP };
 import {
   AlertDialog,
   AlertDialogAction,
@@ -106,6 +107,7 @@ export function JobSkill({
       ? (hero.passiveLevels[selected.id] ?? 0)
       : 0;
   const v3Definition = hero.skillArchitectureVersion === 3 && selected ? v3Definitions[selected.id] : undefined;
+  const selectedIsMastery = v3Definition?.skillType === 'MASTERY';
   const nextRankCost = v3Definition ? skillCostThroughRank(v3Definition, level + 1) - skillCostThroughRank(v3Definition, level) : 1;
   const availableSP = hero.skillArchitectureVersion === 3 && hero.skillProgressionV3
     ? availableSkillPointsV3(hero.skillProgressionV3, v3Definitions) : hero.skillPoints;
@@ -122,6 +124,7 @@ export function JobSkill({
   };
   function node(skill: SkillDefinition | PassiveDefinition) {
     const isActive = 'slot' in skill,
+      isV3Mastery = v3Definitions[skill.id]?.skillType === 'MASTERY',
       rank = isActive
         ? (hero.skillLevels[skill.id] ?? 0)
         : (hero.passiveLevels[skill.id] ?? 0);
@@ -146,7 +149,7 @@ export function JobSkill({
         aria-pressed={selected?.id === skill.id}
       >
         <span className="js-node-type">
-          {stage === 'mastery'
+          {stage === 'mastery' || isV3Mastery
             ? 'MASTERY'
             : isActive
               ? skill.tree?.architecture === 'v2'
@@ -159,7 +162,7 @@ export function JobSkill({
           {state === 'locked' && <LockKeyhole className="js-lock" size={12} />}
         </span>
         <strong>{skill.name}</strong>
-        {isActive && (
+        {isActive && !isV3Mastery && (
           <small>Mana Cost: {skillCosts(hero, skill).manaCost} MP</small>
         )}
         <span className="js-node-rank">
@@ -352,7 +355,7 @@ export function JobSkill({
               <h3>{selected.name}</h3>
               <p>{selected.description}</p>
               <div className="js-skill-level">
-                <span>{selectedActive ? 'Active Skill' : 'Passive Skill'}</span>
+                <span>{selectedIsMastery ? 'Mastery' : selectedActive ? 'Active Skill' : 'Passive Skill'}</span>
                 <b>
                   Lv. {level} <small>/ {selected.maxLevel}</small>
                 </b>
@@ -398,7 +401,7 @@ export function JobSkill({
                   </dd>
                 </div>
               </dl>
-              {selectedActive && (
+              {selectedActive && !selectedIsMastery && (
                 <>
                   <dl>
                     <div>

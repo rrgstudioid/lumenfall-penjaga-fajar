@@ -6,6 +6,10 @@ import { Popover } from '@base-ui/react/popover';
 /** Informational only: deliberately no promotion buttons or callbacks. */
 export function JobArchitecturePreview({ hero, compact = false }: { hero: Hero; compact?: boolean }) {
   const view = getVisibleJobArchitecture(hero);
+  if (view.v3) return <section aria-label="Job Identity V3" className="v3-job-identity" data-v3-job-identity>
+    <span><b>Core Job:</b> {hero.coreJob === 'warrior' ? 'Warrior' : 'Belum dipilih'}</span>
+    <span><b>Specialization:</b> {hero.specialization ? view.currentName : 'Belum dipilih'}</span>
+  </section>;
   if (!view.v2) return null;
   const content = <section aria-label="Job Architecture V2" className="dialog-stack" data-window-no-drag>
     <strong>Adventurer → {view.currentName}</strong>

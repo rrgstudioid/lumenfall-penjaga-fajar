@@ -124,6 +124,17 @@ html
   border-radius: 50%;
   background: #9a966c;
 }
+.v3-job-identity {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.75rem;
+  margin-top: 0.3rem;
+  color: #c8c9ae;
+  font-size: 0.72rem;
+}
+.v3-job-identity span {
+  white-space: nowrap;
+}
 .cs-power {
   display: flex;
   align-items: center;

@@ -6,7 +6,7 @@ import {
 } from './items.ts';
 import { activeSkills, derivedStats, equipItem, type Hero } from './rules.ts';
 import { getCombatPower } from './combat-power.ts';
-import { getVisibleJobArchitecture } from './job-presentation.ts';
+import { getVisibleJobArchitecture, v3SpecializationName } from './job-presentation.ts';
 import {
   ALL_PASSIVES,
   ALL_SKILLS,
@@ -91,7 +91,7 @@ export function getJobProgression(hero: Hero) {
   if (architecture.v3) return [
     { id: 'adventurer' as JobStageId, name: 'Adventurer', level: 1, done: true },
     { id: 'core' as JobStageId, name: 'Warrior', level: 15, done: !!hero.coreJob },
-    { id: 'specialization' as JobStageId, name: 'Berserker', level: 60, done: hero.specialization === 'berserker' },
+    { id: 'specialization' as JobStageId, name: v3SpecializationName(hero.specialization) ?? 'Berserker / Blade Master', level: 60, done: !!hero.specialization },
   ].map((entry, index) => ({ ...entry,
     status: entry.done ? (index === (hero.specialization ? 2 : hero.coreJob ? 1 : 0) ? 'Current' : 'Completed') : 'Locked',
     requirements: entry.done ? [] : [`Level ${entry.level}`, 'Pilih job melalui trainer'],
@@ -227,7 +227,7 @@ export function getJobSkillNodes(hero: Hero, stage: JobStageId) {
   if (hero.skillArchitectureVersion === 3) return {
     active: activeSkills(hero).filter(skill => stage === 'adventurer' ? skill.job === 'adventurer'
       : stage === 'core' ? skill.job === 'warrior' && !skill.specialization
-      : stage === 'specialization' ? skill.specialization === 'berserker' : false),
+      : stage === 'specialization' ? !!hero.specialization && skill.specialization === hero.specialization : false),
     passive: [],
   };
   const active = ALL_SKILLS.filter((skill) =>
