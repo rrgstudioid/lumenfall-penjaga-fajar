@@ -35,6 +35,7 @@
 html,
 body,
 #__next,
+#root,
 .game-shell,
 .world,
 [data-world-surface],
@@ -50,8 +51,7 @@ body,
 img,
 video,
 canvas,
-svg,
-[draggable='true'] {
+svg {
   -webkit-user-drag: none;
   user-drag: none;
 }

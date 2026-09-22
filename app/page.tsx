@@ -37,7 +37,6 @@ import {
   Settings2,
   Volume2,
   VolumeX,
-  Shield,
   Compass,
   ArrowUpRight,
   ChevronRight,
@@ -67,7 +66,6 @@ import {
   derivedStats,
   itemStats,
   characterLabel,
-  CORE_JOBS,
   freshHero,
   emptyEquipment,
   RUNE_OPTIMIZER_CRAFT_RECIPES,
@@ -274,12 +272,15 @@ export default function Home() {
     return () => document.removeEventListener('fullscreenchange', syncFullscreenState);
   }, []);
 
+  /* oxlint-disable react/react-compiler -- startup synchronization hydrates the game UI from browser storage. */
   useEffect(() => {
     refreshRoster();
     try { setState(previous => ({ ...previous, audioSettings: loadAudioSettings(window.localStorage) })); } catch { /* Device storage may be disabled. */ }
     setReady(true);
   }, []);
+  /* oxlint-enable react/react-compiler */
 
+  /* oxlint-disable react/react-compiler -- panel state must reset when its owner closes. */
   useEffect(() => {
     if (!loadingSlot) return;
     let cancelled = false;
@@ -366,6 +367,7 @@ export default function Home() {
       setHoveredItemPosition(null);
     }
   }, [panel]);
+  /* oxlint-enable react/react-compiler */
   useEffect(() => {
     const openNpcMenu = (event: Event) => {
       const id = (event as CustomEvent<string>).detail;
@@ -642,7 +644,9 @@ export default function Home() {
   };
   const muted = state.audioSettings.muted;
   const visibleJobs = getVisibleJobArchitecture(hero);
-  const specialChoices = visibleJobs.specializationChoices;
+  const specialChoices = visibleJobs.specializationChoices.filter(
+    (choice): choice is [string, (typeof SPECIALIZATIONS)[SpecializationId]] => Array.isArray(choice),
+  );
   const openClassPanel = () => {
     open('character');
   };
@@ -797,9 +801,9 @@ export default function Home() {
         </div>
       )}
       {state.combatFeedback?.event && (
-        <div className={`combat-feedback-event event-${state.combatFeedback.event.tone}`} role="status">
+        <output className={`combat-feedback-event event-${state.combatFeedback.event.tone}`}>
           {state.combatFeedback.event.label}
-        </div>
+        </output>
       )}
       <DraggableOverlay
         windowId="hud-quest"
@@ -1036,7 +1040,6 @@ export default function Home() {
               className="general-merchant-drag-handle"
               data-window-drag-handle
               role="presentation"
-              aria-label={`Move ${currentNpc ? getNpcServiceLabel(currentNpc, hero) : 'NPC'} window`}
               title="Move window"
             >
               <Move size={16} strokeWidth={1.8} aria-hidden="true" />

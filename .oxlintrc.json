@@ -29,6 +29,7 @@
     "build/**",
     "dist/**",
     "coverage/**",
+    "tests/browser/**/*.bundle.js",
     "next-env.d.ts"
   ],
   "rules": {

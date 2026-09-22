@@ -28,10 +28,8 @@ export function useBrowserInteractionGuard() {
     if (!ENABLE_BROWSER_HARDENING) return;
 
     const handleContextMenu = (event: MouseEvent) => {
-      const target = event.target;
-      if (target instanceof HTMLElement && target.closest('input, textarea, select, [contenteditable="true"], [contenteditable="plaintext-only"]')) {
-        return;
-      }
+      // Prevent only the browser default. Do not stop propagation: the game
+      // canvas still receives the same right-click/pointer interaction.
       event.preventDefault();
     };
 
@@ -41,7 +39,9 @@ export function useBrowserInteractionGuard() {
       if (target.closest('input, textarea, select, [contenteditable="true"], [contenteditable="plaintext-only"]')) {
         return;
       }
-      if (target.closest('img, video, canvas, svg, [draggable="true"]')) {
+      // LUMENFALL drag-and-drop is pointer-based. Only suppress browser
+      // dragging of media; never cancel the custom data-drag-source flow.
+      if (target.closest('img, video, canvas, svg')) {
         event.preventDefault();
       }
     };
