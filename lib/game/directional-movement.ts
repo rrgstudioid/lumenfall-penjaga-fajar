@@ -28,3 +28,47 @@ export function moveDirectional(
     remaining -= step;
   }
 }
+
+export function passThroughEndpoint(
+  target: { x: number; z: number },
+  direction: { x: number; z: number },
+  distance = 1.5,
+) {
+  const normalized = directionalVector('facing', direction);
+  return {
+    x: target.x + normalized.x * Math.max(0, distance),
+    z: target.z + normalized.z * Math.max(0, distance),
+  };
+}
+
+/** Reuses the caller's real collision-aware move primitive and stops at the
+ * last safe point when the requested endpoint cannot be reached. */
+export function moveCollisionSafeTo(
+  endpoint: { x: number; z: number },
+  position: () => { x: number; z: number },
+  move: (x: number, z: number) => void,
+  maxStep = .25,
+) {
+  const start = position();
+  let remaining = Math.hypot(endpoint.x - start.x, endpoint.z - start.z);
+  while (remaining > 1e-6) {
+    const before = position();
+    const dx = endpoint.x - before.x;
+    const dz = endpoint.z - before.z;
+    const length = Math.hypot(dx, dz);
+    if (length <= 1e-6) break;
+    const step = Math.min(Math.max(.01, maxStep), length);
+    move(dx / length * step, dz / length * step);
+    const after = position();
+    const progressed = Math.hypot(after.x - before.x, after.z - before.z);
+    if (progressed <= 1e-7) break;
+    remaining = Math.hypot(endpoint.x - after.x, endpoint.z - after.z);
+  }
+  const end = position();
+  return {
+    start,
+    end,
+    traveled: Math.hypot(end.x - start.x, end.z - start.z),
+    reached: Math.hypot(endpoint.x - end.x, endpoint.z - end.z) <= 1e-4,
+  };
+}

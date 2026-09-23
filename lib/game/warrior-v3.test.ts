@@ -86,7 +86,8 @@ await test('Warrior stances and buffs are castable and do not add raw damage to 
   assert.equal(focus.effects?.buffs?.includes('physicalDamagePercent'), false);
   const battleCry = activeSkills(hero).find((skill) => skill.id === 'v3-warrior-battle-cry')!;
   const cryAction = resolveHeroSkill(hero, battleCry, 1, derivedStats(hero));
-  assert.equal(cryAction.temporaryBuffs?.[0].modifier.stats?.percent?.physicalAttack, 3);
+  assert.equal(cryAction.temporaryBuffs?.[0].modifier.action?.damagePercent, 3);
+  assert.equal(cryAction.temporaryBuffs?.[0].modifier.stats?.percent?.physicalAttack, undefined);
   const unbroken = activeSkills(hero).find((skill) => skill.id === 'v3-warrior-unbroken-stance')!;
   const unbrokenAction = resolveHeroSkill(hero, unbroken, 1, derivedStats(hero));
   assert.equal(unbrokenAction.temporaryBuffs?.[0].modifier.incoming?.knockbackMultiplier, .85);

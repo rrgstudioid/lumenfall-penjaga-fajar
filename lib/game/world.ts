@@ -95,13 +95,13 @@ import {addTemporaryModifier,tickTemporaryModifiers,receivedMultiplier,resolveTa
 import {forwardFromYaw} from './combat-position';
 import {enterStealth,exitStealth,isStealthed,breakStealth} from './stealth';
 import {PersonalMarks,personalMark} from './personal-mark';
-import {directionalVector,moveDirectional} from './directional-movement';
+import {directionalVector,moveDirectional,moveCollisionSafeTo,passThroughEndpoint} from './directional-movement';
 import {relativePosition} from './combat-position';
 import {TransientCombatState} from './combat-transient';
 import { WARRIOR_COUNTER_WINDOW_MS } from './warrior-v2';
 import { FURY_HARVEST_RECOVERY_PERCENT } from './berserker-v3';
 import { applyStun, chargeStunEligible, clearExpiredStun, isStunned, remainingStun, stunChanceForRank, type StunState } from './stun';
-import { bladeMasterDualWieldActive } from './blade-master-v3';
+import { BLADE_FOCUS_FLOW_DURATION, bladeMasterDualWieldActive } from './blade-master-v3';
 import { BladeMasterImpactSession } from './blade-master-impact';
 import { resolveWeaponAttackContext } from './dual-wield';
 
@@ -543,7 +543,7 @@ export class Game {
       const meta=stackLabels[id];
       if(meta)indicators.push({id,label:meta[0],stacks:s.stackCount,maxStacks:s.maxStacks,remaining:Math.max(0,s.expiresAt-this.combatTime),iconSkillId:meta[1],tone:meta[2]});
     }
-    if (this.hero.specialization === 'blade_master' && ((this.hero.skillProgressionV3?.skillRanks['v3-blade-master-tempo-drive'] ?? 0) > 0 || (this.hero.skillProgressionV3?.skillRanks['v3-blade-master-blade-tempest'] ?? 0) > 0)) {
+    if (this.hero.specialization === 'blade_master' && (this.hero.skillProgressionV3?.skillRanks['v3-blade-master-twin-blade-mastery'] ?? 0) > 0) {
       const tempo = this.transientCombat.bladeTempo;
       indicators.push({ id:'v3-blade-master-tempo', label:'TEMPO', stacks:this.transientCombat.tempoCount(this.combatTime), maxStacks:3, remaining:tempo ? Math.max(0,tempo.expiresAt-this.combatTime) : 0, iconSkillId:'v3-blade-master-twin-assault', tone:'offensive' });
     }
@@ -2269,6 +2269,10 @@ export class Game {
     }
     if(skill.counterPolicy&&!this.findSkillTarget(preview))return false;
     const counter=skill.counterPolicy?this.defenseEvents.snapshot(skill.counterPolicy.accepted,skill.counterPolicy.windowMs,this.combatTime*1000):NO_COUNTER;
+    if (skill.counterPolicy && !counterContextAllowed(counter, skill.counterPolicy.accepted)) {
+      this.message('Skill ini membutuhkan CounterContext dari Block atau Parry yang masih aktif.');
+      return false;
+    }
     const support=combatSupportFor(this.hero);
     const windows=this.transientCombat.windowModifiers(preview,support,this.combatTime);
     const action=resolveHeroSkill(this.hero,skill,level,stats,counter,windows,this.skillImpactContext(selection.target),tempoReduction);
@@ -2302,6 +2306,7 @@ export class Game {
     const castId=this.transientCombat.nextCastId(),support=combatSupportFor(this.hero);
     let successful=false;
     let successfulTargets=0;
+    const successfulTargetIds = new Set<string>();
     const isBerserkerTrance = skill.skillId === 'v3-berserker-trance';
     const isBreakerEntry = skill.skillId === 'v3-berserker-breaker-entry';
     const isBerserkerDamage = skill.tags.includes('v3-berserker');
@@ -2322,6 +2327,8 @@ export class Game {
     this.characterModel.animator.play(skill.effect === 'dash_damage' ? 'dash' : cast ? 'magic_cast' : ranged ? 'ranged_attack' : 'basic_attack', Math.max(.35, Math.min(.8, skill.castingTime || .5)));
     const target = this.getCastTarget(skill.targetIdentity);
     let chargeTravelDistance = 0;
+    let bladeRushPassDirection: T.Vector3 | undefined;
+    let bladeRushPassCompleted = false;
     if(skill.personalMark&&target) {
       this.personalMarks??=new PersonalMarks();
       const identity=skill.targetIdentity!,source=this.markSource();
@@ -2329,22 +2336,24 @@ export class Game {
       this.float(target.group.position,'MARKED','reward');
       this.updateTargetPresentation();return;
     }
-    const targeting = targetRequirement(skill);
-    const targets = targeting === 'frontal_arc'
-      ? this.enemies.filter(enemy=>enemy.hp>0&&inFrontalArc(this.actor.position,this.direction,enemy.group.position,skill.range,skill.angle??90))
-          .sort((a,b)=>this.groundDistance(a.group.position,this.actor.position)-this.groundDistance(b.group.position,this.actor.position))
-          .slice(0,skill.maxTargets===undefined?Infinity:Math.max(0,Math.floor(skill.maxTargets)))
-      : targeting === 'self' ? [] :
-      targeting === 'area'
-        ? this.enemies.filter(
-            (enemy) =>
-              enemy.hp > 0 &&
-              this.groundDistance(enemy.group.position,this.actor.position) <=
-                (skill.areaRadius || 5),
-          )
-        : target
-          ? [target]
-          : [];
+    const targetCandidate = target ? {
+      target,
+      id: target.id,
+      position: { x: target.group.position.x, z: target.group.position.z },
+      alive: target.hp > 0,
+    } : null;
+    const targets = selectSkillTargets({
+      action: skill,
+      origin: { x: this.actor.position.x, z: this.actor.position.z },
+      forward: { x: this.direction.x, z: this.direction.z },
+      candidates: this.enemies.map((enemy) => ({
+        target: enemy,
+        id: enemy.id,
+        position: { x: enemy.group.position.x, z: enemy.group.position.z },
+        alive: enemy.hp > 0,
+      })),
+      selected: targetCandidate,
+    });
     if (
       skill.effect === 'heal' ||
       skill.effect === 'buff' ||
@@ -2391,6 +2400,7 @@ export class Game {
         .sub(this.actor.position)
         .setY(0)
         .normalize();
+      if (skill.skillId === 'v3-blade-master-blade-rush') bladeRushPassDirection = dir.clone();
       if(skill.dash){
         // Small steps reuse terrain/tree collision; never teleport through blockers.
         let remaining=Math.max(0,this.groundDistance(target.group.position,this.actor.position)-skill.dash.stopDistance);
@@ -2457,6 +2467,18 @@ export class Game {
         ()=>alive&&!this.disposed&&!this.dead&&buildToken===this.regionBuildToken&&enemy.respawnDeadline===spawn&&validImpact(),
         snapshotHit=>{
       if (isIronCharge) this.traceDevelopment('impact_callback', { targetId: enemy.id, travelDistance: chargeTravelDistance, targetDistance: this.groundDistance(enemy.group.position, this.actor.position) });
+      if (skill.skillId === 'v3-blade-master-blade-rush' && bladeRushPassDirection && !bladeRushPassCompleted) {
+        bladeRushPassCompleted = true;
+        const endpoint = passThroughEndpoint(
+          { x: enemy.group.position.x, z: enemy.group.position.z },
+          { x: bladeRushPassDirection.x, z: bladeRushPassDirection.z },
+        );
+        moveCollisionSafeTo(
+          endpoint,
+          () => ({ x: this.actor.position.x, z: this.actor.position.z }),
+          (x, z) => this.move(x, z),
+        );
+      }
       const impactContext=this.skillImpactContext(enemy);
       const hit=bladeImpact.prepare(resolveTargetHit(snapshotHit,skill.targetModifiers,enemy,this.combatTime,impactContext),skill.hitSequence.indexOf(snapshotHit),skill.hitSequence.length-1,enemy,this.hero.characterId??this.hero.slotId,this.combatTime);
       const hitResolution = resolveHitAgainstEvasion({ attackerAccuracy: hit.accuracy, targetEvasion: enemy.evasion ?? 0, rng: () => this.rand() });
@@ -2504,11 +2526,20 @@ export class Game {
         hit.damageType, stats, attackerLevel,
       );
       if (isIronCharge) this.traceDevelopment('target_hp_changed', { targetId: enemy.id, hpBefore: beforeHP, hpAfter: enemy.hp, damage: Math.max(0, beforeHP - enemy.hp) });
-      if(!successful&&amount>0&&enemy.hp<beforeHP){
+      if(amount>0&&enemy.hp<beforeHP){
+        const firstSuccessfulImpact = !successful;
         successful=true;
-        successfulTargets++;
+        if (!successfulTargetIds.has(enemy.id)) {
+          successfulTargetIds.add(enemy.id);
+          successfulTargets++;
+        }
+        if (firstSuccessfulImpact) {
         if (isIronCharge && this.hero.specialization === 'berserker') this.transientCombat.openBreakerEntry(this.combatTime, 4);
-        if (skill.skillId === 'v3-blade-master-blade-rush' || skill.skillId === 'v3-blade-master-counterflow') this.transientCombat.openBladeFlow(this.combatTime, this.hero.activeBuffs['v3-blade-master-blade-focus'] > 0 ? [3, 3.5, 3.75, 4, 4.25, 4.5][Math.min(5, this.hero.skillProgressionV3?.skillRanks['v3-blade-master-blade-focus'] ?? 0)] : 3);
+        if (skill.skillId === 'v3-blade-master-blade-rush' || skill.skillId === 'v3-blade-master-counterflow') {
+          const focusRank = Math.max(0, Math.min(5, this.hero.skillProgressionV3?.skillRanks['v3-blade-master-blade-focus'] ?? 0));
+          const focusActive = Number(this.hero.activeBuffs['v3-blade-master-blade-focus'] ?? 0) > 0;
+          this.transientCombat.openBladeFlow(this.combatTime, focusActive && focusRank > 0 ? BLADE_FOCUS_FLOW_DURATION[focusRank - 1] : 3);
+        }
         bladeImpact.commitDamagingImpact(this.combatTime,this.hero.skillProgressionV3?.skillRanks['v3-blade-master-twin-blade-mastery'] ?? 0,
           true,
           bladeMasterDualWieldActive(this.hero)&&modifierContextFor(this.hero,stats).weaponStyle==='dual_sword');
@@ -2518,6 +2549,7 @@ export class Game {
         const eligibleSupport={...support,stacks:support.stacks?.filter(s=>!s.weaponStyle||s.weaponStyle===skill.resolvedWeaponStyle&&s.weaponStyle===currentStyle),windows:support.windows?.filter(w=>w.weaponStyle===skill.resolvedWeaponStyle&&w.weaponStyle===currentStyle)};
         this.transientCombat.successfulCast(castId,this.combatTime,currentStyle,eligibleSupport,skill,consumedWindows);
         this.syncCombatModifiers();
+        }
       }
       if(enemy.hp<=0){alive=false;return;}
       for(const status of hit.statuses){

@@ -28,7 +28,7 @@ test('7B exactly nine skills, 149 SP total, ranks, levels, prerequisites and no 
   assert.equal(skills.length,9);
   assert.equal(skills.reduce((sum,skill) => sum + Array.from({length:skill.maxRank},(_,i)=>typeof skill.spCostPerRank==='number'?skill.spCostPerRank:skill.spCostPerRank?.[i]??0).reduce((a,b)=>a+b,0),0),149);
   for (const short of ['cross-sever','piercing-sequence','tempo-drive','blade-tempest']) assert.equal(BLADE_MASTER_V3_RUNTIME_MAP[id(short)].targetType,short==='tempo-drive'?'self':'single');
-  assert.deepEqual(BLADE_MASTER_V3_SKILL_MAP[id('cross-sever')].rankLevelRequirements,[66,69,72,76,80]);
+  assert.deepEqual(BLADE_MASTER_V3_SKILL_MAP[id('cross-sever')].rankLevelRequirements,[65,69,72,76,80]);
   assert.deepEqual(BLADE_MASTER_V3_SKILL_MAP[id('piercing-sequence')].prerequisiteSkills?.map(p=>p.requiredRank),[2,3]);
   assert.deepEqual(BLADE_MASTER_V3_SKILL_MAP[id('blade-tempest')].jobInvestmentRequirement,{jobId:'blade_master',minimumSP:18});
   assert.deepEqual([...BLADE_MASTER_FLOW_CONSUMERS],[id('twin-assault'),id('cross-sever'),id('piercing-sequence'),id('blade-tempest')]);

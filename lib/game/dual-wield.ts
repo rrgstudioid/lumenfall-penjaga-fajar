@@ -1,4 +1,5 @@
 import type { ItemData, StatBlock } from './items.ts';
+import type { ResolvedSkillAction } from './skill-action.ts';
 
 export type DualWieldCapability = { canDualWieldOneHandSwords?: boolean };
 export type DualWieldEquipReason =
@@ -59,7 +60,7 @@ export type WeaponAttackContext = {
   totalWeaponAttack: number;
 };
 
-const weaponAttack = (item: ItemData | null) => item ? (item.baseStats.attack ?? 0) * (1 + item.enhancementLevel * .08) : 0;
+export const weaponAttack = (item: ItemData | null) => item ? (item.baseStats.attack ?? 0) * (1 + item.enhancementLevel * .08) : 0;
 export function resolveWeaponAttackContext(
   main: ItemData | null,
   off: ItemData | null,
@@ -70,6 +71,26 @@ export function resolveWeaponAttackContext(
   const offHandWeaponAttack = weaponAttack(off);
   const totalWeaponAttack = mode === 'SINGLE_OFF' ? offHandWeaponAttack : mode === 'DUAL_COMBINED' ? mainHandWeaponAttack + offHandWeaponAttack : mode === 'SINGLE_MAIN' ? mainHandWeaponAttack : 0;
   return { mode, sharedPhysicalCore, mainHandWeaponAttack, offHandWeaponAttack, totalWeaponAttack };
+}
+
+/** Applies the canonical SINGLE_MAIN contract to an already-resolved action.
+ * Character-wide item stats stay in physicalAttack; only the Off Hand raw
+ * weapon layer is removed from a one-weapon inherited attack. */
+export function composeSingleMainWeaponHits(
+  action: ResolvedSkillAction,
+  physicalAttack: number,
+  main: ItemData | null,
+  off: ItemData | null,
+  weaponFactor = 1,
+) {
+  const mainAttack = weaponAttack(main) * weaponFactor;
+  const offAttack = action.resolvedWeaponStyle === 'dual_sword' ? weaponAttack(off) * weaponFactor : 0;
+  const sharedPhysicalCore = physicalAttack - mainAttack - offAttack;
+  action.hitSequence = action.hitSequence.map((hit) => ({
+    ...hit,
+    composedPhysicalPower: (sharedPhysicalCore + mainAttack) * hit.physicalCoefficient,
+  }));
+  return action;
 }
 
 export type UniqueEffectDescriptor = { id: string; magnitude: number; priority: number; stackable: boolean; hand: WeaponHand };

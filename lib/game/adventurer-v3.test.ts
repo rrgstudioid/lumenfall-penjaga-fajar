@@ -26,36 +26,44 @@ await test('V3 development Adventurer exposes exactly the three canonical skills
   assert.equal(hero.skillProgressionV3?.totalEarnedSP, 0);
 });
 
-await test('Adventurer V3 mana costs match the larger base mana pool', () => {
+await test('Adventurer V3 rank-one Mana costs match the final DOCX contract', () => {
   const hero = createV3AdventurerHero();
   const quick = activeSkills(hero).find((skill) => skill.id === 'v3-adventurer-quick-slash')!;
   const power = activeSkills(hero).find((skill) => skill.id === 'v3-adventurer-power-strike')!;
   const heal = activeSkills(hero).find((skill) => skill.id === 'v3-adventurer-minor-heal')!;
 
-  assert.equal(quick.manaCost, 12);
-  assert.equal(power.manaCost, 18);
-  assert.equal(heal.manaCost, 26);
+  assert.equal(quick.manaCost, 3);
+  assert.equal(power.manaCost, 5);
+  assert.equal(heal.manaCost, 8);
 });
 
-await test('rank gates and SP purchase match Lv1, Lv2, Lv3, Lv4, Lv8, Lv13 and Lv14 matrix', () => {
+await test('rank gates and SP purchase match the final Lv1-Lv14 DOCX matrix', () => {
   const hero = createV3AdventurerHero();
   hero.skillProgressionV3!.totalEarnedSP = 20;
-  assert.equal(learnSkill(hero, 'v3-adventurer-minor-heal'), false);
-  hero.level = 2;
   assert.equal(learnSkill(hero, 'v3-adventurer-minor-heal'), true);
   hero.level = 3;
   assert.equal(learnSkill(hero, 'v3-adventurer-quick-slash'), true);
-  hero.level = 4;
+  hero.level = 6;
+  assert.equal(learnSkill(hero, 'v3-adventurer-quick-slash'), true);
+  hero.level = 7;
   assert.equal(learnSkill(hero, 'v3-adventurer-power-strike'), true);
   hero.level = 8;
   assert.equal(learnSkill(hero, 'v3-adventurer-minor-heal'), true);
+  hero.level = 9;
+  assert.equal(learnSkill(hero, 'v3-adventurer-quick-slash'), true);
+  hero.level = 10;
+  assert.equal(learnSkill(hero, 'v3-adventurer-power-strike'), true);
+  hero.level = 12;
+  assert.equal(learnSkill(hero, 'v3-adventurer-power-strike'), true);
   hero.level = 13;
-  for (let i = 0; i < 3; i++) assert.equal(learnSkill(hero, 'v3-adventurer-quick-slash'), true);
+  assert.equal(learnSkill(hero, 'v3-adventurer-quick-slash'), true);
   hero.level = 14;
-  for (let i = 0; i < 4; i++) assert.equal(learnSkill(hero, 'v3-adventurer-power-strike'), true);
+  assert.equal(learnSkill(hero, 'v3-adventurer-power-strike'), true);
+  assert.equal(learnSkill(hero, 'v3-adventurer-power-strike'), true);
+  assert.equal(learnSkill(hero, 'v3-adventurer-minor-heal'), true);
   assert.equal(hero.skillProgressionV3!.skillRanks['v3-adventurer-quick-slash'], 5);
   assert.equal(hero.skillProgressionV3!.skillRanks['v3-adventurer-power-strike'], 5);
-  assert.equal(hero.skillProgressionV3!.skillRanks['v3-adventurer-minor-heal'], 2);
+  assert.equal(hero.skillProgressionV3!.skillRanks['v3-adventurer-minor-heal'], 3);
 });
 
 await test('Quick Slash R1 is granted without SP and insufficient SP blocks purchases', () => {

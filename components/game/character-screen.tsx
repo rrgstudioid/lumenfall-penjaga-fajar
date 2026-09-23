@@ -44,7 +44,10 @@ import {
 } from '@/lib/game/items';
 import { ALL_PASSIVES, skillArchitectureAllowed } from '@/lib/game/skills';
 import { JobArchitecturePreview } from './job-architecture-preview';
-import { previewEquipmentChange } from '@/lib/game/character-view';
+import {
+  getEquipmentCandidatesForSlot,
+  previewEquipmentChange,
+} from '@/lib/game/character-view';
 import {
   PRIMARY_ATTRIBUTES,
   COMBAT_STATS,
@@ -327,13 +330,7 @@ export function CharacterScreen({
     label: string,
     equipped?: ItemData,
   ) {
-    const candidates = hero.inventory.filter(
-      (item) =>
-        !item.isEquipped &&
-        (item.equipSlot === slot ||
-          (slot.startsWith('ring') && item.itemType.startsWith('ring')) ||
-          (slot.startsWith('earring') && item.itemType.startsWith('earring'))),
-    );
+    const candidates = getEquipmentCandidatesForSlot(hero, slot);
     return (
       <>
         <div className="cs-popup-heading">
