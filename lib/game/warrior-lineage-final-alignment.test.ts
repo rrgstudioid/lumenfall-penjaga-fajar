@@ -70,9 +70,14 @@ test('FINAL A: Lv15 controlled Warrior Strike raw is exactly 45.04', () => {
 
 test('FINAL B: canonical normal SP milestones are exact', () => {
   assert.deepEqual(
-    [14,29,30,59,60,70,75,80].map((level) => [level, warriorLineageSkillPointsAtLevel(level)]),
-    [[14,13],[29,28],[30,30],[59,88],[60,90],[70,120],[75,135],[80,150]],
+    [1,2,10,14,20,21,30,40,41,60,61,70,80].map((level) => [level, warriorLineageSkillPointsAtLevel(level)]),
+    [[1,0],[2,1],[10,9],[14,13],[20,19],[21,21],[30,39],[40,59],[41,62],[60,119],[61,123],[70,159],[80,199]],
   );
+  for (let level = 1; level <= 80; level++) {
+    const total = warriorLineageSkillPointsAtLevel(level);
+    assert.ok(total >= 0);
+    assert.ok(level <= 1 ? total === 0 : total >= warriorLineageSkillPointsAtLevel(level - 1));
+  }
 });
 
 test('FINAL C: Adventurer canonical gates, scaling, Mana and cooldown arrays are exact', () => {

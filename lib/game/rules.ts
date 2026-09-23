@@ -1239,11 +1239,25 @@ export function allocateStatPoint(hero: Hero, stat: keyof AllocatedStats) {
   return {ok:true,hero:updated,reason:`${canonicalStat === 'vit' ? 'VIT' : canonicalStat.toUpperCase()} meningkat.`};
 }
 
+export function getSkillPointsGrantedAtLevel(level: number): number {
+  const clamped = Math.max(1, Math.min(80, Math.floor(level)));
+  if (clamped >= 2 && clamped <= 20) return 1;
+  if (clamped >= 21 && clamped <= 40) return 2;
+  if (clamped >= 41 && clamped <= 60) return 3;
+  if (clamped >= 61 && clamped <= 80) return 4;
+  return 0;
+}
+
+export function getTotalSkillPointsForLevel(level: number): number {
+  const clamped = Math.max(1, Math.min(80, Math.floor(level)));
+  if (clamped <= 1) return 0;
+  let total = 0;
+  for (let current = 2; current <= clamped; current++) total += getSkillPointsGrantedAtLevel(current);
+  return total;
+}
+
 export function warriorLineageSkillPointsAtLevel(level: number) {
-  const value = Math.max(1, Math.min(80, Math.floor(level)));
-  if (value <= 29) return value - 1;
-  if (value <= 60) return 28 + (value - 29) * 2;
-  return 90 + (value - 60) * 3;
+  return getTotalSkillPointsForLevel(level);
 }
 
 export function gainXP(hero: Hero, amount: number) {
@@ -1254,7 +1268,7 @@ export function gainXP(hero: Hero, amount: number) {
     hero.xp -= xpNeeded(hero.level);
     hero.level++;
     const earnedSP = hero.skillArchitectureVersion === 3
-      ? warriorLineageSkillPointsAtLevel(hero.level) - warriorLineageSkillPointsAtLevel(hero.level - 1)
+      ? getSkillPointsGrantedAtLevel(hero.level)
       : 1;
     hero.skillPoints += earnedSP;
     if (hero.skillArchitectureVersion === 3 && hero.skillProgressionV3)
