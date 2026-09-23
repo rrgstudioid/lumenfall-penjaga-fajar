@@ -4,7 +4,7 @@ import { readFile } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 import * as T from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
-import { applyCityOfLightMasterMaterials, cloneImportedMap, ImportedMapGround, SANDS_MAP_ANCHOR, SANDS_MAP_SCALE, sandsWorldPoint } from './imported-map.ts';
+import { cloneImportedMap, ImportedMapGround, SANDS_MAP_ANCHOR, SANDS_MAP_SCALE, sandsWorldPoint } from './imported-map.ts';
 
 const bytes = await readFile(new URL('../../public/assets/maps/sands-location.glb', import.meta.url));
 const loader = new GLTFLoader();
@@ -99,20 +99,3 @@ await test('leaving and re-entering cannot dispose the cached source geometry or
   assert.equal(meshes(cloneImportedMap(scene)).length, 4);
 });
 
-await test('city of light imported materials are remapped to a master palette instead of staying flat and generic', () => {
-  const group = new T.Group();
-  const ground = new T.Mesh(new T.BoxGeometry(1, 1, 1), new T.MeshStandardMaterial({ color: '#ffffff', name: 'MI_PathStone' }));
-  const wall = new T.Mesh(new T.BoxGeometry(1, 1, 1), new T.MeshStandardMaterial({ color: '#ffffff', name: 'MI_StoneWall' }));
-  const wood = new T.Mesh(new T.BoxGeometry(1, 1, 1), new T.MeshStandardMaterial({ color: '#ffffff', name: 'MI_WoodBeam' }));
-  const metal = new T.Mesh(new T.BoxGeometry(1, 1, 1), new T.MeshStandardMaterial({ color: '#ffffff', name: 'MI_MetalFence' }));
-  group.add(ground, wall, wood, metal);
-
-  applyCityOfLightMasterMaterials(group);
-
-  assert.equal(ground.material.color.getHexString(), '8b9d73');
-  assert.equal(wall.material.color.getHexString(), 'b8a88d');
-  assert.equal(wood.material.color.getHexString(), '6c4a34');
-  assert.equal(metal.material.color.getHexString(), '828283');
-  assert.ok((ground.material as T.MeshStandardMaterial).roughness > 0.5);
-  assert.ok((wood.material as T.MeshStandardMaterial).roughness > 0.7);
-});

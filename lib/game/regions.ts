@@ -123,57 +123,7 @@ FIELDS['sands-location'] = {
  exit:sandsWorldPoint(0,-36),
  isUnlocked:true,
 };
-const cityOfLightBoss: MonsterDefinition = {
-  id:'city-of-light-ward',
-  name:'Penjaga Kota',
-  level:1,
-  rank:'boss',
-  variant:'boss',
-  exp:0,
-  maxHP:1,
-  attack:1,
-  defense:0,
-  magicDefense:0,
-  attackSpeed:1,
-  movementSpeed:1,
-  attackRange:1,
-  dropRate:0,
-  lootTable:[],
-  respawnTime:0,
-  visualScale:1,
-  nameColor:'#d9c58a',
-  statusLabel:'Safe Zone',
-  respawn:0,
-};
-
-FIELDS['city-of-light'] = {
- ...FIELDS['verdant-plains'],
- id:'city-of-light',
- cityId:'arunika',
- displayName:'City of Light',
- codename:'City of Light',
- contentFamilyId:'city-of-light',
- subAreas:['District Cemerlang','Jalan Batu Cahaya','Taman Biru','Gerbang Kota'],
- previousField:null,
- nextMap:null,
- musicId:'field-city-of-light',
- ambientId:'ambient-city-of-light',
- color:'#d9c58a',
- questList:['field-city-of-light-easy','field-city-of-light-veteran','field-city-of-light-elite'],
- // The imported City of Light GLB is a large urban scene. Place the player at a
- // forward gate approach instead of the middle of the city so the camera and
- // navigation start on a valid street edge.
- entry:{x:0,z:170},
- exit:{x:0,z:-170},
- // City of Light is a safe settlement. It is intentionally not a combat field and
- // must never inherit Verdant Plains spawn data or field boss definitions.
- normalMonsters:[],
- eliteMonsters:[],
- fieldBoss:cityOfLightBoss,
- isUnlocked:true,
-};
 CITIES.arunika.connectedFields.push('sands-location');
-CITIES.arunika.connectedFields.push('city-of-light');
 export const startingFieldIds = () => Object.values(FIELDS).filter(field=>field.isUnlocked&&field.chapter<=WORLD_CONFIG.chapterCap).map(field=>field.id);
 export const fieldContent = (fieldId:string) => {const field=FIELDS[fieldId]??FIELDS['verdant-plains'];return FIELDS[field.contentFamilyId??field.id];};
 
@@ -185,7 +135,6 @@ export const FIELD_NPCS: Record<string, NpcDefinition> = {
  'sunken-ruins': {id:'field-npc-sunken',name:'Penjaga Reruntuhan',type:'merchant',service:'field-camp',services:['buy','sell','teleport','quest'],interactionRange:2.5,shopInventory:[],description:'Quest field, teleport, dan toko kebutuhan farming Reruntuhan Tenggelam.',x:-26,z:28,fieldId:'sunken-ruins'},
  'meteorfall-citadel': {id:'field-npc-meteor',name:'Penjaga Benteng Meteor',type:'merchant',service:'field-camp',services:['buy','sell','teleport','quest'],interactionRange:2.5,shopInventory:[],description:'Quest field, teleport, dan toko kebutuhan farming Benteng Hujan Meteor.',x:-26,z:28,fieldId:'meteorfall-citadel'},
  'sands-location': {id:'field-npc-sands',name:'Penjaga Oasis',type:'merchant',service:'field-camp',services:['buy','sell','teleport','quest'],interactionRange:2.5,shopInventory:[],description:'Perbekalan, perjalanan, dan misi di Sands Location.',...sandsWorldPoint(-7,26),fieldId:'sands-location'},
- 'city-of-light': {id:'field-npc-city-of-light',name:'Penjaga Cahaya',type:'merchant',service:'field-camp',services:['buy','sell','teleport','quest'],interactionRange:2.5,shopInventory:[],description:'Perbekalan, perjalanan, dan misi di City of Light.',x:0,z:150,fieldId:'city-of-light'},
 };
 
 Object.assign(FIELD_NPCS['verdant-plains'], VERDANT_TERRAIN.camp);

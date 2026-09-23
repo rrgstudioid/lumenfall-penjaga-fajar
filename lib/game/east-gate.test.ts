@@ -14,7 +14,7 @@ const east=FIELDS[t.id],old=FIELDS['verdant-plains'];
 await test('East Gate remains independent and connected alongside imported Sands',()=>{
   assert.ok(Object.keys(FIELDS).length >= 8);
   assert.ok(FIELDS['sands-location']);
-  assert.deepEqual(CITIES.arunika.connectedFields,['verdant-plains','ironveil-mines','whispering-wilds',t.id,'sands-location','city-of-light']);
+  assert.deepEqual(CITIES.arunika.connectedFields,['verdant-plains','ironveil-mines','whispering-wilds',t.id,'sands-location']);
   assert.equal(east.chapter,1);assert.equal(east.minLevel,1);assert.equal(east.maxLevel,8);
   assert.equal(east.regionType,'field');assert.equal(east.cityDirection,'east');
   assert.deepEqual(east.subAreas,['Gerbang Timur','Dusun Purnama','Lembah Cahaya']);
@@ -40,11 +40,6 @@ await test('monster and material definitions are references, not copies; every w
   assert.equal(east.materialTable,old.materialTable);assert.equal(east.dropTable,old.dropTable);assert.equal(fieldContent(t.id),old);
   for(const v of ['normal','elite','boss'] as const)for(const f of MONSTER_LOOT_PROFILES[v])assert.deepEqual(lootItemPool(t.id,v,f.value),lootItemPool(old.id,v,f.value));
   assert.deepEqual([...east.normalMonsters,...east.eliteMonsters,east.fieldBoss].map(m=>[m.maxHP,m.attack,m.defense,m.magicDefense,m.exp,monsterDropChance(m),m.respawnTime]),[[46,10,5,4,10,.35,25],[78,15,7,6,52,.35,25],[110,19,10,8,112,.35,25],[142,23,12,10,185,.35,25],[395,38,16,14,452,.7,60],[1900,60,23,20,1580,.95,120]]);
-});
-await test('City of Light remains a safe settlement without monster spawns',()=>{
-  assert.ok(FIELDS['city-of-light']);
-  assert.equal(fieldSpawns(FIELDS['city-of-light']).length,0);
-  assert.ok(CITIES.arunika.connectedFields.includes('city-of-light'));
 });
 await test('36 normal, 5 elite and 1 boss spawns are unique, safe and connected',()=>{
   const spawns=fieldSpawns(east);

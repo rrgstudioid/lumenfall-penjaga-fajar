@@ -3,7 +3,7 @@ import { getVisibleJobArchitecture } from './job-presentation';
 import {usesHardTargeting,targetIdentity,validTarget,targetRequirement,needsSelectedTarget,targetDistance,ActionLock,type TargetIdentity,type TargetFailure} from './targeting';
 import {TargetPresentation,type TargetView} from './target-presentation';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
-import { applyCityOfLightMasterMaterials, cloneImportedMap, ImportedMapGround, SANDS_MAP_ANCHOR, SANDS_MAP_SCALE } from './imported-map';
+import { cloneImportedMap, ImportedMapGround, SANDS_MAP_ANCHOR, SANDS_MAP_SCALE } from './imported-map';
 import { isResourceEnabled } from './gameplay-config';
 import { FIELD_TERRAINS, terrainHeight, nearestTerrainPoint, moveOnTerrain, terrainRoute, terrainRiverZ, terrainRiver, terrainPonds, insideBoundary, type GroundPoint } from './field-terrain';
 import { buildFieldTerrain } from './field-terrain-renderer';
@@ -107,8 +107,6 @@ import { resolveWeaponAttackContext } from './dual-wield';
 
 const sandsLocationLoader = new GLTFLoader();
 let sandsLocationSource: Promise<T.Group> | undefined;
-const cityOfLightLoader = new GLTFLoader();
-let cityOfLightSource: Promise<T.Group> | undefined;
 const goldCoinLoader = new GLTFLoader();
 let goldCoinSource: Promise<T.Group> | undefined;
 function loadGoldCoin() {
@@ -130,15 +128,6 @@ function loadSandsLocation() {
       throw error;
     });
   return sandsLocationSource;
-}
-function loadCityOfLight() {
-  cityOfLightSource ??= cityOfLightLoader.loadAsync('/assets/maps/LUMENFALL_Stage03_Final_World.glb')
-    .then(asset => asset.scene)
-    .catch(error => {
-      cityOfLightSource = undefined;
-      throw error;
-    });
-  return cityOfLightSource;
 }
 import {
   assignPrimaryHotbarSlot as assignHotbarSlot,
@@ -296,32 +285,26 @@ export class Game {
   terrainSurface: T.Mesh | null = null;
   arunikaMaterials: ArunikaMaterials | null = null;
   sandsGround: ImportedMapGround | null = null;
-  cityOfLightGround: ImportedMapGround | null = null;
-  private cityMinimapFootprint: { minX:number; maxX:number; minZ:number; maxZ:number; hull:{x:number;y:number}[] } | null = null;
   get isSandsLocation() { return !this.hero.inCity && this.hero.currentField === 'sands-location'; }
-  get isCityOfLight() { return !this.hero.inCity && this.hero.currentField === 'city-of-light'; }
   get fieldTerrain() { return this.hero.inCity ? undefined : FIELD_TERRAINS[this.hero.currentField]; }
   get nearSanctuary() {const p=this.fieldTerrain?.sanctuary??{x:0,z:0};return Math.hypot(this.hero.x-p.x,this.hero.z-p.z)<5.3;}
   groundHeight(x:number,z:number) {
     if(this.isSandsLocation)return this.sandsGround?.heightAt(x,z)??0;
-    if(this.isCityOfLight)return this.cityOfLightGround?.heightAt(x,z,4.0)??0;
     const t=this.fieldTerrain;return t?terrainHeight(t,x,z):0;
   }
   groundDistance(a:T.Vector3,b:T.Vector3) {
     // Preserve the old flat-ground combat ranges when actors stand on different elevations.
-    return this.fieldTerrain||this.isSandsLocation||this.isCityOfLight?Math.hypot(a.x-b.x,a.z-b.z):a.distanceTo(b);
+    return this.fieldTerrain||this.isSandsLocation?Math.hypot(a.x-b.x,a.z-b.z):a.distanceTo(b);
   }
   placeActor() {
     const t=this.fieldTerrain;
     if(t)Object.assign(this.hero,nearestTerrainPoint(t,{x:this.hero.x,z:this.hero.z}));
     if(this.isSandsLocation&&this.sandsGround)Object.assign(this.hero,this.sandsGround.nearestPoint(this.hero,FIELDS['sands-location'].entry));
-    if(this.isCityOfLight&&this.cityOfLightGround)Object.assign(this.hero,this.cityOfLightGround.nearestPoint(this.hero,FIELDS['city-of-light'].entry));
     this.actor.position.set(this.hero.x,this.groundHeight(this.hero.x,this.hero.z),this.hero.z);
   }
   moveEnemy(e:Enemy,dx:number,dz:number) {
     const t=this.fieldTerrain;
     if(this.isSandsLocation&&!this.sandsGround)return;
-    if(this.isCityOfLight&&!this.cityOfLightGround)return;
     const radius=e.boss?1.8:.55;
     const p=moveWithTreeCollisions(e.group.position,dx,dz,this.treeColliders,(from,mx,mz)=>{
       if(t)return moveOnTerrain(t,from,mx,mz,radius,true);
@@ -363,8 +346,6 @@ export class Game {
   scene = new T.Scene();
   worldLightRig = new T.Group();
   sandsLightRig = new T.Group();
-  cityLightRig = new T.Group();
-  citySky: T.Group | null = null;
   freeCamera = new T.OrthographicCamera(-25, 25, 20, -20, 0.1, 160);
   followCamera = new T.PerspectiveCamera(FOLLOW_CAMERA.fov, 1, 0.1, 160);
   camera: T.OrthographicCamera | T.PerspectiveCamera = this.freeCamera;
@@ -677,7 +658,6 @@ export class Game {
     this.scene.fog = null;
     this.scene.add(this.worldLightRig);
     this.scene.add(this.sandsLightRig);
-    this.scene.add(this.cityLightRig);
     this.worldLightRig.add(new T.HemisphereLight('#f2f8d6', '#3f5d45', 2.2));
     const sun = new T.DirectionalLight('#fff0bd', 2.6);
     sun.position.set(-20, 40, 15);
@@ -704,15 +684,6 @@ export class Game {
     this.sandsLightRig.add(sandsHemisphere,sandsSun);
     this.sandsLightRig.visible=false;
 
-    const cityAmbient=new T.AmbientLight('#fff7df', 1.1);
-    const cityHemisphere=new T.HemisphereLight('#dfeeff','#7d664c',1.9);
-    const citySun=new T.DirectionalLight('#fff1ba',2.8);
-    citySun.position.set(-22,42,18);
-    citySun.castShadow=false;
-    const cityFill=new T.DirectionalLight('#fff6d1',1.5);
-    cityFill.position.set(20,20,-8);
-    this.cityLightRig.add(cityAmbient,cityHemisphere,citySun,cityFill);
-    this.cityLightRig.visible=false;
     this.buildTerrain();
     this.buildShrine();
     this.buildHero();
@@ -1411,23 +1382,10 @@ export class Game {
     const field = FIELDS[this.hero.currentField];
     const color = this.hero.inCity ? this.hero.currentCity==='arunika'?'#dfe9bb':'#d8d9d0' : field.color;
     this.scene.background = new T.Color(color); this.scene.fog = null;
-    if (this.citySky) {
-      this.scene.remove(this.citySky);
-      this.citySky.traverse(object => {
-        if (object instanceof T.Mesh) {
-          object.geometry.dispose();
-          const materials = Array.isArray(object.material) ? object.material : [object.material];
-          materials.forEach(material => material.dispose());
-        }
-      });
-      this.citySky = null;
-    }
     const isSandsLocation=this.isSandsLocation;
-    const isCityOfLight=this.isCityOfLight;
-    this.worldLightRig.visible=!isSandsLocation && !isCityOfLight;
+    this.worldLightRig.visible=!isSandsLocation;
     this.sandsLightRig.visible=isSandsLocation;
-    this.cityLightRig.visible=isCityOfLight;
-    this.renderer.toneMappingExposure = isCityOfLight ? 1.2 : isSandsLocation ? 1.35 : 1.1;
+    this.renderer.toneMappingExposure = isSandsLocation ? 1.35 : 1.1;
     const scale=regionScale(this.hero.inCity);
     this.terrain.scale.set(scale,1,scale);
     this.terrain.visible=!this.fieldTerrain;
@@ -1441,14 +1399,6 @@ export class Game {
       this.shrine.visible=false;
       this.scene.background=new T.Color('#e7d9a8');this.scene.fog=null;
       this.buildSandsLocation(buildToken);
-      return;
-    }
-    if(isCityOfLight) {
-      this.terrain.visible=false;
-      this.shrine.visible=false;
-      this.renderer.toneMappingExposure = 1.2;
-      this.scene.background=new T.Color('#cfeaff');this.scene.fog=null;
-      this.buildCityOfLight(buildToken);
       return;
     }
     if(this.fieldTerrain) {
@@ -1590,92 +1540,6 @@ export class Game {
       if(!this.disposed&&buildToken===this.regionBuildToken) {
         this.regionLoadError = error;
         console.warn('Sands Location gagal dimuat',error);
-      }
-    }));
-  }
-  buildCityOfLight(buildToken:number) {
-    if (this.citySky) {
-      this.scene.remove(this.citySky);
-      this.citySky = null;
-    }
-    const sky = new T.Group();
-    const skyDome = new T.Mesh(
-      new T.SphereGeometry(180, 36, 24),
-      new T.MeshBasicMaterial({ color: '#cfeaff', side: T.BackSide }),
-    );
-    sky.add(skyDome);
-    const sun = new T.Mesh(
-      new T.SphereGeometry(7, 24, 18),
-      new T.MeshBasicMaterial({ color: '#ffe7a3' }),
-    );
-    sun.position.set(-38, 48, -72);
-    sky.add(sun);
-    const cloudMaterial = new T.MeshBasicMaterial({ color: '#f9fbff', transparent: true, opacity: 0.72 });
-    const cloudPositions = [
-      [-10, 28, -110], [18, 30, -125], [-35, 22, -90], [48, 26, -100], [0, 34, -140],
-    ];
-    for (const [x, y, z] of cloudPositions) {
-      const cloud = new T.Group();
-      const puffs = [
-        [0, 0, 0, 2.8], [-2.2, 0.8, 0.5, 2.3], [2.3, 0.7, -0.4, 2.4], [0.2, 1.6, 0.3, 1.9],
-      ] as const;
-      for (const [px, py, pz, radius] of puffs) {
-        const puff = new T.Mesh(new T.SphereGeometry(radius, 16, 12), cloudMaterial);
-        puff.position.set(px, py, pz);
-        cloud.add(puff);
-      }
-      cloud.position.set(x, y, z);
-      sky.add(cloud);
-    }
-    this.scene.add(sky);
-    this.citySky = sky;
-    const ground=this.mesh(new T.PlaneGeometry(28,80),new T.MeshBasicMaterial({transparent:true,opacity:0,depthWrite:false}),this.regionDecor,0,0.01,0);
-    ground.rotation.x=-Math.PI/2;ground.castShadow=false;ground.receiveShadow=false;
-    this.terrainSurface=ground;
-    const camp=FIELD_NPCS['city-of-light'];
-    const person=new T.Group();this.regionDecor.add(person);person.position.set(camp.x,0,camp.z);person.userData.npcId=camp.id;
-    this.mesh(new T.CylinderGeometry(.35,.45,1.2,6),this.mat('#c29a58'),person,0,.65,0);
-    this.mesh(new T.SphereGeometry(.3,8,6),this.mat('#cda07a'),person,0,1.5,0);
-    const marker=this.mesh(new T.OctahedronGeometry(.25),this.mat('#ffe39a',{emissive:'#c47d26',emissiveIntensity:.8}),person,0,2.5,0);
-    marker.userData.npcId=camp.id;
-    this.addNpcLabel(camp);
-    const portal={...FIELDS['city-of-light'].exit,destination:'arunika',name:CITIES.arunika.displayName,labelHeight:5};
-    const ring=this.mesh(new T.TorusGeometry(1.35,.16,6,24),this.mat('#dfc26d',{emissive:'#ac752f',emissiveIntensity:.8}),this.regionDecor,portal.x,1.55,portal.z);
-    ring.userData.destination=portal.destination;
-    const trigger=this.mesh(new T.BoxGeometry(2.7,3.2,.7),new T.MeshBasicMaterial({transparent:true,opacity:0,depthWrite:false}),this.regionDecor,portal.x,1.7,portal.z);
-    trigger.userData.destination=portal.destination;
-    const element=document.createElement('div');element.className='npc-label';
-    const badge=document.createElement('div');badge.className='npc-service-badge';badge.textContent=`${portal.name} · Click to travel`;element.appendChild(badge);this.labelHost.appendChild(element);
-    this.portalLabels.push({x:portal.x,z:portal.z,name:portal.name,element,labelHeight:portal.labelHeight});
-    this.regionLoads.push(loadCityOfLight().then(source=>{
-      if(this.disposed||buildToken!==this.regionBuildToken||!this.isCityOfLight) return;
-      const map=cloneImportedMap(source);
-      map.name='CityOfLightStaticMap';
-      applyCityOfLightMasterMaterials(map);
-      map.position.set(0,0,0);
-      this.regionDecor.add(map);
-      const materialNames = new Set<string>();
-      map.traverse(object => {
-        if (!(object instanceof T.Mesh)) return;
-        const mats = Array.isArray(object.material) ? object.material : [object.material];
-        for (const material of mats) if (material && typeof material.name === 'string') materialNames.add(material.name);
-      });
-      this.cityOfLightGround = new ImportedMapGround(map, [...materialNames], {
-        minFloorY: 1.5,
-        requireHorizontal: true,
-        ignoreNames: [/gate/i, /crystal/i, /portal/i, /wall/i, /tower/i, /roof/i, /tree/i, /lamp/i, /sign/i, /bench/i, /fence/i, /pillar/i, /column/i, /arch/i, /door/i, /statue/i, /flower/i, /bush/i, /light/i, /ornament/i],
-      });
-      this.regionDecor.remove(ground);ground.geometry.dispose();(ground.material as T.Material).dispose();
-      this.terrainSurface=this.cityOfLightGround.surfaces[0]??null;
-      this.buildTreeDecor(buildToken);
-      this.placeActor();this.cameraFocus.copy(this.actor.position);
-      const portalHeight=this.groundHeight(portal.x,portal.z);
-      ring.position.y=portalHeight+1.55;trigger.position.y=portalHeight+1.7;
-      person.position.y=this.groundHeight(camp.x,camp.z);
-    }).catch(error=>{
-      if(!this.disposed&&buildToken===this.regionBuildToken) {
-        this.regionLoadError = error;
-        console.warn('City of Light gagal dimuat',error);
       }
     }));
   }
@@ -1892,13 +1756,6 @@ export class Game {
   restoreSavedPosition() {
     const valid = (position: { x: number; z: number }) => {
       if (!Number.isFinite(position.x) || !Number.isFinite(position.z)) return false;
-      if (this.hero.currentField === 'city-of-light') {
-        if (this.cityOfLightGround) {
-          const nearest = this.cityOfLightGround.nearestPoint(position, FIELDS['city-of-light'].entry);
-          return Math.hypot(nearest.x - position.x, nearest.z - position.z) < 6;
-        }
-        return true;
-      }
       const extent = regionHalfExtent(this.hero.inCity);
       if (Math.abs(position.x) > extent - 1 || Math.abs(position.z) > extent - 1) return false;
       if (!this.hero.inCity && this.fieldTerrain) {
@@ -3277,9 +3134,6 @@ export class Game {
     if(this.isSandsLocation) {
       return this.sandsGround?this.sandsGround.move(from,dx,dz):{...from};
     }
-    if(this.isCityOfLight) {
-      return this.cityOfLightGround ? this.cityOfLightGround.move(from,dx,dz,4.0) : { x: from.x + dx, z: from.z + dz };
-    }
     const extent = regionHalfExtent(this.hero.inCity);
     const terrainScale = regionScale(this.hero.inCity);
     let x = T.MathUtils.clamp(from.x + dx, -extent, extent),
@@ -3756,46 +3610,6 @@ export class Game {
       }
     }
   }
-  private buildCityMinimapFootprint() {
-    if (!this.cityOfLightGround) return null;
-    const sampleLimit = 1200;
-    const sample: T.Vector3[] = [];
-    let minX = Infinity, maxX = -Infinity, minZ = Infinity, maxZ = -Infinity;
-    for (const surface of this.cityOfLightGround.surfaces) {
-      const positions = surface.geometry.getAttribute('position');
-      const stride = Math.max(1, Math.ceil(positions.count / sampleLimit));
-      for (let i = 0; i < positions.count; i += stride) {
-        const vertex = new T.Vector3().fromBufferAttribute(positions, i).applyMatrix4(surface.matrixWorld);
-        sample.push(vertex);
-        if (vertex.x < minX) minX = vertex.x;
-        if (vertex.x > maxX) maxX = vertex.x;
-        if (vertex.z < minZ) minZ = vertex.z;
-        if (vertex.z > maxZ) maxZ = vertex.z;
-      }
-    }
-    if (!sample.length || !Number.isFinite(minX)) return null;
-    const cross = (o: T.Vector3, a: T.Vector3, b: T.Vector3) =>
-      (a.x - o.x) * (b.z - o.z) - (a.z - o.z) * (b.x - o.x);
-    const sorted = [...sample].sort((a, b) => (a.x === b.x ? a.z - b.z : a.x - b.x));
-    const lower: T.Vector3[] = [];
-    for (const point of sorted) {
-      while (lower.length >= 2 && cross(lower[lower.length - 2], lower[lower.length - 1], point) <= 0) lower.pop();
-      lower.push(point);
-    }
-    const upper: T.Vector3[] = [];
-    for (let i = sorted.length - 1; i >= 0; i--) {
-      const point = sorted[i];
-      while (upper.length >= 2 && cross(upper[upper.length - 2], upper[upper.length - 1], point) <= 0) upper.pop();
-      upper.push(point);
-    }
-    return {
-      minX,
-      maxX,
-      minZ,
-      maxZ,
-      hull: [...lower.slice(0, -1), ...upper.slice(0, -1)],
-    };
-  }
   drawMap() {
     const ctx = this.minimap.getContext('2d');
     if (!ctx) return;
@@ -3804,10 +3618,7 @@ export class Game {
     ctx.fillStyle = '#173d34';
     ctx.fillRect(0, 0, size, size);
 
-    if (this.isCityOfLight && this.cityOfLightGround && !this.cityMinimapFootprint) {
-      this.cityMinimapFootprint = this.buildCityMinimapFootprint();
-    }
-    const cityFootprint = this.isCityOfLight ? this.cityMinimapFootprint : null;
+    const cityFootprint = null;
 
     const mapScale = this.fieldTerrain?.id === 'verdant-plains' ? 2 : regionScale(this.hero.inCity);
     const p = (v: number) => size / 2 + (v * size) / (106 * mapScale);
@@ -3873,17 +3684,6 @@ export class Game {
       ctx.restore();
       ctx.strokeStyle = '#e7d78e';
       ctx.lineWidth = 2;
-      ctx.stroke();
-      ctx.fillStyle = '#d9c58a';
-      const camp = FIELD_NPCS['city-of-light'];
-      if (camp) {
-        const campPoint = toCityPoint(camp.x, camp.z);
-        ctx.fillRect(campPoint.x - 3, campPoint.y - 3, 6, 6);
-      }
-      const portalPoint = toCityPoint(FIELDS['city-of-light'].exit.x, FIELDS['city-of-light'].exit.z);
-      ctx.strokeStyle = '#f6d17c';
-      ctx.beginPath();
-      ctx.arc(portalPoint.x, portalPoint.y, 4, 0, Math.PI * 2);
       ctx.stroke();
     } else {
       ctx.strokeStyle = '#658675';

@@ -17,37 +17,6 @@ export function cloneImportedMap(source: T.Group) {
   return map;
 }
 
-const CITY_OF_LIGHT_MASTER_MATERIAL_RULES: Array<{ pattern: RegExp; color: string; roughness: number; metalness?: number; emissive?: string; emissiveIntensity?: number; family: string }> = [
-  { pattern: /(LF_Foliage|LF3_Garden_Bloom|LF3_Curb_Micro_Moss|LF_Garden_Soil|foliage|leaf|grass|bush|flower|ivy|shrub|garden.*bloom|micro.*moss|garden.*soil)/i, color: '#5f8a4a', roughness: 0.97, family: 'foliage' },
-  { pattern: /(LF3_Fountain_Clear_Turquoise|leadlight|glass|turquoise|window|blue.*glass|clear.*glass|fountain.*glass)/i, color: '#7ea8be', roughness: 0.25, metalness: 0.12, emissive: '#8cc7ff', emissiveIntensity: 0.18, family: 'water' },
-  { pattern: /(LF2_.*(Cobalt|Slate)|LF3_.*(Work.*Steel|Iron_Ore|Coal)|forged_iron|architectural_aged_brass|brass|iron|steel|metal|rail|chain|trim|ornament|forge|lamp|fence.*metal|metal.*fence)/i, color: '#828283', roughness: 0.48, metalness: 0.82, family: 'metal' },
-  { pattern: /(LF2_.*(Oak|Door_And_Shutter_Oak|Barrel_Oak)|LF3_Barrel_Oak|oak|wood|beam|plank|deck|bench|log|door.*oak|furniture.*wood|wooden)/i, color: '#6c4a34', roughness: 0.76, metalness: 0.08, family: 'wood' },
-  { pattern: /(ground|terrain|earth|path|road|plaza|pavement|walkway|floor|base|soil|paving|micro.*moss)/i, color: '#8b9d73', roughness: 0.9, family: 'terrain' },
-  { pattern: /(LF2_.*(Lime_Plaster|Honey_Limestone|Dressed_Ivory_Stone|Cobalt_Slate|Tavern_Terracotta|Terracotta|Clay|Tile|Forge_Slate)|LF3_.*(Unglazed_Terracotta|Guardian_Patinated_Bronze)|stone|rock|wall|pillar|column|arch|cliff|brick|roof|tile|ruin|castle|plaster|limestone|terracotta|slate|cobalt.*slate)/i, color: '#b8a88d', roughness: 0.86, family: 'stone' },
-  { pattern: /(crystal|glow|lantern|portal|gem|ember|honey.*glass|lantern.*glass)/i, color: '#f3d790', roughness: 0.3, emissive: '#ffd97d', emissiveIntensity: 0.42, family: 'crystal' },
-];
-
-export function applyCityOfLightMasterMaterials(root: T.Object3D) {
-  root.traverse(object => {
-    if (!(object instanceof T.Mesh)) return;
-    const materials = Array.isArray(object.material) ? object.material : [object.material];
-    for (const material of materials) {
-      if (!material) continue;
-      const identifier = `${material.name ?? ''} ${object.name ?? ''}`.toLowerCase();
-      const rule = CITY_OF_LIGHT_MASTER_MATERIAL_RULES.find(entry => entry.pattern.test(identifier));
-      if (!rule) continue;
-      if ('color' in material && material.color) material.color.set(rule.color);
-      if ('roughness' in material && typeof material.roughness === 'number') material.roughness = rule.roughness;
-      if ('metalness' in material && typeof material.metalness === 'number') material.metalness = rule.metalness ?? material.metalness;
-      if ('emissive' in material && rule.emissive) {
-        material.emissive = new T.Color(rule.emissive);
-        material.emissiveIntensity = rule.emissiveIntensity ?? material.emissiveIntensity ?? 0;
-      }
-      material.userData.masterMaterialFamily = rule.family;
-    }
-  });
-}
-
 type Point = { x: number; z: number };
 type GroundTriangle = { a: T.Vector3; b: T.Vector3; c: T.Vector3; denominator: number; bridge: boolean };
 type ImportedMapGroundOptions = {
