@@ -11,7 +11,7 @@ import { WARRIOR_V3_RUNTIME_SKILLS, WARRIOR_V3_SKILL_MAP, warriorV3StateAfterCor
 import { BERSERKER_V3_RUNTIME_SKILLS, BERSERKER_V3_SKILL_MAP, BERSERKER_MASTERY_MANA_SKILLS, BERSERKER_TRANCE_DAMAGE_SKILLS, BERSERKER_TRANCE_AOE_SKILLS, berserkerV3StateAfterSpecialization } from './berserker-v3.ts';
 import { BLADE_MASTER_V3_RUNTIME_SKILLS, BLADE_MASTER_V3_SKILL_MAP, BLADE_MASTER_DUAL_MANA_SKILLS, BLADE_MASTER_MASTERY_MANA_SKILLS, bladeMasterV3StateAfterSpecialization, bladeMasterDualWieldActive, composeBladeWeaponHits } from './blade-master-v3.ts';
 import type { StunState } from './stun.ts';
-import { canPurchaseSkillRank, normalizeSkillProgressionV3, purchaseSkillRankV3, transitionSkillJobV3, refundAllSkillPointsForJobChange, spentSkillPointsV3, type SkillProgressionV3State } from './skill-progression-v3.ts';
+import { canPurchaseSkillRank, normalizeSkillProgressionV3, purchaseSkillRankV3, refundAllSkillPointsForJobChange, spentSkillPointsV3, type SkillProgressionV3State } from './skill-progression-v3.ts';
 import { meetsWeaponRequirement, resolveWeaponStyle } from './weapon-style.ts';
 import {
   ALL_SKILLS,
@@ -69,7 +69,7 @@ import { WORLD_CONFIG, FIELDS, CITIES, forgeAccessReason, startingFieldIds, migr
 import { regionHalfExtent } from './field-layout.ts';
 import { FIELD_TERRAINS, nearestTerrainPoint } from './field-terrain.ts';
 import { monsterDropChance, rollMonsterItem } from './monster-loot.ts';
-import { PRIMARY_HOTBAR_SIZE, defaultPrimaryHotbar, emptyQuickHotbars, loadPrimaryHotbar, validateQuickHotbarAssignments, remapPrimaryHotbarForJob, type PrimaryHotbarState } from './hotbar.ts';
+import { PRIMARY_HOTBAR_SIZE, emptyQuickHotbars, loadPrimaryHotbar, validateQuickHotbarAssignments, remapPrimaryHotbarForJob, type PrimaryHotbarState } from './hotbar.ts';
 import { canonicalItemTemplateId, itemCooldownKey, getItemCooldownRemaining, potionRestoreAmount } from './items.ts';
 import { composeSingleMainWeaponHits, validateDualWieldEquip, type DualWieldEquipReason } from './dual-wield.ts';
 
@@ -86,7 +86,7 @@ export const DEFAULT_APPEARANCE = {
   hairStyleId: 'hair_default',
   hairColorId: 'light_brown',
   skinToneId: 'tone_02',
-};
+} as const;
 export const FACE_STYLE_PRESETS = [
   { id: 'face_default', label: 'Classic' },
   { id: 'face_soft', label: 'Soft' },
@@ -1385,11 +1385,16 @@ function storeLootReward(hero:Hero,item:ItemData):InventoryItem {
 }
 
 export function grantMonsterLoot(hero:Hero,monster:MonsterDefinition,rng:()=>number=Math.random):InventoryItem|null {
+  const item = rollMonsterLoot(hero, monster, rng);
+  return item ? storeLootReward(hero, item) : null;
+}
+
+export function rollMonsterLoot(hero:Hero,monster:MonsterDefinition,rng:()=>number=Math.random):ItemData|null {
   const stats=derivedStats(hero);
   if(rng()>=monsterDropChance(monster,stats.itemDropRate))return null;
   const item=rollMonsterItem(hero.currentField,monster.variant,hero.specialization,monster.id,rng);
   if(item.category==='material'&&rng()<stats.materialDropRate/100)item.quantity++;
-  return storeLootReward(hero,item);
+  return item;
 }
 
 export function collectPendingLoot(hero: Hero) {

@@ -43,7 +43,7 @@ import {
   equipItem as equipInventoryItem,
   evolvePet as evolvePetRules,
   freshHero,
-  grantMonsterLoot,
+  rollMonsterLoot,
   gainXP,
   hasEquippedGear,
   activeSkills,
@@ -89,8 +89,8 @@ import {
 } from './rules';
 import { MASTERY_EFFECTS, type SkillDefinition } from './skills';
 import { COMBAT_MECHANICS, criticalChance, evasionChance, blockChance, barrierAmount, resolveHitAgainstEvasion } from './combat-mechanics';
-import { SkillHitQueue, skillHitDamage, selectSkillTargets, type ResolvedSkillAction } from './skill-action';
-import { applySourceOwnedStatus, applyStatus, clearExpiredSourceStatuses, counterContextAllowed, effectiveArmorBreakStrength, getActiveStatusApplications, hasActiveStatusFromSource, hasStatus, getStatus, removeStatus, DefenseEvents, type DefenseResult, type SourceOwnedStatus } from './combat-status';
+import { SkillHitQueue, skillHitDamage, inFrontalArc, type ResolvedSkillAction } from './skill-action';
+import { applySourceOwnedStatus, applyStatus, clearExpiredSourceStatuses, effectiveArmorBreakStrength, getActiveStatusApplications, hasActiveStatusFromSource, hasStatus, getStatus, DefenseEvents, type DefenseResult, type SourceOwnedStatus } from './combat-status';
 import {addTemporaryModifier,tickTemporaryModifiers,receivedMultiplier,resolveTargetHit,NO_COUNTER,setManualGuard} from './combat-modifiers';
 import {forwardFromYaw} from './combat-position';
 import {enterStealth,exitStealth,isStealthed,breakStealth} from './stealth';
@@ -107,6 +107,18 @@ import { resolveWeaponAttackContext } from './dual-wield';
 
 const sandsLocationLoader = new GLTFLoader();
 let sandsLocationSource: Promise<T.Group> | undefined;
+const goldCoinLoader = new GLTFLoader();
+let goldCoinSource: Promise<T.Group> | undefined;
+function loadGoldCoin() {
+  goldCoinSource ??= goldCoinLoader.loadAsync('/assets/Items/Gold%20Coin.glb')
+    .then(asset => asset.scene)
+    .catch(error => {
+      goldCoinSource = undefined;
+      console.warn('Gold Coin GLB belum tersedia; memakai visual fallback.', error);
+      throw error;
+    });
+  return goldCoinSource;
+}
 function loadSandsLocation() {
   sandsLocationSource ??= sandsLocationLoader.loadAsync('/assets/maps/sands-location.glb')
     .then(asset => asset.scene)
@@ -169,6 +181,7 @@ export type Snapshot = {
   saved: boolean;
   nearShrine: boolean;
   enemies: EnemyView[];
+  groundLoot?: Array<{ id: string; x: number; z: number; name: string; quantity: number }>;
   bossActive: boolean;
   bossRespawn: number;
   bossName: string;
@@ -247,6 +260,8 @@ type Enemy = {
   attackRange: number;
   movementSpeed: number;
 };
+type GroundLoot = { id: string; item: ItemData; group: T.Group };
+type GroundGold = { id: string; amount: number; group: T.Group; label: HTMLSpanElement };
 type Particle = {
   mesh: T.Mesh;
   velocity: T.Vector3;
@@ -342,6 +357,8 @@ export class Game {
   arm = new T.Group();
   aura = new T.Group();
   enemies: Enemy[] = [];
+  groundLoot: GroundLoot[] = [];
+  groundGold: GroundGold[] = [];
   particles: Particle[] = [];
   rings: Ring[] = [];
   beams: Beam[] = [];
@@ -1091,6 +1108,132 @@ export class Game {
       this.enemyLabels.set(id, label);
     }
   }
+  spawnGroundLoot(item: ItemData, position: T.Vector3) {
+    const group = new T.Group();
+    const color = item.rarity === 'mythic' || item.rarity === 'ancient'
+      ? '#f2c66d'
+      : item.rarity === 'legendary' ? '#e8a4ee' : '#9ed8c5';
+    const crystal = new T.Mesh(
+      new T.OctahedronGeometry(0.3, 0),
+      new T.MeshBasicMaterial({ color, transparent: true, opacity: 0.92 }),
+    );
+    crystal.position.y = 0.55;
+    group.add(crystal);
+    const ring = new T.Mesh(
+      new T.TorusGeometry(0.55, 0.045, 6, 20),
+      new T.MeshBasicMaterial({ color, transparent: true, opacity: 0.7 }),
+    );
+    ring.rotation.x = -Math.PI / 2;
+    ring.position.y = 0.08;
+    group.add(ring);
+    group.position.set(position.x, this.groundHeight(position.x, position.z), position.z);
+    this.scene.add(group);
+    this.groundLoot.push({ id: item.id, item, group });
+  }
+  spawnGoldDrop(amount: number, position: T.Vector3) {
+    const group = new T.Group();
+    group.position.set(position.x, this.groundHeight(position.x, position.z), position.z);
+    const fallback = new T.Mesh(
+      new T.CylinderGeometry(0.32, 0.32, 0.1, 24),
+      new T.MeshStandardMaterial({ color: '#f4c542', emissive: '#a66d08', emissiveIntensity: 0.55, metalness: 0.8, roughness: 0.25 }),
+    );
+    fallback.rotation.z = Math.PI / 2;
+    fallback.position.y = 0.35;
+    group.add(fallback);
+    this.scene.add(group);
+    const label = document.createElement('span');
+    label.className = 'floating reward';
+    label.textContent = `${amount} Gold Coins`;
+    this.labelHost.appendChild(label);
+    const drop: GroundGold = { id: `gold-${Date.now()}-${this.groundGold.length}`, amount, group, label };
+    this.groundGold.push(drop);
+    loadGoldCoin().then(source => {
+      if (this.disposed || !this.groundGold.includes(drop)) return;
+      const model = source.clone(true);
+      const bounds = new T.Box3().setFromObject(model);
+      const size = bounds.getSize(new T.Vector3());
+      const largestDimension = Math.max(size.x, size.y, size.z);
+      if (largestDimension > 0) model.scale.setScalar(0.65 / largestDimension);
+      model.traverse(object => {
+        if (!(object instanceof T.Mesh)) return;
+        const goldMaterial = new T.MeshStandardMaterial({
+          color: '#f5b402',
+          emissive: '#f2b949',
+          emissiveIntensity: 0.45,
+          metalness: 0.9,
+          roughness: 0.0,
+        });
+        object.material = Array.isArray(object.material)
+          ? object.material.map(() => goldMaterial)
+          : goldMaterial;
+      });
+      model.position.y = 0.28;
+      group.remove(fallback);
+      group.add(model);
+    }).catch(() => undefined);
+  }
+  pickupGroundLoot() {
+    if (!this.started || this.paused || this.dead) return false;
+    let nearest: GroundLoot | undefined;
+    let nearestGold: GroundGold | undefined;
+    let nearestDistance = 3.5;
+    for (const loot of this.groundLoot) {
+      const distance = Math.hypot(this.actor.position.x - loot.group.position.x, this.actor.position.z - loot.group.position.z);
+      if (distance < nearestDistance) { nearest = loot; nearestDistance = distance; }
+    }
+    for (const gold of this.groundGold) {
+      const distance = Math.hypot(this.actor.position.x - gold.group.position.x, this.actor.position.z - gold.group.position.z);
+      if (distance < nearestDistance) { nearestGold = gold; nearest = undefined; nearestDistance = distance; }
+    }
+    if (nearestGold) {
+      this.hero.gold += nearestGold.amount;
+      this.scene.remove(nearestGold.group);
+      nearestGold.label.remove();
+      this.groundGold = this.groundGold.filter(drop => drop !== nearestGold);
+      this.message(`${nearestGold.amount} GOLD diambil.`);
+      this.save();
+      this.emit();
+      return true;
+    }
+    if (!nearest) return false;
+    const result = addItemToInventory(this.hero.inventory, nearest.item, this.hero.inventoryCapacity);
+    if (result.remaining) {
+      this.message('Inventory penuh. Kosongkan slot terlebih dahulu.');
+      return false;
+    }
+    this.hero.inventory = result.inventory;
+    this.scene.remove(nearest.group);
+    nearest.group.traverse(object => {
+      if (object instanceof T.Mesh) {
+        object.geometry.dispose();
+        const materials = Array.isArray(object.material) ? object.material : [object.material];
+        materials.forEach(material => material.dispose());
+      }
+    });
+    this.groundLoot = this.groundLoot.filter(loot => loot !== nearest);
+    this.message(`${nearest.item.name} diambil${nearest.item.quantity > 1 ? ` x${nearest.item.quantity}` : ''}.`, nearest.item);
+    this.save();
+    this.emit();
+    return true;
+  }
+  clearGroundLoot() {
+    for (const loot of this.groundLoot) {
+      this.scene.remove(loot.group);
+      loot.group.traverse(object => {
+        if (object instanceof T.Mesh) {
+          object.geometry.dispose();
+          const materials = Array.isArray(object.material) ? object.material : [object.material];
+          materials.forEach(material => material.dispose());
+        }
+      });
+    }
+    this.groundLoot = [];
+    for (const gold of this.groundGold) {
+      this.scene.remove(gold.group);
+      gold.label.remove();
+    }
+    this.groundGold = [];
+  }
   spawnBoss(notify = true) {
     if (this.hero.inCity) return;
     const existing = this.enemies.find(enemy => enemy.boss);
@@ -1168,6 +1311,13 @@ export class Game {
           level: e.definition?.level ?? 1,
           respawn: Math.max(0, e.respawn),
         })),
+      groundLoot: this.groundLoot.map(loot => ({
+        id: loot.id,
+        x: loot.group.position.x,
+        z: loot.group.position.z,
+        name: loot.item.name,
+        quantity: loot.item.quantity,
+      })),
       bossActive: this.enemies.some(e => e.boss && e.hp > 0),
       bossRespawn: Math.ceil(this.enemies.find(e => e.boss)?.respawn ?? 0),
       bossName: FIELDS[this.hero.currentField]?.fieldBoss.name ?? 'Field Boss',
@@ -1388,6 +1538,7 @@ export class Game {
     this.closeNpcMenu();
     this.transitioning=true;this.clearInput();
     try {
+      this.clearGroundLoot();
       for(const enemy of this.enemies){this.scene.remove(enemy.group);enemy.group.traverse(object=>{if(object instanceof T.Mesh){object.geometry.dispose();const materials=Array.isArray(object.material)?object.material:[object.material];materials.forEach(material=>material.dispose());}});}
       this.enemyLabels.forEach(label=>label.remove());this.enemyLabels.clear();this.enemies=[];this.targetEntities.clear();this.bossSpawned=false;
       this.buildEnemies();this.buildRegionDecor();this.placeActor();this.cameraFocus.copy(this.actor.position);
@@ -2470,8 +2621,9 @@ export class Game {
       const heal = Math.round(maxHP(this.hero) * FURY_HARVEST_RECOVERY_PERCENT[recoveryRank - 1] / 100 * Math.min(5, successfulTargets));
       this.hero.hp = Math.min(maxHP(this.hero), this.hero.hp + heal);
     }
-    if (isBerserkerDamage && successfulTargets >= 3 && this.transientCombat.berserkerTrance?.expiresAt > this.combatTime) {
-      const rank = this.transientCombat.berserkerTrance.rank;
+    const berserkerTrance = this.transientCombat.berserkerTrance;
+    if (isBerserkerDamage && successfulTargets >= 3 && berserkerTrance && berserkerTrance.expiresAt > this.combatTime) {
+      const rank = berserkerTrance.rank;
       this.transientCombat.triggerFrenzyGuard(this.combatTime, [0, 4, 5, 6][Math.min(3, rank)], 2);
     }
     if (skill.tree?.architecture === 'v2' && skill.tree.id === 'warrior') {
@@ -2744,24 +2896,23 @@ export class Game {
       if (e.boss && e.definition) this.hero.defeatedBossTimestamp[this.hero.currentField] = Date.now();
       const rewardStats=derivedStats(this.hero);
       const xp = Math.floor((e.definition ? monsterXP(e.definition, this.hero.level) : e.boss ? 160 : 35)*(1+rewardStats.expGain/100));
-      const goldReward=Math.floor((e.boss?150:12)*(1+rewardStats.goldDropRate/100));
+      const monsterLevel = e.definition?.level ?? this.hero.level;
+      const goldMultiplier = e.definition?.variant === 'boss' || e.boss ? 1.8 : e.definition?.variant === 'elite' ? 1.5 : 1;
+      const goldReward=Math.floor((8 + monsterLevel * 1.5) * goldMultiplier * (1 + rewardStats.goldDropRate / 100));
       this.hero.kills += 1;
       this.hero.fieldProgress[this.hero.currentField] = (this.hero.fieldProgress[this.hero.currentField] ?? 0) + 1;
-      this.hero.gold += goldReward;
+      this.spawnGoldDrop(goldReward, e.group.position);
       const levels = gainXP(this.hero, xp);
-      const loot = e.definition ? grantMonsterLoot(this.hero, e.definition, () => this.rand()) : null;
+      const loot = e.definition ? rollMonsterLoot(this.hero, e.definition, () => this.rand()) : null;
+      if (loot) this.spawnGroundLoot(loot, e.group.position);
       this.float(
         e.group.position,
         `+${xp} EXP  +${goldReward} G${loot ? ` · ${loot.rarity}` : ''}`,
         'reward',
       );
-      if (loot?.description.includes('Inventory penuh')) {
-        this.message(
-          'Inventory penuh. Loot diamankan; ambil melalui Inventory setelah mengosongkan slot.',
-          loot,
-        );
-      } else if (loot) {
-        this.message(`${loot.name} masuk ke Inventory.`, loot);
+      if (loot) {
+        this.message(`${loot.name} jatuh. Tekan Space untuk mengambil.`, loot);
+        this.float(e.group.position, 'DROP · SPACE', 'reward');
       }
       if (levels) {
         this.ring(this.actor.position, '#ffe4a1', 4, 0.8);
@@ -3287,6 +3438,15 @@ export class Game {
       element.style.display=visible?'block':'none';
       if(visible){const p=position.project(this.camera);element.style.display=p.z>=-1&&p.z<=1?'block':'none';element.style.left=`${(p.x*.5+.5)*100}%`;element.style.top=`${(-p.y*.5+.5)*100}%`;}
     }
+    for (const gold of this.groundGold) {
+      const visible = this.started && gold.group.position.distanceTo(this.actor.position) < 18;
+      gold.label.style.display = visible ? 'block' : 'none';
+      if (visible) {
+        const p = gold.group.position.clone().add(new T.Vector3(0, 1.05, 0)).project(this.camera);
+        gold.label.style.left = `${(p.x * 0.5 + 0.5) * 100}%`;
+        gold.label.style.top = `${(-p.y * 0.5 + 0.5) * 100}%`;
+      }
+    }
     for (const e of this.enemies) {
       const label = this.enemyLabels.get(e.id);
       if (!label) continue;
@@ -3490,6 +3650,10 @@ export class Game {
       return;
     }
     if (!this.started || this.paused || this.dead) return;
+    if (k === ' ' && !e.repeat) {
+      this.pickupGroundLoot();
+      return;
+    }
     this.keys.add(k);
     if (k === 'f') {this.blocking = true;setManualGuard(this.hero,true);}
     if (e.repeat) return;
@@ -3655,6 +3819,7 @@ export class Game {
   dispose() {
     if (this.disposed) return;
     this.clearSkillRuntime();
+    this.clearGroundLoot();
     this.targetPresentation?.dispose();this.targetPresentation=undefined;this.targetEntities?.clear();
     this.disposed = true;
     setArunikaShrineMaterials(this.shrine,null);

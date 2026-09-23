@@ -840,6 +840,7 @@ for (const [slot, name] of Object.entries({
 for (const [id,name] of Object.entries({iron:'Iron',titanium:'Titanium',vibranium:'Vibranium','meteorite-core':'Meteorite Core'})) {
   ITEM_CATALOG[id]=base({templateId:id,name,category:'material',itemType:'enhancementMaterial',stackable:true,maxStack:99,icon:'◆',buyValue:40,sellValue:8,rarity:id==='meteorite-core'?'legendary':id==='vibranium'?'unique':'normal',description:`Material ${name} dari field Chapter 1.`});
 }
+ITEM_CATALOG['monster-essence']=base({templateId:'monster-essence',name:'Monster Essence',category:'material',itemType:'monsterEssence',stackable:true,maxStack:99,icon:'✦',buyValue:0,sellValue:12,description:'Inti energi yang tersisa dari monster Lumenfall. Nama dan deskripsinya mengikuti spesies sumber.'});
 ITEM_CATALOG['rice-meal']=base({templateId:'rice-meal',name:'Blessed Rice Meal',category:'consumable',itemType:'food',stackable:true,maxStack:20,buyValue:30,icon:'◉',description:'Memulihkan stamina sepenuhnya.',usableFromHotbar:true,useEffect:{type:'stamina'},useCooldown:8});
 ITEM_CATALOG.magnifier=base({templateId:'magnifier',name:'Arcane Magnifier',category:'consumable',itemType:'magnifier',stackable:true,maxStack:99,icon:'⌕',description:'Mengungkap Unique Stats equipment yang masih terkunci.',isSellable:false});
 export const POTION_TIERS = [
@@ -964,11 +965,6 @@ for (const item of Object.values(ITEM_CATALOG)) {
       'Konfirmasi Roll memakai 1 optimizer dan GOLD. Hasil dapat diterima atau tetap memakai Rune lama; biaya tidak dikembalikan. Rune Stabilizer opsional melindungi quality pada Chromatic.',
       'Base stat, enhancement, socket, identitas Rune dan efek unik tetap utuh.',
     ].join(' ');
-  } else if (['weapon','armor','accessory'].includes(item.category)
-    && (item.description === 'Perlengkapan perjalanan Lumenfall.'
-      || item.description.startsWith('Senjata basic Common untuk field ')
-      || ['legacy-fajar-blade','forest-vest','fajar-necklace'].includes(item.templateId))) {
-    item.description = equipmentUsageDescription(item);
   }
 }
 
