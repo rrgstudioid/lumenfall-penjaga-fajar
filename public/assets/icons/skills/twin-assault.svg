@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="Twin Assault skill icon">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="44%" r="78%">
+      <stop offset="0" stop-color="#304553"/>
+      <stop offset=".58" stop-color="#182930"/>
+      <stop offset="1" stop-color="#0b1318"/>
+    </radialGradient>
+    <linearGradient id="bladeA" x1="0" y1="1" x2="1" y2="0">
+      <stop offset="0" stop-color="#8c552c"/>
+      <stop offset=".38" stop-color="#f1c878"/>
+      <stop offset=".72" stop-color="#e9f4dc"/>
+      <stop offset="1" stop-color="#75b8c8"/>
+    </linearGradient>
+    <linearGradient id="bladeB" x1="1" y1="1" x2="0" y2="0">
+      <stop offset="0" stop-color="#71412d"/>
+      <stop offset=".38" stop-color="#e7af5e"/>
+      <stop offset=".72" stop-color="#d8f2ef"/>
+      <stop offset="1" stop-color="#5e9ed1"/>
+    </linearGradient>
+    <filter id="glow" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="5" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <rect x="7" y="7" width="242" height="242" rx="28" fill="url(#bg)" stroke="#cba55d" stroke-width="4"/>
+  <path d="M31 75c30 2 59 19 84 48M225 75c-30 2-59 19-84 48" fill="none" stroke="#6bc2df" stroke-width="12" opacity=".22" filter="url(#glow)"/>
+  <path d="M31 75c30 2 59 19 84 48M225 75c-30 2-59 19-84 48" fill="none" stroke="#8ad9e7" stroke-width="3" opacity=".9"/>
+  <g transform="rotate(42 128 132)">
+    <path d="M120 29h16l7 126h-30z" fill="url(#bladeA)" stroke="#eaf5e0" stroke-width="3"/>
+    <path d="M128 34v112" stroke="#fff7c5" stroke-width="3" opacity=".85"/>
+    <path d="M101 150h54v15h-54z" fill="#a96b37" stroke="#f2c66f" stroke-width="3"/>
+    <path d="M112 165h32v35h-32z" rx="10" fill="#30231e" stroke="#d79b50" stroke-width="4"/>
+    <path d="M128 199v18" stroke="#f2c76e" stroke-width="7" stroke-linecap="round"/>
+  </g>
+  <g transform="rotate(-42 128 132)">
+    <path d="M120 29h16l7 126h-30z" fill="url(#bladeB)" stroke="#d9f6f0" stroke-width="3"/>
+    <path d="M128 34v112" stroke="#fff7c5" stroke-width="3" opacity=".85"/>
+    <path d="M101 150h54v15h-54z" fill="#9c6035" stroke="#efbd65" stroke-width="3"/>
+    <path d="M112 165h32v35h-32z" rx="10" fill="#2e2420" stroke="#d1904d" stroke-width="4"/>
+    <path d="M128 199v18" stroke="#edbb65" stroke-width="7" stroke-linecap="round"/>
+  </g>
+  <circle cx="128" cy="132" r="11" fill="#f6e3a0" stroke="#85dce8" stroke-width="4" filter="url(#glow)"/>
+  <path d="M51 171 34 192M205 171l17 21M59 58 42 42M197 58l17-16" stroke="#e4b966" stroke-width="4" stroke-linecap="round" opacity=".75"/>
+</svg>
