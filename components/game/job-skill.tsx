@@ -427,6 +427,7 @@ export function JobSkill({
                 <div className="js-presentation" data-skill-presentation="v3">
                   <PresentationSection title="REQUIREMENTS" rows={presentation.requirements} />
                   <PresentationSection title={presentation.isDamage ? 'DAMAGE SCALING' : 'EFFECT'} rows={presentation.damage} />
+                  <PresentationSection title="PASSIVE EFFECT" rows={presentation.effects} />
                   <PresentationSection title="SPECIAL MECHANIC" rows={presentation.specialMechanics} />
                   <PresentationSection title="AREA / TARGETING" rows={presentation.area} />
                   <PresentationSection title="RESOURCE" rows={presentation.resource} />

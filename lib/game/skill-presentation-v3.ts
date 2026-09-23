@@ -4,6 +4,7 @@ import type { SkillDefinition } from './skills.ts';
 import type { SkillDefinitionV3 } from './skill-progression-v3.ts';
 import { weaponRequirementLabel } from './weapon-style.ts';
 import { FURY_HARVEST_RECOVERY_PERCENT } from './berserker-v3.ts';
+import { BLADE_MASTER_MASTERY_MANA_REDUCTION_BY_RANK, BLADE_MASTER_MASTERY_MANA_SKILLS, BLADE_MASTER_V3_SKILLS } from './blade-master-v3.ts';
 
 export type SkillPresentationRow = { label: string; value: string };
 
@@ -17,6 +18,7 @@ export type SkillPresentationModel = {
   requirements: SkillPresentationRow[];
   damage: SkillPresentationRow[];
   specialMechanics: SkillPresentationRow[];
+  effects: SkillPresentationRow[];
   area: SkillPresentationRow[];
   resource: SkillPresentationRow[];
   preview: {
@@ -71,6 +73,19 @@ function runtimeRankValue(runtime: SkillDefinition, rank: number) {
 
 function rowsForEffects(definition: SkillDefinitionV3, runtime: SkillDefinition, rank: number) {
   const rows: SkillPresentationRow[] = [];
+  if (definition.id === 'v3-blade-master-twin-blade-mastery') {
+    const accuracy = runtime.rankEffects?.[rankIndex(rank, runtime.maxLevel)]?.modifiers?.[0]?.stats?.flat?.accuracy ?? 0;
+    const affected = BLADE_MASTER_V3_SKILLS
+      .filter((skill) => BLADE_MASTER_MASTERY_MANA_SKILLS.has(skill.id))
+      .map((skill) => skill.name)
+      .join(', ');
+    return [
+      { label: 'Capability', value: 'Unlocks Dual Wield at Rank 1' },
+      { label: 'Accuracy', value: `+${accuracy}` },
+      { label: 'Mana Reduction', value: `${BLADE_MASTER_MASTERY_MANA_REDUCTION_BY_RANK[rankIndex(rank, BLADE_MASTER_MASTERY_MANA_REDUCTION_BY_RANK.length)]}%` },
+      { label: 'Affected Skills', value: affected },
+    ];
+  }
   for (const effect of [...(definition.effects?.buffs ?? []), ...(definition.effects?.debuffs ?? [])]) {
     rows.push({ label: effectLabel(effect), value: effectLabel(effect) });
   }
@@ -167,5 +182,8 @@ export function resolveSkillPresentation(hero: Hero, definition: SkillDefinition
   ];
   const resource = isPassive ? [] : [{ label: 'Mana', value: `${action.manaCost} MP` }, { label: 'Cooldown', value: `${action.cooldown}s` }];
   const preview = isDamage ? { label: 'CURRENT DAMAGE PREVIEW', total: Math.round(perHit.reduce((sum, value) => sum + value, 0)), perHit } : definition.skillType === 'ACTIVE_HEAL' ? { label: 'CURRENT HEAL PREVIEW', value: `${skillHealingPreview(hero, runtime, rank)} HP`, perHit: [] } : { label: 'CURRENT EFFECT PREVIEW', value: rowsForEffects(definition, runtime, rank).map((row) => `${row.label} ${row.value}`).join(' · ') || 'Passive effect', perHit: [] };
-  return { skillName: definition.name, description: definition.presentation?.description ?? runtime.description, skillType: definition.skillType, currentRank, maxRank: definition.maxRank, status, requirements, damage, specialMechanics: rowsForMechanics(definition, runtime, rank), area, resource, preview, nextRank: nextRankRows(definition, runtime, rank), isDamage };
+  const effects = rowsForEffects(definition, runtime, rank);
+  const effectPreview = effects.map((row) => `${row.label}: ${row.value}`).join(' · ');
+  const finalPreview = isDamage ? preview : { ...preview, value: effectPreview || preview.value };
+  return { skillName: definition.name, description: definition.presentation?.description ?? runtime.description, skillType: definition.skillType, currentRank, maxRank: definition.maxRank, status, requirements, damage, effects, specialMechanics: rowsForMechanics(definition, runtime, rank), area, resource, preview: finalPreview, nextRank: nextRankRows(definition, runtime, rank), isDamage };
 }
