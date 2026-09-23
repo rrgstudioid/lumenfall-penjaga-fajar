@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="Earth Splitter skill icon">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="42%" r="75%">
+      <stop offset="0" stop-color="#364637"/>
+      <stop offset=".58" stop-color="#1b2924"/>
+      <stop offset="1" stop-color="#0d1515"/>
+    </radialGradient>
+    <linearGradient id="steel" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#fff1b0"/>
+      <stop offset=".32" stop-color="#cda45a"/>
+      <stop offset=".65" stop-color="#77522f"/>
+      <stop offset="1" stop-color="#e8c775"/>
+    </linearGradient>
+    <linearGradient id="heat" x1="0" y1="1" x2="0" y2="0">
+      <stop offset="0" stop-color="#8b3b22"/>
+      <stop offset=".55" stop-color="#e4772d"/>
+      <stop offset="1" stop-color="#ffe39a"/>
+    </linearGradient>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="5" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <rect x="7" y="7" width="242" height="242" rx="28" fill="url(#bg)" stroke="#cba55d" stroke-width="4"/>
+  <path d="M34 181 74 155 100 170 126 145 153 162 181 137 222 161" fill="none" stroke="#c35e2a" stroke-width="9" opacity=".55" filter="url(#glow)"/>
+  <path d="M34 181 74 155 100 170 126 145 153 162 181 137 222 161" fill="none" stroke="#df9a43" stroke-width="3"/>
+  <path d="M126 145 114 185 126 173 137 205 144 169 158 181 151 147" fill="#e4772d" stroke="#ffd47d" stroke-width="3" stroke-linejoin="round"/>
+  <g transform="rotate(-34 128 112)">
+    <path d="M119 35h18l8 105h-34z" fill="url(#steel)" stroke="#f8d788" stroke-width="3"/>
+    <path d="M128 38v96" stroke="#fff4bc" stroke-width="3" opacity=".8"/>
+    <path d="M101 135h54v16h-54z" rx="5" fill="#a86b36" stroke="#f3c56f" stroke-width="3"/>
+    <path d="M112 151h32v38h-32z" rx="12" fill="#33251e" stroke="#d5984c" stroke-width="4"/>
+    <path d="M128 188v22" stroke="#f4cb70" stroke-width="7" stroke-linecap="round"/>
+  </g>
+  <path d="M52 73 70 58M182 73l22-18M47 111l-19-4M204 111l20-5" stroke="#f1bd62" stroke-width="4" stroke-linecap="round" opacity=".75"/>
+  <circle cx="128" cy="145" r="7" fill="#fff0a4" filter="url(#glow)"/>
+</svg>

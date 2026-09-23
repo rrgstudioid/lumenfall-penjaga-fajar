@@ -115,6 +115,18 @@ const glyphs: Record<SkillGlyph, LucideIcon> = {
 
 /** Canonical vector used by cards, detail, hotbar, tooltip and drag preview. */
 export function SkillIcon({ id, size = 28 }: { id: string; size?: number }) {
+  if (id === 'v3-berserker-earth-splitter') {
+    return (
+      <span
+        className="skill-icon skill-icon-custom"
+        style={{ width: size, height: size }}
+        aria-hidden="true"
+        data-skill-icon={id}
+      >
+        <img src="/assets/icons/skills/earth-splitter.svg" alt="" />
+      </span>
+    );
+  }
   const visual = SKILL_VISUALS[id as keyof typeof SKILL_VISUALS];
   const Glyph = visual ? glyphs[visual[0]] : BookOpen;
   const Motif = visual ? glyphs[visual[1]] : null;
