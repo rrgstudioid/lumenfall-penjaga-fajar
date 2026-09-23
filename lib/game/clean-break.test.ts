@@ -6,6 +6,7 @@ import {
   chooseV2CoreJob,
   isCompatibleCharacterSave,
   parseSave,
+  saveCharacter,
 } from './rules.ts';
 import { ITEM_CATALOG } from './items.ts';
 import { getVisibleJobArchitecture } from './job-presentation.ts';
@@ -45,6 +46,34 @@ test('level 15 V2 exposes only Warrior as an available core job', () => {
   assert.equal(hero.coreJob, 'warrior');
   assert.equal(getJobSkillNodes(hero, 'core').active.length, 16);
   assert.equal(getJobSkillNodes(hero, 'core').passive.length, 14);
+});
+
+test('local dev warrior harness can save V2 test heroes in memory-only localhost mode', () => {
+  const previousWindow = (globalThis as any).window;
+  const previousLocalStorage = (globalThis as any).localStorage;
+  const memory = {
+    store: new Map<string, string>(),
+    getItem(key: string) { return this.store.get(key) ?? null; },
+    setItem(key: string, value: string) { this.store.set(key, value); },
+    removeItem(key: string) { this.store.delete(key); },
+    clear() { this.store.clear(); },
+    key(index: number) { return [...this.store.keys()][index] ?? null; },
+    get length() { return this.store.size; },
+  };
+  (globalThis as any).window = { location: { hostname: 'localhost', pathname: '/warrior-world.html' } };
+  (globalThis as any).localStorage = memory;
+  try {
+    const hero = createV2TestHero();
+    hero.slotId = 'slot-1';
+    hero.characterId = 'dev-warrior-memory';
+    hero.characterName = 'DEV Warrior Memory';
+    hero.inCity = false;
+    assert.doesNotThrow(() => saveCharacter(hero, true));
+    assert.equal(JSON.parse(memory.getItem('lumenfall-saves-v3') ?? '{}').characters['slot-1']?.characterId, 'dev-warrior-memory');
+  } finally {
+    if (previousWindow === undefined) delete (globalThis as any).window; else (globalThis as any).window = previousWindow;
+    if (previousLocalStorage === undefined) delete (globalThis as any).localStorage; else (globalThis as any).localStorage = previousLocalStorage;
+  }
 });
 
 test('clean break preserves the item template catalog', () => {
