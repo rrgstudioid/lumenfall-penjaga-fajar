@@ -89,8 +89,8 @@ import {
 } from './rules';
 import { MASTERY_EFFECTS, type SkillDefinition } from './skills';
 import { COMBAT_MECHANICS, criticalChance, evasionChance, blockChance, barrierAmount, resolveHitAgainstEvasion } from './combat-mechanics';
-import { SkillHitQueue, skillHitDamage, inFrontalArc, type ResolvedSkillAction } from './skill-action';
-import { applySourceOwnedStatus, applyStatus, clearExpiredSourceStatuses, effectiveArmorBreakStrength, getActiveStatusApplications, hasActiveStatusFromSource, hasStatus, getStatus, DefenseEvents, type DefenseResult, type SourceOwnedStatus } from './combat-status';
+import { SkillHitQueue, selectSkillTargets, skillHitDamage, inFrontalArc, type ResolvedSkillAction } from './skill-action';
+import { applySourceOwnedStatus, applyStatus, clearExpiredSourceStatuses, effectiveArmorBreakStrength, getActiveStatusApplications, hasActiveStatusFromSource, hasStatus, getStatus, DefenseEvents, counterContextAllowed, type DefenseResult, type SourceOwnedStatus } from './combat-status';
 import {addTemporaryModifier,tickTemporaryModifiers,receivedMultiplier,resolveTargetHit,NO_COUNTER,setManualGuard} from './combat-modifiers';
 import {forwardFromYaw} from './combat-position';
 import {enterStealth,exitStealth,isStealthed,breakStealth} from './stealth';
@@ -260,7 +260,7 @@ type Enemy = {
   attackRange: number;
   movementSpeed: number;
 };
-type GroundLoot = { id: string; item: ItemData; group: T.Group };
+type GroundLoot = { id: string; item: ItemData; group: T.Group; label: HTMLSpanElement };
 type GroundGold = { id: string; amount: number; group: T.Group; label: HTMLSpanElement };
 type Particle = {
   mesh: T.Mesh;
@@ -1128,7 +1128,25 @@ export class Game {
     group.add(ring);
     group.position.set(position.x, this.groundHeight(position.x, position.z), position.z);
     this.scene.add(group);
-    this.groundLoot.push({ id: item.id, item, group });
+    const label = document.createElement('span');
+    label.className = 'floating reward';
+    label.textContent = `${item.name}${item.quantity > 1 ? ` x${item.quantity}` : ''}`;
+    const rarityColors: Record<string, string> = {
+      common: '#dfe9d0',
+      uncommon: '#9cdc7c',
+      rare: '#7bb7ff',
+      epic: '#b88cff',
+      legendary: '#ffcb69',
+      mythic: '#ff8d5b',
+      ancient: '#ffd36a',
+    };
+    const rarityColor = rarityColors[item.rarity ?? 'common'] ?? '#dfe9d0';
+    label.style.color = rarityColor;
+    label.style.textShadow = `0 0 8px ${rarityColor}66, 0 0 18px ${rarityColor}4d`;
+    label.style.fontWeight = '700';
+    label.style.letterSpacing = '0.08em';
+    this.labelHost.appendChild(label);
+    this.groundLoot.push({ id: item.id, item, group, label });
   }
   spawnGoldDrop(amount: number, position: T.Vector3) {
     const group = new T.Group();
@@ -1204,6 +1222,7 @@ export class Game {
       this.message('Inventory penuh. Kosongkan slot terlebih dahulu.');
       return false;
     }
+    nearestItem.label.remove();
     this.scene.remove(nearestItem.group);
     nearestItem.group.traverse(object => {
       if (object instanceof T.Mesh) {
@@ -1221,6 +1240,7 @@ export class Game {
   clearGroundLoot() {
     for (const loot of this.groundLoot) {
       this.scene.remove(loot.group);
+      loot.label.remove();
       loot.group.traverse(object => {
         if (object instanceof T.Mesh) {
           object.geometry.dispose();
@@ -3445,6 +3465,15 @@ export class Game {
       if(nameElement.textContent!==name) nameElement.textContent=name;
       element.style.display=visible?'block':'none';
       if(visible){const p=position.project(this.camera);element.style.display=p.z>=-1&&p.z<=1?'block':'none';element.style.left=`${(p.x*.5+.5)*100}%`;element.style.top=`${(-p.y*.5+.5)*100}%`;}
+    }
+    for (const loot of this.groundLoot) {
+      const visible = this.started && loot.group.position.distanceTo(this.actor.position) < 18;
+      loot.label.style.display = visible ? 'block' : 'none';
+      if (visible) {
+        const p = loot.group.position.clone().add(new T.Vector3(0, 1.05, 0)).project(this.camera);
+        loot.label.style.left = `${(p.x * 0.5 + 0.5) * 100}%`;
+        loot.label.style.top = `${(-p.y * 0.5 + 0.5) * 100}%`;
+      }
     }
     for (const gold of this.groundGold) {
       const visible = this.started && gold.group.position.distanceTo(this.actor.position) < 18;
