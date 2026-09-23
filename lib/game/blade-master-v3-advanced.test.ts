@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createItem } from './items.ts';
 import { canLearnSkill, chooseV3BladeMaster, chooseV3Warrior, createV3AdventurerHero, derivedStats, learnSkill, resolveHeroSkill, resetSkillPoints } from './rules.ts';
-import { BLADE_MASTER_V3_RUNTIME_MAP, BLADE_MASTER_V3_SKILL_MAP, BLADE_MASTER_FLOW_CONSUMERS, BLADE_MASTER_DUAL_MANA_SKILLS } from './blade-master-v3.ts';
+import { BLADE_MASTER_V3_RUNTIME_MAP, BLADE_MASTER_V3_SKILL_MAP, BLADE_MASTER_FLOW_CONSUMERS, BLADE_MASTER_DUAL_MANA_SKILLS, BLADE_MASTER_MASTERY_MANA_SKILLS } from './blade-master-v3.ts';
 import { TransientCombatState } from './combat-transient.ts';
 import { skillHitDamage, SkillHitQueue } from './skill-action.ts';
 import { applySourceOwnedStatus, effectiveArmorBreakStrength, hasActiveStatusFromSource } from './combat-status.ts';
@@ -138,6 +138,17 @@ test('Mastery and Drive Mana reductions use strongest source on dual skills only
   }
   const piercing=BLADE_MASTER_V3_RUNTIME_MAP[id('piercing-sequence')];
   assert.equal(resolveHeroSkill(hero,piercing,5,stats,undefined,[],undefined,18).manaCost,Math.ceil(20*.97));
+});
+
+test('Tempo Drive uses canonical rank Mana/cooldown, receives Mastery reduction, and not its own active reduction', () => {
+  const {hero}=setup(); const stats={...derivedStats(hero),manaCostReduction:0};
+  const drive=BLADE_MASTER_V3_RUNTIME_MAP[id('tempo-drive')];
+  assert.deepEqual(drive.rankValues?.map(value=>value.manaCost),[14,15,16,17,18]);
+  assert.deepEqual(drive.rankValues?.map(value=>value.cooldown),[24,23,22,21,20]);
+  assert.equal(BLADE_MASTER_MASTERY_MANA_SKILLS.has(drive.id),true);
+  assert.equal(BLADE_MASTER_DUAL_MANA_SKILLS.has(drive.id),false);
+  assert.equal(resolveHeroSkill(hero,drive,5,stats).manaCost,Math.ceil(18*.92));
+  assert.equal(resolveHeroSkill(hero,drive,5,stats,undefined,[],undefined,18).manaCost,Math.ceil(18*.92));
 });
 
 test('Armor Break source ownership is queryable independently of strongest mitigation', () => {

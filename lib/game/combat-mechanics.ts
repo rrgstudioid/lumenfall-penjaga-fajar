@@ -21,3 +21,42 @@ export function mitigateDamage(rawDamage: number, defense: number, attackerLevel
 export const criticalChance = (rate: number) => Math.min(COMBAT_MECHANICS.criticalChanceCap, rate / 100);
 export const evasionChance = (rate: number) => Math.min(COMBAT_MECHANICS.evasionChanceCap, rate / 100);
 export const blockChance = (rate: number) => Math.min(COMBAT_MECHANICS.blockChanceCap, rate / 100);
+
+export type HitResolutionResult = 'HIT' | 'EVADED';
+export type HitAgainstEvasion = {
+  attackerAccuracy: number;
+  targetEvasion: number;
+  accuracyPressure: number;
+  effectiveEvasion: number;
+  hitChance: number;
+  roll: number;
+  result: HitResolutionResult;
+};
+
+/** Model B: Accuracy directly counters Evasion with one avoidance roll. */
+export function resolveHitAgainstEvasion({
+  attackerAccuracy,
+  targetEvasion,
+  rng = Math.random,
+}: {
+  attackerAccuracy: number;
+  targetEvasion: number;
+  rng?: () => number;
+}): HitAgainstEvasion {
+  const accuracy = Number.isFinite(attackerAccuracy) ? attackerAccuracy : 90;
+  const evasion = Number.isFinite(targetEvasion) ? Math.max(0, targetEvasion) : 0;
+  const accuracyPressure = (accuracy - 90) * 0.1;
+  const effectiveEvasion = Math.min(50, Math.max(0, evasion - accuracyPressure));
+  const hitChance = 1 - effectiveEvasion / 100;
+  const rawRoll = rng();
+  const roll = Number.isFinite(rawRoll) ? Math.min(1, Math.max(0, rawRoll)) : 1;
+  return {
+    attackerAccuracy: accuracy,
+    targetEvasion: evasion,
+    accuracyPressure,
+    effectiveEvasion,
+    hitChance,
+    roll,
+    result: roll < hitChance ? 'HIT' : 'EVADED',
+  };
+}

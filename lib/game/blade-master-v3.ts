@@ -94,7 +94,7 @@ const arrays: Record<string, { coefficients: number[]; str: number[]; dex: numbe
   'v3-blade-master-blade-focus': { coefficients: [0,0,0,0,0], str: [0,0,0,0,0], dex: [0,0,0,0,0], mana: [16,17,18,19,20], cooldown: [35,35,35,35,35] },
   'v3-blade-master-cross-sever': { coefficients: [1.2,1.28,1.35,1.43,1.5], str: [.12,.14,.16,.18,.20], dex: [.18,.21,.24,.27,.30], mana: [16,17,18,20,21], cooldown: [8,7.8,7.6,7.4,7.2] },
   'v3-blade-master-piercing-sequence': { coefficients: [1.15,1.25,1.35,1.45,1.55], str: [.08,.09,.10,.12,.14], dex: [.20,.24,.28,.32,.36], mana: [15,16,17,18,20], cooldown: [8.5,8.1,7.7,7.3,7] },
-  'v3-blade-master-tempo-drive': { coefficients: [0,0,0,0,0], str: [0,0,0,0,0], dex: [0,0,0,0,0], mana: [0,0,0,0,0], cooldown: [0,0,0,0,0] },
+  'v3-blade-master-tempo-drive': { coefficients: [0,0,0,0,0], str: [0,0,0,0,0], dex: [0,0,0,0,0], mana: [14,15,16,17,18], cooldown: [24,23,22,21,20] },
   'v3-blade-master-blade-tempest': { coefficients: [1.75,2,2.25], str: [.18,.22,.26], dex: [.28,.34,.40], mana: [36,40,44], cooldown: [70,68,65] },
 };
 
@@ -138,7 +138,10 @@ export const BLADE_MASTER_V3_RUNTIME_MAP = Object.fromEntries(BLADE_MASTER_V3_RU
 export const BLADE_MASTER_V3_JOB = { id: 'blade_master', tier: 'specialization' as const, parent: 'warrior' };
 export const BLADE_MASTER_TEMPO_LIFETIME = [5, 5.5, 6, 6.5, 7] as const;
 export const BLADE_MASTER_FLOW_CONSUMERS = new Set(['v3-blade-master-twin-assault','v3-blade-master-cross-sever','v3-blade-master-piercing-sequence','v3-blade-master-blade-tempest']);
+/** Skills whose active Tempo Drive efficiency applies after the Drive is active. */
 export const BLADE_MASTER_DUAL_MANA_SKILLS = new Set(['v3-blade-master-twin-assault','v3-blade-master-cross-sever','v3-blade-master-blade-tempest']);
+/** Blade Master dual-wield skills whose cast may receive Twin Blade Mastery reduction. */
+export const BLADE_MASTER_MASTERY_MANA_SKILLS = new Set([...BLADE_MASTER_DUAL_MANA_SKILLS, 'v3-blade-master-tempo-drive']);
 export const BLADE_MASTER_TEMPO_GENERATORS = new Set(['v3-blade-master-twin-assault','v3-blade-master-cross-sever']);
 /** Compose the explicitly declared per-hand layers after the ordinary V3 resolver.
  * Full item/Rune character stats stay in shared core; only raw item Weapon ATK is hand-local. */
