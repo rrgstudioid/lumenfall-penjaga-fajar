@@ -127,6 +127,18 @@ export function SkillIcon({ id, size = 28 }: { id: string; size?: number }) {
       </span>
     );
   }
+  if (id === 'v3-blade-master-twin-assault') {
+    return (
+      <span
+        className="skill-icon skill-icon-custom"
+        style={{ width: size, height: size }}
+        aria-hidden="true"
+        data-skill-icon={id}
+      >
+        <img src="/assets/icons/skills/twin-assault.svg" alt="" />
+      </span>
+    );
+  }
   const visual = SKILL_VISUALS[id as keyof typeof SKILL_VISUALS];
   const Glyph = visual ? glyphs[visual[0]] : BookOpen;
   const Motif = visual ? glyphs[visual[1]] : null;
