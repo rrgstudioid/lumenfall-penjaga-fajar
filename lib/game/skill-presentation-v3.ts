@@ -147,7 +147,7 @@ export function resolveSkillPresentation(hero: Hero, definition: SkillDefinition
   const status = currentRank >= definition.maxRank ? 'MAX RANK' : currentRank > 0 ? 'LEARNED' : hero.level >= (definition.unlockLevel ?? 0) ? 'AVAILABLE' : 'LOCKED';
   const isPassive = definition.skillType === 'PASSIVE' || definition.skillType === 'MASTERY';
   const requirements: SkillPresentationRow[] = [
-    { label: 'Character Requirement', value: `Lv. ${definition.rankLevelRequirements?.[rankIndex(rank, definition.maxRank)] ?? definition.unlockLevel ?? 1}` },
+    { label: 'Character Requirement', value: `Lv. ${definition.rankLevelRequirements?.[0] ?? definition.unlockLevel ?? 1}` },
     { label: 'Job Requirement', value: definition.jobRequirement ?? jobLabels[definition.jobId] ?? titleCase(definition.jobId) },
     { label: 'Skill Point Cost', value: `${Array.isArray(definition.spCostPerRank) ? definition.spCostPerRank[rankIndex(rank, definition.maxRank)] : definition.spCostPerRank ?? 0} SP` },
     { label: 'Prerequisite', value: definition.prerequisiteSkills?.map((entry) => `${entry.skillId.replace(/^v3-/, '').replaceAll('-', ' ')} R${entry.requiredRank}`).join(' + ') || 'None' },

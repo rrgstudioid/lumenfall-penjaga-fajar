@@ -267,7 +267,8 @@ export function accessibleJobIdsV3(
 }
 
 function rankLevel(skill: SkillDefinitionV3, nextRank: number): number {
-  return skill.rankLevelRequirements?.[nextRank - 1] ?? skill.unlockLevel ?? 1;
+  void nextRank;
+  return skill.rankLevelRequirements?.[0] ?? skill.unlockLevel ?? 1;
 }
 
 function skillIsAccessible(skill: SkillDefinitionV3, state: SkillProgressionV3State): boolean {

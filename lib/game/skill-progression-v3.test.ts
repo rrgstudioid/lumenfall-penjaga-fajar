@@ -54,6 +54,18 @@ await test('native purchase, finite SP, variable rank and variable cost work', (
   assert.equal(canPurchaseSkillRank(context, 'variable').reason, 'INSUFFICIENT_SP');
 });
 
+await test('unlock level is required only for the first rank', () => {
+  const f = fixture();
+  const state = createSkillProgressionV3(7);
+  const context = { ...f, state, level: 1 };
+  assert.equal(purchaseSkillRankV3(context, 'variable').reason, 'OK');
+  assert.equal(purchaseSkillRankV3(context, 'variable').reason, 'OK');
+  assert.equal(state.skillRanks.variable, 2);
+  context.level = 1;
+  assert.equal(purchaseSkillRankV3(context, 'variable').reason, 'OK');
+  assert.equal(state.skillRanks.variable, 3);
+});
+
 await test('level, prerequisite and sibling specialization gates return structured reasons', () => {
   const f = fixture();
   const state = transitionSkillJobV3(transitionSkillJobV3(createSkillProgressionV3(20), 'core', 'warrior'), 'specialization', 'blade_master');
