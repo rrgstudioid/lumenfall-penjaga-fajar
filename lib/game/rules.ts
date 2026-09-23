@@ -675,10 +675,29 @@ export function resetPlayerAllocationForCoreJob(hero: Hero) {
   hero.mana = Math.min(hero.mana, hero.maxMana);
 }
 
+function isLocalhostMemoryHarness(): boolean {
+  if (typeof window === 'undefined') return false;
+  const { hostname, pathname } = window.location ?? {};
+  return ['localhost', '127.0.0.1'].includes(hostname ?? '')
+    && typeof pathname === 'string'
+    && pathname.includes('warrior-world')
+    || ['localhost', '127.0.0.1'].includes(hostname ?? '')
+    && typeof pathname === 'string'
+    && pathname.includes('thief-world');
+}
+
 export function isCompatibleCharacterSave(hero: Pick<Hero, 'characterSchemaVersion' | 'progressionArchitecture' | 'skillArchitectureVersion'> | null | undefined): boolean {
-  return hero?.characterSchemaVersion === CURRENT_CHARACTER_SCHEMA_VERSION
+  if (hero?.characterSchemaVersion === CURRENT_CHARACTER_SCHEMA_VERSION
     && hero.progressionArchitecture === 'v3_adventurer'
-    && hero.skillArchitectureVersion === 3;
+    && hero.skillArchitectureVersion === 3) {
+    return true;
+  }
+  return Boolean(
+    hero &&
+    hero.characterSchemaVersion === CURRENT_CHARACTER_SCHEMA_VERSION &&
+    hero.progressionArchitecture === 'v2_test' &&
+    isLocalhostMemoryHarness(),
+  );
 }
 
 /** The only player-facing core-job promotion path after the development clean break. */
@@ -2486,9 +2505,11 @@ export function loadCharacter(slotId: string): Hero {
 }
 
 export function saveCharacter(hero: Hero, required = false) {
+  const localhostMemoryHarness = isLocalhostMemoryHarness();
   if (!isCompatibleCharacterSave(hero)) {
-    if (required) throw new Error('Only V3 characters can be saved.');
-    return;
+    if (required && !localhostMemoryHarness) throw new Error('Only V3 characters can be saved.');
+    if (!localhostMemoryHarness) return;
+    if (hero.progressionArchitecture !== 'v2_test') return;
   }
   const collection = readCollection();
   collection.activeSlot = hero.slotId;

@@ -277,6 +277,10 @@ export class Game {
   private traceDevelopment(stage: string, data: Record<string, unknown> = {}) {
     this.developmentTrace?.({ system: 'iron-charge', stage, time: this.combatTime, ...data });
   }
+  private traceV3Damage(skillId: string, stage: string, data: Record<string, unknown> = {}) {
+    if (skillId !== 'v3-blade-master-twin-assault') return;
+    this.developmentTrace?.({ system: 'v3-live-damage', skillId, stage, time: this.combatTime, ...data });
+  }
   portalLabels: Array<{element:HTMLDivElement;x:number;z:number;name:string;labelHeight?:number}> = [];
   terrainSurface: T.Mesh | null = null;
   arunikaMaterials: ArunikaMaterials | null = null;
@@ -2259,12 +2263,29 @@ export class Game {
     if (!this.started || this.paused || this.dead || this.hotbarInteracting) return false;
     const skill = activeSkills(this.hero).find(candidate => typeof idOrSlot==='string' ? candidate.id===idOrSlot : candidate.slot===idOrSlot);
     if (!skill) return false;
+    const isTwinAssault = skill.id === 'v3-blade-master-twin-assault';
     if (skill.id === 'v3-berserker-breaker-entry' && !this.transientCombat.breakerEntryActive(this.combatTime)) {
       this.message('Breaker Entry hanya dapat digunakan setelah Iron Charge berhasil mengenai target.');
       return false;
     }
     const isIronCharge = skill.id === 'v3-warrior-iron-charge';
     const level = this.hero.skillLevels[skill.id] ?? 0;
+    if (isTwinAssault) {
+      const main = itemById(this.hero.inventory, this.hero.equipment.mainHand);
+      const off = itemById(this.hero.inventory, this.hero.equipment.offHand);
+      this.traceV3Damage(skill.id, 'cast_request', {
+        actorId: this.hero.characterId ?? this.hero.slotId,
+        masteryRank: this.hero.skillProgressionV3?.skillRanks['v3-blade-master-twin-blade-mastery'] ?? 0,
+        rank: level,
+        mainHandInstanceId: main?.id ?? null,
+        mainHandType: main?.equipmentType ?? null,
+        offHandInstanceId: off?.id ?? null,
+        offHandType: off?.equipmentType ?? null,
+        resolvedWeaponStyle: this.equippedWeaponType(),
+        manaBefore: this.hero.mana,
+        cooldownReady: (this.skillCooldowns[skill.id] ?? 0) <= 0,
+      });
+    }
     // Structural validation first; mana is paid against the final contextual action below.
     const validation=canCastSkillRules(this.hero,skill.id,this.skillCooldowns,this.equippedWeaponType(),0);
     if(!validation.ok){this.message(validation.reason);return false;}
@@ -2272,6 +2293,16 @@ export class Game {
     if (skill.id === 'v3-blade-master-tempo-drive' && this.transientCombat.tempoCount(this.combatTime) === 0) return this.failTarget('TEMPO_REQUIRED');
     const tempoReduction=this.transientCombat.bladeTempoDrive?.manaReductionPercent ?? 0;
     const stats=derivedStats(this.hero), preview=resolveHeroSkill(this.hero,skill,level,stats,undefined,[],undefined,tempoReduction);
+    this.traceV3Damage(skill.id, 'skill_resolved', {
+      weaponAllowed: preview.weaponAllowed,
+      resolvedHitCount: preview.hitSequence.length,
+      physicalCoefficients: preview.hitSequence.map(hit => hit.physicalCoefficient),
+      statScaling: preview.statScaling ?? null,
+      manaCost: preview.manaCost,
+      cooldown: preview.cooldown,
+      targetType: preview.targetType,
+      range: preview.range,
+    });
     if(!preview.weaponAllowed)return false;
     const requiresSelectedTarget = needsSelectedTarget(preview);
     // A selected target may be outside the current skill range: targeted active
@@ -2289,6 +2320,13 @@ export class Game {
       const reached = this.autoApproachTarget(selection.target, preview.range);
       if (!reached) return this.failTarget('TARGET_OUT_OF_RANGE');
     }
+    this.traceV3Damage(skill.id, 'target_validation', {
+      targetId: selection.target?.id ?? null,
+      targetValid: Boolean(selection.target),
+      targetAlive: selection.target ? selection.target.hp > 0 : false,
+      distance: selection.target ? targetDistance(this.actor.position, selection.target.group.position) : null,
+      range: preview.range,
+    });
     if(skill.counterPolicy&&!this.findSkillTarget(preview))return false;
     const counter=skill.counterPolicy?this.defenseEvents.snapshot(skill.counterPolicy.accepted,skill.counterPolicy.windowMs,this.combatTime*1000):NO_COUNTER;
     if (skill.counterPolicy && !counterContextAllowed(counter, skill.counterPolicy.accepted)) {
@@ -2313,6 +2351,12 @@ export class Game {
     const cooldown = action.cooldown;
     this.skillCooldowns[skill.id] = cooldown;
     this.applySkill(skill, level, mastery, action, stats,consumedWindows);
+    this.traceV3Damage(skill.id, 'cast_accepted', {
+      targetId: selection.target?.id ?? null,
+      manaAfter: this.hero.mana,
+      cooldown: action.cooldown,
+      hitCount: action.hitSequence.length,
+    });
     if(movement)moveDirectional(action.movementDistance??0,movement,(x,z)=>this.move(x,z));
     this.save();
     this.emit();
@@ -2375,6 +2419,12 @@ export class Game {
         alive: enemy.hp > 0,
       })),
       selected: targetCandidate,
+    });
+    this.traceV3Damage(skill.skillId, 'impact_scheduled', {
+      targetIds: targets.map(enemy => enemy.id),
+      scheduledImpacts: skill.hitSequence.length,
+      hands: skill.hitSequence.map(hit => hit.weaponHand ?? null),
+      targetIdentity: skill.targetIdentity ?? null,
     });
     if (
       skill.effect === 'heal' ||
@@ -2488,6 +2538,12 @@ export class Game {
       this.skillHits.schedule(skill.hitSequence,
         ()=>alive&&!this.disposed&&!this.dead&&buildToken===this.regionBuildToken&&enemy.respawnDeadline===spawn&&validImpact(),
         snapshotHit=>{
+      this.traceV3Damage(skill.skillId, 'impact_callback', {
+        targetId: enemy.id,
+        impactIndex: skill.hitSequence.indexOf(snapshotHit),
+        hand: snapshotHit.weaponHand ?? null,
+        targetHpBefore: enemy.hp,
+      });
       if (isIronCharge) this.traceDevelopment('impact_callback', { targetId: enemy.id, travelDistance: chargeTravelDistance, targetDistance: this.groundDistance(enemy.group.position, this.actor.position) });
       if (skill.skillId === 'v3-blade-master-blade-rush' && bladeRushPassDirection && !bladeRushPassCompleted) {
         bladeRushPassCompleted = true;
@@ -2505,6 +2561,15 @@ export class Game {
       const hit=bladeImpact.prepare(resolveTargetHit(snapshotHit,skill.targetModifiers,enemy,this.combatTime,impactContext),skill.hitSequence.indexOf(snapshotHit),skill.hitSequence.length-1,enemy,this.hero.characterId??this.hero.slotId,this.combatTime);
       const hitResolution = resolveHitAgainstEvasion({ attackerAccuracy: hit.accuracy, targetEvasion: enemy.evasion ?? 0, rng: () => this.rand() });
       if (hitResolution.result === 'EVADED') {
+        this.traceV3Damage(skill.skillId, 'hit_result', {
+          targetId: enemy.id,
+          impactIndex: skill.hitSequence.indexOf(snapshotHit),
+          result: 'EVADED',
+          accuracy: hit.accuracy,
+          targetEvasion: enemy.evasion ?? 0,
+          hitChance: hitResolution.hitChance,
+          roll: hitResolution.roll,
+        });
         this.float(enemy.group.position, 'EVADE', 'reward');
         if (isIronCharge) this.traceDevelopment('hit_evaded', { targetId: enemy.id, ...hitResolution });
         return;
@@ -2524,6 +2589,17 @@ export class Game {
         this.effect(enemy.group.position, cue, snapshotHit.delay >= 0.4 ? 18 : 10);
       }
       let amount = skillHitDamage(hit,stats);
+      this.traceV3Damage(skill.skillId, 'damage_resolver', {
+        targetId: enemy.id,
+        impactIndex: skill.hitSequence.indexOf(snapshotHit),
+        hand: snapshotHit.weaponHand ?? null,
+        accuracy: hit.accuracy,
+        result: 'HIT',
+        rawDamage: amount,
+        physicalCoefficient: hit.physicalCoefficient,
+        composedPhysicalPower: hit.composedPhysicalPower ?? null,
+        baseDamage: hit.baseDamage,
+      });
       if(hit.canCrit&&this.rand()<criticalChance(hit.criticalRate))amount*=hit.criticalDamage/100;
       if (
         skill.effect === 'execute' &&
@@ -2541,12 +2617,19 @@ export class Game {
       if (skill.skillId === 'v3-berserker-ruinous-arc' && hasActiveStatusFromSource(enemy, 'armor_break', this.hero.characterId ?? this.hero.slotId, this.combatTime))
         amount *= 1.08;
       const beforeHP=enemy.hp;
-      this.hurtEnemy(
+      const appliedDamage = this.hurtEnemy(
         enemy,
         Math.round(amount),
         hit.knockbackStrength,
         hit.damageType, stats, attackerLevel,
       );
+      this.traceV3Damage(skill.skillId, 'hp_mutation', {
+        targetId: enemy.id,
+        impactIndex: skill.hitSequence.indexOf(snapshotHit),
+        hpBefore: beforeHP,
+        appliedDamage,
+        hpAfter: enemy.hp,
+      });
       if (isIronCharge) this.traceDevelopment('target_hp_changed', { targetId: enemy.id, hpBefore: beforeHP, hpAfter: enemy.hp, damage: Math.max(0, beforeHP - enemy.hp) });
       if(amount>0&&enemy.hp<beforeHP){
         const firstSuccessfulImpact = !successful;
@@ -2883,7 +2966,7 @@ export class Game {
     this.emit();
   }
   hurtEnemy(e: Enemy, damage: number, knock: number, damageType: 'physical' | 'magic' = 'physical', snapshot?:DerivedStats, attackerLevel=this.hero.level) {
-    if (e.hp <= 0) return;
+    if (e.hp <= 0) return 0;
     const playerStats=snapshot??derivedStats(this.hero);
     if(e.boss)damage*=1+playerStats.bossDamage/100;
     else if(e.definition?.variant==='elite')damage*=1+playerStats.eliteDamage/100;

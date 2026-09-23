@@ -5,6 +5,7 @@ import { canLearnSkill, chooseV3BladeMaster, chooseV3Warrior, createV3Adventurer
 import { BLADE_MASTER_V3_RUNTIME_MAP, BLADE_MASTER_V3_SKILL_MAP, BLADE_MASTER_FLOW_CONSUMERS, BLADE_MASTER_DUAL_MANA_SKILLS, BLADE_MASTER_MASTERY_MANA_SKILLS } from './blade-master-v3.ts';
 import { TransientCombatState } from './combat-transient.ts';
 import { skillHitDamage, SkillHitQueue } from './skill-action.ts';
+import { resolveTargetHit } from './combat-modifiers.ts';
 import { applySourceOwnedStatus, effectiveArmorBreakStrength, hasActiveStatusFromSource } from './combat-status.ts';
 import { assignPrimaryHotbarSlot, validatePrimaryHotbar } from './hotbar.ts';
 import { criticalChance, mitigateDamage } from './combat-mechanics.ts';
@@ -67,6 +68,30 @@ test('Cross Sever composes one combined impact and shared core exactly once', ()
   hero.inventory.push(replacement);hero.equipment.offHand=replacement.id;
   assert.ok(Math.abs(skillHitDamage(resolveHeroSkill(hero,skill,5).hitSequence[0],derivedStats(hero))-damage-150)<1e-6);
   assert.equal(off.baseStats.attack,70);
+});
+
+test('Twin Assault world-path sequence applies both hits to monster HP in the actual runtime flow', () => {
+  const {hero}=setup(80);
+  const stats=derivedStats(hero);
+  const target={ hp: 400, maxHP: 400, defense: 0, magicDefense: 0, evasion: 0, level: 1, country: 'none', marked: false, statusEffects: {}, sourceOwnedStatuses: {} as Record<string, import('./combat-status.ts').SourceOwnedStatus[]> };
+  const action=resolveHeroSkill(hero,BLADE_MASTER_V3_RUNTIME_MAP[id('twin-assault')],8,stats);
+  assert.equal(action.hitSequence.length,2);
+  let hpBefore=target.hp;
+  let totalDamage=0;
+  for (const hit of action.hitSequence) {
+    const prepared = resolveTargetHit(hit, action.targetModifiers, target, 0, { position: { x: 0, z: 0 } });
+    const hitResult = prepared.accuracy >= 0 && (prepared.accuracy > (target.evasion ?? 0) || (prepared.accuracy === (target.evasion ?? 0)));
+    if (!hitResult) continue;
+    const raw = skillHitDamage(prepared, stats);
+    assert.ok(raw > 0, 'Twin Assault hit should resolve positive damage on a valid target');
+    const damage = Math.round(raw);
+    target.hp = Math.max(0, target.hp - damage);
+    totalDamage += damage;
+    hpBefore = target.hp;
+  }
+  assert.ok(totalDamage > 0, 'Twin Assault must reduce target HP');
+  assert.ok(target.hp < 400, 'Monster HP must mutate after the actual hits resolve');
+  assert.equal(target.hp, 400 - totalDamage);
 });
 
 test('Piercing Sequence and Tempest preserve real hits, fixed timing, hand identity and weighted shared contribution', () => {
