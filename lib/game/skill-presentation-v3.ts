@@ -1,5 +1,4 @@
-import { derivedStats, resolveHeroSkill, skillHealingPreview, skillLevel, type Hero } from './rules.ts';
-import { skillHitDamage } from './skill-action.ts';
+import { resolveHeroSkill, skillLevel, type Hero } from './rules.ts';
 import type { SkillDefinition } from './skills.ts';
 import type { SkillDefinitionV3 } from './skill-progression-v3.ts';
 import { weaponRequirementLabel } from './weapon-style.ts';
@@ -21,12 +20,6 @@ export type SkillPresentationModel = {
   effects: SkillPresentationRow[];
   area: SkillPresentationRow[];
   resource: SkillPresentationRow[];
-  preview: {
-    label: string;
-    total?: number;
-    perHit: number[];
-    value?: string;
-  };
   nextRank: SkillPresentationRow[];
   isDamage: boolean;
 };
@@ -156,9 +149,7 @@ export function resolveSkillPresentation(hero: Hero, definition: SkillDefinition
   const rank = Math.max(1, currentRank);
   const values = runtimeRankValue(runtime, rank);
   const action = resolveHeroSkill(hero, runtime, rank);
-  const stats = derivedStats(hero);
   const isDamage = definition.skillType === 'ACTIVE_DAMAGE' || definition.skillType === 'ACTIVE_MOBILITY' || definition.skillType === 'ULTIMATE';
-  const perHit = isDamage ? action.hitSequence.map((hit) => Math.round(skillHitDamage(hit, stats))) : [];
   const status = currentRank >= definition.maxRank ? 'MAX RANK' : currentRank > 0 ? 'LEARNED' : hero.level >= (definition.unlockLevel ?? 0) ? 'AVAILABLE' : 'LOCKED';
   const isPassive = definition.skillType === 'PASSIVE' || definition.skillType === 'MASTERY';
   const requirements: SkillPresentationRow[] = [
@@ -185,14 +176,6 @@ export function resolveSkillPresentation(hero: Hero, definition: SkillDefinition
     ...(action.maxTargets ? [{ label: 'Max Targets', value: String(action.maxTargets) }] : []),
   ];
   const resource = isPassive ? [] : [{ label: 'Mana', value: `${action.manaCost} MP` }, { label: 'Cooldown', value: `${action.cooldown}s` }];
-  const preview = isDamage ? {
-    label: 'BASE DAMAGE',
-    total: baseDamageRange ? Number.parseInt(baseDamageRange.split(' – ')[1] ?? '0', 10) : undefined,
-    perHit: [],
-    value: baseDamageRange ?? 'Skill damage',
-  } : definition.skillType === 'ACTIVE_HEAL' ? { label: 'CURRENT HEAL PREVIEW', value: `${skillHealingPreview(hero, runtime, rank)} HP`, perHit: [] } : { label: 'CURRENT EFFECT PREVIEW', value: rowsForEffects(definition, runtime, rank).map((row) => `${row.label} ${row.value}`).join(' · ') || 'Passive effect', perHit: [] };
   const effects = rowsForEffects(definition, runtime, rank);
-  const effectPreview = effects.map((row) => `${row.label}: ${row.value}`).join(' · ');
-  const finalPreview = isDamage ? preview : { ...preview, value: effectPreview || preview.value };
-  return { skillName: definition.name, description: definition.presentation?.description ?? runtime.description, skillType: definition.skillType, currentRank, maxRank: definition.maxRank, status, requirements, damage, effects, specialMechanics: rowsForMechanics(definition, runtime, rank), area, resource, preview: finalPreview, nextRank: nextRankRows(definition, runtime, rank), isDamage };
+  return { skillName: definition.name, description: definition.presentation?.description ?? runtime.description, skillType: definition.skillType, currentRank, maxRank: definition.maxRank, status, requirements, damage, effects, specialMechanics: rowsForMechanics(definition, runtime, rank), area, resource, nextRank: nextRankRows(definition, runtime, rank), isDamage };
 }
