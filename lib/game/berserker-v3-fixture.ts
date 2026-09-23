@@ -1,6 +1,6 @@
 import { BERSERKER_V3_RUNTIME_MAP, EARTH_SPLITTER_STUN_CHANCE, FURY_HARVEST_RECOVERY_PERCENT } from './berserker-v3.ts';
 import { WARRIOR_V3_RUNTIME_MAP } from './warrior-v3.ts';
-import { resolveSkillAction, skillHitDamage } from './skill-action.ts';
+import { resolveSkillAction, selectSkillTargets, skillHitDamage, type ResolvedSkillAction } from './skill-action.ts';
 import { resolveTargetHit } from './combat-modifiers.ts';
 import { mitigateDamage } from './combat-mechanics.ts';
 import { applyStun, isStunned, remainingStun, stunChanceForRank, type StunState, type StunTarget } from './stun.ts';
@@ -16,7 +16,7 @@ type FixtureStats = {
   skillDamage: number; expGain: number; goldDropRate: number; itemDropRate: number; materialDropRate: number;
 };
 
-export type BerserkerFixtureTarget = StunTarget & { id: string; hp: number; maxHP: number; armorBreak: boolean; stunImmune: boolean; stunState?: StunState };
+export type BerserkerFixtureTarget = StunTarget & { id: string; hp: number; maxHP: number; armorBreak: boolean; stunImmune: boolean; position: { x: number; z: number }; stunState?: StunState };
 
 /** Clean development-only specialization fixture. It never imports world.ts or any map/runtime renderer. */
 export class BerserkerV3RuntimeFixture {
@@ -33,7 +33,16 @@ export class BerserkerV3RuntimeFixture {
 
   setTargets(count: number, armorBreak = false, stunImmuneIds: string[] = []) {
     this.targets.length = 0;
-    for (let i = 0; i < count; i++) this.targets.push({ id: `target-${i + 1}`, hp: 10000, maxHP: 10000, armorBreak, stunImmune: stunImmuneIds.includes(`target-${i + 1}`) });
+    for (let i = 0; i < count; i++) this.targets.push({ id: `target-${i + 1}`, hp: 10000, maxHP: 10000, armorBreak, stunImmune: stunImmuneIds.includes(`target-${i + 1}`), position: { x: 1 + i * .1, z: 0 } });
+  }
+
+  private select(action: ResolvedSkillAction) {
+    return selectSkillTargets({
+      action,
+      origin: { x: 0, z: 0 },
+      forward: { x: 1, z: 0 },
+      candidates: this.targets.map((target) => ({ target, id: target.id, position: target.position, alive: target.hp > 0 })),
+    });
   }
 
   private action(id: string, rank = 1) {
@@ -69,7 +78,7 @@ export class BerserkerV3RuntimeFixture {
     this.rng = rng;
     const action = this.action('v3-berserker-earth-splitter', rank);
     const cap = action.maxTargets ?? this.targets.length;
-    const selected = this.targets.slice(0, cap);
+    const selected = this.select(action);
     const results = selected.map((target) => {
       const result = this.hit('v3-berserker-earth-splitter', rank, target);
       const chance = stunChanceForRank(EARTH_SPLITTER_STUN_CHANCE, rank);
@@ -82,7 +91,7 @@ export class BerserkerV3RuntimeFixture {
 
   furyHarvest(rank = 1) {
     const action = this.action('v3-berserker-fury-harvest', rank);
-    const selected = this.targets.slice(0, action.maxTargets ?? this.targets.length);
+    const selected = this.select(action);
     const hits = selected.map((target) => this.hit('v3-berserker-fury-harvest', rank, target));
     const heal = Math.round(this.hero.maxHP * FURY_HARVEST_RECOVERY_PERCENT[rank - 1] / 100 * Math.min(5, hits.length));
     this.hero.hp = Math.min(this.hero.maxHP, this.hero.hp + heal);
@@ -95,7 +104,7 @@ export class BerserkerV3RuntimeFixture {
     const action = this.action('v3-berserker-raging-cleave', 8);
     const bonus = [0, .06, .08, .10][rank];
     const targetCap = (action.maxTargets ?? 0) + 1;
-    const selected = this.targets.slice(0, targetCap);
+    const selected = this.select({ ...action, maxTargets: targetCap });
     const hits = selected.map((target) => this.hit('v3-berserker-raging-cleave', 8, target, 1 + bonus));
     if (hits.length >= 3) this.transient.triggerFrenzyGuard(this.time, [0, 4, 5, 6][rank], 2);
     return { duration, finalDamageBonus: bonus, targetCap, actualTargetsHit: hits.length, frenzyGuard: this.transient.frenzyGuard, hits };

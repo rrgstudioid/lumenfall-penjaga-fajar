@@ -80,6 +80,24 @@ export function previewEquipmentChange(
       : null,
   };
 }
+
+/**
+ * Returns equipment instances that the canonical equip resolver accepts for a
+ * requested slot. The UI must not maintain a second equipment legality model.
+ */
+export function getEquipmentCandidatesForSlot(
+  hero: Hero,
+  slot: EquipSlot,
+) {
+  const equippedIds = new Set(
+    Object.values(hero.equipment).filter((id): id is string => Boolean(id)),
+  );
+  return hero.inventory.filter((item) => {
+    if (item.isEquipped || equippedIds.has(item.id)) return false;
+    return previewEquipmentChange(hero, item, slot).validation.ok;
+  });
+}
+
 export type JobStageId =
   | 'adventurer'
   | 'core'

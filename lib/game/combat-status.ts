@@ -137,6 +137,12 @@ export type DefenseEvent = {
   consumed: boolean;
 };
 export const DEFENSE_EVENT_MAX_AGE_MS = 5000;
+export function counterContextAllowed(
+  counter: Readonly<{ result: 'none' | 'blocked' | 'parried' }>,
+  accepted: readonly ('blocked' | 'parried')[],
+) {
+  return accepted.includes(counter.result as 'blocked' | 'parried');
+}
 /** Ephemeral world state, milliseconds of active simulation time, never saved. */
 export class DefenseEvents {
   lastDefenseEvent: DefenseEvent | undefined;

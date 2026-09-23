@@ -363,6 +363,29 @@ export function applyActionModifiers(
   }
   return result;
 }
+
+/** Resolves outgoing action damage modifiers for attacks that do not use a
+ * ResolvedSkillAction (currently Basic Attack). Derived PATK is deliberately
+ * untouched; this is the same outgoing-damage layer used by V3 skill hits. */
+export function actionDamageMultiplier(
+  mods: readonly CombatModifier[],
+  ctx: ModifierContext,
+  action: { tags?: string[]; tree?: TreeScope } = {},
+) {
+  let normal = 0;
+  let payoff = 1;
+  const groups = new Map<string, number>();
+  for (const mod of orderedModifiers(mods)) {
+    if (hasImpactCondition(mod) || !modifierMatches(mod, ctx, action)) continue;
+    const bonus = finite(mod.action?.damagePercent) / 100;
+    if (!bonus) continue;
+    if (mod.layer === 'payoff' && mod.payoffGroup)
+      groups.set(mod.payoffGroup, (groups.get(mod.payoffGroup) ?? 0) + bonus);
+    else if (mod.layer === 'payoff') payoff *= Math.max(0, 1 + bonus);
+    else normal += bonus;
+  }
+  return Math.max(0, 1 + normal) * payoff * [...groups.values()].reduce((factor, bonus) => factor * Math.max(0, 1 + bonus), 1);
+}
 /** Called at actual impact (and by CP for explicitly modeled target statuses). */
 export function resolveTargetHit(
   hit: ResolvedSkillHit,
