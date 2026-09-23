@@ -61,3 +61,16 @@ test('mastery presentation uses rank-one gate, player job label, and no cast res
   assert.match(model.preview.value ?? '', /Dual Wield/);
   assert.doesNotMatch(JSON.stringify(model), /blade_master|dual_wield/);
 });
+
+test('mastery presentation exposes canonical Accuracy and Mana reduction by rank', () => {
+  const hero = chooseV3BladeMaster(chooseV3Warrior(createV3AdventurerHero()));
+  const definition = BLADE_MASTER_V3_SKILL_MAP['v3-blade-master-twin-blade-mastery'];
+  const runtime = BLADE_MASTER_V3_RUNTIME_MAP['v3-blade-master-twin-blade-mastery'];
+  for (const [rank, accuracy, reduction] of [[1, 2, 0], [2, 4, 2], [3, 6, 4], [4, 8, 6], [5, 10, 8]] as const) {
+    hero.skillProgressionV3!.skillRanks[definition.id] = rank;
+    const model = resolveSkillPresentation(hero, definition, runtime);
+    assert.equal(model.effects.find((row) => row.label === 'Accuracy')?.value, `+${accuracy}`);
+    assert.equal(model.effects.find((row) => row.label === 'Mana Reduction')?.value, `${reduction}%`);
+    assert.match(model.effects.find((row) => row.label === 'Affected Skills')?.value ?? '', /Twin Assault/);
+  }
+});

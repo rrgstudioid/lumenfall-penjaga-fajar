@@ -143,6 +143,7 @@ export const BLADE_MASTER_FLOW_CONSUMERS = new Set(['v3-blade-master-twin-assaul
 export const BLADE_MASTER_DUAL_MANA_SKILLS = new Set(['v3-blade-master-twin-assault','v3-blade-master-cross-sever','v3-blade-master-blade-tempest']);
 /** Blade Master dual-wield skills whose cast may receive Twin Blade Mastery reduction. */
 export const BLADE_MASTER_MASTERY_MANA_SKILLS = new Set([...BLADE_MASTER_DUAL_MANA_SKILLS, 'v3-blade-master-tempo-drive']);
+export const BLADE_MASTER_MASTERY_MANA_REDUCTION_BY_RANK = [0, 2, 4, 6, 8] as const;
 export const BLADE_MASTER_TEMPO_GENERATORS = new Set(['v3-blade-master-twin-assault','v3-blade-master-cross-sever']);
 /** Compose the explicitly declared per-hand layers after the ordinary V3 resolver.
  * Full item/Rune character stats stay in shared core; only raw item Weapon ATK is hand-local. */
