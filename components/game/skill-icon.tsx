@@ -135,7 +135,7 @@ export function SkillIcon({ id, size = 28 }: { id: string; size?: number }) {
         aria-hidden="true"
         data-skill-icon={id}
       >
-        <img src="/assets/icons/skills/twin-assault.svg" alt="" />
+        <img src="/assets/icons/skills/twin-assault-source.png" alt="" />
       </span>
     );
   }
