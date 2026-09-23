@@ -168,8 +168,12 @@ export function resolveSkillPresentation(hero: Hero, definition: SkillDefinition
     { label: 'Prerequisite', value: definition.prerequisiteSkills?.map((entry) => `${entry.skillId.replace(/^v3-/, '').replaceAll('-', ' ')} R${entry.requiredRank}`).join(' + ') || 'None' },
     { label: 'Weapon', value: definition.weaponRequirement?.map((weapon) => weaponLabels[weapon] ?? weaponRequirementLabel(weapon as never)).join(' / ') || 'None' },
   ];
+  const baseDamageRange = runtime.baseDamageMinByRank && runtime.baseDamageMaxByRank
+    ? `${runtime.baseDamageMinByRank[rankIndex(rank, runtime.maxLevel)] ?? 0} – ${runtime.baseDamageMaxByRank[rankIndex(rank, runtime.maxLevel)] ?? 0}`
+    : null;
   const damage = isDamage ? [
     { label: 'Damage Type', value: 'Physical' },
+    ...(baseDamageRange ? [{ label: 'Base Damage', value: baseDamageRange }] : []),
     { label: 'Hits', value: String(action.hitSequence.length) },
     ...(values.physicalCoefficient ? [{ label: 'Physical Attack', value: coefficient(values.physicalCoefficient) }] : []),
     ...(['str', 'dex', 'vit', 'int'] as const).filter((stat) => (values.statScaling?.[stat] ?? 0) !== 0).map((stat) => ({ label: `Bonus ${stat.toUpperCase()}`, value: coefficient(values.statScaling![stat]!) })),
@@ -181,7 +185,12 @@ export function resolveSkillPresentation(hero: Hero, definition: SkillDefinition
     ...(action.maxTargets ? [{ label: 'Max Targets', value: String(action.maxTargets) }] : []),
   ];
   const resource = isPassive ? [] : [{ label: 'Mana', value: `${action.manaCost} MP` }, { label: 'Cooldown', value: `${action.cooldown}s` }];
-  const preview = isDamage ? { label: 'CURRENT DAMAGE PREVIEW', total: Math.round(perHit.reduce((sum, value) => sum + value, 0)), perHit } : definition.skillType === 'ACTIVE_HEAL' ? { label: 'CURRENT HEAL PREVIEW', value: `${skillHealingPreview(hero, runtime, rank)} HP`, perHit: [] } : { label: 'CURRENT EFFECT PREVIEW', value: rowsForEffects(definition, runtime, rank).map((row) => `${row.label} ${row.value}`).join(' · ') || 'Passive effect', perHit: [] };
+  const preview = isDamage ? {
+    label: 'BASE DAMAGE',
+    total: baseDamageRange ? Number.parseInt(baseDamageRange.split(' – ')[1] ?? '0', 10) : undefined,
+    perHit: [],
+    value: baseDamageRange ?? 'Skill damage',
+  } : definition.skillType === 'ACTIVE_HEAL' ? { label: 'CURRENT HEAL PREVIEW', value: `${skillHealingPreview(hero, runtime, rank)} HP`, perHit: [] } : { label: 'CURRENT EFFECT PREVIEW', value: rowsForEffects(definition, runtime, rank).map((row) => `${row.label} ${row.value}`).join(' · ') || 'Passive effect', perHit: [] };
   const effects = rowsForEffects(definition, runtime, rank);
   const effectPreview = effects.map((row) => `${row.label}: ${row.value}`).join(' · ');
   const finalPreview = isDamage ? preview : { ...preview, value: effectPreview || preview.value };

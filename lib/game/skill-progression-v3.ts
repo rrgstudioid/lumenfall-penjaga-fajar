@@ -128,6 +128,10 @@ export type SkillDefinitionV3 = {
   motion?: SkillMotionMetadataV3;
   status?: string;
   jobInvestmentRequirement?: JobInvestmentRequirementV3;
+  baseDamageMinByRank?: number[];
+  baseDamageMaxByRank?: number[];
+  skillPowerFactor?: number;
+  rankPowerFactorByRank?: number[];
 };
 
 export type SkillProgressionV3State = {

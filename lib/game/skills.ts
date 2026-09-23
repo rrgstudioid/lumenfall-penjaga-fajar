@@ -157,6 +157,10 @@ export type SkillDefinition = {
   skillPowerCoefficient?: number;
   /** Explicit V3 primary-stat contribution, applied once by the resolver. */
   statScaling?: Partial<{ str: number; vit: number; dex: number; int: number }>;
+  baseDamageMinByRank?: number[];
+  baseDamageMaxByRank?: number[];
+  skillPowerFactor?: number;
+  rankPowerFactorByRank?: number[];
   stunProfile?: SkillStunProfile;
   damageCoefficient: number;
   targetType: 'single' | 'area' | 'self' | 'line' | 'frontal_arc';
