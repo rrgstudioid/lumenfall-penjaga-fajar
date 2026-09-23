@@ -125,7 +125,7 @@ export function MenuPresentation(props: {
       <ScreenTitle>Character Creation</ScreenTitle>
       <div className="menu-customization menu-glass">
         <ChoiceGroup label="JALUR KARAKTER" value={props.architecture}
-          choices={[{ id: 'v2_test', label: 'V2 · Klasik' }, { id: 'v3_adventurer', label: 'V3 · Warrior / Berserker' }]}
+          choices={[{ id: 'v2_test', label: 'V2 · Klasik' }, { id: 'v3_adventurer', label: 'V3 · Warrior / Berserker / Blade Master' }]}
           onChange={value => props.onArchitecture(value as 'v2_test' | 'v3_adventurer')} />
         <p className="menu-slot-help">Pilihan berlaku untuk karakter baru ini. Karakter lama tetap pada jalurnya.</p>
         <fieldset className="menu-choice-group menu-gender-group"><legend>GENDER</legend><div className="menu-genders">

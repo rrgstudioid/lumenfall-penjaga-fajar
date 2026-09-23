@@ -1778,11 +1778,23 @@ export default function Home() {
             <div className="dialog-stack class-panel">
               <JobArchitecturePreview hero={hero} />
               {visibleJobs.v3 && <>
-                <span className="eyebrow">ADVENTURER → WARRIOR → BERSERKER · V3</span>
-                <p className="muted-copy">Warrior terbuka pada Lv. 15, Berserker pada Lv. 60. Pergantian job mengembalikan SP skill; level dan alokasi stat tetap.</p>
+                <span className="eyebrow">ADVENTURER → WARRIOR → SPECIALIZATION · V3</span>
+                <p className="muted-copy">Warrior terbuka pada Lv. 15. Berserker dan Blade Master terbuka pada Lv. 60. Pergantian job mengembalikan SP skill; level dan alokasi stat tetap.</p>
                 {!hero.coreJob ? <button className="class-choice" disabled={hero.level < 15} onClick={() => game.current?.chooseCoreJob('warrior')}><strong>Warrior</strong><span>Lv. 15 · Sword Frontline</span></button>
-                  : !hero.specialization ? <button className="class-choice" disabled={hero.level < 60} onClick={() => game.current?.chooseSpecialization('berserker')}><strong>Berserker</strong><span>Lv. 60 · Two-Hand Sword</span></button>
-                  : <p>Berserker aktif. Skill Adventurer, Warrior, dan Berserker tersedia di panel K.</p>}
+                  : !hero.specialization ? <div className="class-choice-grid two-col" data-v3-specialization-choices>
+                    {visibleJobs.v3SpecializationChoices.map((choice) => <button
+                      key={choice.id}
+                      className="class-choice"
+                      disabled={!choice.available}
+                      onClick={() => game.current?.chooseSpecialization(choice.id)}
+                    >
+                      <div><strong>{choice.name}</strong><small>{choice.status}</small></div>
+                      <span>{choice.role}</span>
+                      <p>{choice.description}</p>
+                      {!choice.available && <i><LockKeyhole size={12} /> Requires Level 60</i>}
+                    </button>)}
+                  </div>
+                  : <p>{visibleJobs.currentName} aktif. Skill Adventurer, Warrior, dan {visibleJobs.currentName} tersedia di panel K. Specialization saudara tetap terkunci.</p>}
               </>}
               {visibleJobs.v2 && !hero.coreJob && (
                 <>

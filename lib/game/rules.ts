@@ -434,6 +434,7 @@ const displayLabel = (
 ) => {
   if (getVisibleJobArchitecture(hero).v2) return getVisibleJobArchitecture(hero).currentName;
   if (hero.specialization === 'berserker') return 'Berserker';
+  if (hero.specialization === 'blade_master') return 'Blade Master';
   if (hero.specialization) return SPECIALIZATIONS[hero.specialization].name;
   if (hero.coreJob) return legacyCoreJob(hero.coreJob)?.name ?? hero.coreJob;
   return hero.job === 'adventurer'
@@ -569,6 +570,8 @@ export function chooseV3Warrior(hero: Hero): boolean {
   hero.primaryHotbar = hero.primaryHotbar.map(() => null);
   hero.primaryHotbarOverflow = [];
   hero.quickHotbars = emptyQuickHotbars();
+  hero.coreQuestClaimed = true;
+  hero.jobHistory = { ...hero.jobHistory, core: { level: hero.level, chapter: 1, acquiredAt: Date.now() } };
   return true;
 }
 
@@ -584,6 +587,8 @@ export function chooseV3Berserker(hero: Hero): boolean {
   hero.primaryHotbar = hero.primaryHotbar.map(() => null);
   hero.primaryHotbarOverflow = [];
   hero.quickHotbars = emptyQuickHotbars();
+  hero.specializationQuestClaimed = true;
+  hero.jobHistory = { ...hero.jobHistory, specialization: { level: hero.level, chapter: 1, acquiredAt: Date.now() } };
   return true;
 }
 
@@ -594,7 +599,21 @@ export function chooseV3BladeMaster(hero: Hero): boolean {
   hero.specialization = 'blade_master'; hero.job = 'warrior'; hero.jobTier = 'specialization'; hero.weaponType = 'dual_sword';
   hero.skillLevels = Object.fromEntries([...ADVENTURER_V3_RUNTIME_SKILLS, ...WARRIOR_V3_RUNTIME_SKILLS, ...BLADE_MASTER_V3_RUNTIME_SKILLS].map((skill) => [skill.id, hero.skillProgressionV3!.skillRanks[skill.id] ?? 0]));
   hero.primaryHotbar = hero.primaryHotbar.map(() => null); hero.primaryHotbarOverflow = []; hero.quickHotbars = emptyQuickHotbars();
+  hero.specializationQuestClaimed = true;
+  hero.jobHistory = { ...hero.jobHistory, specialization: { level: hero.level, chapter: 1, acquiredAt: Date.now() } };
   return true;
+}
+
+export type V3JobDevelopmentStage = 'warrior-15' | 'warrior-60' | 'berserker-60' | 'blade-master-60';
+/** Development/test-save helper only. It is intentionally not wired to production UI. */
+export function createV3JobDevelopmentHero(stage: V3JobDevelopmentStage): Hero {
+  const hero = createV3AdventurerHero(`v3-job-${stage}`, `V3 ${stage}`);
+  hero.level = stage === 'warrior-15' ? 15 : 60;
+  if (hero.skillProgressionV3) hero.skillProgressionV3.totalEarnedSP = 500;
+  if (!chooseV3Warrior(hero)) throw new Error(`Unable to create development stage ${stage}`);
+  if (stage === 'berserker-60' && !chooseV3Berserker(hero)) throw new Error(`Unable to create development stage ${stage}`);
+  if (stage === 'blade-master-60' && !chooseV3BladeMaster(hero)) throw new Error(`Unable to create development stage ${stage}`);
+  return hero;
 }
 
 /** Reconciles equipment with the progression-derived Blade Master capability. */
@@ -2188,13 +2207,13 @@ function normalizedHero(value: Record<string, unknown>, slotId = 'slot-1') {
   if (
     !oldSave &&
     value.skillArchitectureVersion === 3 &&
-    value.specialization === 'berserker' &&
+    (value.specialization === 'berserker' || value.specialization === 'blade_master') &&
     h.skillArchitectureVersion === 3 &&
     h.coreJob === 'warrior'
   ) {
-    h.specialization = 'berserker';
+    h.specialization = value.specialization;
     h.jobTier = 'specialization';
-    h.weaponType = 'two_hand_sword';
+    h.weaponType = value.specialization === 'blade_master' ? 'dual_sword' : 'two_hand_sword';
     h.specializationQuestClaimed = value.specializationQuestClaimed === true;
   } else if (
     !oldSave &&

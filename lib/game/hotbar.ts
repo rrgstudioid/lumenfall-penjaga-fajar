@@ -541,7 +541,7 @@ export function quickHotbarKey(
 export function getPrimaryHotbarEntries(hero: Hero): HotbarEntry[] {
   const ids = [
     ...(hero.skillArchitectureVersion === 3
-      ? [...ADVENTURER_V3_RUNTIME_SKILLS, ...(hero.coreJob === 'warrior' ? WARRIOR_V3_RUNTIME_SKILLS : []), ...(hero.specialization === 'berserker' ? BERSERKER_V3_RUNTIME_SKILLS : [])]
+      ? [...ADVENTURER_V3_RUNTIME_SKILLS, ...(hero.coreJob === 'warrior' ? WARRIOR_V3_RUNTIME_SKILLS : []), ...(hero.specialization === 'berserker' ? BERSERKER_V3_RUNTIME_SKILLS : []), ...(hero.specialization === 'blade_master' ? BLADE_MASTER_V3_RUNTIME_SKILLS : [])]
       : activeSkillsFor(hero.coreJob, hero.specialization, hero.progressionArchitecture === 'v2_test' ? 'v2_test' : 'legacy')).map((skill) => skill.id),
     ...actions.map((entry) => entry.id),
     ...hero.inventory.map((item) => item.templateId),

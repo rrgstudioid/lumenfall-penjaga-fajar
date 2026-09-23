@@ -35,12 +35,21 @@ export const NPC_SERVICE_LABELS: Readonly<Record<string, string>> = Object.freez
   'developer-materials': 'Developer Materials',
   'field-camp': 'Field Shop · Teleport · Quests',
 });
-export const getNpcServiceLabel = (npc: Pick<NpcDefinition, 'service'>, hero?: Hero) =>
-  hero && getVisibleJobArchitecture(hero).v2 && ['core','special'].includes(npc.service)
-    ? 'Job Architecture · preview only' : NPC_SERVICE_LABELS[npc.service] ?? 'NPC Services';
-export const getNpcDescription = (npc: NpcDefinition, hero: Hero) =>
-  getVisibleJobArchitecture(hero).v2 && ['core','special'].includes(npc.service)
-    ? 'Job V2 development preview. Specialization belum tersedia; tidak ada promotion melalui layanan ini.' : npc.description;
+export const getNpcServiceLabel = (npc: Pick<NpcDefinition, 'service'>, hero?: Hero) => {
+  const architecture = hero ? getVisibleJobArchitecture(hero) : null;
+  if (architecture?.v2 && ['core','special'].includes(npc.service)) return 'Job Architecture · preview only';
+  if (architecture?.v3 && npc.service === 'core') return 'Core Job Trainer · V3';
+  if (architecture?.v3 && npc.service === 'special') return 'Specialization Trainer · V3';
+  return NPC_SERVICE_LABELS[npc.service] ?? 'NPC Services';
+};
+export const getNpcDescription = (npc: NpcDefinition, hero: Hero) => {
+  const architecture = getVisibleJobArchitecture(hero);
+  if (architecture.v2 && ['core','special'].includes(npc.service))
+    return 'Job V2 development preview. Specialization belum tersedia; tidak ada promotion melalui layanan ini.';
+  if (architecture.v3 && npc.service === 'core') return 'Pilih Warrior mulai Level 15 melalui Skill Progression V3.';
+  if (architecture.v3 && npc.service === 'special') return 'Pilih Berserker atau Blade Master mulai Level 60. Pilihan specialization bersifat eksklusif.';
+  return npc.description;
+};
 // Resolve the actual city registry entry; a caller cannot grant forge access by
 // passing a merchant/field NPC that merely advertises a similar service.
 export function forgeAccessReason(hero: Hero, npcId: string | null | undefined): string {
