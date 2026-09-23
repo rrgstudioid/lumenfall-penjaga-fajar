@@ -1225,6 +1225,46 @@
   display: block;
   margin: 5px 0;
 }
+.js-presentation {
+  display: grid;
+  gap: 13px;
+  margin-top: 14px;
+  max-height: min(58dvh, 610px);
+  overflow-y: auto;
+  padding-right: 4px;
+  scrollbar-color: #8b7557 #141b19;
+}
+.js-presentation-section {
+  border-top: 1px solid #a99c692e;
+  padding-top: 10px;
+}
+.js-presentation-section .co-kicker {
+  font-size: 11px;
+  letter-spacing: 1.4px;
+  margin-bottom: 7px;
+}
+.js-presentation-section dl {
+  margin: 0;
+  gap: 5px;
+}
+.js-presentation-section dd {
+  font-variant-numeric: tabular-nums;
+}
+.js-presentation > .js-effect-preview {
+  margin: 0;
+}
+.js-effect-preview > small + small {
+  margin-top: 3px;
+  color: #bac39d;
+}
+.js-max-rank {
+  display: block;
+  border-top: 1px solid #a99c692e;
+  padding-top: 10px;
+  color: #d6c68f;
+  font-size: 11px;
+  letter-spacing: 1.4px;
+}
 .js-learn {
   display: flex;
   width: 100%;

@@ -46,6 +46,7 @@ import { BERSERKER_V3_SKILL_MAP } from '@/lib/game/berserker-v3';
 import { BLADE_MASTER_V3_SKILL_MAP } from '@/lib/game/blade-master-v3';
 import { availableSkillPointsV3, skillCostThroughRank } from '@/lib/game/skill-progression-v3';
 import { weaponRequirementLabel } from '@/lib/game/weapon-style';
+import { resolveSkillPresentation, type SkillPresentationModel } from '@/lib/game/skill-presentation-v3';
 const v3Definitions = { ...ADVENTURER_V3_SKILL_MAP, ...WARRIOR_V3_SKILL_MAP, ...BERSERKER_V3_SKILL_MAP, ...BLADE_MASTER_V3_SKILL_MAP };
 import {
   AlertDialog,
@@ -57,6 +58,23 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
+
+function PresentationSection({ title, rows }: { title: string; rows: SkillPresentationModel['damage'] }) {
+  if (!rows.length) return null;
+  return (
+    <section className="js-presentation-section">
+      <span className="co-kicker">{title}</span>
+      <dl>
+        {rows.map((row) => (
+          <div key={`${title}-${row.label}`}>
+            <dt>{row.label}</dt>
+            <dd>{row.value}</dd>
+          </div>
+        ))}
+      </dl>
+    </section>
+  );
+}
 
 export function JobSkill({
   hero,
@@ -108,6 +126,9 @@ export function JobSkill({
       ? (hero.passiveLevels[selected.id] ?? 0)
       : 0;
   const v3Definition = hero.skillArchitectureVersion === 3 && selected ? v3Definitions[selected.id] : undefined;
+  const presentation = v3Definition && selectedActive
+    ? resolveSkillPresentation(hero, v3Definition, selectedActive)
+    : null;
   const selectedIsMastery = v3Definition?.skillType === 'MASTERY';
   const nextRankCost = v3Definition ? skillCostThroughRank(v3Definition, level + 1) - skillCostThroughRank(v3Definition, level) : 1;
   const availableSP = hero.skillArchitectureVersion === 3 && hero.skillProgressionV3
@@ -361,7 +382,7 @@ export function JobSkill({
                   Lv. {level} <small>/ {selected.maxLevel}</small>
                 </b>
               </div>
-              <dl>
+              {!v3Definition && <dl>
                 <div>
                   <dt>Character requirement</dt>
                   <dd>Lv. {v3Definition?.rankLevelRequirements?.[Math.min(level, selected.maxLevel - 1)] ?? selected.unlockLevel}</dd>
@@ -401,8 +422,26 @@ export function JobSkill({
                             .join(', ') || 'Tidak ada'}
                   </dd>
                 </div>
-              </dl>
-              {selectedActive && !selectedIsMastery && (
+              </dl>}
+              {presentation && (
+                <div className="js-presentation" data-skill-presentation="v3">
+                  <PresentationSection title="REQUIREMENTS" rows={presentation.requirements} />
+                  <PresentationSection title={presentation.isDamage ? 'DAMAGE SCALING' : 'EFFECT'} rows={presentation.damage} />
+                  <PresentationSection title="SPECIAL MECHANIC" rows={presentation.specialMechanics} />
+                  <PresentationSection title="AREA / TARGETING" rows={presentation.area} />
+                  <PresentationSection title="RESOURCE" rows={presentation.resource} />
+                  <section className="js-effect-preview">
+                    <small>{presentation.preview.label} · BEFORE TARGET DEFENSE</small>
+                    <strong>{presentation.preview.total !== undefined ? `${presentation.preview.total} raw damage` : presentation.preview.value}</strong>
+                    {presentation.preview.perHit.length > 1 && presentation.preview.perHit.map((value, index) => (
+                      <small key={`hit-${index}`}>Hit {index + 1} · {value}</small>
+                    ))}
+                  </section>
+                  <PresentationSection title="NEXT RANK" rows={presentation.nextRank} />
+                  {!presentation.nextRank.length && <span className="js-max-rank">MAX RANK</span>}
+                </div>
+              )}
+              {selectedActive && !selectedIsMastery && !v3Definition && (
                 <>
                   <dl>
                     <div>
