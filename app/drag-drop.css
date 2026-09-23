@@ -102,6 +102,12 @@ body:has(.binding-window):not(:has([role='alertdialog']))
   width: 100%;
   height: 100%;
 }
+.skill-icon-custom > img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: contain;
+}
 .skill-icon .skill-icon-motif {
   position: absolute;
   right: -3px;
