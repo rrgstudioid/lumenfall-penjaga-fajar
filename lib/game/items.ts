@@ -1154,9 +1154,12 @@ export function normalizeItem(raw: unknown): ItemData | null {
   const rawEquipmentType=typeof value.equipmentType==='string'&&Object.values(EQUIPMENT_TYPE_ALIASES).includes(value.equipmentType as EquipmentType)?value.equipmentType as EquipmentType:null;
   const migratedEquipmentType=rawEquipmentType??template.equipmentType??inferEquipmentType({itemType:typeof value.itemType==='string'?value.itemType:template.itemType,equipSlot:typeof value.equipSlot==='string'?value.equipSlot as EquipSlot:template.equipSlot,category:normalizedCategory});
   const savedName = typeof value.name === 'string' ? value.name : null;
-  const canonicalName = savedName && LEGACY_ITEM_NAME_ALIASES[templateId]?.includes(savedName)
+  const isForgeMaterial = template.category === 'material' && template.itemType === 'enhancementMaterial';
+  const canonicalName = isForgeMaterial
     ? template.name
-    : savedName ?? template.name;
+    : savedName && LEGACY_ITEM_NAME_ALIASES[templateId]?.includes(savedName)
+      ? template.name
+      : savedName ?? template.name;
   const normalizedStackable = ['weapon', 'armor', 'accessory', 'pet'].includes(
     rawCategory || legacyCategory(value),
   )

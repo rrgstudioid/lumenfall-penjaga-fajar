@@ -1174,16 +1174,17 @@ export class Game {
   }
   pickupGroundLoot() {
     if (!this.started || this.paused || this.dead) return false;
-    let nearest: GroundLoot | undefined;
+    const pickupRadius = 4;
+    let nearestItem: GroundLoot | undefined;
     let nearestGold: GroundGold | undefined;
-    let nearestDistance = 3.5;
+    let nearestDistance = pickupRadius;
     for (const loot of this.groundLoot) {
       const distance = Math.hypot(this.actor.position.x - loot.group.position.x, this.actor.position.z - loot.group.position.z);
-      if (distance < nearestDistance) { nearest = loot; nearestDistance = distance; }
+      if (distance < nearestDistance) { nearestItem = loot; nearestGold = undefined; nearestDistance = distance; }
     }
     for (const gold of this.groundGold) {
       const distance = Math.hypot(this.actor.position.x - gold.group.position.x, this.actor.position.z - gold.group.position.z);
-      if (distance < nearestDistance) { nearestGold = gold; nearest = undefined; nearestDistance = distance; }
+      if (distance < nearestDistance) { nearestGold = gold; nearestItem = undefined; nearestDistance = distance; }
     }
     if (nearestGold) {
       this.hero.gold += nearestGold.amount;
@@ -1195,23 +1196,24 @@ export class Game {
       this.emit();
       return true;
     }
-    if (!nearest) return false;
-    const result = addItemToInventory(this.hero.inventory, nearest.item, this.hero.inventoryCapacity);
+    if (!nearestItem) return false;
+    const result = addItemToInventory(this.hero.inventory, nearestItem.item, this.hero.inventoryCapacity);
+    this.hero.inventory = result.inventory;
     if (result.remaining) {
+      nearestItem.item = { ...nearestItem.item, quantity: result.remaining };
       this.message('Inventory penuh. Kosongkan slot terlebih dahulu.');
       return false;
     }
-    this.hero.inventory = result.inventory;
-    this.scene.remove(nearest.group);
-    nearest.group.traverse(object => {
+    this.scene.remove(nearestItem.group);
+    nearestItem.group.traverse(object => {
       if (object instanceof T.Mesh) {
         object.geometry.dispose();
         const materials = Array.isArray(object.material) ? object.material : [object.material];
         materials.forEach(material => material.dispose());
       }
     });
-    this.groundLoot = this.groundLoot.filter(loot => loot !== nearest);
-    this.message(`${nearest.item.name} diambil${nearest.item.quantity > 1 ? ` x${nearest.item.quantity}` : ''}.`, nearest.item);
+    this.groundLoot = this.groundLoot.filter(loot => loot !== nearestItem);
+    this.message(`${nearestItem.item.name}${nearestItem.item.quantity > 1 ? ` x${nearestItem.item.quantity}` : ''} diambil.`, nearestItem.item);
     this.save();
     this.emit();
     return true;
@@ -2901,10 +2903,14 @@ export class Game {
       const goldReward=Math.floor((8 + monsterLevel * 1.5) * goldMultiplier * (1 + rewardStats.goldDropRate / 100));
       this.hero.kills += 1;
       this.hero.fieldProgress[this.hero.currentField] = (this.hero.fieldProgress[this.hero.currentField] ?? 0) + 1;
-      this.spawnGoldDrop(goldReward, e.group.position);
+      const goldPosition = e.group.position.clone().add(new T.Vector3(0.85, 0, 0));
+      this.spawnGoldDrop(goldReward, goldPosition);
       const levels = gainXP(this.hero, xp);
       const loot = e.definition ? rollMonsterLoot(this.hero, e.definition, () => this.rand()) : null;
-      if (loot) this.spawnGroundLoot(loot, e.group.position);
+      if (loot) {
+        const itemPosition = e.group.position.clone().add(new T.Vector3(-0.85, 0, 0));
+        this.spawnGroundLoot(loot, itemPosition);
+      }
       this.float(
         e.group.position,
         `+${xp} EXP  +${goldReward} G${loot ? ` · ${loot.rarity}` : ''}`,
