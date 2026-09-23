@@ -1399,6 +1399,23 @@ export function rollMonsterLoot(hero:Hero,monster:MonsterDefinition,rng:()=>numb
   return item;
 }
 
+export function rollMonsterLootDrops(hero:Hero,monster:MonsterDefinition,rng:()=>number=Math.random):ItemData[] {
+  const primary = rollMonsterLoot(hero, monster, rng);
+  if (!primary) return [];
+  const drops = [primary];
+  const material = () => {
+    const item = rollMonsterItem(hero.currentField, monster.variant, hero.specialization, monster.id, rng, 0.01);
+    if (item.category === 'material' && rng() < derivedStats(hero).materialDropRate / 100) item.quantity++;
+    return item;
+  };
+  if (monster.variant === 'elite' && rng() < 0.65) drops.push(material());
+  if (monster.variant === 'boss') {
+    drops.push(material());
+    if (rng() < 0.8) drops.push(rollMonsterItem(hero.currentField, monster.variant, hero.specialization, monster.id, rng));
+  }
+  return drops;
+}
+
 export function collectPendingLoot(hero: Hero) {
   const pending: ItemData[] = [];
   let collected = 0;

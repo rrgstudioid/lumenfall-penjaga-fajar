@@ -43,7 +43,7 @@ import {
   equipItem as equipInventoryItem,
   evolvePet as evolvePetRules,
   freshHero,
-  rollMonsterLoot,
+  rollMonsterLootDrops,
   gainXP,
   hasEquippedGear,
   activeSkills,
@@ -2906,18 +2906,20 @@ export class Game {
       const goldPosition = e.group.position.clone().add(new T.Vector3(0.85, 0, 0));
       this.spawnGoldDrop(goldReward, goldPosition);
       const levels = gainXP(this.hero, xp);
-      const loot = e.definition ? rollMonsterLoot(this.hero, e.definition, () => this.rand()) : null;
-      if (loot) {
-        const itemPosition = e.group.position.clone().add(new T.Vector3(-0.85, 0, 0));
-        this.spawnGroundLoot(loot, itemPosition);
-      }
+      const loots = e.definition ? rollMonsterLootDrops(this.hero, e.definition, () => this.rand()) : [];
+      const lootPositions = [
+        new T.Vector3(-0.85, 0, 0),
+        new T.Vector3(-0.6, 0, 0.72),
+        new T.Vector3(-0.6, 0, -0.72),
+      ];
+      loots.forEach((loot, index) => this.spawnGroundLoot(loot, e.group.position.clone().add(lootPositions[index] ?? new T.Vector3(-0.45 - index * 0.2, 0, 0))));
       this.float(
         e.group.position,
-        `+${xp} EXP  +${goldReward} G${loot ? ` · ${loot.rarity}` : ''}`,
+        `+${xp} EXP  +${goldReward} G${loots.length ? ` · ${loots.length} item${loots.length > 1 ? 's' : ''}` : ''}`,
         'reward',
       );
-      if (loot) {
-        this.message(`${loot.name} jatuh. Tekan Space untuk mengambil.`, loot);
+      if (loots.length) {
+        this.message(`${loots.map(loot => loot.name).join(', ')} jatuh. Tekan Space untuk mengambil.`, loots[0]);
         this.float(e.group.position, 'DROP · SPACE', 'reward');
       }
       if (levels) {
