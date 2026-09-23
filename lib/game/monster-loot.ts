@@ -21,15 +21,6 @@ export const RUNE_DROP_RARITIES:Record<MonsterVariant,Weighted<RuneRarity>[]> = 
   boss:weights({epic:70,legendary:29,ancient:1}),
 };
 export const BOSS_RUNE_DROPS:Record<string,string> = {'verdant-plains':'rune-akar-purba','ironveil-mines':'rune-penjaga-langit','whispering-wilds':'rune-bayangan-caroq','frostfire-highlands':'rune-inti-bara','sunken-ruins':'rune-mata-jayantara','meteorfall-citadel':'rune-raja-meteor'};
-const MONSTER_ESSENCE_NAMES:Record<string,string> = {
-  'Small Slime':'Slime Residue','Wild Boar':'Wild Boar Tusk','Forest Piya':'Piya Feather','Stoneback Beetle':'Stoneback Shell','Giant Rootling':'Rootling Heart','Ancient Treant':'Ancient Bark Core',
-  'Cave Bat':'Bat Wing','Ore Grub':'Raw Ore','Ironfang Bat':'Iron Fang','Tunnel Marauder':'Stolen Mining Token','Ironhide Golem':'Golem Core','Mine Tyrant':"Tyrant's Ore Heart",
-  'Moss Sprite':'Moss Essence','Thorn Wolf':'Thorn Fang','Whispering Wisp':'Whispering Dust','Vineshade Panther':'Panther Claw','Elder Vine':'Elder Vine Core','Forest Warden':"Warden's Seed",
-  'Ember Yak':'Ember Horn','Frost Wolf':'Frozen Fang','Magma Imp':'Magma Shard','Frostfire Wyrm':'Wyrm Scale','Cinderhorn':'Cinder Core','Twin Elemental Lord':'Twin Elemental Heart',
-  'Drowned Warrior':'Drowned Alloy','Drowned Soldier':'Rusted Insignia','Leech Wraith':'Wraith Ichor','Ruin Guardian':'Guardian Fragment','Sunken Sentinel':'Sentinel Core','Leviathan':'Leviathan Eye',
-  'Meteor Wisp':'Star Dust','Meteor Hound':'Meteor Fang','Astral Golem':'Astral Core','Void Knight':'Void Fragment','Meteor Titan':'Titan Alloy','Meteorfall Overlord':"Overlord's Crown",
-};
-
 export function weightedPick<T>(entries:Weighted<T>[],rng:()=>number=Math.random):T {
   const total=entries.reduce((sum,entry)=>sum+Math.max(0,entry.weight),0);
   if(!entries.length||total<=0)throw new Error('Empty loot pool');
@@ -70,9 +61,6 @@ export function rollMonsterItem(fieldId:string,variant:MonsterVariant,specializa
   const template=ITEM_CATALOG[templateId];
   const species=[...field.normalMonsters,...field.eliteMonsters,field.fieldBoss].find(monster=>monster.id===sourceId);
   const source:ItemSource={type:variant==='boss'?(field.id==='meteorfall-citadel'?'high_boss':'field_boss'):variant==='elite'?'elite':'monster',sourceId,label:`${species?.name??variant} · ${field.displayName}`};
-  if(family==='material'&&species&&MONSTER_ESSENCE_NAMES[species.name]){
-    return createItem('monster-essence',{name:MONSTER_ESSENCE_NAMES[species.name],description:`Esensi khas ${species.name}. Dapat ditukar atau digunakan untuk crafting material monster.`,source,quantity:variant==='boss'?2:1});
-  }
   if(family==='rune'||family==='uniqueRune'){
     const rarity=family==='uniqueRune'?template.runeRarity??'ancient':weightedPick(RUNE_DROP_RARITIES[variant],rng);
     return createRuneItem(template.runeTheme as RuneTheme,rarity,{templateId,name:template.name,icon:template.icon,runeSource:template.runeSource,runeJobRequirement:template.runeJobRequirement,requiredCoreJob:template.requiredCoreJob,uniqueEffect:template.uniqueEffect,source});
