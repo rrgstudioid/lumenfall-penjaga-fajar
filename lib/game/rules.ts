@@ -1743,6 +1743,10 @@ export type EnhancementPreview = {
   runeBonus: number;
   finalChance: number;
   protectedBySeal: boolean;
+  hasSeal: boolean;
+  hasFateRune: boolean;
+  usingSeal: boolean;
+  usingFateRune: boolean;
   materialId: string;
   materialRequired: number;
   materialOwned: number;
@@ -1763,6 +1767,7 @@ export function enhancementPreview(
   hero: Hero,
   itemId: string,
   useSeal = hero.enhancementSealEnabled !== false,
+  useFateRune = false,
 ): EnhancementPreview | null {
   const item = itemById(hero.inventory, itemId);
   if (
@@ -1773,34 +1778,40 @@ export function enhancementPreview(
     return null;
   const targetLevel = item.enhancementLevel + 1;
   const baseChance = ENHANCEMENT_CHANCES[targetLevel] ?? 0.15;
-  const runeBonus = hero.inventory.some(
+  const hasFateRune = hero.inventory.some(
     (candidate) => candidate.itemType === 'fateRune' && candidate.quantity > 0 && !candidate.isLocked,
-  )
-    ? 0.08
-    : 0;
-  const protectedBySeal = hero.inventory.some(
+  );
+  const hasSeal = hero.inventory.some(
     (candidate) =>
-      useSeal &&
       candidate.itemType === 'eternalSeal' && candidate.quantity > 0 && !candidate.isLocked,
   );
+  const runeBonus = hasFateRune && useFateRune ? 0.08 : 0;
+  const protectedBySeal = hasSeal && useSeal;
   const materialId = item.enhancementLevel < 3 ? 'iron' : item.enhancementLevel < 6 ? 'titanium' : item.enhancementLevel < 9 ? 'vibranium' : 'meteorite-core';
   const materialRequired = 1 + Math.floor(item.enhancementLevel / 3);
   const materialOwned = hero.inventory
     .filter(m => m.templateId === materialId && !m.isLocked)
     .reduce((n, m) => n + Math.max(0, m.quantity), 0);
+  const blockedReason = item.isLocked
+    ? 'Equipment terkunci. Buka kunci sebelum menempa.'
+    : useFateRune && !hasFateRune
+      ? 'Tidak ada Fate Rune di inventory untuk dipakai.'
+      : materialOwned < materialRequired
+        ? `Membutuhkan ${materialRequired} ${ITEM_CATALOG[materialId].name} (tersedia ${materialOwned}).`
+        : '';
   return {
     baseChance,
     runeBonus,
     finalChance: Math.min(1, baseChance + runeBonus),
     protectedBySeal,
+    hasSeal,
+    hasFateRune,
+    usingSeal: useSeal,
+    usingFateRune: useFateRune && hasFateRune,
     materialId,
     materialRequired,
     materialOwned,
-    blockedReason: item.isLocked
-      ? 'Equipment terkunci. Buka kunci sebelum menempa.'
-      : materialOwned < materialRequired
-        ? `Membutuhkan ${materialRequired} ${ITEM_CATALOG[materialId].name} (tersedia ${materialOwned}).`
-        : '',
+    blockedReason,
     risk: protectedBySeal
       ? 'Gagal: level tetap dan Eternal Seal terpakai.'
       : targetLevel === 7
@@ -1813,8 +1824,15 @@ export function enhancementPreview(
   };
 }
 
-export function enhanceItem(hero: Hero, itemId: string, roll = Math.random(), expectedLevel?: number, useSeal = hero.enhancementSealEnabled !== false) {
-  const preview = enhancementPreview(hero, itemId, useSeal);
+export function enhanceItem(
+  hero: Hero,
+  itemId: string,
+  roll = Math.random(),
+  expectedLevel?: number,
+  useSeal = hero.enhancementSealEnabled !== false,
+  useFateRune = false,
+) {
+  const preview = enhancementPreview(hero, itemId, useSeal, useFateRune);
   const item = itemById(hero.inventory, itemId);
   if (!preview || !item)
     return { ok: false, attempted: false, reason: 'Item tidak dapat di-enhance atau sudah mencapai batas maksimal.', preview };
@@ -1833,7 +1851,7 @@ export function enhanceItem(hero: Hero, itemId: string, roll = Math.random(), ex
     needed -= result.removed;
     if (!needed) break;
   }
-  const rune = inventory.find(m => m.itemType === 'fateRune' && m.quantity > 0 && !m.isLocked);
+  const rune = useFateRune ? inventory.find(m => m.itemType === 'fateRune' && m.quantity > 0 && !m.isLocked) : undefined;
   if (rune && preview.runeBonus) inventory = removeItemQuantity(inventory, rune.id, 1).inventory;
   const ok = roll < preview.finalChance;
   const seal = useSeal ? inventory.find(m => m.itemType === 'eternalSeal' && m.quantity > 0 && !m.isLocked) : undefined;

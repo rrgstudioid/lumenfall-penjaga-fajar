@@ -2146,15 +2146,15 @@ export class Game {
         : 'Inventory masih penuh. Kosongkan slot terlebih dahulu.',
     );
   }
-  enhancementPreview(itemId: string) {
-    return enhancementPreview(this.hero, itemId);
+  enhancementPreview(itemId: string, useSeal = this.hero.enhancementSealEnabled !== false, useFateRune = false) {
+    return enhancementPreview(this.hero, itemId, useSeal, useFateRune);
   }
   setEnhancementSealEnabled(enabled: boolean) {
     this.hero.enhancementSealEnabled = enabled;
     this.save();
     this.emit();
   }
-  enhanceItem(itemId: string, expectedLevel?: number, useSeal = this.hero.enhancementSealEnabled !== false) {
+  enhanceItem(itemId: string, expectedLevel?: number, useSeal = this.hero.enhancementSealEnabled !== false, useFateRune = false) {
     const reason = !this.started || this.dead
       ? 'Tempa tidak tersedia saat ini.'
       : forgeAccessReason(this.hero, this.forgeNpcId);
@@ -2163,7 +2163,7 @@ export class Game {
       return { ok: false, attempted: false, reason, preview: null };
     }
     const equipped = Object.values(this.hero.equipment).includes(itemId);
-    const result = enhanceItem(this.hero, itemId, Math.random(), expectedLevel, useSeal);
+    const result = enhanceItem(this.hero, itemId, Math.random(), expectedLevel, useSeal, useFateRune);
     this.message(result.reason);
     if (result.attempted) {
       // Apply +10 VFX immediately, including removal on downgrade/destruction.

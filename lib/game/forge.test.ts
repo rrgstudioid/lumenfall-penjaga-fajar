@@ -118,7 +118,7 @@ await test('success uses one transaction across multiple material stacks and imm
     gold = hero.gold,
     stats = derivedStats(hero);
   assert.equal(enhancementPreview(hero, item.id)!.materialOwned, 2);
-  assert.equal(enhanceItem(hero, item.id, 0, 3).ok, true);
+  assert.equal(enhanceItem(hero, item.id, 0, 3, true, true).ok, true);
   assert.notEqual(hero.inventory, inventory);
   assert.equal(JSON.stringify(inventory), before);
   assert.equal(
@@ -210,6 +210,20 @@ await test('failed low enhancement downgrades once, never below zero, and spends
       30 - p.materialRequired,
     );
   }
+});
+await test('Fate Rune is opt-in and only consumed when explicitly selected', () => {
+  const { hero, item } = fixture(0);
+  hero.inventory.push(createItem('fate-rune-fragment', { quantity: 2 }));
+  const previewWithoutRune = enhancementPreview(hero, item.id, true, false);
+  assert.equal(previewWithoutRune?.runeBonus, 0);
+  assert.equal(previewWithoutRune?.finalChance, previewWithoutRune?.baseChance);
+  const previewWithRune = enhancementPreview(hero, item.id, true, true);
+  assert.equal(previewWithRune?.runeBonus, 0.08);
+  assert.equal(previewWithRune?.finalChance, Math.min(1, previewWithRune.baseChance + 0.08));
+  const before = hero.inventory.find((entry) => entry.itemType === 'fateRune')?.quantity ?? 0;
+  const result = enhanceItem(hero, item.id, 0, undefined, true, true);
+  assert.equal(result.ok, true);
+  assert.equal(hero.inventory.find((entry) => entry.itemType === 'fateRune')?.quantity ?? 0, before - 1);
 });
 await test('Eternal Seal is only consumed on failure and protects +8 equipment', () => {
   for (const roll of [0, 1]) {

@@ -59,6 +59,7 @@ export function ForgePanel({
     id: string;
     level: number;
     useSeal: boolean;
+    useFateRune: boolean;
   } | null>(null);
   const [result, setResult] = useState<{
     ok: boolean; attempted: boolean; reason: string; uncertain?: boolean;
@@ -70,6 +71,9 @@ export function ForgePanel({
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [processing, setProcessing] = useState<ItemData | null>(null);
   const [useSeal, setUseSeal] = useState(hero.enhancementSealEnabled !== false);
+  const [useFateRune, setUseFateRune] = useState(false);
+  const hasSeal = hero.inventory.some((candidate) => candidate.itemType === 'eternalSeal' && candidate.quantity > 0 && !candidate.isLocked);
+  const hasFateRune = hero.inventory.some((candidate) => candidate.itemType === 'fateRune' && candidate.quantity > 0 && !candidate.isLocked);
   const feedback = useRef<HTMLDivElement>(null);
   // Waiting is presentation only. Unmount/close cancels BEFORE the one atomic transaction.
   useEffect(() => () => {
@@ -89,7 +93,11 @@ export function ForgePanel({
     (candidate) => candidate.id === npcId,
   );
   const accessReason = forgeAccessReason(hero, npcId);
-  const preview = selected ? enhancementPreview(hero, selected.id, useSeal) : null;
+  useEffect(() => {
+    if (!hasSeal && useSeal) setUseSeal(false);
+    if (!hasFateRune && useFateRune) setUseFateRune(false);
+  }, [hasSeal, hasFateRune, useSeal, useFateRune]);
+  const preview = selected ? enhancementPreview(hero, selected.id, useSeal, useFateRune) : null;
   const current = selected ? itemStats(selected) : {};
   const next =
     selected && preview
@@ -112,6 +120,7 @@ export function ForgePanel({
     selected?.id === confirmation.id &&
     selected.enhancementLevel === confirmation.level &&
     useSeal === confirmation.useSeal &&
+    useFateRune === confirmation.useFateRune &&
     !blocked,
   );
 
@@ -164,7 +173,7 @@ export function ForgePanel({
             <div className="forge-result-actions">
               {result.after && !blocked && <button className="primary-button" onClick={() => {
                 if (committing.current || !selected) return;
-                setConfirmation({ id: selected.id, level: selected.enhancementLevel, useSeal });
+                setConfirmation({ id: selected.id, level: selected.enhancementLevel, useSeal, useFateRune });
               }}>Enhance Again</button>}
               {onClose && <button className="secondary-button" onClick={onClose}>Close Forge</button>}
             </div>
@@ -337,8 +346,8 @@ export function ForgePanel({
                   <label className="forge-seal-toggle" aria-label="Gunakan Eternal Seal">
                     <input
                       type="checkbox"
-                      checked={useSeal}
-                      disabled={Boolean(processing)}
+                      checked={useSeal && hasSeal}
+                      disabled={Boolean(processing) || !hasSeal}
                       onChange={(event) => {
                         const enabled = event.target.checked;
                         setUseSeal(enabled);
@@ -347,7 +356,33 @@ export function ForgePanel({
                     />
                     <span>
                       <strong>Gunakan Eternal Seal</strong>
-                      <small>{useSeal ? 'Perlindungan aktif jika Seal tersedia.' : 'Enhancement tidak akan memakai Seal.'}</small>
+                      <small>
+                        {hasSeal
+                          ? useSeal
+                            ? 'Perlindungan aktif.'
+                            : 'Enhancement tidak akan memakai Seal.'
+                          : 'Tidak ada Eternal Seal di inventory.'}
+                      </small>
+                    </span>
+                  </label>
+                  <label className="forge-seal-toggle" aria-label="Gunakan Fate Rune">
+                    <input
+                      type="checkbox"
+                      checked={useFateRune && hasFateRune}
+                      disabled={Boolean(processing) || !hasFateRune}
+                      onChange={(event) => {
+                        setUseFateRune(event.target.checked);
+                      }}
+                    />
+                    <span>
+                      <strong>Gunakan Fate Rune</strong>
+                      <small>
+                        {hasFateRune
+                          ? useFateRune
+                            ? '+8% success chance aktif.'
+                            : 'Tambahkan +8% success chance bila diaktifkan.'
+                          : 'Tidak ada Fate Rune di inventory.'}
+                      </small>
                     </span>
                   </label>
                 </div>
@@ -363,6 +398,7 @@ export function ForgePanel({
                       id: selected.id,
                       level: selected.enhancementLevel,
                       useSeal,
+                      useFateRune,
                     });
                   }}
                 >
@@ -393,7 +429,7 @@ export function ForgePanel({
             <AlertDialogTitle>Konfirmasi tempa equipment</AlertDialogTitle>
             <AlertDialogDescription>
               <JobText>{confirmationValid && selected && preview
-                  ? `$<JobText>{selected.name}</JobText> +${selected.enhancementLevel} → +${selected.enhancementLevel + 1}. Peluang sukses ${Math.round(preview.finalChance * 100)}%. Biaya ${preview.materialRequired} ${material?.name}, 0 GOLD.${preview.runeBonus ? ' Fate Rune Fragment ×1 otomatis terpakai.' : ''} ${preview.risk}${!preview.protectedBySeal && selected.enhancementLevel + 1 >= 9 ? ' Equipment beserta Rune terpasang akan hilang jika gagal.' : ''} Material tetap terpakai saat gagal.`
+                  ? `$<JobText>{selected.name}</JobText> +${selected.enhancementLevel} → +${selected.enhancementLevel + 1}. Peluang sukses ${Math.round(preview.finalChance * 100)}%. Biaya ${preview.materialRequired} ${material?.name}, 0 GOLD.${preview.runeBonus ? ' Fate Rune terpakai dan menambah +8% success chance.' : ' Fate Rune tidak dipakai.'} ${preview.risk}${!preview.protectedBySeal && selected.enhancementLevel + 1 >= 9 ? ' Equipment beserta Rune terpasang akan hilang jika gagal.' : ''} Material tetap terpakai saat gagal.`
                 : blocked ||
                   'Equipment berubah. Batalkan dan periksa preview kembali.'}</JobText>
             </AlertDialogDescription>
@@ -420,7 +456,7 @@ export function ForgePanel({
                   timer.current = null;
                   try {
                     // Engine revalidates location, NPC, level and resources at execution time.
-                    const outcome = game.enhanceItem(request.id, request.level, request.useSeal);
+                    const outcome = game.enhanceItem(request.id, request.level, request.useSeal, request.useFateRune);
                     const after = game.hero.inventory.find(item => item.id === request.id);
                     setResult({ ...outcome, before: target, after: after ? structuredClone(after) : undefined });
                   } catch {
