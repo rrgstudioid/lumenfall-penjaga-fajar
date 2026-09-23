@@ -135,7 +135,7 @@ export function ForgePanel({
       )}
       <div ref={feedback}>
         {processing && (
-          <section className="forge-working" role="status" aria-live="polite">
+          <output className="forge-working" aria-live="polite">
             <ItemHover as="div" item={processing} className="forge-working-art" aria-hidden="true">
               <ItemIcon item={processing} />
               <Hammer className="forge-working-hammer" size={32} />
@@ -145,10 +145,10 @@ export function ForgePanel({
             <Progress value={null} className="forge-wait-track" aria-label="Proses tempa" />
             <small>Menyiapkan tempa. Bahan digunakan saat proses selesai.</small>
             <button className="secondary-button" onClick={cancelPreparation}>Cancel forging</button>
-          </section>
+          </output>
         )}
         {result && !processing && (
-          <ItemHover as="section" item={result.after ?? result.before} className={`forge-result ${result.ok ? 'is-success' : ''}`} role="status" aria-live="polite">
+          <ItemHover as="section" item={result.after ?? result.before} className={`forge-result ${result.ok ? 'is-success' : ''}`} aria-live="polite">
             {result.before && <ItemIcon item={result.after ?? result.before} />}
             <h3>{result.uncertain ? 'Periksa hasil equipment' : !result.attempted ? 'Enhancement Not Started' : result.ok ? 'Enhancement Successful' : 'Enhancement Failed'}</h3>
             <p>{result.reason}</p>
@@ -164,7 +164,7 @@ export function ForgePanel({
             <div className="forge-result-actions">
               {result.after && !blocked && <button className="primary-button" onClick={() => {
                 if (committing.current || !selected) return;
-                setConfirmation({ id: selected.id, level: selected.enhancementLevel });
+                setConfirmation({ id: selected.id, level: selected.enhancementLevel, useSeal });
               }}>Enhance Again</button>}
               {onClose && <button className="secondary-button" onClick={onClose}>Close Forge</button>}
             </div>
@@ -326,7 +326,7 @@ export function ForgePanel({
                   <p className="forge-risk">
                     {preview.protectedBySeal && <ShieldCheck size={15} />}{' '}
                     {preview.risk}
-                    {!preview.protectedBySeal && selected.enhancementLevel >= 8
+                    {!preview.protectedBySeal && selected.enhancementLevel + 1 >= 9
                       ? ' Rune dalam socket juga hilang jika equipment hancur.'
                       : ''}
                   </p>
@@ -334,7 +334,7 @@ export function ForgePanel({
                     Material tetap terpakai saat gagal. Eternal Seal hanya
                     terpakai ketika toggle perlindungan aktif dan melindungi kegagalan.
                   </small>
-                  <label className="forge-seal-toggle">
+                  <label className="forge-seal-toggle" aria-label="Gunakan Eternal Seal">
                     <input
                       type="checkbox"
                       checked={useSeal}
@@ -393,7 +393,7 @@ export function ForgePanel({
             <AlertDialogTitle>Konfirmasi tempa equipment</AlertDialogTitle>
             <AlertDialogDescription>
               <JobText>{confirmationValid && selected && preview
-                  ? `$<JobText>{selected.name}</JobText> +${selected.enhancementLevel} → +${selected.enhancementLevel + 1}. Peluang sukses ${Math.round(preview.finalChance * 100)}%. Biaya ${preview.materialRequired} ${material?.name}, 0 GOLD.${preview.runeBonus ? ' Fate Rune Fragment ×1 otomatis terpakai.' : ''} ${preview.risk}${!preview.protectedBySeal && selected.enhancementLevel >= 8 ? ' Equipment beserta Rune terpasang akan hilang jika gagal.' : ''} Material tetap terpakai saat gagal.`
+                  ? `$<JobText>{selected.name}</JobText> +${selected.enhancementLevel} → +${selected.enhancementLevel + 1}. Peluang sukses ${Math.round(preview.finalChance * 100)}%. Biaya ${preview.materialRequired} ${material?.name}, 0 GOLD.${preview.runeBonus ? ' Fate Rune Fragment ×1 otomatis terpakai.' : ''} ${preview.risk}${!preview.protectedBySeal && selected.enhancementLevel + 1 >= 9 ? ' Equipment beserta Rune terpasang akan hilang jika gagal.' : ''} Material tetap terpakai saat gagal.`
                 : blocked ||
                   'Equipment berubah. Batalkan dan periksa preview kembali.'}</JobText>
             </AlertDialogDescription>

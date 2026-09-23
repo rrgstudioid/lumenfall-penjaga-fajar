@@ -1754,6 +1754,11 @@ export const isEnhanceableEquipment = (
   item: Pick<ItemData, 'equipSlot' | 'category' | 'maxEnhancementLevel'>,
 ) => Boolean(item.equipSlot) && ['weapon', 'armor', 'accessory'].includes(item.category) && item.maxEnhancementLevel > 0;
 
+const ENHANCEMENT_CHANCES: Readonly<Record<number, number>> = {
+  1: 1, 2: 1, 3: 1, 4: 0.7, 5: 0.6, 6: 0.5,
+  7: 0.4, 8: 0.36, 9: 0.32, 10: 0.25, 11: 0.2, 12: 0.15,
+};
+
 export function enhancementPreview(
   hero: Hero,
   itemId: string,
@@ -1766,7 +1771,8 @@ export function enhancementPreview(
     item.enhancementLevel >= item.maxEnhancementLevel
   )
     return null;
-  const baseChance = Math.max(0.2, 0.86 - item.enhancementLevel * 0.05);
+  const targetLevel = item.enhancementLevel + 1;
+  const baseChance = ENHANCEMENT_CHANCES[targetLevel] ?? 0.15;
   const runeBonus = hero.inventory.some(
     (candidate) => candidate.itemType === 'fateRune' && candidate.quantity > 0 && !candidate.isLocked,
   )
@@ -1785,7 +1791,7 @@ export function enhancementPreview(
   return {
     baseChance,
     runeBonus,
-    finalChance: Math.min(0.98, baseChance + runeBonus),
+    finalChance: Math.min(1, baseChance + runeBonus),
     protectedBySeal,
     materialId,
     materialRequired,
@@ -1797,9 +1803,13 @@ export function enhancementPreview(
         : '',
     risk: protectedBySeal
       ? 'Gagal: level tetap dan Eternal Seal terpakai.'
-      : item.enhancementLevel >= 8
-        ? 'Gagal: item dapat hancur.'
-        : 'Gagal: level enhancement dapat turun 1.',
+      : targetLevel === 7
+        ? 'Gagal: level kembali ke +3.'
+        : targetLevel === 8
+          ? 'Gagal: level kembali ke +2.'
+          : targetLevel >= 9
+            ? 'Gagal: equipment dapat hancur.'
+            : 'Gagal: level enhancement tetap.',
   };
 }
 
@@ -1827,8 +1837,10 @@ export function enhanceItem(hero: Hero, itemId: string, roll = Math.random(), ex
   if (rune && preview.runeBonus) inventory = removeItemQuantity(inventory, rune.id, 1).inventory;
   const ok = roll < preview.finalChance;
   const seal = useSeal ? inventory.find(m => m.itemType === 'eternalSeal' && m.quantity > 0 && !m.isLocked) : undefined;
-  const destroyed = !ok && !seal && item.enhancementLevel >= 8;
-  const level = ok ? item.enhancementLevel + 1 : seal ? item.enhancementLevel : Math.max(0, item.enhancementLevel - 1);
+  const targetLevel = item.enhancementLevel + 1;
+  const destroyed = !ok && !seal && targetLevel >= 9;
+  const fallbackLevel = targetLevel === 7 ? 3 : targetLevel === 8 ? 2 : item.enhancementLevel;
+  const level = ok ? targetLevel : seal ? item.enhancementLevel : fallbackLevel;
   if (!ok && seal) inventory = removeItemQuantity(inventory, seal.id, 1).inventory;
   hero.inventory = destroyed
     ? inventory.filter(m => m.id !== itemId)
@@ -1844,8 +1856,7 @@ export function enhanceItem(hero: Hero, itemId: string, roll = Math.random(), ex
   const reason = ok ? `${item.name} berhasil menjadi +${level}.`
     : seal ? 'Enhancement gagal, tetapi Eternal Seal melindungi item.'
     : destroyed ? `${item.name} hancur karena enhancement gagal.`
-    : item.enhancementLevel === 0 ? 'Enhancement gagal. Level item tetap +0.'
-    : `Enhancement gagal. Level item turun menjadi +${level}.`;
+    : `Enhancement gagal. Level item kembali menjadi +${level}.`;
   return { ok, attempted: true, reason, preview };
 }
 

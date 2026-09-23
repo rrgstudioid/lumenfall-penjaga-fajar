@@ -203,10 +203,8 @@ await test('failed low enhancement downgrades once, never below zero, and spends
     const result = enhanceItem(hero, item.id, 1);
     assert.equal(result.ok, false);
     assert.equal(result.attempted, true);
-    assert.equal(
-      hero.inventory.find((i) => i.id === item.id)?.enhancementLevel,
-      Math.max(0, level - 1),
-    );
+    const expectedLevel = level === 7 ? 2 : level;
+    assert.equal(hero.inventory.find((i) => i.id === item.id)?.enhancementLevel, expectedLevel);
     assert.equal(
       hero.inventory.find((i) => i.templateId === p.materialId)?.quantity,
       30 - p.materialRequired,
