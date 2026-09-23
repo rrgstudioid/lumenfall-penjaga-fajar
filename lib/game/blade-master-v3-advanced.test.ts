@@ -94,6 +94,28 @@ test('Twin Assault world-path sequence applies both hits to monster HP in the ac
   assert.equal(target.hp, 400 - totalDamage);
 });
 
+test('Blade Master V4 exposes canonical base-damage ranges and rank power factor', () => {
+  const twin = BLADE_MASTER_V3_SKILL_MAP[id('twin-assault')];
+  assert.deepEqual(twin.baseDamageMinByRank, [100, 106, 112, 118, 124, 131, 138, 145]);
+  assert.deepEqual(twin.baseDamageMaxByRank, [150, 157, 164, 171, 178, 185, 192, 200]);
+  assert.equal(twin.skillPowerFactor, 8);
+  assert.deepEqual(twin.rankPowerFactorByRank, [1, 1.05, 1.1, 1.15, 1.2, 1.25, 1.3, 1.35]);
+  const tempest = BLADE_MASTER_V3_SKILL_MAP[id('blade-tempest')];
+  assert.equal(tempest.skillPowerFactor, 10);
+  assert.deepEqual(tempest.rankPowerFactorByRank, [1, 1.05, 1.1]);
+});
+
+test('Twin Assault rolls once per cast and splits the shared core correctly across its two hits', () => {
+  const { hero } = setup(80);
+  const skill = BLADE_MASTER_V3_RUNTIME_MAP[id('twin-assault')];
+  const stats = derivedStats(hero);
+  const action = resolveHeroSkill(hero, skill, 1, stats, undefined, [], undefined, 0, () => 0.5);
+  assert.equal(action.hitSequence.length, 2);
+  assert.equal(action.hitSequence[0].baseDamage + action.hitSequence[1].baseDamage, 125 * 8, 'shared base core should total once per cast');
+  assert.equal(action.hitSequence[0].baseDamage, action.hitSequence[1].baseDamage);
+  assert.ok(action.hitSequence.every((hit) => hit.baseDamage > 0));
+});
+
 test('Piercing Sequence and Tempest preserve real hits, fixed timing, hand identity and weighted shared contribution', () => {
   const {hero}=setup();
   for(const [short,rank,weights,hands,total] of [

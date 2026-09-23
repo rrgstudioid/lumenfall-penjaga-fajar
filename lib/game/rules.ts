@@ -1028,7 +1028,7 @@ export function skillCosts(hero: Hero, skill: SkillDefinition) {
 export function skillWeaponAllowed(hero:Hero, skill:SkillDefinition, legacy=equippedWeaponType(hero)) {
   return meetsWeaponRequirement(skill.weaponRequirement,itemById(hero.inventory,hero.equipment.mainHand),itemById(hero.inventory,hero.equipment.offHand),legacy);
 }
-export function resolveHeroSkill(hero:Hero, skill:SkillDefinition, rank=hero.skillLevels[skill.id]??1, stats=derivedStats(hero),counter?:CounterContext,extraModifiers:CombatModifier[]=[],impact?:ImpactContext,bladeTempoManaReduction=0) {
+export function resolveHeroSkill(hero:Hero, skill:SkillDefinition, rank=hero.skillLevels[skill.id]??1, stats=derivedStats(hero),counter?:CounterContext,extraModifiers:CombatModifier[]=[],impact?:ImpactContext,bladeTempoManaReduction=0, rng: () => number = Math.random) {
   const base = calculateBaseStats(hero);
   const gear = calculateEquipmentStats(hero);
   const berserkerSkill = hero.skillArchitectureVersion === 3 && hero.specialization === 'berserker' && skill.tags?.includes('v3-berserker');
@@ -1052,6 +1052,7 @@ export function resolveHeroSkill(hero:Hero, skill:SkillDefinition, rank=hero.ski
     equipmentDamage:getEquippedItems(hero).reduce((sum,item)=>sum+(item.skillModifiers[skill.id]??0),0),
     weaponAllowed:skillWeaponAllowed(hero,skill),
     weaponStyle,
+    rng,
     primaryStats: (() => {
       const effective = {
         str: base.str + (gear.str ?? 0),

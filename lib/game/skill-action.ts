@@ -63,6 +63,7 @@ export type SkillResolveContext = {
   weaponAllowed: boolean;
   weaponStyle: WeaponType;
   primaryStats?: { str: number; vit: number; dex: number; int: number };
+  rng?: () => number;
 };
 const safe = (value: number | undefined, fallback = 0) =>
   Number.isFinite(value) ? Math.max(0, value!) : fallback;
@@ -165,39 +166,55 @@ export function resolveSkillAction(
     }
   const damageType =
     skill.damageType ?? (explicit ? 'physical' : legacy.damageType);
+  const rankPowerFactor = skill.rankPowerFactorByRank?.[rank - 1] ?? (1 + (rank - 1) * 0.05);
   const damageMultiplier =
-    (explicit ? 1 : 1 + (rank - 1) * 0.12) *
+    ((explicit ? 1 : 1 + (rank - 1) * 0.12) *
     context.masteryPower *
     (1 + context.equipmentDamage) *
-    (1 + safe(context.stats.skillDamage) / 100);
+    (1 + safe(context.stats.skillDamage) / 100)) *
+    rankPowerFactor;
   // A structured hit owns its coefficients: omitted fields are zero, never the full cast damage.
   const hits = sequence?.length ? sequence : [{ delay: 0, ...values }];
+  const baseDamageRollMin = safe(skill.baseDamageMinByRank?.[rank - 1], 0);
+  const baseDamageRollMax = safe(skill.baseDamageMaxByRank?.[rank - 1], 0);
+  const skillPowerFactor = safe(skill.skillPowerFactor, 0);
+  const hasSkillBaseDamage = skillPowerFactor > 0 && baseDamageRollMin > 0 && baseDamageRollMax > 0;
+  const rng = context.rng ?? Math.random;
+  const baseDamageRoll = hasSkillBaseDamage
+    ? Math.min(baseDamageRollMax, Math.max(baseDamageRollMin, baseDamageRollMin + (baseDamageRollMax - baseDamageRollMin) * rng()))
+    : null;
+  const corePower = hasSkillBaseDamage && baseDamageRoll !== null ? baseDamageRoll * skillPowerFactor : null;
   const hitSequence: ResolvedSkillHit[] = hits
-    .map((hit) => ({
-      delay: safe(hit.delay),
-      // Explicit V3 stat scaling is resolved exactly once into the hit's flat
-      // portion. This keeps it separate from CFV3 physical weapon attack.
-      baseDamage: safe(hit.baseDamage) +
-        ((statScaling.str ?? 0) * (context.primaryStats?.str ?? 0) +
-        (statScaling.vit ?? 0) * (context.primaryStats?.vit ?? 0) +
-        (statScaling.dex ?? 0) * (context.primaryStats?.dex ?? 0) +
-        (statScaling.int ?? 0) * (context.primaryStats?.int ?? 0)) * (hit.sharedContributionWeight ?? 1),
-      physicalCoefficient: safe(hit.physicalCoefficient),
-      magicCoefficient: safe(hit.magicCoefficient),
-      skillPowerCoefficient: safe(hit.skillPowerCoefficient),
-      knockbackStrength:
-        safe(hit.knockbackStrength, values.knockbackStrength),
-      damageType,
-      damageMultiplier,
-      canCrit: skill.canCrit ?? false,
-      criticalRate: context.stats.criticalRate,
-      criticalDamage: context.stats.criticalDamage,
-      accuracy: context.stats.accuracy,
-      statuses: [...statuses, ...(hit.statusEffect ? [hit.statusEffect] : [])],
-      weaponHand: hit.weaponHand,
-      sharedContributionWeight: hit.sharedContributionWeight,
-      weaponContributionCoefficient: hit.weaponContributionCoefficient,
-    }))
+    .map((hit, index) => {
+      const totalWeight = hits.reduce((sum, candidate) => sum + (candidate.sharedContributionWeight ?? 1), 0) || hits.length;
+      const share = corePower !== null ? (corePower * ((hit.sharedContributionWeight ?? 1) / totalWeight)) : 0;
+      const baseComponent = hasSkillBaseDamage ? share : safe(hit.baseDamage);
+      return {
+        delay: safe(hit.delay),
+        // Explicit V3 stat scaling is resolved exactly once into the hit's flat
+        // portion. This keeps it separate from CFV3 physical weapon attack.
+        baseDamage: baseComponent +
+          ((statScaling.str ?? 0) * (context.primaryStats?.str ?? 0) +
+          (statScaling.vit ?? 0) * (context.primaryStats?.vit ?? 0) +
+          (statScaling.dex ?? 0) * (context.primaryStats?.dex ?? 0) +
+          (statScaling.int ?? 0) * (context.primaryStats?.int ?? 0)) * (hit.sharedContributionWeight ?? 1),
+        physicalCoefficient: safe(hit.physicalCoefficient),
+        magicCoefficient: safe(hit.magicCoefficient),
+        skillPowerCoefficient: safe(hit.skillPowerCoefficient),
+        knockbackStrength:
+          safe(hit.knockbackStrength, values.knockbackStrength),
+        damageType,
+        damageMultiplier,
+        canCrit: skill.canCrit ?? false,
+        criticalRate: context.stats.criticalRate,
+        criticalDamage: context.stats.criticalDamage,
+        accuracy: context.stats.accuracy,
+        statuses: [...statuses, ...(hit.statusEffect ? [hit.statusEffect] : [])],
+        weaponHand: hit.weaponHand,
+        sharedContributionWeight: hit.sharedContributionWeight,
+        weaponContributionCoefficient: hit.weaponContributionCoefficient,
+      };
+    })
     .sort((a, b) => a.delay - b.delay);
   const result: ResolvedSkillAction = {
     ...skill,
