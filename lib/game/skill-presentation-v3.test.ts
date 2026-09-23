@@ -58,7 +58,7 @@ test('mastery presentation uses rank-one gate, player job label, and no cast res
   assert.equal(model.requirements.find((row) => row.label === 'Character Requirement')?.value, 'Lv. 60');
   assert.equal(model.requirements.find((row) => row.label === 'Job Requirement')?.value, 'Blade Master');
   assert.equal(model.resource.length, 0);
-  assert.match(model.preview.value ?? '', /Dual Wield/);
+  assert.equal('preview' in model, false);
   assert.doesNotMatch(JSON.stringify(model), /blade_master|dual_wield/);
 });
 

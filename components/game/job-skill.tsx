@@ -431,13 +431,6 @@ export function JobSkill({
                   <PresentationSection title="SPECIAL MECHANIC" rows={presentation.specialMechanics} />
                   <PresentationSection title="AREA / TARGETING" rows={presentation.area} />
                   <PresentationSection title="RESOURCE" rows={presentation.resource} />
-                  <section className="js-effect-preview">
-                    <small>{presentation.preview.label} · BEFORE TARGET DEFENSE</small>
-                    <strong>{presentation.preview.total !== undefined ? `${presentation.preview.total} raw damage` : presentation.preview.value}</strong>
-                    {presentation.preview.perHit.length > 1 && presentation.preview.perHit.map((value, index) => (
-                      <small key={`hit-${index}`}>Hit {index + 1} · {value}</small>
-                    ))}
-                  </section>
                   <PresentationSection title="NEXT RANK" rows={presentation.nextRank} />
                   {!presentation.nextRank.length && <span className="js-max-rank">MAX RANK</span>}
                 </div>
