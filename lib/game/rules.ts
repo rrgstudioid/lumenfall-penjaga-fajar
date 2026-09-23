@@ -9,7 +9,7 @@ import { resolveSkillAction, skillHitDamage, resolvedDamageParts } from './skill
 import { ADVENTURER_V3_RUNTIME_SKILLS, ADVENTURER_V3_SKILL_MAP, adventurerV3StartingState } from './adventurer-v3.ts';
 import { WARRIOR_V3_RUNTIME_SKILLS, WARRIOR_V3_SKILL_MAP, warriorV3StateAfterCoreChange } from './warrior-v3.ts';
 import { BERSERKER_V3_RUNTIME_SKILLS, BERSERKER_V3_SKILL_MAP, berserkerV3StateAfterSpecialization } from './berserker-v3.ts';
-import { BLADE_MASTER_V3_RUNTIME_SKILLS, BLADE_MASTER_V3_SKILL_MAP, BLADE_MASTER_DUAL_MANA_SKILLS, bladeMasterV3StateAfterSpecialization, bladeMasterDualWieldActive, composeBladeWeaponHits } from './blade-master-v3.ts';
+import { BLADE_MASTER_V3_RUNTIME_SKILLS, BLADE_MASTER_V3_SKILL_MAP, BLADE_MASTER_DUAL_MANA_SKILLS, BLADE_MASTER_MASTERY_MANA_SKILLS, bladeMasterV3StateAfterSpecialization, bladeMasterDualWieldActive, composeBladeWeaponHits } from './blade-master-v3.ts';
 import type { StunState } from './stun.ts';
 import { canPurchaseSkillRank, normalizeSkillProgressionV3, purchaseSkillRankV3, transitionSkillJobV3, refundAllSkillPointsForJobChange, spentSkillPointsV3, type SkillProgressionV3State } from './skill-progression-v3.ts';
 import { meetsWeaponRequirement, resolveWeaponStyle } from './weapon-style.ts';
@@ -1005,7 +1005,8 @@ export function resolveHeroSkill(hero:Hero, skill:SkillDefinition, rank=hero.ski
   const tranceRank = hero.specialization === 'berserker' ? (hero.skillProgressionV3?.skillRanks['v3-berserker-trance'] ?? 0) : 0;
   const tranceActive = tranceRank > 0 && Number(hero.activeBuffs['v3-berserker-trance'] ?? 0) > 0;
   const dualSkill = BLADE_MASTER_DUAL_MANA_SKILLS.has(skill.id);
-  const bladeManaReduction = bladeMasteryRank > 0 && dualSkill && weaponStyle === 'dual_sword' ? [0,0,2,4,6,8][Math.min(5, bladeMasteryRank)] : 0;
+  const masteryManaSkill = BLADE_MASTER_MASTERY_MANA_SKILLS.has(skill.id);
+  const bladeManaReduction = bladeMasteryRank > 0 && masteryManaSkill && weaponStyle === 'dual_sword' ? [0,0,2,4,6,8][Math.min(5, bladeMasteryRank)] : 0;
   const reduction = Math.max(stats.manaCostReduction, masteryActive ? [0,2,4,6,8,10][Math.min(5, masteryRank)] : 0, bladeManaReduction, dualSkill && weaponStyle === 'dual_sword' ? bladeTempoManaReduction : 0);
   const skillStats = reduction !== stats.manaCostReduction ? { ...stats, manaCostReduction: reduction } : stats;
   const resolved = resolveSkillAction(skill, {

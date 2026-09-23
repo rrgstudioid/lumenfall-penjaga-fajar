@@ -88,7 +88,7 @@ import {
   type SpecializationId,
 } from './rules';
 import { MASTERY_EFFECTS, type SkillDefinition } from './skills';
-import { COMBAT_MECHANICS, criticalChance, evasionChance, blockChance, barrierAmount } from './combat-mechanics';
+import { COMBAT_MECHANICS, criticalChance, evasionChance, blockChance, barrierAmount, resolveHitAgainstEvasion } from './combat-mechanics';
 import { SkillHitQueue, skillHitDamage, inFrontalArc, type ResolvedSkillAction } from './skill-action';
 import { applySourceOwnedStatus, applyStatus, clearExpiredSourceStatuses, effectiveArmorBreakStrength, getActiveStatusApplications, hasActiveStatusFromSource, hasStatus, getStatus, removeStatus, DefenseEvents, type DefenseResult, type SourceOwnedStatus } from './combat-status';
 import {addTemporaryModifier,tickTemporaryModifiers,receivedMultiplier,resolveTargetHit,NO_COUNTER,setManualGuard} from './combat-modifiers';
@@ -241,6 +241,8 @@ type Enemy = {
   marked: boolean;
   weakPoint: boolean;
   defenseDown: number;
+  /** Optional development/future actor stat; current monster definitions omit it and resolve as 0. */
+  evasion?: number;
   attack: number;
   attackRange: number;
   movementSpeed: number;
@@ -2306,6 +2308,12 @@ export class Game {
       if (isIronCharge) this.traceDevelopment('impact_callback', { targetId: enemy.id, travelDistance: chargeTravelDistance, targetDistance: this.groundDistance(enemy.group.position, this.actor.position) });
       const impactContext=this.skillImpactContext(enemy);
       const hit=bladeImpact.prepare(resolveTargetHit(snapshotHit,skill.targetModifiers,enemy,this.combatTime,impactContext),skill.hitSequence.indexOf(snapshotHit),skill.hitSequence.length-1,enemy,this.hero.characterId??this.hero.slotId,this.combatTime);
+      const hitResolution = resolveHitAgainstEvasion({ attackerAccuracy: hit.accuracy, targetEvasion: enemy.evasion ?? 0, rng: () => this.rand() });
+      if (hitResolution.result === 'EVADED') {
+        this.float(enemy.group.position, 'EVADE', 'reward');
+        if (isIronCharge) this.traceDevelopment('hit_evaded', { targetId: enemy.id, ...hitResolution });
+        return;
+      }
       if (isIronCharge) this.traceDevelopment('damage_resolver', { targetId: enemy.id, amountBeforeMitigation: skillHitDamage(hit,stats), hpBefore: enemy.hp });
       if(skill.tree?.id==='thief'&&skill.tree.architecture==='v2') {
         const rear=skill.tags.includes('rear_synergy')&&!!impactContext.position&&relativePosition(impactContext.position,{rearAngle:90})==='rear';
@@ -2351,7 +2359,7 @@ export class Game {
         if (isIronCharge && this.hero.specialization === 'berserker') this.transientCombat.openBreakerEntry(this.combatTime, 4);
         if (skill.skillId === 'v3-blade-master-blade-rush' || skill.skillId === 'v3-blade-master-counterflow') this.transientCombat.openBladeFlow(this.combatTime, this.hero.activeBuffs['v3-blade-master-blade-focus'] > 0 ? [3, 3.5, 3.75, 4, 4.25, 4.5][Math.min(5, this.hero.skillProgressionV3?.skillRanks['v3-blade-master-blade-focus'] ?? 0)] : 3);
         bladeImpact.commitDamagingImpact(this.combatTime,this.hero.skillProgressionV3?.skillRanks['v3-blade-master-twin-blade-mastery'] ?? 0,
-          (this.hero.skillProgressionV3?.skillRanks['v3-blade-master-tempo-drive'] ?? 0)>0 || (this.hero.skillProgressionV3?.skillRanks['v3-blade-master-blade-tempest'] ?? 0)>0,
+          true,
           bladeMasterDualWieldActive(this.hero)&&modifierContextFor(this.hero,stats).weaponStyle==='dual_sword');
         if (isBreakerEntry) this.transientCombat.consumeBreakerEntry(this.combatTime);
         const currentStyle=modifierContextFor(this.hero,stats).weaponStyle;
@@ -2618,21 +2626,28 @@ export class Game {
     this.swing = 0.3;
     this.characterModel.animator.play(isBow ? 'ranged_attack' : 'basic_attack', .3);
     const stats = derivedStats(this.hero);
-    const critical = this.rand() < criticalChance(stats.criticalRate);
     const attackPowerForHand = dualBasicActive
       ? (() => { const context = resolveWeaponAttackContext(equippedWeapon, offhandWeapon, basicHand === 'MAIN' ? 'SINGLE_MAIN' : 'SINGLE_OFF'); const shared = stats.physicalAttack - context.mainHandWeaponAttack - context.offHandWeaponAttack; return Math.max(0, shared + (basicHand === 'MAIN' ? context.mainHandWeaponAttack : context.offHandWeaponAttack)); })()
       : basicAttackPower(this.hero);
-    const damage =
+    const baseDamage =
       attackPowerForHand *
-      (this.combo === 3 ? COMBAT_MECHANICS.comboFinisherDamage : 1) *
-      (critical ? stats.criticalDamage / 100 : 1);
+      (this.combo === 3 ? COMBAT_MECHANICS.comboFinisherDamage : 1);
+    const resolveBasicDamage = (enemy: Enemy) => {
+      const hitResolution = resolveHitAgainstEvasion({ attackerAccuracy: stats.accuracy, targetEvasion: enemy.evasion ?? 0, rng: () => this.rand() });
+      if (hitResolution.result === 'EVADED') {
+        this.float(enemy.group.position, 'EVADE', 'reward');
+        return null;
+      }
+      const critical = this.rand() < criticalChance(stats.criticalRate);
+      return baseDamage * (critical ? stats.criticalDamage / 100 : 1);
+    };
     this.sound(150 + this.combo * 90, 0.065);
     const strike = this.actor.position.clone().addScaledVector(this.direction,isBow?3.6:1.2);
     this.ring(strike,isBow?'#8ee7ff':'#f2e2a4',isBow?1.2:2.2,0.24);
     if(isBow)this.effect(strike,'#b6f1ff',9);
     for (const e of (hard&&selection.target?[selection.target]:this.enemies)) {
       if (e.hp <= 0) continue;
-      if(hard){this.hurtEnemy(e,Math.round(damage),this.hero.skillArchitectureVersion===3?0:.8,'physical');continue;}
+      if(hard){const damage=resolveBasicDamage(e);if(damage===null)continue;this.hurtEnemy(e,Math.round(damage),this.hero.skillArchitectureVersion===3?0:.8,'physical');continue;}
       const v = e.group.position.clone().sub(this.actor.position);
       if(this.fieldTerrain||this.isSandsLocation)v.y=0;
       const d = v.length();
@@ -2640,6 +2655,7 @@ export class Game {
         d < (isBow?Math.max(11,profile.range):(e.boss ? 4.3 : profile.range)) &&
         v.normalize().dot(this.direction) > -0.2
       ) {
+        const damage=resolveBasicDamage(e);if(damage===null)continue;
         this.hurtEnemy(e, Math.round(damage), this.hero.skillArchitectureVersion===3?0:0.8, 'physical');
       }
     }
