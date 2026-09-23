@@ -17,6 +17,11 @@ export const isOneHandDagger = (item: ItemData | null) => !!item && !item.twoHan
 
 export const canonicalWeaponStyle = (style: WeaponType): WeaponType =>
   style === 'two_hand_sword' ? 'greatsword' : style;
+
+/** Player-facing text for internal weapon requirement/style identifiers. */
+export const weaponRequirementLabel = (style: WeaponType): string =>
+  style === 'dual_sword' ? 'Dual One-Hand Swords' : style;
+
 export function resolveWeaponStyle(
   main: ItemData | null,
   off: ItemData | null,

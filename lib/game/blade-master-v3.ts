@@ -7,7 +7,7 @@ const swords = ['one_hand_sword', 'two_hand_sword'];
 const anySword = swords;
 const dualSword = ['dual_sword'];
 const motion = (motionArchetype: string, motionNotes: string, animationNoGo: string[]) => ({ motionArchetype, motionNotes, animationNoGo });
-const rankValues = (coefficients: number[], str: number[], dex: number[], mana: number[], cooldown: number[]) => coefficients.map((physicalCoefficient, index) => ({ physicalCoefficient, statScaling: { str: str[index], dex: dex[index] }, manaCost: mana[index], cooldown: cooldown[index] }));
+const rankValues = (coefficients: number[], str: number[], dex: number[], mana: number[], cooldown: number[], duration?: number[]) => coefficients.map((physicalCoefficient, index) => ({ physicalCoefficient, statScaling: { str: str[index], dex: dex[index] }, manaCost: mana[index], cooldown: cooldown[index], ...(duration ? { duration: duration[index] } : {}) }));
 
 export const BLADE_MASTER_V3_SKILLS: readonly SkillDefinitionV3[] = [
   {
@@ -27,7 +27,7 @@ export const BLADE_MASTER_V3_SKILLS: readonly SkillDefinitionV3[] = [
   },
   {
     id: 'v3-blade-master-blade-rush', name: 'Blade Rush', jobId: 'blade_master', jobTier: 'specialization', maxRank: 5,
-    rankLevelRequirements: [62,66,70,74,79], spCostPerRank: 3, skillType: 'ACTIVE_MOBILITY', weaponRequirement: anySword,
+    rankLevelRequirements: [60,66,70,74,79], spCostPerRank: 3, skillType: 'ACTIVE_MOBILITY', weaponRequirement: anySword,
     prerequisiteSkills: [{ skillId: 'v3-warrior-iron-charge', requiredRank: 3 }], targeting: { targetType: 'single', range: 6.5 },
     damageProfile: { physicalCoefficient: .75, statScaling: { str: .05, dex: .12 } }, resourceCost: { mana: 10 }, cooldown: 7.5,
     effects: { movement: 'technical_pass_through', tags: ['blade-rush','opens-flow','no-stun','no-knockback'] },
@@ -44,13 +44,14 @@ export const BLADE_MASTER_V3_SKILLS: readonly SkillDefinitionV3[] = [
   },
   {
     id: 'v3-blade-master-blade-focus', name: 'Blade Focus', jobId: 'blade_master', jobTier: 'specialization', maxRank: 5,
-    rankLevelRequirements: [64,68,72,76,80], spCostPerRank: 3, skillType: 'ACTIVE_BUFF', weaponRequirement: anySword, targeting: { targetType: 'self' },
+    rankLevelRequirements: [63,68,72,76,80], spCostPerRank: 3, skillType: 'ACTIVE_BUFF', weaponRequirement: anySword, targeting: { targetType: 'self' },
+    prerequisiteSkills: [{ skillId: 'v3-warrior-battle-focus', requiredRank: 3 }],
     resourceCost: { mana: 16 }, cooldown: 35, effects: { buffs: ['blade_focus','flow_extension'] },
     presentation: { description: 'Sharpen your sword technique and combat perception, improving precision and making chained techniques easier to execute.' }, motion: motion('BLADE_FOCUS_STANCE', 'Focused technical sword stance.', ['no raw physical damage','no weapon ATK','no STR/DEX increase']),
   },
   {
     id: 'v3-blade-master-cross-sever', name: 'Cross Sever', jobId: 'blade_master', jobTier: 'specialization', maxRank: 5,
-    rankLevelRequirements: [66,69,72,76,80], spCostPerRank: 3, skillType: 'ACTIVE_DAMAGE', weaponRequirement: dualSword,
+    rankLevelRequirements: [65,69,72,76,80], spCostPerRank: 3, skillType: 'ACTIVE_DAMAGE', weaponRequirement: dualSword,
     prerequisiteSkills: [{ skillId: 'v3-blade-master-twin-assault', requiredRank: 3 }], targeting: { targetType: 'single', range: 3.8 },
     damageProfile: { physicalCoefficient: 1.2, statScaling: { str: .12, dex: .18 } }, resourceCost: { mana: 16 }, cooldown: 8,
     effects: { tags: ['blade-master-damage','dual-combined','flow-eligible','no-stun','no-knockback'] },
@@ -59,7 +60,7 @@ export const BLADE_MASTER_V3_SKILLS: readonly SkillDefinitionV3[] = [
   },
   {
     id: 'v3-blade-master-piercing-sequence', name: 'Piercing Sequence', jobId: 'blade_master', jobTier: 'specialization', maxRank: 5,
-    rankLevelRequirements: [68,71,74,77,80], spCostPerRank: 3, skillType: 'ACTIVE_DAMAGE', weaponRequirement: anySword,
+    rankLevelRequirements: [65,71,74,77,80], spCostPerRank: 3, skillType: 'ACTIVE_DAMAGE', weaponRequirement: anySword,
     prerequisiteSkills: [{ skillId: 'v3-blade-master-blade-rush', requiredRank: 2 }, { skillId: 'v3-warrior-armor-breaker', requiredRank: 3 }], targeting: { targetType: 'single', range: 3.8 },
     damageProfile: { physicalCoefficient: 1.15, statScaling: { str: .08, dex: .20 } }, resourceCost: { mana: 15 }, cooldown: 8.5,
     effects: { tags: ['blade-master-damage','single-main','flow-eligible','no-stun','no-knockback'] },
@@ -68,17 +69,16 @@ export const BLADE_MASTER_V3_SKILLS: readonly SkillDefinitionV3[] = [
   },
   {
     id: 'v3-blade-master-tempo-drive', name: 'Tempo Drive', jobId: 'blade_master', jobTier: 'specialization', maxRank: 5,
-    rankLevelRequirements: [71,73,75,78,80], spCostPerRank: 3, skillType: 'ACTIVE_BUFF', weaponRequirement: dualSword,
+    rankLevelRequirements: [65,73,75,78,80], spCostPerRank: 3, skillType: 'ACTIVE_BUFF', weaponRequirement: dualSword,
     prerequisiteSkills: [{ skillId: 'v3-blade-master-twin-assault', requiredRank: 4 }], targeting: { targetType: 'self' },
-    // The 7B contract does not define Mana/CD for Tempo Drive. The adapter's
-    // neutral 0 defaults keep it castable without inventing a balance value.
+    resourceCost: { mana: 14 }, cooldown: 24,
     effects: { buffs: ['tempo_drive'] },
     presentation: { description: 'Consume your accumulated Tempo to enter a short burst of heightened sword control, increasing attack speed and improving the efficiency of your dual-blade techniques.' },
     motion: motion('TEMPO_RELEASE', 'Release accumulated twin-blade tempo into a short control burst.', ['no transformation','no raw-damage explosion','no invulnerability','no Stun','no forced movement']),
   },
   {
     id: 'v3-blade-master-blade-tempest', name: 'Blade Tempest', jobId: 'blade_master', jobTier: 'specialization', maxRank: 3,
-    rankLevelRequirements: [75,78,80], spCostPerRank: 5, skillType: 'ULTIMATE', weaponRequirement: dualSword,
+    rankLevelRequirements: [67,78,80], spCostPerRank: 5, skillType: 'ULTIMATE', weaponRequirement: dualSword,
     prerequisiteSkills: [{ skillId: 'v3-blade-master-twin-blade-mastery', requiredRank: 3 }], jobInvestmentRequirement: { jobId: 'blade_master', minimumSP: 18 }, targeting: { targetType: 'single', range: 3.8 },
     damageProfile: { physicalCoefficient: 1.75, statScaling: { str: .18, dex: .28 } }, resourceCost: { mana: 36 }, cooldown: 70,
     effects: { tags: ['blade-master-damage','dual-sequence','flow-eligible','no-stun','no-knockback'] },
@@ -87,11 +87,11 @@ export const BLADE_MASTER_V3_SKILLS: readonly SkillDefinitionV3[] = [
   },
 ];
 
-const arrays: Record<string, { coefficients: number[]; str: number[]; dex: number[]; mana: number[]; cooldown: number[] }> = {
+const arrays: Record<string, { coefficients: number[]; str: number[]; dex: number[]; mana: number[]; cooldown: number[]; duration?: number[] }> = {
   'v3-blade-master-twin-assault': { coefficients: [.8,.84,.88,.93,.98,1.03,1.08,1.12], str: [.08,.09,.10,.11,.12,.14,.16,.18], dex: [.10,.11,.12,.14,.16,.18,.20,.22], mana: [10,11,12,13,14,15,16,17], cooldown: [4.5,4.4,4.3,4.2,4.1,4,3.9,3.8] },
   'v3-blade-master-blade-rush': { coefficients: [.75,.82,.9,.98,1.06], str: [.05,.06,.07,.08,.10], dex: [.12,.15,.18,.21,.24], mana: [10,11,12,13,14], cooldown: [7.5,7.1,6.7,6.3,6] },
   'v3-blade-master-counterflow': { coefficients: [1,1.06,1.12,1.18,1.25], str: [.08,.09,.10,.12,.14], dex: [.16,.19,.22,.26,.30], mana: [12,13,14,15,16], cooldown: [8,7.6,7.2,6.8,6.5] },
-  'v3-blade-master-blade-focus': { coefficients: [0,0,0,0,0], str: [0,0,0,0,0], dex: [0,0,0,0,0], mana: [16,17,18,19,20], cooldown: [35,35,35,35,35] },
+  'v3-blade-master-blade-focus': { coefficients: [0,0,0,0,0], str: [0,0,0,0,0], dex: [0,0,0,0,0], mana: [16,17,18,19,20], cooldown: [35,35,35,35,35], duration: [20,22,24,26,28] },
   'v3-blade-master-cross-sever': { coefficients: [1.2,1.28,1.35,1.43,1.5], str: [.12,.14,.16,.18,.20], dex: [.18,.21,.24,.27,.30], mana: [16,17,18,20,21], cooldown: [8,7.8,7.6,7.4,7.2] },
   'v3-blade-master-piercing-sequence': { coefficients: [1.15,1.25,1.35,1.45,1.55], str: [.08,.09,.10,.12,.14], dex: [.20,.24,.28,.32,.36], mana: [15,16,17,18,20], cooldown: [8.5,8.1,7.7,7.3,7] },
   'v3-blade-master-tempo-drive': { coefficients: [0,0,0,0,0], str: [0,0,0,0,0], dex: [0,0,0,0,0], mana: [14,15,16,17,18], cooldown: [24,23,22,21,20] },
@@ -100,7 +100,7 @@ const arrays: Record<string, { coefficients: number[]; str: number[]; dex: numbe
 
 function adapter(definition: SkillDefinitionV3): SkillDefinition {
   const values = arrays[definition.id];
-  const ranks = values ? rankValues(values.coefficients, values.str, values.dex, values.mana, values.cooldown) : [{ manaCost: 16, cooldown: 35 }];
+  const ranks = values ? rankValues(values.coefficients, values.str, values.dex, values.mana, values.cooldown, values.duration) : [{ manaCost: 16, cooldown: 35 }];
   const rankEffects = definition.id === 'v3-blade-master-twin-blade-mastery'
     ? [2,4,6,8,10].map((accuracy, index) => ({ modifiers: [{ id: `${definition.id}-accuracy-r${index + 1}`, stats: { flat: { accuracy } } }] }))
     : definition.id === 'v3-blade-master-twin-assault'
@@ -137,6 +137,7 @@ export const BLADE_MASTER_V3_SKILL_MAP = Object.fromEntries(BLADE_MASTER_V3_SKIL
 export const BLADE_MASTER_V3_RUNTIME_MAP = Object.fromEntries(BLADE_MASTER_V3_RUNTIME_SKILLS.map((skill) => [skill.id, skill]));
 export const BLADE_MASTER_V3_JOB = { id: 'blade_master', tier: 'specialization' as const, parent: 'warrior' };
 export const BLADE_MASTER_TEMPO_LIFETIME = [5, 5.5, 6, 6.5, 7] as const;
+export const BLADE_FOCUS_FLOW_DURATION = [3.5, 3.75, 4, 4.25, 4.5] as const;
 export const BLADE_MASTER_FLOW_CONSUMERS = new Set(['v3-blade-master-twin-assault','v3-blade-master-cross-sever','v3-blade-master-piercing-sequence','v3-blade-master-blade-tempest']);
 /** Skills whose active Tempo Drive efficiency applies after the Drive is active. */
 export const BLADE_MASTER_DUAL_MANA_SKILLS = new Set(['v3-blade-master-twin-assault','v3-blade-master-cross-sever','v3-blade-master-blade-tempest']);

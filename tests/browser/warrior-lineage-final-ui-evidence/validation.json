@@ -1,0 +1,30 @@
+{
+  "cases": {
+    "warrior": {
+      "level": 15,
+      "core": "warrior",
+      "sp": 14
+    },
+    "berserker": {
+      "selected": true,
+      "siblingUnavailable": true,
+      "skills": 9
+    },
+    "bladeMaster": {
+      "selected": true,
+      "skills": 9,
+      "dualOffhand": true,
+      "twinRequirement": "Dual One-Hand Swords"
+    }
+  },
+  "errors": {
+    "console": [],
+    "warnings": [],
+    "page": [],
+    "requests": [],
+    "http": []
+  },
+  "status": "PASS",
+  "saveIsolation": true,
+  "browser": "151.0.7922.108"
+}

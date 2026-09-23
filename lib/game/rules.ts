@@ -2,13 +2,13 @@ import { isResourceEnabled, staminaDerivedValue } from './gameplay-config.ts';
 import { getVisibleJobArchitecture } from './job-presentation.ts';
 import {progressionRules,LEGACY_CONTENT_CAP,type ProgressionArchitecture} from './progression.ts';
 import {rankSource,normalizedRankOwnership,buyRank,grantRank,paidTreeInvestment,type RankOwnership} from './rank-ownership.ts';
-import {hostModifiers,applyStatModifiers,isManualGuarding,type ModifierHost,type CombatModifier,type CounterContext,type ModifierContext,type ImpactContext} from './combat-modifiers.ts';
+import {hostModifiers,applyStatModifiers,isManualGuarding,actionDamageMultiplier,type ModifierHost,type CombatModifier,type CounterContext,type ModifierContext,type ImpactContext} from './combat-modifiers.ts';
 import { getJobV2, type CoreJobV2Id } from './job-registry-v2.ts';
 import type {CombatSupport} from './combat-transient.ts';
 import { resolveSkillAction, skillHitDamage, resolvedDamageParts } from './skill-action.ts';
 import { ADVENTURER_V3_RUNTIME_SKILLS, ADVENTURER_V3_SKILL_MAP, adventurerV3StartingState } from './adventurer-v3.ts';
 import { WARRIOR_V3_RUNTIME_SKILLS, WARRIOR_V3_SKILL_MAP, warriorV3StateAfterCoreChange } from './warrior-v3.ts';
-import { BERSERKER_V3_RUNTIME_SKILLS, BERSERKER_V3_SKILL_MAP, berserkerV3StateAfterSpecialization } from './berserker-v3.ts';
+import { BERSERKER_V3_RUNTIME_SKILLS, BERSERKER_V3_SKILL_MAP, BERSERKER_MASTERY_MANA_SKILLS, BERSERKER_TRANCE_DAMAGE_SKILLS, BERSERKER_TRANCE_AOE_SKILLS, berserkerV3StateAfterSpecialization } from './berserker-v3.ts';
 import { BLADE_MASTER_V3_RUNTIME_SKILLS, BLADE_MASTER_V3_SKILL_MAP, BLADE_MASTER_DUAL_MANA_SKILLS, BLADE_MASTER_MASTERY_MANA_SKILLS, bladeMasterV3StateAfterSpecialization, bladeMasterDualWieldActive, composeBladeWeaponHits } from './blade-master-v3.ts';
 import type { StunState } from './stun.ts';
 import { canPurchaseSkillRank, normalizeSkillProgressionV3, purchaseSkillRankV3, refundAllSkillPointsForJobChange, spentSkillPointsV3, type SkillProgressionV3State } from './skill-progression-v3.ts';
@@ -71,7 +71,7 @@ import { FIELD_TERRAINS, nearestTerrainPoint } from './field-terrain.ts';
 import { monsterDropChance, rollMonsterItem } from './monster-loot.ts';
 import { PRIMARY_HOTBAR_SIZE, emptyQuickHotbars, loadPrimaryHotbar, validateQuickHotbarAssignments, remapPrimaryHotbarForJob, type PrimaryHotbarState } from './hotbar.ts';
 import { canonicalItemTemplateId, itemCooldownKey, getItemCooldownRemaining, potionRestoreAmount } from './items.ts';
-import { validateDualWieldEquip, type DualWieldEquipReason } from './dual-wield.ts';
+import { composeSingleMainWeaponHits, validateDualWieldEquip, type DualWieldEquipReason } from './dual-wield.ts';
 
 export const SAVE_KEY = 'lumenfall-saves-v3';
 export const LEGACY_SAVE_KEY = 'lumenfall-saves-v2';
@@ -613,6 +613,12 @@ export function createV3JobDevelopmentHero(stage: V3JobDevelopmentStage): Hero {
   if (!chooseV3Warrior(hero)) throw new Error(`Unable to create development stage ${stage}`);
   if (stage === 'berserker-60' && !chooseV3Berserker(hero)) throw new Error(`Unable to create development stage ${stage}`);
   if (stage === 'blade-master-60' && !chooseV3BladeMaster(hero)) throw new Error(`Unable to create development stage ${stage}`);
+  if (stage === 'blade-master-60') {
+    hero.inventory.push(createItem('legacy-fajar-blade', {
+      id: `${hero.slotId}-fajar-blade-offhand`,
+      isEquipped: false,
+    }));
+  }
   return hero;
 }
 
@@ -841,7 +847,8 @@ export function derivedStats(
   const bladeMasteryRank = hero.skillArchitectureVersion === 3 && hero.specialization === 'blade_master' && weaponStyle === 'dual_sword'
     ? hero.skillProgressionV3?.skillRanks['v3-blade-master-twin-blade-mastery'] ?? 0
     : 0;
-  const masteryAccuracy = [0, 2, 4, 6, 8, 10][Math.min(5, berserkerMasteryRank)] + [0, 2, 4, 6, 8, 10][Math.min(5, bladeMasteryRank)];
+  const masteryAccuracy = (weaponStyle === 'two_hand_sword' ? [0, 2, 4, 6, 8, 10][Math.min(5, berserkerMasteryRank)] : 0)
+    + (weaponStyle === 'dual_sword' ? [0, 2, 4, 6, 8, 10][Math.min(5, bladeMasteryRank)] : 0);
   const physicalStatFactor = PHYSICAL_WEAPON_STAT_FACTORS[weaponStyle] ?? 0;
   const physicalStatContribution = Math.max(0, str - BASE_PRIMARY_STAT) * physicalStatFactor;
   const basePhysicalAttack = basePhysicalAttackForLevel(hero.level);
@@ -935,7 +942,14 @@ export function characterStatBreakdown(hero: Hero) {
 export const maxHP = (hero: Hero) => derivedStats(hero).maxHP;
 export const attackPower = (hero: Hero) => derivedStats(hero).attack;
 /** Central basic-attack physical power before combo/critical/defense handling. */
-export const basicAttackPower = (hero: Hero) => derivedStats(hero).physicalAttack * BASIC_ATTACK_COEFFICIENT;
+export const basicAttackPower = (hero: Hero) => {
+  const stats = derivedStats(hero);
+  return stats.physicalAttack * BASIC_ATTACK_COEFFICIENT * actionDamageMultiplier(
+    combatModifiersFor(hero),
+    modifierContextFor(hero, stats),
+    { tags: ['physical-damage', 'basic-attack'] },
+  );
+};
 
 export const xpNeeded = (level: number) => 90 + level * 40;
 export const forgeCost = (weapon: number) => 60 + weapon * 50;
@@ -999,11 +1013,11 @@ export function resolveHeroSkill(hero:Hero, skill:SkillDefinition, rank=hero.ski
   const base = calculateBaseStats(hero);
   const gear = calculateEquipmentStats(hero);
   const berserkerSkill = hero.skillArchitectureVersion === 3 && hero.specialization === 'berserker' && skill.tags?.includes('v3-berserker');
-  const masteryRank = berserkerSkill ? (hero.skillProgressionV3?.skillRanks['v3-berserker-two-hand-mastery'] ?? 0) : 0;
+  const masteryRank = hero.skillArchitectureVersion === 3 && hero.specialization === 'berserker' ? (hero.skillProgressionV3?.skillRanks['v3-berserker-two-hand-mastery'] ?? 0) : 0;
   const bladeSkill = hero.skillArchitectureVersion === 3 && hero.specialization === 'blade_master' && skill.tags?.includes('v3-blade-master');
   const bladeMasteryRank = bladeSkill ? (hero.skillProgressionV3?.skillRanks['v3-blade-master-twin-blade-mastery'] ?? 0) : 0;
   const weaponStyle = resolveWeaponStyle(itemById(hero.inventory, hero.equipment.mainHand), itemById(hero.inventory, hero.equipment.offHand));
-  const masteryActive = masteryRank > 0 && weaponStyle === 'two_hand_sword';
+  const masteryActive = masteryRank > 0 && weaponStyle === 'two_hand_sword' && BERSERKER_MASTERY_MANA_SKILLS.has(skill.id);
   const tranceRank = hero.specialization === 'berserker' ? (hero.skillProgressionV3?.skillRanks['v3-berserker-trance'] ?? 0) : 0;
   const tranceActive = tranceRank > 0 && Number(hero.activeBuffs['v3-berserker-trance'] ?? 0) > 0;
   const dualSkill = BLADE_MASTER_DUAL_MANA_SKILLS.has(skill.id);
@@ -1019,19 +1033,41 @@ export function resolveHeroSkill(hero:Hero, skill:SkillDefinition, rank=hero.ski
     equipmentDamage:getEquippedItems(hero).reduce((sum,item)=>sum+(item.skillModifiers[skill.id]??0),0),
     weaponAllowed:skillWeaponAllowed(hero,skill),
     weaponStyle,
-    primaryStats:{str:bladeSkill && skill.id !== 'v3-blade-master-twin-assault' ? Math.max(0,base.str+(gear.str??0)-15) : base.str+(gear.str??0),vit:base.vit+(gear.vit??gear.sta??0),dex:bladeSkill && skill.id !== 'v3-blade-master-twin-assault' ? Math.max(0,base.dex+(gear.dex??0)-15) : base.dex+(gear.dex??0),int:base.int+(gear.int??0)},
+    primaryStats: (() => {
+      const effective = {
+        str: base.str + (gear.str ?? 0),
+        vit: base.vit + (gear.vit ?? gear.sta ?? 0),
+        dex: base.dex + (gear.dex ?? 0),
+        int: base.int + (gear.int ?? 0),
+      };
+      const warriorLineageV3Skill = hero.skillArchitectureVersion === 3 && skill.tags?.some((tag) =>
+        tag === 'v3-adventurer' || tag === 'v3-warrior' || tag === 'v3-berserker' || tag === 'v3-blade-master');
+      return warriorLineageV3Skill
+        ? { str: Math.max(0, effective.str - 15), vit: Math.max(0, effective.vit - 15), dex: Math.max(0, effective.dex - 15), int: Math.max(0, effective.int - 15) }
+        : effective;
+    })(),
   });
   if (bladeSkill && resolved.hitSequence.some(hit => hit.weaponHand)) {
     const main = itemById(hero.inventory,hero.equipment.mainHand);
     const off = itemById(hero.inventory,hero.equipment.offHand);
     composeBladeWeaponHits(resolved,stats.physicalAttack,main,off,1+((gear.attackPercent??0)+(gear.physicalDamage??0))/100);
   }
-  if (tranceActive && berserkerSkill && skill.effect !== 'buff' && skill.effect !== 'ultimate') {
+  if (hero.specialization === 'blade_master' && weaponStyle === 'dual_sword' && skill.tags?.includes('v3-warrior') && resolved.hitSequence.some((hit) => hit.physicalCoefficient > 0)) {
+    composeSingleMainWeaponHits(
+      resolved,
+      stats.physicalAttack,
+      itemById(hero.inventory,hero.equipment.mainHand),
+      itemById(hero.inventory,hero.equipment.offHand),
+      1+((gear.attackPercent??0)+(gear.physicalDamage??0))/100,
+    );
+  }
+  if (tranceActive && berserkerSkill && BERSERKER_TRANCE_DAMAGE_SKILLS.has(skill.id) && weaponStyle === 'two_hand_sword') {
     const bonus = [0, 6, 8, 10][Math.min(3, tranceRank)] / 100;
     resolved.hitSequence = resolved.hitSequence.map((hit) => ({ ...hit, damageMultiplier: hit.damageMultiplier * (1 + bonus) }));
     resolved.damageMultiplier *= 1 + bonus;
-    if (resolved.maxTargets !== undefined) resolved.maxTargets += 1;
   }
+  if (tranceActive && berserkerSkill && BERSERKER_TRANCE_AOE_SKILLS.has(skill.id) && resolved.maxTargets !== undefined)
+    resolved.maxTargets += 1;
   return resolved;
 }
 function skillProgressionMultiplier(hero: Hero, skill: SkillDefinition, level: number) {
@@ -1183,6 +1219,13 @@ export function allocateStatPoint(hero: Hero, stat: keyof AllocatedStats) {
   return {ok:true,hero:updated,reason:`${canonicalStat === 'vit' ? 'VIT' : canonicalStat.toUpperCase()} meningkat.`};
 }
 
+export function warriorLineageSkillPointsAtLevel(level: number) {
+  const value = Math.max(1, Math.min(80, Math.floor(level)));
+  if (value <= 29) return value - 1;
+  if (value <= 60) return 28 + (value - 29) * 2;
+  return 90 + (value - 60) * 3;
+}
+
 export function gainXP(hero: Hero, amount: number) {
   hero.xp += Math.max(0, amount);
   let levels = 0;
@@ -1190,9 +1233,12 @@ export function gainXP(hero: Hero, amount: number) {
   while (hero.level < cap && hero.xp >= xpNeeded(hero.level)) {
     hero.xp -= xpNeeded(hero.level);
     hero.level++;
-    hero.skillPoints++;
+    const earnedSP = hero.skillArchitectureVersion === 3
+      ? warriorLineageSkillPointsAtLevel(hero.level) - warriorLineageSkillPointsAtLevel(hero.level - 1)
+      : 1;
+    hero.skillPoints += earnedSP;
     if (hero.skillArchitectureVersion === 3 && hero.skillProgressionV3)
-      hero.skillProgressionV3 = { ...hero.skillProgressionV3, totalEarnedSP: hero.skillProgressionV3.totalEarnedSP + 1 };
+      hero.skillProgressionV3 = { ...hero.skillProgressionV3, totalEarnedSP: hero.skillProgressionV3.totalEarnedSP + earnedSP };
     hero.statPoints += STAT_POINTS_PER_LEVEL;
     hero.hp = maxHP(hero);
     hero.maxMana = derivedStats(hero).maxMana;hero.mana=Math.min(hero.mana,hero.maxMana);
@@ -2302,7 +2348,11 @@ function normalizedHero(value: Record<string, unknown>, slotId = 'slot-1') {
   const terrain=!h.inCity?FIELD_TERRAINS[h.currentField]:undefined;
   if(terrain)Object.assign(h,nearestTerrainPoint(terrain,{x:h.x,z:h.z}));
   if(h.progressionArchitecture==='v2_test')delete h.statusEffects.stealth;
-  if(h.skillArchitectureVersion === 3) delete h.activeBuffs['v3-berserker-trance'];
+  if(h.skillArchitectureVersion === 3) {
+    h.activeBuffs = Object.fromEntries(Object.entries(h.activeBuffs).filter(([id]) => !id.startsWith('v3-')));
+    delete h.statusEffects.stun;
+    delete h.statusEffects.superArmor;
+  }
   return h;
 }
 
@@ -2398,8 +2448,9 @@ export function saveCharacter(hero: Hero, required = false) {
   collection.activeSlot = hero.slotId;
   const saved={...hero,version:3 as const};
   if (hero.skillArchitectureVersion === 3) {
-    saved.activeBuffs = { ...saved.activeBuffs };
-    delete saved.activeBuffs['v3-berserker-trance'];
+    saved.activeBuffs = Object.fromEntries(Object.entries(saved.activeBuffs).filter(([id]) => !id.startsWith('v3-')));
+    saved.statusEffects = { ...saved.statusEffects };
+    delete saved.statusEffects.superArmor;
   }
   delete saved.temporaryModifiers;delete saved.combatStateModifiers;delete saved.manualGuardActive;
   delete saved.stunState;

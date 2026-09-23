@@ -1,0 +1,33 @@
+.bm-fixture-shell {
+  min-height: 100vh;
+  padding: 20px;
+  background: #12251e;
+  color: #e8ddc1;
+}
+.bm-fixture-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin: 0 auto 12px;
+  max-width: 1200px;
+}
+.bm-fixture-controls button {
+  padding: 8px 12px;
+  border: 1px solid #aa9867;
+  border-radius: 6px;
+  color: inherit;
+  background: #253d31;
+  cursor: pointer;
+}
+.bm-fixture-controls button:disabled { opacity: .45; cursor: default; }
+.bm-fixture-state {
+  display: block;
+  max-width: 1200px;
+  margin: 0 auto 12px;
+  font-size: 12px;
+}
+.bm-fixture-panel {
+  max-width: 1200px;
+  margin: 0 auto;
+}

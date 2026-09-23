@@ -308,6 +308,47 @@ export function inFrontalArc(
   );
 }
 
+export type SkillTargetCandidate<T> = {
+  target: T;
+  id: string;
+  position: { x: number; z: number };
+  alive?: boolean;
+};
+
+/** Canonical rank-resolved target selection shared by the world and fixtures.
+ * Frontal skills use their resolved rank radius when present; angle remains
+ * the explicit skill angle (or the resolver's existing default). */
+export function selectSkillTargets<T>({
+  action,
+  origin,
+  forward,
+  candidates,
+  selected,
+}: {
+  action: Pick<ResolvedSkillAction, 'targetType' | 'range' | 'areaRadius' | 'angle' | 'maxTargets'>;
+  origin: { x: number; z: number };
+  forward: { x: number; z: number };
+  candidates: readonly SkillTargetCandidate<T>[];
+  selected?: SkillTargetCandidate<T> | null;
+}) {
+  if (action.targetType === 'self') return [] as T[];
+  if (action.targetType !== 'frontal_arc' && action.targetType !== 'area')
+    return selected && selected.alive !== false ? [selected.target] : [];
+  const radius = action.areaRadius > 0 ? action.areaRadius : action.range;
+  const cap = action.maxTargets === undefined ? Number.POSITIVE_INFINITY : Math.max(0, Math.floor(action.maxTargets));
+  return candidates
+    .filter((entry) => entry.alive !== false)
+    .filter((entry) => action.targetType === 'frontal_arc'
+      ? inFrontalArc(origin, forward, entry.position, radius, action.angle ?? 90)
+      : Math.hypot(entry.position.x - origin.x, entry.position.z - origin.z) <= radius)
+    .sort((a, b) => {
+      const distance = Math.hypot(a.position.x - origin.x, a.position.z - origin.z) - Math.hypot(b.position.x - origin.x, b.position.z - origin.z);
+      return distance || a.id.localeCompare(b.id);
+    })
+    .slice(0, cap)
+    .map((entry) => entry.target);
+}
+
 /** World-owned, simulation-time queue. No setTimeout and no detached callbacks. */
 export class SkillHitQueue {
   private time = 0;

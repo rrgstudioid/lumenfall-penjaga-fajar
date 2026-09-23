@@ -1,0 +1,42 @@
+{
+  "cases": {
+    "picker": {
+      "candidates": [
+        "Dawnblade Sword B",
+        "Ironveil Shield"
+      ],
+      "mainId": "v3-job-blade-master-60-fajar-blade",
+      "mainExcluded": true
+    },
+    "dualEquip": {
+      "mainId": "v3-job-blade-master-60-fajar-blade",
+      "offId": "v3-job-blade-master-60-fajar-blade-offhand",
+      "weaponStyle": "dual_sword",
+      "twinWeaponValid": true
+    },
+    "skillRequirement": {
+      "label": "Dual One-Hand Swords",
+      "weaponValid": true
+    },
+    "reload": {
+      "mainId": "v3-job-blade-master-60-fajar-blade",
+      "offId": "v3-job-blade-master-60-fajar-blade-offhand",
+      "source": "isolated-storage",
+      "itemDataPreserved": true
+    },
+    "masteryLoss": {
+      "mainId": "v3-job-blade-master-60-fajar-blade",
+      "offIdInInventory": true,
+      "offHandCleared": true
+    }
+  },
+  "browser": "151.0.7922.108",
+  "boot": "ready",
+  "saveIsolation": true,
+  "consoleErrors": [],
+  "consoleWarnings": [],
+  "pageErrors": [],
+  "failedRequests": [],
+  "httpFailures": [],
+  "status": "PASS"
+}

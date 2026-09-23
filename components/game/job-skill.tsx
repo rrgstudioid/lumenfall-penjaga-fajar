@@ -45,6 +45,7 @@ import { WARRIOR_V3_SKILL_MAP } from '@/lib/game/warrior-v3';
 import { BERSERKER_V3_SKILL_MAP } from '@/lib/game/berserker-v3';
 import { BLADE_MASTER_V3_SKILL_MAP } from '@/lib/game/blade-master-v3';
 import { availableSkillPointsV3, skillCostThroughRank } from '@/lib/game/skill-progression-v3';
+import { weaponRequirementLabel } from '@/lib/game/weapon-style';
 const v3Definitions = { ...ADVENTURER_V3_SKILL_MAP, ...WARRIOR_V3_SKILL_MAP, ...BERSERKER_V3_SKILL_MAP, ...BLADE_MASTER_V3_SKILL_MAP };
 import {
   AlertDialog,
@@ -469,7 +470,9 @@ export function JobSkill({
                     <div>
                       <dt>Weapon</dt>
                       <dd>
-                        {selectedActive.weaponRequirement.join(', ') ||
+                        {selectedActive.weaponRequirement
+                          .map(weaponRequirementLabel)
+                          .join(', ') ||
                           'Any compatible weapon'}
                       </dd>
                     </div>
