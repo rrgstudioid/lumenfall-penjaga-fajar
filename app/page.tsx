@@ -222,7 +222,7 @@ export default function Home() {
     [flow, setFlow] = useState<MenuFlow>('main'),
     [selectionMode, setSelectionMode] = useState<SelectionMode>('new'),
     [creationName, setCreationName] = useState(''),
-    [creationArchitecture, setCreationArchitecture] = useState<'v2_test' | 'v3_adventurer'>('v2_test'),
+    [creationArchitecture, setCreationArchitecture] = useState<'v3_adventurer'>('v3_adventurer'),
     [creationAppearance, setCreationAppearance] = useState<CharacterAppearance>({ ...defaultCreationAppearance }),
     [creationError, setCreationError] = useState(''),
     [quitConfirmOpen, setQuitConfirmOpen] = useState(false),

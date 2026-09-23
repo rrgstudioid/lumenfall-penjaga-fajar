@@ -670,7 +670,9 @@ export function resetPlayerAllocationForCoreJob(hero: Hero) {
 }
 
 export function isCompatibleCharacterSave(hero: Pick<Hero, 'characterSchemaVersion' | 'progressionArchitecture' | 'skillArchitectureVersion'> | null | undefined): boolean {
-  return hero?.characterSchemaVersion === CURRENT_CHARACTER_SCHEMA_VERSION && (hero.progressionArchitecture === 'v2_test' || hero.skillArchitectureVersion === 3);
+  return hero?.characterSchemaVersion === CURRENT_CHARACTER_SCHEMA_VERSION
+    && hero.progressionArchitecture === 'v3_adventurer'
+    && hero.skillArchitectureVersion === 3;
 }
 
 /** The only player-facing core-job promotion path after the development clean break. */
@@ -696,7 +698,7 @@ export function createNewCharacter(
   slotId: string,
   characterName: string,
   appearanceInput: Partial<CharacterAppearance> = {},
-  architecture: 'v2_test' | 'v3_adventurer' = 'v2_test',
+  architecture: 'v3_adventurer' = 'v3_adventurer',
 ): Hero {
   const normalizedName = normalizeCharacterName(characterName);
   const appearance = normalizeAppearance({ ...appearanceInput, gender: appearanceInput.gender ?? 'male' });
@@ -2052,9 +2054,8 @@ function normalizedHero(value: Record<string, unknown>, slotId = 'slot-1') {
     x: integer(savedSafe.x ?? value.x, -10000, 10000, base.lastSafePosition.x),
     z: integer(savedSafe.z ?? value.z, -10000, 10000, base.lastSafePosition.z),
   };
-  const architecture:ProgressionArchitecture=value.progressionArchitecture==='v2_test'
-    ? 'v2_test'
-    : value.progressionArchitecture==='v3_adventurer' || value.skillArchitectureVersion===3
+  if (value.progressionArchitecture === 'v2_test') return null;
+  const architecture:ProgressionArchitecture=value.progressionArchitecture==='v3_adventurer' || value.skillArchitectureVersion===3
       ? 'v3_adventurer'
       : 'legacy';
   const level = integer(value.level, 1, progressionRules({progressionArchitecture:architecture}).contentCap, 1);
@@ -2349,12 +2350,22 @@ export function parseSaveCollection(raw: string | null): SaveCollection | null {
 function readCollection(): SaveCollection {
   try {
     const current = parseSaveCollection(localStorage.getItem(SAVE_KEY));
-    if (current) return current;
+    if (current) {
+      localStorage.setItem(SAVE_KEY, JSON.stringify(current));
+      localStorage.removeItem(LEGACY_SAVE_KEY);
+      localStorage.removeItem(OLDER_SAVE_KEY);
+      return current;
+    }
     const legacyCollection = parseSaveCollection(
       localStorage.getItem(LEGACY_SAVE_KEY),
     );
-    if (legacyCollection) return legacyCollection;
+    if (legacyCollection) {
+      localStorage.setItem(SAVE_KEY, JSON.stringify(legacyCollection));
+      localStorage.removeItem(LEGACY_SAVE_KEY);
+      return legacyCollection;
+    }
     const legacy = parseSave(localStorage.getItem(OLDER_SAVE_KEY));
+    localStorage.removeItem(OLDER_SAVE_KEY);
     return {
       version: 3,
       activeSlot: legacy?.slotId ?? 'slot-1',
@@ -2379,12 +2390,13 @@ export function loadCharacter(slotId: string): Hero {
 }
 
 export function saveCharacter(hero: Hero, required = false) {
+  if (!isCompatibleCharacterSave(hero)) {
+    if (required) throw new Error('Only V3 characters can be saved.');
+    return;
+  }
   const collection = readCollection();
   collection.activeSlot = hero.slotId;
   const saved={...hero,version:3 as const};
-  if(hero.progressionArchitecture==='v2_test'){
-    saved.statusEffects={...hero.statusEffects};delete saved.statusEffects.stealth;
-  }
   if (hero.skillArchitectureVersion === 3) {
     saved.activeBuffs = { ...saved.activeBuffs };
     delete saved.activeBuffs['v3-berserker-trance'];

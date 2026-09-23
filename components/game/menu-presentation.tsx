@@ -53,8 +53,8 @@ export function MenuPresentation(props: {
   flow: Exclude<MenuFlow, 'world'>; ready: boolean; canContinue: boolean; hasCharacters: boolean;
   roster: CharacterSlot[]; selectedSlot: string; selectionMode: SelectionMode; previewHero: Hero;
   appearance: CharacterAppearance; name: string; validation: string | null; error: string;
-  architecture: 'v2_test' | 'v3_adventurer';
-  onArchitecture: (value: 'v2_test' | 'v3_adventurer') => void;
+  architecture: 'v3_adventurer';
+  onArchitecture: (value: 'v3_adventurer') => void;
   muted: boolean; fullscreen: boolean;
   onContinue: () => void; onNew: () => void; onLoad: () => void; onOptions: () => void; onQuit: () => void;
   onBack: () => void; onSlot: (id: string) => void; onDelete: (slot: CharacterSlot) => void;
@@ -69,7 +69,11 @@ export function MenuPresentation(props: {
   const update = (key: keyof CharacterAppearance, value: string) => props.onAppearance({ ...appearance, [key]: value });
   const destination = previewHero.inCity ? CITIES[previewHero.currentCity]?.displayName : FIELDS[previewHero.currentField]?.displayName;
   return <section ref={root} tabIndex={-1} className={`menu-presentation menu-${flow}`} aria-label={flow === 'main' ? 'Main Menu' : flow === 'selection' ? 'Character Selection' : flow === 'creation' ? 'Character Creation' : flow === 'loading' ? 'Loading World' : 'Options'}>
-    <img className="menu-scenery" src={`/assets/menu/${titleScene ? 'vista' : 'terrace'}.webp`} alt="" fetchPriority="high" draggable={false} />
+    <div
+      className="menu-scenery"
+      aria-hidden="true"
+      style={{ backgroundImage: `url(/assets/menu/${titleScene ? 'vista' : 'terrace'}.webp)` }}
+    />
     <div className="menu-scene-shade" aria-hidden="true" />
     {flow === 'main' && <div className="menu-title-composition">
       <h1 className="sr-only">LUMENFALL · Penjaga Fajar</h1>
@@ -125,9 +129,9 @@ export function MenuPresentation(props: {
       <ScreenTitle>Character Creation</ScreenTitle>
       <div className="menu-customization menu-glass">
         <ChoiceGroup label="JALUR KARAKTER" value={props.architecture}
-          choices={[{ id: 'v2_test', label: 'V2 · Klasik' }, { id: 'v3_adventurer', label: 'V3 · Warrior / Berserker / Blade Master' }]}
-          onChange={value => props.onArchitecture(value as 'v2_test' | 'v3_adventurer')} />
-        <p className="menu-slot-help">Pilihan berlaku untuk karakter baru ini. Karakter lama tetap pada jalurnya.</p>
+          choices={[{ id: 'v3_adventurer', label: 'V3 · Warrior / Berserker / Blade Master' }]}
+          onChange={value => props.onArchitecture(value as 'v3_adventurer')} />
+        <p className="menu-slot-help">Karakter baru menggunakan arsitektur V3.</p>
         <fieldset className="menu-choice-group menu-gender-group"><legend>GENDER</legend><div className="menu-genders">
           <button type="button" aria-pressed={appearance.gender === 'male'} onClick={() => update('gender', 'male')}><span aria-hidden="true">♂</span>Male</button>
           <button type="button" aria-pressed={appearance.gender === 'female'} onClick={() => update('gender', 'female')}><span aria-hidden="true">♀</span>Female</button>
@@ -142,7 +146,7 @@ export function MenuPresentation(props: {
         <div className="menu-name-panel menu-glass">
           <label htmlFor="menu-character-name">CHARACTER NAME</label>
           <input id="menu-character-name" value={props.name} onChange={event => props.onName(event.target.value)} maxLength={16} placeholder="Nama penjagamu" autoComplete="off" spellCheck={false} aria-describedby="menu-name-help menu-name-validation" aria-invalid={!!props.name && !!props.validation} />
-          <p id="menu-name-help">3–16 karakter. Huruf, angka, spasi, _ ' atau -.</p>
+          <p id="menu-name-help">3–16 karakter. Huruf, angka, spasi, _ &apos; atau -.</p>
           <p id="menu-name-validation" className={props.name && props.validation ? 'menu-inline-error' : 'menu-name-valid'} aria-live="polite">{props.error || (props.name ? props.validation || 'Nama valid. Perjalananmu siap dimulai.' : 'Semua penjaga memulai sebagai Adventurer.')}</p>
         </div>
         <button type="submit" className="fantasy-button fantasy-primary" disabled={!props.ready || !!props.validation}><Sparkles size={18} />CREATE CHARACTER</button>
@@ -161,10 +165,10 @@ export function MenuPresentation(props: {
       <Back onClick={props.onBack} />
     </div>}
 
-    {flow === 'loading' && <div className="menu-loading-content" role="status" aria-live="polite">
+    {flow === 'loading' && <output className="menu-loading-content" aria-live="polite">
       <Wordmark /><h1>Loading...</h1><p>{previewHero.characterName} <span>·</span> {destination}</p><div className="menu-loading-line" />
       <span className="menu-loading-caption">Menyiapkan dunia dan karaktermu</span>
-    </div>}
+    </output>}
     {flow === 'main' && <footer className="menu-title-footer"><span>LUMENFALL · CHAPTER I</span><span>Progres tersimpan di browser ini</span></footer>}
   </section>;
 }
