@@ -52,6 +52,12 @@ const effectLabels: Record<string, string> = {
   flow_extension: 'Flow Duration',
   tempo_drive: 'Tempo Drive',
 };
+const jobLabels: Record<string, string> = {
+  adventurer: 'Adventurer',
+  warrior: 'Warrior',
+  berserker: 'Berserker',
+  blade_master: 'Blade Master',
+};
 
 const titleCase = (value: string) => value.replaceAll('_', ' ').replace(/\b\w/g, (letter) => letter.toUpperCase());
 const effectLabel = (value: string) => effectLabels[value] ?? titleCase(value);
@@ -139,9 +145,10 @@ export function resolveSkillPresentation(hero: Hero, definition: SkillDefinition
   const isDamage = definition.skillType === 'ACTIVE_DAMAGE' || definition.skillType === 'ACTIVE_MOBILITY' || definition.skillType === 'ULTIMATE';
   const perHit = isDamage ? action.hitSequence.map((hit) => Math.round(skillHitDamage(hit, stats))) : [];
   const status = currentRank >= definition.maxRank ? 'MAX RANK' : currentRank > 0 ? 'LEARNED' : hero.level >= (definition.unlockLevel ?? 0) ? 'AVAILABLE' : 'LOCKED';
+  const isPassive = definition.skillType === 'PASSIVE' || definition.skillType === 'MASTERY';
   const requirements: SkillPresentationRow[] = [
-    { label: 'Character Requirement', value: `Lv. ${definition.rankLevelRequirements?.[rankIndex(rank, definition.maxRank)] ?? definition.unlockLevel ?? 1}` },
-    { label: 'Job Requirement', value: definition.jobRequirement ?? titleCase(definition.jobId) },
+    { label: 'Character Requirement', value: `Lv. ${definition.rankLevelRequirements?.[0] ?? definition.unlockLevel ?? 1}` },
+    { label: 'Job Requirement', value: definition.jobRequirement ?? jobLabels[definition.jobId] ?? titleCase(definition.jobId) },
     { label: 'Skill Point Cost', value: `${Array.isArray(definition.spCostPerRank) ? definition.spCostPerRank[rankIndex(rank, definition.maxRank)] : definition.spCostPerRank ?? 0} SP` },
     { label: 'Prerequisite', value: definition.prerequisiteSkills?.map((entry) => `${entry.skillId.replace(/^v3-/, '').replaceAll('-', ' ')} R${entry.requiredRank}`).join(' + ') || 'None' },
     { label: 'Weapon', value: definition.weaponRequirement?.map((weapon) => weaponLabels[weapon] ?? weaponRequirementLabel(weapon as never)).join(' / ') || 'None' },
@@ -158,7 +165,7 @@ export function resolveSkillPresentation(hero: Hero, definition: SkillDefinition
     ...(action.radius ? [{ label: 'Radius', value: `${action.radius} m` }] : []),
     ...(action.maxTargets ? [{ label: 'Max Targets', value: String(action.maxTargets) }] : []),
   ];
-  const resource = [{ label: 'Mana', value: `${action.manaCost} MP` }, { label: 'Cooldown', value: `${action.cooldown}s` }];
-  const preview = isDamage ? { label: 'CURRENT DAMAGE PREVIEW', total: Math.round(perHit.reduce((sum, value) => sum + value, 0)), perHit } : definition.skillType === 'ACTIVE_HEAL' ? { label: 'CURRENT HEAL PREVIEW', value: `${skillHealingPreview(hero, runtime, rank)} HP`, perHit: [] } : { label: 'CURRENT EFFECT PREVIEW', value: rowsForEffects(definition, runtime, rank).map((row) => `${row.label} ${row.value}`).join(' · ') || 'Active effect', perHit: [] };
+  const resource = isPassive ? [] : [{ label: 'Mana', value: `${action.manaCost} MP` }, { label: 'Cooldown', value: `${action.cooldown}s` }];
+  const preview = isDamage ? { label: 'CURRENT DAMAGE PREVIEW', total: Math.round(perHit.reduce((sum, value) => sum + value, 0)), perHit } : definition.skillType === 'ACTIVE_HEAL' ? { label: 'CURRENT HEAL PREVIEW', value: `${skillHealingPreview(hero, runtime, rank)} HP`, perHit: [] } : { label: 'CURRENT EFFECT PREVIEW', value: rowsForEffects(definition, runtime, rank).map((row) => `${row.label} ${row.value}`).join(' · ') || 'Passive effect', perHit: [] };
   return { skillName: definition.name, description: definition.presentation?.description ?? runtime.description, skillType: definition.skillType, currentRank, maxRank: definition.maxRank, status, requirements, damage, specialMechanics: rowsForMechanics(definition, runtime, rank), area, resource, preview, nextRank: nextRankRows(definition, runtime, rank), isDamage };
 }

@@ -51,3 +51,13 @@ test('presentation exposes recovery cap, full Blade Tempest sequence, and max ra
   assert.equal(tempest.specialMechanics.find((row) => row.label === 'Sequence')?.value, 'Main Hand → Off Hand → Main Hand → Off Hand → Both Swords');
   assert.equal(tempest.nextRank.length, 0);
 });
+
+test('mastery presentation uses rank-one gate, player job label, and no cast resource rows', () => {
+  const hero = chooseV3BladeMaster(chooseV3Warrior(createV3AdventurerHero()));
+  const model = resolveSkillPresentation(hero, BLADE_MASTER_V3_SKILL_MAP['v3-blade-master-twin-blade-mastery'], BLADE_MASTER_V3_RUNTIME_MAP['v3-blade-master-twin-blade-mastery']);
+  assert.equal(model.requirements.find((row) => row.label === 'Character Requirement')?.value, 'Lv. 60');
+  assert.equal(model.requirements.find((row) => row.label === 'Job Requirement')?.value, 'Blade Master');
+  assert.equal(model.resource.length, 0);
+  assert.match(model.preview.value ?? '', /Dual Wield/);
+  assert.doesNotMatch(JSON.stringify(model), /blade_master|dual_wield/);
+});
