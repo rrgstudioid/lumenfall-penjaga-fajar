@@ -464,6 +464,36 @@ export const SPECIALIZATIONS: Record<
     passiveId: 'dharma-will',
     description: 'Holy knuckle, stun, self-heal, dan holy aura.',
   },
+  berserker: {
+    ...CORE_JOBS.warrior,
+    id: 'warrior',
+    name: 'Berserker',
+    role: 'Two-Hand Damage / Fury',
+    weapon: 'two_hand_sword',
+    resource: 'mana',
+    resourceName: 'Mana',
+    color: '#b65347',
+    coreJob: 'warrior',
+    specializations: ['berserker', 'blade_master'],
+    passiveName: 'Battle Fury',
+    passiveId: 'berserker-fury',
+    description: 'Heavy two-hand attacks, armor break, dan controlled fury.',
+  },
+  blade_master: {
+    ...CORE_JOBS.warrior,
+    id: 'warrior',
+    name: 'Blade Master',
+    role: 'Dual-Wield Damage / Tempo',
+    weapon: 'sword_dagger',
+    resource: 'mana',
+    resourceName: 'Mana',
+    color: '#c28b56',
+    coreJob: 'warrior',
+    specializations: ['berserker', 'blade_master'],
+    passiveName: 'Blade Tempo',
+    passiveId: 'blade-master-tempo',
+    description: 'Dual wield, combo tempo, counter, dan sequence damage.',
+  },
 };
 
 export type PassiveDefinition = {
@@ -567,6 +597,22 @@ export const PASSIVES: Record<SpecializationId, PassiveDefinition> = {
     name: 'Tekad Dharma',
     description: 'Meningkatkan holy damage, stun resistance, dan self-healing.',
     specialization: 'bajra',
+    maxLevel: 3,
+    unlockLevel: 25,
+  },
+  berserker: {
+    id: 'berserker-fury',
+    name: 'Battle Fury',
+    description: 'Meningkatkan efektivitas serangan two-hand dan armor break.',
+    specialization: 'berserker',
+    maxLevel: 3,
+    unlockLevel: 25,
+  },
+  blade_master: {
+    id: 'blade-master-tempo',
+    name: 'Blade Tempo',
+    description: 'Meningkatkan tempo combo dan efektivitas dual wield.',
+    specialization: 'blade_master',
     maxLevel: 3,
     unlockLevel: 25,
   },
@@ -1255,6 +1301,8 @@ export const PASSIVE_EFFECTS: Record<string, import('./items.ts').StatBlock> = {
   'mantra-lore': { skillDamage: 3, skillPower: 2 },
   compassion: { healingPower: 4, defense: 2 },
   'dharma-will': { healingPower: 2, physicalDamage: 3 },
+  'berserker-fury': { physicalDamage: 4, attackPercent: 2 },
+  'blade-master-tempo': { attackSpeed: 3, critRate: 2 },
   'adventurer-resolve': { hp: 10, defense: 1 },
   'warrior-foundation': { attack: 2, defense: 2 },
   'rogue-foundation': { critRate: 1, evasion: 1 },
@@ -1271,7 +1319,11 @@ export const ALL_PASSIVES: PassiveDefinition[] = [
   ...Object.entries(SPECIALIZATIONS).map(([id, job]) => ({ id: `${id}-capstone`, name: `Warisan ${job.name}`, description: `Puncak latihan ${job.name}: memperkuat passive utama. Memerlukan Mastery dan passive utama level 3.`, specialization: id as SpecializationId, job: job.coreJob, tier: 'capstone' as const, maxLevel: 1, unlockLevel: 50, prerequisiteSkillIds: [PASSIVES[id as SpecializationId].id] })),
 ];
 for (const [id] of Object.entries(SPECIALIZATIONS)) {
-  PASSIVE_EFFECTS[`${id}-capstone`] = Object.fromEntries(Object.entries(PASSIVE_EFFECTS[PASSIVES[id as SpecializationId].id]).map(([stat, value]) => [stat, value! * 2]));
+  const passiveId = PASSIVES[id as SpecializationId]?.id;
+  const passiveEffect = passiveId ? PASSIVE_EFFECTS[passiveId] : undefined;
+  PASSIVE_EFFECTS[`${id}-capstone`] = Object.fromEntries(
+    Object.entries(passiveEffect ?? {}).map(([stat, value]) => [stat, value! * 2]),
+  );
 }
 export const getSkill = (id: string) => ALL_SKILLS.find((s) => s.id === id);
 export const skillsFor = (
@@ -1294,7 +1346,7 @@ export const activeSkillsFor = (
   (!!coreJob && skill.job === coreJob && (!skill.specialization || skill.specialization === specialization))),
 );
 /** V2 reuses Adventurer, but must never blend legacy and V2 core trees. */
-export function skillArchitectureAllowed(hero:{progressionArchitecture?:'legacy'|'v2_test'},skill:{job?:string;tree?:TreeScope}) {
+export function skillArchitectureAllowed(hero:{progressionArchitecture?:'legacy'|'v2_test'|'v3_adventurer'},skill:{job?:string;tree?:TreeScope}) {
   return hero.progressionArchitecture==='v2_test'
     ? skill.job==='adventurer'||skill.tree?.architecture==='v2'
     : skill.tree?.architecture!=='v2';
