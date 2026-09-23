@@ -17,6 +17,10 @@ export function isFieldSafe(fieldId: string, x: number, z: number, margin = 0) {
     const {entry,exit}=FIELDS[fieldId];
     return Math.hypot(x-entry.x,z-entry.z)<7+margin || Math.hypot(x-exit.x,z-exit.z)<5+margin || Boolean(camp&&Math.hypot(x-camp.x,z-camp.z)<7+margin);
   }
+  if(fieldId==='city-of-light') {
+    const {entry,exit}=FIELDS[fieldId];
+    return Math.hypot(x-entry.x,z-entry.z)<12+margin || Math.hypot(x-exit.x,z-exit.z)<10+margin || Boolean(camp&&Math.hypot(x-camp.x,z-camp.z)<9+margin);
+  }
   return Math.hypot(x, z) < 4.7 + margin || Math.hypot(x, z - 30) < 7 + margin ||
     Boolean(camp && Math.hypot(x - camp.x, z - camp.z) < 7 + margin);
 }
@@ -24,6 +28,7 @@ export function isFieldWater(x: number, z: number, margin = 0) {
   return ((x / FIELD_SCALE - 24) / (11.8 + margin)) ** 2 + ((z / FIELD_SCALE + 3) / (7.5 + margin)) ** 2 < 1;
 }
 export function fieldSpawns(field: FieldDefinition): MonsterSpawn[] {
+  if(field.id==='city-of-light') return [];
   const terrain=FIELD_TERRAINS[field.id];
   if(terrain) {
     // Keep original IDs/species order so existing respawn saves attach to new homes.
@@ -66,6 +71,24 @@ export function fieldSpawns(field: FieldDefinition): MonsterSpawn[] {
     const elitePoints=[[-12,-20],[12,-20],[-10,18],[10,18], [0,24]] as const;
     const elites=elitePoints.map(([x,z],i)=>({id:90+i,...sandsWorldPoint(x,z),definition:field.eliteMonsters[i%field.eliteMonsters.length]}));
     return [...normals,...elites,{id:100,...sandsWorldPoint(0,-26),definition:field.fieldBoss}];
+  }
+  if(field.id==='city-of-light') {
+    const points:Array<{x:number;z:number}> = [];
+    for(let row=0; row<8; row++) for(let col=0; col<6; col++) {
+      const x = -100 + col * 28 + (row % 2 ? 6 : 0);
+      const z = -80 + row * 22;
+      const point = { x, z };
+      if(!isFieldSafe(field.id,point.x,point.z,4)) points.push(point);
+    }
+    const normals = Array.from({length:FIELD_LAYOUT.normalCount}, (_, i) => ({
+      id: i,
+      x: points[i % points.length]?.x ?? 0,
+      z: points[i % points.length]?.z ?? 0,
+      definition: field.normalMonsters[i % field.normalMonsters.length],
+    }));
+    const elitePoints = [[-80,-40],[-20,-60],[42,-52],[80,18],[-10,62]] as const;
+    const elites = elitePoints.map(([x,z], i) => ({ id:90+i, x, z, definition: field.eliteMonsters[i % field.eliteMonsters.length] }));
+    return [...normals, ...elites, { id:100, x:0, z:25, definition: field.fieldBoss }];
   }
   const spawns: MonsterSpawn[] = [];
   // Deterministic lattice: stable instance IDs/saves, spread across the expanded field.
