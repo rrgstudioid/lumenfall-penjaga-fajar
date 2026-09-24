@@ -250,6 +250,16 @@ await test('inventory stacks consumables while equipment remains separate', () =
   assert.equal(gearResult.inventory.length, 2);
 });
 
+await test('equipped items do not consume visible inventory capacity', () => {
+  const equipped = createItem('legacy-fajar-blade', { id: 'equipped-blade', isEquipped: true });
+  const carried = Array.from({ length: 4 }, (_, index) => createItem('forest-vest', { id: `carried-${index}` }));
+  const incoming = createItem('forest-vest', { id: 'incoming-vest' });
+  const result = addItemToInventory([equipped, ...carried], incoming, 5);
+  assert.equal(result.added, 1);
+  assert.equal(result.remaining, 0);
+  assert.equal(result.inventory.filter((item) => !item.isEquipped).length, 5);
+});
+
 await test('job weapon restriction and data-driven equipment work', () => {
   const hero = freshHero();
   gainXP(hero, 50000);

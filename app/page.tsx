@@ -172,7 +172,7 @@ const initial: Snapshot = {
 
 const panelTitles: Record<string, string> = {
   pause: 'System Menu',
-  bag: 'Perbekalan perjalanan',
+  bag: 'Inventory',
   forge: 'Tempa / Enhance',
   character: 'Character',
   jobSkill: 'Job Skill',
@@ -1586,9 +1586,11 @@ export default function Home() {
           initialFocus={panel === 'character' ? () => document.querySelector<HTMLElement>('.character-dialog [data-slot="dialog-close"]') : undefined}
           className={`game-dialog ${panel === 'pause' ? 'pause-dialog' : ''} ${panel === 'bag' || panel === 'jobSkill' ? 'binding-window' : ''} ${panel === 'bag' ? 'inventory-dialog' : panel === 'character' ? 'character-dialog' : panel === 'jobSkill' ? 'job-skill-dialog' : panel === 'forge' ? 'forge-dialog' : ''}`}
         >
-          <span className={panel === 'character' ? 'sr-only' : 'eyebrow'}>
-            LUMENFALL / {panel === 'pause' ? 'JEDA' : 'PERJALANANMU'}
-          </span>
+          {panel !== 'bag' && (
+            <span className={panel === 'character' ? 'sr-only' : 'eyebrow'}>
+              LUMENFALL / {panel === 'pause' ? 'JEDA' : 'PERJALANANMU'}
+            </span>
+          )}
           <DialogTitle className={panel === 'character' ? 'sr-only' : 'dialog-heading'}>
             {panelTitles[panel] || 'Petualangan'}
           </DialogTitle>
@@ -1989,8 +1991,8 @@ export default function Home() {
             <div className="dialog-stack">
               <div className="balance">
                 <Backpack size={18} /> {hero.inventory.filter((item) => !item.isEquipped).length}/
-                {hero.inventoryCapacity} <span>slot terpakai · </span>
-                <Coins size={16} /> {hero.gold} GOLD
+                {hero.inventoryCapacity} <span>Slot</span>
+                <span className="inventory-gold"><Coins size={13} /> {hero.gold} GOLD</span>
               </div>
               <div className="inventory-toolbar">
                 {hero.pendingLoot.length > 0 && (
@@ -2012,20 +2014,87 @@ export default function Home() {
                   Sort
                 </button>
               </div>
-              <InventoryGrid
-                hero={hero}
-                filter="all"
-                sort={inventorySort}
-                selectedId={selectedItemId}
-                onSelect={setSelectedItemId}
-                onHover={(id, position) => {
-                  setHoveredItemId(id || null);
-                  setHoveredItemPosition(position);
-                }}
-              />
-              {selectedItem ? (
+              <div className="inventory-layout">
+                <div className="inventory-browser">
+                  <InventoryGrid
+                    hero={hero}
+                    filter="all"
+                    sort={inventorySort}
+                    selectedId={selectedItemId}
+                    onSelect={setSelectedItemId}
+                    onHover={(id, position) => {
+                      setHoveredItemId(id || null);
+                      setHoveredItemPosition(position);
+                    }}
+                    renderActions={(item, point) => (
+                      <div
+                        className="inventory-slot-actions"
+                        data-open-above={point.y > window.innerHeight * 0.55 ? 'true' : undefined}
+                        style={{
+                          left: Math.min(point.x + 10, window.innerWidth - 240),
+                          top: point.y > window.innerHeight * 0.55
+                            ? Math.max(8, point.y - 10)
+                            : Math.min(point.y + 10, window.innerHeight - 80),
+                        }}
+                        onPointerDown={(event) => event.stopPropagation()}
+                        onClick={(event) => event.stopPropagation()}
+                      >
+                        {item.equipSlot && (
+                          <button
+                            className="secondary-button"
+                            onClick={() => {
+                              const offHand =
+                                hero.equipment.offHand &&
+                                hero.equipment.offHand !== item.id
+                                  ? hero.inventory.find((entry) => entry.id === hero.equipment.offHand)
+                                  : null;
+                              if (
+                                item.equipSlot === 'mainHand' &&
+                                (item.twoHanded || item.handedness === 'two_hand') &&
+                                offHand &&
+                                !(item.equipmentType === 'bow' && offHand.equipmentType === 'quiver')
+                              ) setEquipConfirmTarget(item);
+                              else game.current?.equipItem(item.id);
+                            }}
+                          >
+                            Equip <ArrowUpRight size={13} />
+                          </button>
+                        )}
+                        {(item.useEffect || item.category === 'pet') && (
+                          <button className="secondary-button" onClick={() => game.current?.useItem(item.id)}>
+                            Use
+                          </button>
+                        )}
+                        {Object.values(hero.equipment).includes(item.id) && (
+                          <button
+                            className="secondary-button"
+                            onClick={() => game.current?.unequipItem(item.equipSlot ?? 'mainHand')}
+                          >
+                            Unequip
+                          </button>
+                        )}
+                        {['weapon', 'armor', 'accessory'].includes(item.category) &&
+                          (item.uniqueStatsLocked || !Object.keys(item.bonusStats).length) && (
+                            <button
+                              className="secondary-button"
+                              disabled={item.isLocked || !hero.inventory.some((entry) => entry.itemType === 'magnifier' && entry.quantity > 0)}
+                              onClick={() => game.current?.unlockUniqueStats(item.id)}
+                            >
+                              Unlock Magnifier
+                            </button>
+                          )}
+                        {!item.isQuestItem && (
+                          <button className="danger-button" onClick={() => setDiscardTarget(item)}>
+                            <Trash2 size={13} /> Discard
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  />
+                </div>
+                {selectedItem ? (
                 <article
-                  className={`item-detail rarity-${selectedItem.rarity}`}
+                  className={`item-detail inventory-action-panel rarity-${selectedItem.rarity}`}
                 >
                   <div className="item-detail-head">
                     <ItemIcon item={selectedItem} className="item-symbol" />
@@ -2049,11 +2118,13 @@ export default function Home() {
                       <X size={16} />
                     </button>
                   </div>
-                  <p>
-                    <JobText>{['weapon', 'armor', 'accessory'].includes(selectedItem.category)
-                      ? equipmentUsageDescription(selectedItem)
-                      : selectedItem.description}</JobText>
-                  </p>
+                  <div className="item-detail-description">
+                    <p>
+                      <JobText>{['weapon', 'armor', 'accessory'].includes(selectedItem.category)
+                        ? equipmentUsageDescription(selectedItem)
+                        : selectedItem.description}</JobText>
+                    </p>
+                  </div>
                   {selectedItem.itemType === 'magnifier' && (
                     <p className="unique-stats-help">
                       Pilih equipment dengan ikon gembok di Inventory, lalu tekan
@@ -2277,26 +2348,10 @@ export default function Home() {
                       </div>
                     )}
                 </article>
-              ) : (
-                <p className="muted-copy">
-                  Pilih item untuk melihat tooltip, perbandingan, equip, use,
-                  atau discard. Untuk enhancement, temui Forge Master di kota.
-                </p>
-              )}
-              <p className="muted-copy">Tempa / Enhance hingga +12 hanya melalui NPC Forge Master di kota.</p>
-              <p className="muted-copy">
-                <FlaskConical size={14} /> Health Potion ×{hero.potions} ·
-                gunakan melalui Inventory atau PrimaryHotbar (tombol 1–0). Drag
-                item ke slot lain untuk memindahkan posisinya.
-              </p>
-              <button className="secondary-button" disabled>
-                Beli ramuan melalui Pedagang Umum
-              </button>
-              <p className="muted-copy">
-                Equipment: Common, Uncommon, Rare, Epic, Legendary, dan Mythic.
-                Field Boss dapat menjatuhkan equipment bersocket serta Rune
-                unik.
-              </p>
+                ) : (
+                  null
+                )}
+              </div>
               <AlertDialog
                 open={Boolean(discardTarget)}
                 onOpenChange={(open) => !open && setDiscardTarget(null)}

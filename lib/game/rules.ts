@@ -1744,6 +1744,9 @@ export function equipItem(hero: Hero, itemId: string, targetSlot?: EquipSlot) {
 export function unequipItem(hero: Hero, slot: EquipSlot) {
   const itemId = hero.equipment[slot];
   if (!itemId) return { ok: false, reason: 'Slot sudah kosong.' };
+  const carriedCount = hero.inventory.filter(item => !item.isEquipped).length;
+  if (carriedCount >= hero.inventoryCapacity)
+    return { ok: false, reason: 'Inventory penuh. Kosongkan satu slot terlebih dahulu.' };
   if (slot === 'mainHand' && hero.equipment.offHand === itemId)
     hero.equipment.offHand = null;
   if (slot === 'offHand' && hero.equipment.mainHand === itemId)

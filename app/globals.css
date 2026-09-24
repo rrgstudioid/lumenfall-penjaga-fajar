@@ -351,6 +351,185 @@ select,
   max-height: 225px;
   overflow-y: auto;
 }
+.inventory-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 10px;
+  align-items: start;
+}
+.inventory-browser {
+  min-width: 0;
+}
+.inventory-detail-panel {
+  min-width: 0;
+  max-height: none;
+  overflow: visible;
+}
+.inventory-empty-detail {
+  min-height: 180px;
+  display: grid;
+  place-items: center;
+  margin: 0;
+  padding: 18px;
+  border: 1px dashed #c6d49f38;
+  background: #071b1366;
+  text-align: center;
+}
+.inventory-detail-panel .item-detail {
+  padding: 10px;
+  border-radius: 7px;
+  background: rgba(8, 17, 14, 0.97);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.24);
+  display: grid;
+  gap: 8px;
+}
+.inventory-detail-panel .inventory-action-panel {
+  border: 0;
+  padding: 0;
+  background: transparent;
+  box-shadow: none;
+}
+.inventory-action-panel {
+  display: none;
+}
+.inventory-action-panel > *:not(.item-actions) {
+  display: none;
+}
+.inventory-action-panel .item-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin: 0;
+}
+.inventory-action-panel .item-actions .secondary-button,
+.inventory-action-panel .item-actions .danger-button {
+  width: auto;
+  min-height: 28px;
+  flex: 0 1 auto;
+  padding: 5px 7px;
+  font-size: 9px;
+}
+.inventory-slot-wrap {
+  position: relative;
+  min-width: 0;
+}
+.inventory-dialog .inventory-slot {
+  width: 100%;
+}
+.inventory-slot-actions {
+  position: fixed;
+  z-index: 2100;
+  display: flex;
+  flex-direction: column;
+  flex-wrap: nowrap;
+  align-items: stretch;
+  gap: 6px;
+  width: 160px;
+  max-width: 260px;
+  padding: 9px;
+  border: 1px solid rgba(224, 190, 111, 0.72);
+  border-radius: 6px;
+  background: rgba(8, 17, 14, 0.98);
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.42);
+  pointer-events: auto;
+}
+.inventory-slot-actions[data-open-above='true'] {
+  transform: translateY(-100%);
+}
+.inventory-slot-actions .secondary-button,
+.inventory-slot-actions .danger-button {
+  width: 100%;
+  min-height: 38px;
+  flex: 0 0 auto;
+  padding: 8px 10px;
+  font-size: 12px;
+}
+.inventory-detail-panel .inventory-action-panel > *:not(.item-actions) {
+  display: none;
+}
+.inventory-detail-panel .inventory-action-panel .item-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin: 0;
+}
+.inventory-detail-panel .inventory-action-panel .item-actions .secondary-button,
+.inventory-detail-panel .inventory-action-panel .item-actions .danger-button {
+  width: auto;
+  min-height: 28px;
+  flex: 0 1 auto;
+  padding: 5px 7px;
+  font-size: 9px;
+}
+.inventory-detail-panel .item-detail-head h3 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: #f1c96e;
+}
+.inventory-detail-panel .item-detail-head .eyebrow {
+  color: #aaa994;
+  font-size: 10px;
+}
+.inventory-detail-panel .item-detail-description {
+  display: grid;
+  gap: 4px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255, 224, 141, 0.15);
+}
+.inventory-detail-panel .item-detail-description p {
+  margin: 0;
+  color: #eee4c5;
+  font-size: 12px;
+  line-height: 1.45;
+}
+.inventory-detail-panel .item-detail-head {
+  gap: 6px;
+}
+.inventory-detail-panel .item-detail-head h3 {
+  font-size: 14px;
+}
+.inventory-detail-panel .item-symbol,
+.inventory-detail-panel .item-artwork.item-symbol {
+  width: 30px;
+  height: 30px;
+  font-size: 19px;
+}
+.inventory-detail-panel .item-detail p {
+  font-size: 10px;
+  line-height: 1.35;
+  margin: 5px 0;
+}
+.inventory-detail-panel .unique-stats-panel,
+.inventory-detail-panel .affix-socket-panel {
+  gap: 4px;
+  margin: 6px 0;
+  padding: 6px;
+}
+.inventory-detail-panel .socketed-rune {
+  gap: 3px;
+  padding: 5px;
+}
+.inventory-detail-panel .item-statline {
+  gap: 6px;
+  font-size: 8px;
+}
+.inventory-detail-panel .item-actions {
+  gap: 4px;
+  margin-top: 6px;
+}
+.inventory-detail-panel .item-actions .secondary-button,
+.inventory-detail-panel .item-actions .danger-button {
+  min-height: 32px;
+  padding: 7px 8px;
+  font-size: 10px;
+}
+.inventory-detail-panel .compare-box {
+  gap: 3px;
+  margin-top: 6px;
+  padding: 6px;
+  font-size: 9px;
+}
 .inventory-slot {
   min-height: 51px;
   position: relative;
@@ -966,7 +1145,22 @@ select,
     max-width: 100%;
   }
   .inventory-grid {
-    grid-template-columns: repeat(5, minmax(40px, 1fr));
+    grid-template-columns: repeat(6, minmax(34px, 1fr));
+  }
+  .inventory-dialog .inventory-grid {
+    grid-template-columns: repeat(6, minmax(34px, 1fr));
+  }
+  .game-dialog.inventory-dialog[data-slot='dialog-content'] {
+    width: calc(100% - 16px);
+    max-height: none;
+    overflow: visible;
+    padding: 18px;
+  }
+  .inventory-layout {
+    grid-template-columns: 1fr;
+  }
+  .inventory-detail-panel {
+    max-height: 42dvh;
   }
   .equipment-grid {
     grid-template-columns: 1fr;
@@ -2033,17 +2227,22 @@ kbd {
   grid-template-columns: 1fr;
 }
 .game-dialog.inventory-dialog[data-slot='dialog-content'] {
-  max-width: 600px;
+  width: min(980px, calc(100% - 24px));
+  max-width: 980px;
+  max-height: none;
+  overflow: visible;
 }
 .inventory-dialog .inventory-grid {
-  max-height: 281.25px;
+  grid-template-columns: repeat(10, minmax(36px, 1fr));
+  max-height: none;
+  overflow: visible;
 }
 .inventory-dialog .inventory-slot {
-  min-height: 63.75px;
+  min-height: 44px;
 }
 .inventory-dialog .inventory-icon .item-artwork {
-  width: 45px;
-  height: 45px;
+  width: 32px;
+  height: 32px;
 }
 .lumenfall-draggable-window .dialog-heading,
 .lumenfall-draggable-window [data-slot='alert-dialog-title'],
@@ -2138,6 +2337,28 @@ kbd {
 .balance span {
   font-size: 11px;
   color: #a9b999;
+}
+.inventory-dialog .balance {
+  gap: 7px;
+  font-size: 18px;
+  padding: 5px 0;
+}
+.inventory-dialog .balance > svg {
+  width: 16px;
+  height: 16px;
+}
+.inventory-dialog .inventory-gold {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  margin-left: 4px;
+  font-size: 14px;
+  color: #a9b999;
+  white-space: nowrap;
+}
+.inventory-dialog .inventory-gold svg {
+  width: 14px;
+  height: 14px;
 }
 .item-card {
   display: flex;
