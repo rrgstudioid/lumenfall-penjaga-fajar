@@ -139,6 +139,54 @@ export function SkillIcon({ id, size = 28 }: { id: string; size?: number }) {
       </span>
     );
   }
+  if (id === 'v3-blade-master-twin-blade-mastery') {
+    return (
+      <span
+        className="skill-icon skill-icon-custom"
+        style={{ width: size, height: size }}
+        aria-hidden="true"
+        data-skill-icon={id}
+      >
+        <img src="/assets/icons/skills/Twin_Blade_Master.png" alt="" />
+      </span>
+    );
+  }
+  if (id === 'v3-blade-master-blade-rush') {
+    return (
+      <span
+        className="skill-icon skill-icon-custom"
+        style={{ width: size, height: size }}
+        aria-hidden="true"
+        data-skill-icon={id}
+      >
+        <img src="/assets/icons/skills/Blade_Rush.png" alt="" />
+      </span>
+    );
+  }
+  if (id === 'v3-blade-master-counterflow') {
+    return (
+      <span
+        className="skill-icon skill-icon-custom"
+        style={{ width: size, height: size }}
+        aria-hidden="true"
+        data-skill-icon={id}
+      >
+        <img src="/assets/icons/skills/Counterflow.png" alt="" />
+      </span>
+    );
+  }
+  if (id === 'v3-blade-master-blade-focus') {
+    return (
+      <span
+        className="skill-icon skill-icon-custom"
+        style={{ width: size, height: size }}
+        aria-hidden="true"
+        data-skill-icon={id}
+      >
+        <img src="/assets/icons/skills/Blade_Focus.png" alt="" />
+      </span>
+    );
+  }
   const visual = SKILL_VISUALS[id as keyof typeof SKILL_VISUALS];
   const Glyph = visual ? glyphs[visual[0]] : BookOpen;
   const Motif = visual ? glyphs[visual[1]] : null;
