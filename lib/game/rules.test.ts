@@ -68,6 +68,20 @@ await test('progression caps at level 50 and grants skill points', () => {
   assert.equal(hero.hp, maxHP(hero));
 });
 
+await test('level-up restores mana to full, not just the current value', () => {
+  const hero = freshHero();
+  hero.level = 1;
+  hero.xp = 0;
+  hero.mana = 0;
+  hero.hp = 1;
+
+  gainXP(hero, 999999);
+
+  assert.equal(hero.level, 50);
+  assert.equal(hero.hp, maxHP(hero));
+  assert.equal(hero.mana, derivedStats(hero).maxMana);
+});
+
 await test('all five Core Jobs and ten Special Jobs are represented', () => {
   assert.equal(Object.keys(CORE_JOBS).length, 5);
   assert.equal(Object.keys(SPECIALIZATIONS).length, 10);
