@@ -147,6 +147,63 @@ type CombatProfile = {
 export const BASE_PRIMARY_STAT = 15;
 export const STAT_POINTS_PER_LEVEL = 2;
 export const BASIC_ATTACK_COEFFICIENT = 1;
+export const JOB_MANA_FACTORS: Record<string, number> = Object.freeze({
+  adventurer: 1,
+  warrior: 1,
+  berserker: 1.05,
+  executioner: 1.1,
+  blade_master: 1.1,
+  crimson_blade: 1.15,
+  thief: 1.05,
+  rogue: 1.1,
+  spectre: 1.15,
+  assassin: 1.1,
+  reaper: 1.15,
+  acolyte: 1.25,
+  luminary: 1.45,
+  stellar: 1.55,
+  sacred_fist: 1.25,
+  warmonk: 1.3,
+  archer: 1.05,
+  ranger: 1.25,
+  astral_ranger: 1.35,
+  marksman: 1.05,
+  sniper: 1.1,
+  knight: 1.05,
+  vanguard: 1.1,
+  royal_guard: 1.15,
+  phalanx: 1.05,
+  gladiator: 1.1,
+  mage: 1.6,
+  summoner: 1.75,
+  warlock: 1.85,
+  sorcerer: 1.8,
+  arcanist: 1.9,
+  smith: 1.1,
+  blacksmith: 1.15,
+  mastersmith: 1.2,
+  specialist: 1.15,
+  siege: 1.2,
+  guardian: 1,
+  ranger: 1.25,
+  guardian_legacy: 1,
+  hunter: 1.05,
+  wizard: 1.6,
+  gatotkaca: 1,
+  garda: 1,
+  caroq: 1.1,
+  anom: 1.1,
+  srikandi: 1.25,
+  jagawana: 1.35,
+  resi: 1.75,
+  pujangga: 1.85,
+  pandita: 1.25,
+  bajra: 1.3,
+  'blade-master': 1.1,
+  'crimson-blade': 1.15,
+  'astral-ranger': 1.35,
+  'royal-guard': 1.15,
+});
 export const PHYSICAL_WEAPON_STAT_FACTORS: Readonly<Partial<Record<WeaponType, number>>> = {
   none: 0, dagger: 1, dual_dagger: 1, one_hand_sword: 1, two_hand_sword: 1,
   greatsword: 1, dual_sword: 1, sword_dagger: 1, shield: 1, knuckle: 1,
@@ -155,6 +212,27 @@ export const PHYSICAL_WEAPON_STAT_FACTORS: Readonly<Partial<Record<WeaponType, n
 export const VIT_HP_BASE_FACTOR = 8;
 export const VIT_HP_LEVEL_FACTOR = 0.05;
 export const INT_MP_FACTOR = 3;
+export const getBonusInt = (effectiveInt: number) => Math.max(0, effectiveInt - BASE_PRIMARY_STAT);
+export const getManaFoundation = (level: number, effectiveInt: number) => Math.floor(
+  60 + (level * 2.5) + ((level ** 2) * 0.01) + (getBonusInt(effectiveInt) * 3),
+);
+export const getJobManaFactor = (hero: Pick<Hero, 'job' | 'coreJob' | 'specialization'> | null | undefined): number => {
+  const key = hero?.specialization ?? hero?.coreJob ?? hero?.job ?? 'adventurer';
+  const normalized = String(key).toLowerCase().replace(/[^a-z_]/g, '');
+  return JOB_MANA_FACTORS[normalized] ?? JOB_MANA_FACTORS[normalized.replace(/-/g, '_')] ?? 1;
+};
+export const resolveMaxMana = (
+  hero: Pick<Hero, 'job' | 'coreJob' | 'specialization' | 'level'>,
+  allocated: AllocatedStats = hero.allocatedStats,
+  contributions: Partial<StatBlock> = {},
+): number => {
+  const effectiveInt = BASE_PRIMARY_STAT + (allocated.int ?? 0) + (contributions.int ?? 0);
+  const foundation = getManaFoundation(hero.level, effectiveInt);
+  const jobMana = Math.floor(foundation * getJobManaFactor(hero));
+  const flatMaxMana = Math.max(0, contributions.maxMana ?? 0);
+  const maxManaPercent = Math.max(0, contributions.maxManaPercent ?? 0);
+  return Math.floor((jobMana + flatMaxMana) * (1 + maxManaPercent));
+};
 export const basePhysicalAttackForLevel = (level: number) =>
   7 + Math.floor(Math.max(1, Math.floor(level)) * 1.1);
 export const vitalityHPContribution = (level: number, effectiveVit: number) =>
@@ -515,8 +593,8 @@ export function freshHero(
     ),
     passiveLevels: {},
     masteryChoices: {},
-    mana: 100 + BASE_PRIMARY_STAT * INT_MP_FACTOR,
-    maxMana: 100 + BASE_PRIMARY_STAT * INT_MP_FACTOR,
+    mana: 62,
+    maxMana: 62,
     stamina: 100,
     barrier: 0,
     activeBuffs: {},
@@ -862,6 +940,7 @@ export function derivedStats(
   const dex = base.dex + (gear.dex ?? 0);
   const int = base.int + (gear.int ?? 0);
   const vit = base.vit + (gear.vit ?? gear.sta ?? 0);
+  const maxMana = resolveMaxMana(hero, allocated, gear);
   const weaponStyle = resolveWeaponStyle(itemById(hero.inventory, hero.equipment.mainHand), itemById(hero.inventory, hero.equipment.offHand));
   const berserkerMasteryRank = hero.skillArchitectureVersion === 3 && hero.specialization === 'berserker' && weaponStyle === 'two_hand_sword'
     ? hero.skillProgressionV3?.skillRanks['v3-berserker-two-hand-mastery'] ?? 0
@@ -902,7 +981,7 @@ export function derivedStats(
     healingPower: Math.round((int * .25 + (gear.healingPower ?? 0)) * 100) / 100,
     hpRecovery: Math.round((vit * .1 + (gear.hpRecovery ?? 0)) * 100) / 100,
     staminaMax: staminaDerivedValue(hero, Math.round(100 + vit * 4 + (gear.stamina ?? 0))),
-    maxMana: Math.max(1,Math.round(100 + int * INT_MP_FACTOR + (gear.maxMana ?? 0))),
+    maxMana,
     manaCostReduction: Math.round(Math.min(50,Math.max(0,int*.1+(gear.manaCostReduction??0)))*10)/10,
     // No passive MP regeneration at the base INT value. Additional effective
     // INT grants recovery, while equipment MP Recovery remains an explicit
