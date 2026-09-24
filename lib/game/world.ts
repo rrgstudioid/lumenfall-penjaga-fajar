@@ -628,6 +628,7 @@ export class Game {
     public onSnapshot: (snapshot: Snapshot) => void,
     public onPause: () => void,
     initialSlot = 'slot-1',
+    public onMapTransition?: (state: { id: string; loading: boolean; label: string }) => void,
   ) {
     try {
       this.slotId = initialSlot;
@@ -718,7 +719,18 @@ export class Game {
     const characterReady = await this.characterModel.ready;
     if (this.disposed) return;
     if (!characterReady) throw new Error('Character model could not be loaded');
-    // Loading an imported map can enqueue foliage/collision work of its own.
+    await this.waitForRegionLoads();
+    this.placeActor();
+    this.cameraFocus.copy(this.actor.position);
+    this.setCameraMode('follow');
+    await this.renderer.compileAsync(this.scene, this.camera);
+    if (!this.disposed) this.renderer.render(this.scene, this.camera);
+  }
+
+  private async waitForRegionLoads() {
+    // Region rebuilds can enqueue terrain, imported assets, and foliage work
+    // that resolves asynchronously. The player must only re-enter the world
+    // after every pending region load settles.
     let settled = 0;
     while (!this.disposed && settled < this.regionLoads.length) {
       const pending = this.regionLoads.slice(settled);
@@ -727,11 +739,6 @@ export class Game {
     }
     if (this.disposed) return;
     if (this.regionLoadError) throw this.regionLoadError;
-    this.placeActor();
-    this.cameraFocus.copy(this.actor.position);
-    this.setCameraMode('follow');
-    await this.renderer.compileAsync(this.scene, this.camera);
-    if (!this.disposed) this.renderer.render(this.scene, this.camera);
   }
 
   createPlayerStatusLabel() {
@@ -1564,16 +1571,34 @@ export class Game {
   changeRegion(id:string) {
     if(this.transitioning) return false;
     const result=travel(this.hero,id); if(!result.ok){this.message(result.reason);return false;}
+    const destinationLabel = CITIES[id]?.displayName ?? FIELDS[id]?.displayName ?? 'Area baru';
     this.clearSkillRuntime();
     this.closeNpcMenu();
     this.transitioning=true;this.clearInput();
-    try {
-      this.clearGroundLoot();
-      for(const enemy of this.enemies){this.scene.remove(enemy.group);enemy.group.traverse(object=>{if(object instanceof T.Mesh){object.geometry.dispose();const materials=Array.isArray(object.material)?object.material:[object.material];materials.forEach(material=>material.dispose());}});}
-      this.enemyLabels.forEach(label=>label.remove());this.enemyLabels.clear();this.enemies=[];this.targetEntities.clear();this.bossSpawned=false;
-      this.buildEnemies();this.buildRegionDecor();this.placeActor();this.cameraFocus.copy(this.actor.position);
-      this.invincible=2;this.save();this.message(result.reason);return true;
-    } finally {this.transitioning=false;this.emit();}
+    this.onMapTransition?.({ id, loading: true, label: destinationLabel });
+    void (async () => {
+      try {
+        this.clearGroundLoot();
+        for(const enemy of this.enemies){this.scene.remove(enemy.group);enemy.group.traverse(object=>{if(object instanceof T.Mesh){object.geometry.dispose();const materials=Array.isArray(object.material)?object.material:[object.material];materials.forEach(material=>material.dispose());}});}
+        this.enemyLabels.forEach(label=>label.remove());this.enemyLabels.clear();this.enemies=[];this.targetEntities.clear();this.bossSpawned=false;
+        this.buildEnemies();
+        this.buildRegionDecor();
+        this.placeActor();
+        this.cameraFocus.copy(this.actor.position);
+        await this.waitForRegionLoads();
+        this.invincible=2;
+        this.save();
+        this.message(result.reason);
+      } catch (error) {
+        console.warn('Gagal memuat region tujuan.', error);
+        this.message('Map tujuan belum siap sepenuhnya. Silakan coba lagi sebentar.');
+      } finally {
+        this.transitioning=false;
+        this.onMapTransition?.({ id, loading: false, label: destinationLabel });
+        this.emit();
+      }
+    })();
+    return true;
   }
   openNpc(id:string) {
     const npc=this.hero.inCity?CITIES[this.hero.currentCity].npcList.find(entry=>entry.id===id):FIELD_NPCS[this.hero.currentField]?.id===id?FIELD_NPCS[this.hero.currentField]:undefined;

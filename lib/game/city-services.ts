@@ -26,7 +26,8 @@ export function sellInventoryItem(hero:Hero,itemId:string,quantity:number,allowe
  if(!item) return {ok:false,reason:'Item tidak ditemukan.',earned:0};
  if(Object.values(hero.equipment).includes(itemId)) return {ok:false,reason:'Lepas equipment sebelum menjual.',earned:0};
  if(item.sockets.some(socket=>socket.rune)) return {ok:false,reason:'Lepas Rune dari equipment sebelum menjual.',earned:0};
- if(item.isQuestItem||item.isSoulbound||!item.isSellable) return {ok:false,reason:'Item ini tidak dapat dijual.',earned:0};
+ const equipment=['weapon','armor','accessory'].includes(item.category);
+ if(item.isQuestItem||(!equipment&&(item.isSoulbound||!item.isSellable))) return {ok:false,reason:'Item ini tidak dapat dijual.',earned:0};
  if(!item.sellValue||item.sellValue<=0) return {ok:false,reason:'Item ini tidak dapat dijual.',earned:0};
  if(allowedCategories?.length&&!allowedCategories.includes(item.category)) return {ok:false,reason:'NPC ini tidak menerima jenis item tersebut.',earned:0};
  const amount=Math.max(1,Math.min(Math.floor(quantity),item.quantity));

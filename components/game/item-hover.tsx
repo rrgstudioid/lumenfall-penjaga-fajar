@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 import { JobText, useJobText } from './job-presentation-context';
 
 import { createElement, useEffect, useLayoutEffect, useRef, useState, type ButtonHTMLAttributes, type PointerEvent, type ReactNode } from 'react';
@@ -11,9 +11,32 @@ import { ItemIcon } from './entry-icon';
 type HoverItem = Omit<ItemData, 'id' | 'quantity'> & Partial<Pick<ItemData, 'id' | 'quantity'>>;
 type Point = { x: number; y: number };
 
+function equipmentTooltipSections(item: HoverItem) {
+  const lines = equipmentUsageDescription({ ...item, bonusStats: {} }).split(' · ');
+  const isMetadata = (line: string) => /^(Level|Jenis|Slot|Syarat|Harga jual):/.test(line);
+  return {
+    metadata: lines.filter(line => /^(Level|Jenis|Slot):/.test(line)),
+    requirement: lines.find(line => line.startsWith('Syarat:')),
+    stats: lines.filter(line => !isMetadata(line)),
+    price: lines.find(line => line.startsWith('Harga jual:')),
+  };
+}
+
+function uniqueStatLines(item: HoverItem) {
+  if (item.uniqueStatsLocked || !Object.keys(item.bonusStats).length) return [];
+  return equipmentUsageDescription({ ...item, baseStats: {}, bonusStats: item.bonusStats })
+    .split(' · ')
+    .filter(line => !/^(Syarat|Level|Jenis|Slot|Harga jual):/.test(line));
+}
+
 function ItemHoverTooltip({ item, point, buyPrice }: { item: HoverItem; point: Point; buyPrice?: number }) {
   const text = useJobText();
   const popup = useRef<HTMLDivElement>(null);
+  const equipmentSections = ['weapon', 'armor', 'accessory'].includes(item.category)
+    ? equipmentTooltipSections(item)
+    : null;
+  const uniqueStats = equipmentSections ? uniqueStatLines(item) : [];
+  const showUnmagnified = item.uniqueStatsLocked || uniqueStats.length === 0;
   useLayoutEffect(() => {
     const element = popup.current;
     if (!element) return;
@@ -37,19 +60,44 @@ function ItemHoverTooltip({ item, point, buyPrice }: { item: HoverItem; point: P
           <small>{RARITY_META[item.rarity].label} · {item.category}</small>
         </div>
       </div>
-      <p><JobText>{equipment ? equipmentUsageDescription({ ...item, bonusStats: item.uniqueStatsLocked ? {} : item.bonusStats }) : item.description}</JobText></p>
-      {equipment && item.uniqueStatsLocked && <small>Unique Stats tersembunyi · Gunakan Arcane Magnifier.</small>}
-      {item.category === 'rune' && <div className="npc-item-tooltip-stats">
+
+      <div className="floating-item-group">
+        {equipmentSections ? (
+          <>
+            <div className="floating-item-equipment-meta">
+              {equipmentSections.metadata.map(line => <small key={line} className="floating-item-detail-line"><JobText>{line}</JobText></small>)}
+              {equipmentSections.requirement && <small className="floating-item-detail-line"><JobText>{equipmentSections.requirement}</JobText></small>}
+            </div>
+            <div className="floating-item-equipment-stats">
+              {equipmentSections.stats.map(line => <small key={line} className="floating-item-detail-line floating-item-stat-line"><JobText>{line}</JobText></small>)}
+            </div>
+            <div className="floating-item-unique-stats">
+              <small className="floating-item-unique-label">Unique status</small>
+              {showUnmagnified
+                ? <small className="floating-item-unmagnified">Unmagnified</small>
+                : uniqueStats.map(line => <small key={line} className="floating-item-detail-line floating-item-stat-line"><JobText>{line}</JobText></small>)}
+            </div>
+          </>
+        ) : (
+          <p><JobText>{item.description}</JobText></p>
+        )}
+      </div>
+
+      {item.category === 'rune' && <div className="floating-item-group npc-item-tooltip-stats">
         {item.affixes.map(affix => <p key={affix.id}>{affix.label} +{affix.value}{affix.unit === 'percent' ? '%' : ''}</p>)}
         {item.uniqueEffect && <p><JobText>{item.uniqueEffect}</JobText></p>}
         {item.runeJobRequirement && <small>Khusus job: <JobText>{item.runeJobRequirement}</JobText></small>}
       </div>}
-      {equipment && <small>Socket: <JobText>{item.sockets.length ? item.sockets.map(socket => socket.rune?.name ?? 'Kosong').join(' · ') : 'Tidak memiliki socket'}</JobText></small>}
-      {buyPrice !== undefined && <small>Harga beli: {buyPrice.toLocaleString()} GOLD / item</small>}
-      {!equipment && <small>Harga jual: {item.sellValue.toLocaleString()} GOLD / item</small>}
-      {item.quantity !== undefined && <small>Jumlah: {item.quantity}</small>}
-      {item.isLocked && <small>Item terkunci</small>}
-      {item.isSoulbound && <small>Terikat karakter</small>}
+
+      <div className="floating-item-group floating-item-meta-block">
+        {equipment && <small>Socket: <JobText>{item.sockets.length ? item.sockets.map(socket => socket.rune?.name ?? 'Kosong').join(' · ') : 'Tidak memiliki socket'}</JobText></small>}
+        {equipmentSections?.price && <small className="floating-item-price-line"><JobText>{equipmentSections.price}</JobText></small>}
+        {buyPrice !== undefined && <small>Harga beli: {buyPrice.toLocaleString()} GOLD / item</small>}
+        {!equipment && <small>Harga jual: {item.sellValue.toLocaleString()} GOLD / item</small>}
+        {item.quantity !== undefined && <small>Jumlah: {item.quantity}</small>}
+        {item.isLocked && <small>Item terkunci</small>}
+        {item.isSoulbound && <small>Terikat karakter</small>}
+      </div>
     </div>,
     document.fullscreenElement ?? document.body,
   );
@@ -105,3 +153,5 @@ export function ItemHover({ as = 'span', item, buyPrice, children, ...props }: {
     {item && point && <ItemHoverTooltip item={item} point={point} buyPrice={buyPrice} />}
   </>;
 }
+
+

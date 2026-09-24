@@ -42,6 +42,7 @@ import {
   RUNE_REFORGE_STEP_WEIGHT,
   RUNE_REMOVAL_GOLD_COST,
   rollRuneAffixes,
+  rollUniqueStats,
   normalizeSocketedRune,
   type RuneRarity,
   RUNE_THEME_POOLS,
@@ -2143,10 +2144,11 @@ export function unlockUniqueStats(hero: Hero, itemId: string) {
   if (!item) return {ok:false,reason:'Equipment tidak ditemukan di Inventory.'};
   if (!['weapon','armor','accessory'].includes(item.category) || !item.equipSlot)
     return {ok:false,reason:'Unique Stats hanya dapat dibuka pada equipment.'};
-  if (!item.uniqueStatsLocked) return {ok:false,reason:'Unique Stats sudah terbuka atau item ini tidak memiliki Unique Stats.'};
+  if (!item.uniqueStatsLocked && Object.keys(item.bonusStats).length) return {ok:false,reason:'Unique Stats sudah terbuka atau item ini tidak memiliki Unique Stats.'};
   if (item.isLocked) return {ok:false,reason:'Equipment sedang terkunci.'};
   if (!magnifier) return {ok:false,reason:'Membutuhkan 1 Magnifier.'};
-  hero.inventory=hero.inventory.map(entry=>entry.id===itemId?{...entry,uniqueStatsLocked:false,bonusStats:{...entry.bonusStats}}:entry.id===magnifier.id?{...entry,quantity:entry.quantity-1}:entry).filter(entry=>entry.quantity>0);
+  const revealedStats = Object.keys(item.bonusStats).length ? item.bonusStats : rollUniqueStats(item);
+  hero.inventory=hero.inventory.map(entry=>entry.id===itemId?{...entry,uniqueStatsLocked:false,bonusStats:{...revealedStats}}:entry.id===magnifier.id?{...entry,quantity:entry.quantity-1}:entry).filter(entry=>entry.quantity>0);
   return {ok:true,reason:'Unique Stats berhasil dibuka.'};
 }
 export function learnPassive(hero: Hero, passiveId?: string) {

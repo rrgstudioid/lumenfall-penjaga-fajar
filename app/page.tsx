@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useEffect, useRef, useState } from 'react';
 import { isResourceEnabled } from '@/lib/game/gameplay-config';
@@ -216,6 +216,7 @@ export default function Home() {
     [engine, setEngine] = useState<Game | null>(null),
     [ready, setReady] = useState(false),
     [error, setError] = useState(''),
+    [loadingDestination, setLoadingDestination] = useState<string | null>(null),
     [panel, setPanel] = useState(''),
     [roster, setRoster] = useState<CharacterSlot[]>([]),
     [selectedSlot, setSelectedSlot] = useState('slot-1'),
@@ -302,6 +303,16 @@ export default function Home() {
             },
             () => setPanel((p) => (p ? '' : 'pause')),
             loadingSlot,
+            (transition) => {
+              if (cancelled) return;
+              if (transition.loading) {
+                setLoadingDestination(transition.label);
+                setFlow('loading');
+                return;
+              }
+              setLoadingDestination(null);
+              setFlow('world');
+            },
           );
           game.current = instance;
           await instance.prepareWorld();
@@ -775,7 +786,7 @@ export default function Home() {
           {Object.keys(hero.statusEffects).length > 0 && (
             <div className="status-icons" aria-label="Status effect aktif">
               {Object.keys(hero.statusEffects).map((status) => (
-                <span key={status} title={status === 'stealth' ? 'Stealth combat state — bukan jaminan tidak terdeteksi musuh.' : status} className={status === 'stealth' ? 'stealth-status-label' : undefined}>
+                  <span key={status} title={status === 'stealth' ? 'Stealth combat state — bukan jaminan tidak terdeteksi musuh.' : status} className={status === 'stealth' ? 'stealth-status-label' : undefined}>
                   {status === 'stealth' ? `STEALTH · ${Math.max(0,hero.statusEffects[status]).toFixed(1)}s` : status.slice(0, 3).toUpperCase()}
                 </span>
               ))}
@@ -901,7 +912,7 @@ export default function Home() {
       </aside>
       {boss && state.started && (
         <div className="boss-bar">
-          <span>FIELD BOSS · LV. {boss.level}</span>
+              <span>FIELD BOSS · LV. {boss.level}</span>
           <h2>{state.bossName}</h2>
           <Progress value={(boss.hp / boss.max) * 100} aria-label="HP boss" />
           <small>
@@ -921,7 +932,7 @@ export default function Home() {
         roster={roster} selectedSlot={selectedSlot} selectionMode={selectionMode} previewHero={previewHero}
         appearance={creationAppearance} name={creationName} validation={validateCharacterName(creationName)}
         architecture={creationArchitecture} onArchitecture={setCreationArchitecture}
-        error={creationError || error} muted={muted} fullscreen={isFullscreen}
+        error={creationError || error} muted={muted} fullscreen={isFullscreen} loadingDestination={loadingDestination}
         onContinue={continueAdventure} onNew={openNewGame} onLoad={openLoadGame}
         onOptions={() => setFlow('options')} onQuit={() => setQuitConfirmOpen(true)}
         onBack={() => { setCreationError(''); setError(''); setFlow(flow === 'creation' ? 'selection' : 'main'); }}
@@ -1187,8 +1198,7 @@ export default function Home() {
                         equipped ||
                         item.sockets.some((socket) => socket.rune) ||
                         item.isQuestItem ||
-                        item.isSoulbound ||
-                        !item.isSellable ||
+                        (!['weapon', 'armor', 'accessory'].includes(item.category) && (item.isSoulbound || !item.isSellable)) ||
                         item.sellValue <= 0 ||
                         (currentNpc.service === 'equipment' &&
                           !['weapon', 'armor', 'accessory'].includes(
@@ -1437,10 +1447,53 @@ export default function Home() {
               <small>{RARITY_META[hoveredItem.rarity].label} · {hoveredItem.category}</small>
             </div>
           </div>
-          <p><JobText>{['weapon', 'armor', 'accessory'].includes(hoveredItem.category)
-            ? equipmentUsageDescription(hoveredItem)
-            : hoveredItem.description}</JobText></p>
-          <small>Qty {hoveredItem.quantity}</small>
+
+          <div className="floating-item-group">
+            {['weapon', 'armor', 'accessory'].includes(hoveredItem.category) ? (() => {
+              const hoveredEquipmentLines = equipmentUsageDescription({ ...hoveredItem, bonusStats: {} }).split(' · ');
+              const hoveredMetadata = hoveredEquipmentLines.filter(line => /^(Level|Jenis|Slot):/.test(line));
+              const hoveredRequirement = hoveredEquipmentLines.find(line => line.startsWith('Syarat:'));
+              const hoveredStats = hoveredEquipmentLines.filter(line => !/^(Level|Jenis|Slot|Syarat|Harga jual):/.test(line));
+              const hoveredUniqueStats = hoveredItem.uniqueStatsLocked || !Object.keys(hoveredItem.bonusStats).length
+                ? []
+                : equipmentUsageDescription({ ...hoveredItem, baseStats: {}, bonusStats: hoveredItem.bonusStats })
+                  .split(' · ')
+                  .filter(line => !/^(Syarat|Level|Jenis|Slot|Harga jual):/.test(line));
+              const showUnmagnified = hoveredItem.uniqueStatsLocked || hoveredUniqueStats.length === 0;
+              return (
+                <>
+                  <div className="floating-item-equipment-meta">
+                    {hoveredMetadata.map(line => <small key={line} className="floating-item-detail-line"><JobText>{line}</JobText></small>)}
+                    {hoveredRequirement && <small className="floating-item-detail-line"><JobText>{hoveredRequirement}</JobText></small>}
+                  </div>
+                  <div className="floating-item-equipment-stats">
+                    {hoveredStats.map(line => <small key={line} className="floating-item-detail-line floating-item-stat-line"><JobText>{line}</JobText></small>)}
+                  </div>
+                  <div className="floating-item-unique-stats">
+                    <small className="floating-item-unique-label">Unique status</small>
+                    {showUnmagnified
+                      ? <small className="floating-item-unmagnified">Unmagnified</small>
+                      : hoveredUniqueStats.map(line => <small key={line} className="floating-item-detail-line floating-item-stat-line"><JobText>{line}</JobText></small>)}
+                  </div>
+                  <div className="floating-item-sockets">
+                    <small className="floating-item-unique-label">Socket</small>
+                    {hoveredItem.sockets.length ? hoveredItem.sockets.map((socket, index) => (
+                      <small key={socket.id} className={`floating-item-detail-line${socket.rune ? ' floating-item-stat-line' : ''}`}>
+                        Socket {index + 1} : <JobText>{socket.rune
+                          ? socket.rune.affixes.map(affix => `${affix.label} +${affix.value}${affix.unit === 'percent' ? '%' : ''}`).join(' · ') || socket.rune.name
+                          : 'Kosong'}</JobText>
+                      </small>
+                    )) : <small className="floating-item-detail-line">Tidak memiliki socket</small>}
+                  </div>
+                </>
+              );
+            })() : <p><JobText>{hoveredItem.description}</JobText></p>}
+          </div>
+
+          <div className="floating-item-group floating-item-meta-block">
+            <small className="floating-item-price-line">Harga jual: {hoveredItem.sellValue.toLocaleString()} GOLD</small>
+          </div>
+
           <InventoryCombatPowerPreview hero={hero} item={hoveredItem} />
         </div>,
         document.body,
@@ -2174,7 +2227,7 @@ export default function Home() {
                     {['weapon', 'armor', 'accessory'].includes(
                       selectedItem.category,
                     ) && (
-                      selectedItem.uniqueStatsLocked ? (
+                      (selectedItem.uniqueStatsLocked || !Object.keys(selectedItem.bonusStats).length) ? (
                         <button
                           className="secondary-button"
                           disabled={
@@ -2754,3 +2807,5 @@ export default function Home() {
     </GameDragDropProvider></JobPresentationContext.Provider>
   );
 }
+
+

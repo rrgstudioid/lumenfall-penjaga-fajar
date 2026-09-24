@@ -53,7 +53,7 @@ export function MenuPresentation(props: {
   flow: Exclude<MenuFlow, 'world'>; ready: boolean; canContinue: boolean; hasCharacters: boolean;
   roster: CharacterSlot[]; selectedSlot: string; selectionMode: SelectionMode; previewHero: Hero;
   appearance: CharacterAppearance; name: string; validation: string | null; error: string;
-  architecture: 'v3_adventurer';
+  architecture: 'v3_adventurer'; loadingDestination?: string | null;
   onArchitecture: (value: 'v3_adventurer') => void;
   muted: boolean; fullscreen: boolean;
   onContinue: () => void; onNew: () => void; onLoad: () => void; onOptions: () => void; onQuit: () => void;
@@ -67,7 +67,7 @@ export function MenuPresentation(props: {
   const selected = roster.find(slot => slot.id === selectedSlot);
   const titleScene = flow === 'main' || flow === 'options' || flow === 'loading';
   const update = (key: keyof CharacterAppearance, value: string) => props.onAppearance({ ...appearance, [key]: value });
-  const destination = previewHero.inCity ? CITIES[previewHero.currentCity]?.displayName : FIELDS[previewHero.currentField]?.displayName;
+  const destination = props.loadingDestination ?? (previewHero.inCity ? CITIES[previewHero.currentCity]?.displayName : FIELDS[previewHero.currentField]?.displayName);
   return <section ref={root} tabIndex={-1} className={`menu-presentation menu-${flow}`} aria-label={flow === 'main' ? 'Main Menu' : flow === 'selection' ? 'Character Selection' : flow === 'creation' ? 'Character Creation' : flow === 'loading' ? 'Loading World' : 'Options'}>
     <div
       className="menu-scenery"

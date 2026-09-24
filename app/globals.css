@@ -1,4 +1,4 @@
-@import 'tailwindcss' source(none);
+﻿@import 'tailwindcss' source(none);
 @import 'tw-animate-css';
 @import 'shadcn/tailwind.css';
 /* Scan only live application sources, never exports, archives or staging copies. */
@@ -2968,12 +2968,13 @@ button.shop-row:disabled {
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.42), 0 0 0 1px rgba(0, 0, 0, 0.45);
   color: #eee4c5;
   pointer-events: none;
+  display: grid;
+  gap: 8px;
 }
 .floating-item-title {
   display: flex;
   align-items: center;
   gap: 9px;
-  margin-bottom: 8px;
 }
 .floating-item-title strong,
 .floating-item-title small {
@@ -2987,11 +2988,69 @@ button.shop-row:disabled {
   color: #aaa994;
   margin-top: 3px;
 }
-.floating-item-tooltip p {
+.floating-item-group {
+  display: grid;
+  gap: 4px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255, 224, 141, 0.15);
+}
+.floating-item-detail-line {
+  display: block;
+  color: #d7cfb7;
+  font-size: 11px;
+  line-height: 1.4;
+}
+.floating-item-stat-line {
+  font-size: 13px;
+  font-weight: 700;
+}
+.floating-item-price-line {
+  font-size: 12px;
+}
+.floating-item-equipment-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+}
+.floating-item-equipment-stats {
+  display: grid;
+  gap: 2px;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255, 224, 141, 0.15);
+}
+.floating-item-unique-stats {
+  display: grid;
+  gap: 2px;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255, 224, 141, 0.15);
+}
+.floating-item-unique-label {
+  color: #d7cfb7;
+  font-size: 11px;
+  line-height: 1.4;
+}
+.floating-item-unmagnified {
+  color: #e06f68;
+  font-size: 11px;
+  line-height: 1.4;
+}
+.floating-item-sockets {
+  display: grid;
+  gap: 2px;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255, 224, 141, 0.15);
+}
+.floating-item-group p {
   margin: 0;
   color: #eee4c5;
   font-size: 12px;
   line-height: 1.45;
+}
+.floating-item-meta-block {
+  gap: 3px;
 }
 .npc-item-tooltip {
   max-height: calc(100dvh - 16px);
@@ -3002,7 +3061,7 @@ button.shop-row:disabled {
   display: block;
 }
 .npc-item-tooltip-stats {
-  margin-top: 6px;
+  margin-top: 0;
 }
 .boss-respawning {
   border-color: rgba(224, 190, 111, 0.45);
@@ -3982,3 +4041,5 @@ body:has(.start-screen) .primary-hotbar-panel { visibility:hidden; pointer-event
   .combat-feedback-strip { left: 10px; top: 112px; max-width: 70vw; }
   .combat-feedback-event { top: 168px; }
 }
+
+
