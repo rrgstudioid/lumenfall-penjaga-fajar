@@ -10,7 +10,7 @@ const trainingIds = [
   'field-verdant-plains-mace',
 ] as const;
 
-test('every Training template is permanently Common', () => {
+await test('every Training template is permanently Common', () => {
   for (const templateId of trainingIds) {
     assert.equal(ITEM_CATALOG[templateId].rarity, 'common');
     assert.equal(createItem(templateId).rarity, 'common');
@@ -19,7 +19,7 @@ test('every Training template is permanently Common', () => {
   }
 });
 
-test('Training remains Common after save normalization and cannot inherit old rarity', () => {
+await test('Training remains Common after save normalization and cannot inherit old rarity', () => {
   for (const templateId of trainingIds) {
     const saved = createItem(templateId, { id: `saved-${templateId}`, rarity: 'epic', enhancementLevel: 4 });
     const normalized = normalizeItem({ ...saved, rarity: 'mythic' });

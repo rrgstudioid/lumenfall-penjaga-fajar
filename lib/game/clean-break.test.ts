@@ -12,7 +12,7 @@ import { ITEM_CATALOG } from './items.ts';
 import { getVisibleJobArchitecture } from './job-presentation.ts';
 import { getJobSkillNodes } from './character-view.ts';
 
-test('clean break rejects pre-break saves without deleting their parsed data', () => {
+await test('clean break rejects pre-break saves without deleting their parsed data', () => {
   const old = parseSave(JSON.stringify({
     version: 3,
     slotId: 'slot-1',
@@ -26,7 +26,7 @@ test('clean break rejects pre-break saves without deleting their parsed data', (
   assert.equal(old?.gold, 123);
 });
 
-test('new character creation is V2 Adventurer and does not auto-promote', () => {
+await test('new character creation is V2 Adventurer and does not auto-promote', () => {
   const hero = createNewCharacter('slot-1', 'Astra');
   assert.equal(isCompatibleCharacterSave(hero), true);
   assert.equal(hero.progressionArchitecture, 'v2_test');
@@ -36,7 +36,7 @@ test('new character creation is V2 Adventurer and does not auto-promote', () => 
   assert.equal(getVisibleJobArchitecture(hero).legacyProgression, false);
 });
 
-test('level 15 V2 exposes only Warrior as an available core job', () => {
+await test('level 15 V2 exposes only Warrior as an available core job', () => {
   const hero = createNewCharacter('slot-1', 'Astra');
   hero.level = 15;
   const choices = getVisibleJobArchitecture(hero).v2CoreChoices;
@@ -48,9 +48,9 @@ test('level 15 V2 exposes only Warrior as an available core job', () => {
   assert.equal(getJobSkillNodes(hero, 'core').passive.length, 14);
 });
 
-test('local dev warrior harness can save V2 test heroes in memory-only localhost mode', () => {
-  const previousWindow = (globalThis as any).window;
-  const previousLocalStorage = (globalThis as any).localStorage;
+await test('local dev warrior harness can save V2 test heroes in memory-only localhost mode', () => {
+  const previousWindow = (globalThis as unknown as { window?: { location: { hostname:string; pathname:string } }; localStorage?: Storage }).window;
+  const previousLocalStorage = (globalThis as unknown as { window?: { location: { hostname:string; pathname:string } }; localStorage?: Storage }).localStorage;
   const memory = {
     store: new Map<string, string>(),
     getItem(key: string) { return this.store.get(key) ?? null; },
@@ -60,8 +60,8 @@ test('local dev warrior harness can save V2 test heroes in memory-only localhost
     key(index: number) { return [...this.store.keys()][index] ?? null; },
     get length() { return this.store.size; },
   };
-  (globalThis as any).window = { location: { hostname: 'localhost', pathname: '/warrior-world.html' } };
-  (globalThis as any).localStorage = memory;
+  (globalThis as unknown as { window?: { location: { hostname:string; pathname:string } }; localStorage?: Storage }).window = { location: { hostname: 'localhost', pathname: '/warrior-world.html' } };
+  (globalThis as unknown as { window?: { location: { hostname:string; pathname:string } }; localStorage?: Storage }).localStorage = memory;
   try {
     const hero = createV2TestHero();
     hero.slotId = 'slot-1';
@@ -71,12 +71,12 @@ test('local dev warrior harness can save V2 test heroes in memory-only localhost
     assert.doesNotThrow(() => saveCharacter(hero, true));
     assert.equal(JSON.parse(memory.getItem('lumenfall-saves-v3') ?? '{}').characters['slot-1']?.characterId, 'dev-warrior-memory');
   } finally {
-    if (previousWindow === undefined) delete (globalThis as any).window; else (globalThis as any).window = previousWindow;
-    if (previousLocalStorage === undefined) delete (globalThis as any).localStorage; else (globalThis as any).localStorage = previousLocalStorage;
+    if (previousWindow === undefined) delete (globalThis as unknown as { window?: { location: { hostname:string; pathname:string } }; localStorage?: Storage }).window; else (globalThis as unknown as { window?: { location: { hostname:string; pathname:string } }; localStorage?: Storage }).window = previousWindow;
+    if (previousLocalStorage === undefined) delete (globalThis as unknown as { window?: { location: { hostname:string; pathname:string } }; localStorage?: Storage }).localStorage; else (globalThis as unknown as { window?: { location: { hostname:string; pathname:string } }; localStorage?: Storage }).localStorage = previousLocalStorage;
   }
 });
 
-test('clean break preserves the item template catalog', () => {
+await test('clean break preserves the item template catalog', () => {
   const templateIds = Object.keys(ITEM_CATALOG);
   const hero = createV2TestHero();
   assert.ok(hero.inventory.length > 0);

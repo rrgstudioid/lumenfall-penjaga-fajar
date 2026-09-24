@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useEffectEvent, useRef, useState } from 'react';
+import { useCallback, useEffect, useEffectEvent, useRef, useState } from 'react';
 import type { Hero } from '@/lib/game/rules';
 import { getCharacterEquipmentLayers } from '@/lib/game/character-view';
 
@@ -113,21 +113,21 @@ export function CharacterPreview({ hero, presentation = 'equipment' }: { hero: H
       cleanup?.();
     };
   }, [key, menu]);
-  const zoom = (delta: number) => {
+  const zoom = useCallback((delta: number) => {
     rotation.current.zoom = Math.max(menu ? 3.5 : 4.2, Math.min(8.2, rotation.current.zoom + delta));
     if (activePreview.current) {
       const camera = activePreview.current.camera;
       camera.position.z = Math.max(rotation.current.zoom, menu ? 2.9 / camera.aspect : 0);
       camera.lookAt(0, 1.15, 0);
     }
-  };
+  }, [menu]);
   useEffect(() => {
     const surface = host.current;
     if (!surface) return;
     const wheel = (event: WheelEvent) => { event.preventDefault(); zoom(event.deltaY * .006); };
     surface.addEventListener('wheel', wheel, { passive: false });
     return () => surface.removeEventListener('wheel', wheel);
-  }, [menu]);
+  }, [zoom]);
   return (
     <div
       className="character-preview"

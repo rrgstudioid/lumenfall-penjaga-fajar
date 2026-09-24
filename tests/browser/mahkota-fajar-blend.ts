@@ -7,7 +7,7 @@ import { freshHero, saveCharacter } from '../../lib/game/rules';
 
 if (!import.meta.env.DEV || !['localhost', '127.0.0.1'].includes(location.hostname)) throw Error('Local development only');
 
-const [{ city }] = await Promise.all([buildBlenderCandidate().then(city => ({ city }))]);
+const city = await buildBlenderCandidate();
 const hero = freshHero('slot-blend-candidate', 'adventurer', 'Mahkota Fajar Blend Review');
 hero.inCity = false;
 hero.x = 0;

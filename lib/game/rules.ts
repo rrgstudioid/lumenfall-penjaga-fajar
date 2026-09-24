@@ -186,7 +186,6 @@ export const JOB_MANA_FACTORS: Record<string, number> = Object.freeze({
   specialist: 1.15,
   siege: 1.2,
   guardian: 1,
-  ranger: 1.25,
   guardian_legacy: 1,
   hunter: 1.05,
   wizard: 1.6,
@@ -223,7 +222,7 @@ export const getJobManaFactor = (hero: Pick<Hero, 'job' | 'coreJob' | 'specializ
   return JOB_MANA_FACTORS[normalized] ?? JOB_MANA_FACTORS[normalized.replace(/-/g, '_')] ?? 1;
 };
 export const resolveMaxMana = (
-  hero: Pick<Hero, 'job' | 'coreJob' | 'specialization' | 'level'>,
+  hero: Pick<Hero, 'job' | 'coreJob' | 'specialization' | 'level' | 'allocatedStats'>,
   allocated: AllocatedStats = hero.allocatedStats,
   contributions: Partial<StatBlock> = {},
 ): number => {

@@ -3,11 +3,17 @@ import { ImportedMapGround } from '../../lib/game/imported-map';
 import { ArunikaMaterials,addArunikaSurfaceUv,ARUNIKA_NOISE_GLSL } from '../../lib/game/arunika-surface-materials';
 import { loadArunikaGrassTextures,enhanceArunikaGrassTufts } from '../../lib/game/arunika-grass-material';
 import manifestUrl from '../../dev-prototypes/lumenfall-terrain-prototype-01/manifest.json?url';
-import type manifestShape from '../../dev-prototypes/lumenfall-terrain-prototype-01/manifest.json';
+type PrototypeManifest = {
+ spawn: { x:number; y:number; z:number }; roads:Array<{width:number;points:number[][]}>;
+ id: string; height: string; roadMask: string; nx: number; nz: number;
+ bounds: { minX: number; minZ: number };
+ bridge: { width: number; depth: number; x: number; y: number; z: number };
+ zones: Array<{ id: number; name: string; landmark:string; x: number; y: number; z: number }>;
+};
 
 export async function buildPrototype(){
  const base=new URL('.',new URL(manifestUrl,location.origin));
- const m=await (await fetch(manifestUrl)).json() as typeof manifestShape;
+ const m=await (await fetch(manifestUrl)).json() as PrototypeManifest;
  const heights=new Float32Array(await(await fetch(new URL(m.height,base))).arrayBuffer());
  const roads=new Float32Array(await(await fetch(new URL(m.roadMask,base))).arrayBuffer());
  const h=(i:number,j:number)=>heights[Math.max(0,Math.min(m.nz-1,j))*m.nx+Math.max(0,Math.min(m.nx-1,i))];

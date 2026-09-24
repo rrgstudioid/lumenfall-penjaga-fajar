@@ -1,4 +1,4 @@
-import type { SkillDefinition, SkillHit, SkillRankValues } from './skills.ts';
+import type { SkillDefinition, SkillHit, SkillRankValues as _SkillRankValues } from './skills.ts';
 import type { SkillDefinitionV3, SkillProgressionV3State } from './skill-progression-v3.ts';
 import type { ResolvedSkillAction } from './skill-action.ts';
 import type { ItemData } from './items.ts';
@@ -167,7 +167,7 @@ export function composeBladeWeaponHits(action: ResolvedSkillAction, physicalAtta
   return action;
 }
 export function bladeMasterV3StateAfterSpecialization(previous: SkillProgressionV3State): SkillProgressionV3State {
-  return { ...previous, skillRanks: { ...(previous.grantedRanks ?? {}) }, chosenCoreJob: 'warrior', chosenSpecialization: 'blade_master', chosenAdvancedJob: null };
+  return { ...previous, skillRanks: { ...previous.grantedRanks }, chosenCoreJob: 'warrior', chosenSpecialization: 'blade_master', chosenAdvancedJob: null };
 }
 export function bladeMasterTwinMasteryRank(hero: { specialization: string | null; skillProgressionV3?: SkillProgressionV3State } | null | undefined) {
   return hero?.specialization === 'blade_master' ? (hero.skillProgressionV3?.skillRanks['v3-blade-master-twin-blade-mastery'] ?? 0) : 0;

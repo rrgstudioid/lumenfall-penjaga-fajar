@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 
 import { freshHero, gainXP, resetJobToAdventurer } from './rules.ts';
 
-test('job reset runtime preserves earned level progression and clears job selection', () => {
+await test('job reset runtime preserves earned level progression and clears job selection', () => {
   const hero = freshHero();
   gainXP(hero, 90000);
   hero.gold = 1500;

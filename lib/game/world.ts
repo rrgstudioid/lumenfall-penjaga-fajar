@@ -90,7 +90,7 @@ import {
 } from './rules';
 import { MASTERY_EFFECTS, type SkillDefinition } from './skills';
 import { COMBAT_MECHANICS, criticalChance, evasionChance, blockChance, barrierAmount, resolveHitAgainstEvasion } from './combat-mechanics';
-import { SkillHitQueue, selectSkillTargets, skillHitDamage, inFrontalArc, type ResolvedSkillAction } from './skill-action';
+import { SkillHitQueue, selectSkillTargets, skillHitDamage, inFrontalArc as _inFrontalArc, type ResolvedSkillAction } from './skill-action';
 import { applySourceOwnedStatus, applyStatus, clearExpiredSourceStatuses, effectiveArmorBreakStrength, getActiveStatusApplications, hasActiveStatusFromSource, hasStatus, getStatus, DefenseEvents, counterContextAllowed, type DefenseResult, type SourceOwnedStatus } from './combat-status';
 import {addTemporaryModifier,tickTemporaryModifiers,receivedMultiplier,resolveTargetHit,NO_COUNTER,setManualGuard} from './combat-modifiers';
 import {forwardFromYaw} from './combat-position';
@@ -2512,7 +2512,7 @@ export class Game {
     const castId=this.transientCombat.nextCastId(),support=combatSupportFor(this.hero);
     let successful=false;
     let successfulTargets=0;
-    const successfulTargetIds = new Set<string>();
+    const successfulTargetIds = new Set<number>();
     const isBerserkerTrance = skill.skillId === 'v3-berserker-trance';
     const isBreakerEntry = skill.skillId === 'v3-berserker-breaker-entry';
     const isBerserkerDamage = skill.tags.includes('v3-berserker');
@@ -2544,7 +2544,7 @@ export class Game {
     }
     const targetCandidate = target ? {
       target,
-      id: target.id,
+      id: String(target.id),
       position: { x: target.group.position.x, z: target.group.position.z },
       alive: target.hp > 0,
     } : null;
@@ -2554,7 +2554,7 @@ export class Game {
       forward: { x: this.direction.x, z: this.direction.z },
       candidates: this.enemies.map((enemy) => ({
         target: enemy,
-        id: enemy.id,
+        id: String(enemy.id),
         position: { x: enemy.group.position.x, z: enemy.group.position.z },
         alive: enemy.hp > 0,
       })),
@@ -3133,7 +3133,7 @@ export class Game {
     v.normalize();
     const knockDistance=e.boss?knock*.15:knock;
     this.moveEnemy(e,v.x*knockDistance,v.z*knockDistance);
-    if(!this.fieldTerrain&&!this.isSandsLocation&&!this.isCityOfLight) {
+    if(!this.fieldTerrain&&!this.isSandsLocation) {
       const extent=regionHalfExtent(false);
       e.group.position.x=T.MathUtils.clamp(e.group.position.x,-extent,extent);
       e.group.position.z=T.MathUtils.clamp(e.group.position.z,-extent,extent);
@@ -3762,20 +3762,9 @@ export class Game {
     ctx.fillStyle = '#173d34';
     ctx.fillRect(0, 0, size, size);
 
-    const cityFootprint = null;
 
     const mapScale = this.fieldTerrain?.id === 'verdant-plains' ? 2 : regionScale(this.hero.inCity);
     const p = (v: number) => size / 2 + (v * size) / (106 * mapScale);
-    const toCityPoint = (x: number, z: number) => {
-      if (!cityFootprint) return { x: size / 2, y: size / 2 };
-      const width = cityFootprint.maxX - cityFootprint.minX;
-      const height = cityFootprint.maxZ - cityFootprint.minZ;
-      const fit = Math.max(width, height) || 1;
-      const scale = (size * 0.76) / fit;
-      const centerX = (cityFootprint.minX + cityFootprint.maxX) / 2;
-      const centerZ = (cityFootprint.minZ + cityFootprint.maxZ) / 2;
-      return { x: size / 2 + (x - centerX) * scale, y: size / 2 + (z - centerZ) * scale };
-    };
 
     if(this.fieldTerrain) {
       const t=this.fieldTerrain;
@@ -3791,44 +3780,6 @@ export class Game {
       ctx.fillStyle='#c3cc9a';for(const landmark of t.props.filter(prop=>prop.kind==='temple'||prop.kind==='ruins'))ctx.fillRect(p(landmark.x)-3,p(landmark.z)-3,6,6);
       for(const q of [t.cityGate,t.exit]){ctx.strokeStyle='#edd599';ctx.beginPath();ctx.arc(p(q.x),p(q.z),3,0,Math.PI*2);ctx.stroke();}
       ctx.restore();
-    } else if (cityFootprint) {
-      const cityPath = cityFootprint.hull.map(point => {
-        const project = toCityPoint(point.x, point.z);
-        return { x: project.x, y: project.y };
-      });
-      ctx.beginPath();
-      cityPath.forEach((point, index) => {
-        if (index === 0) ctx.moveTo(point.x, point.y);
-        else ctx.lineTo(point.x, point.y);
-      });
-      ctx.closePath();
-      ctx.fillStyle = '#345d5d';
-      ctx.fill();
-      ctx.save();
-      ctx.clip();
-      ctx.strokeStyle = 'rgba(145, 196, 166, 0.28)';
-      ctx.lineWidth = 1;
-      const roadStep = Math.max(12, (cityFootprint.maxX - cityFootprint.minX) / 10);
-      for (let x = cityFootprint.minX; x <= cityFootprint.maxX; x += roadStep) {
-        const start = toCityPoint(x, cityFootprint.minZ);
-        const end = toCityPoint(x, cityFootprint.maxZ);
-        ctx.beginPath();
-        ctx.moveTo(start.x, start.y);
-        ctx.lineTo(end.x, end.y);
-        ctx.stroke();
-      }
-      for (let z = cityFootprint.minZ; z <= cityFootprint.maxZ; z += roadStep) {
-        const start = toCityPoint(cityFootprint.minX, z);
-        const end = toCityPoint(cityFootprint.maxX, z);
-        ctx.beginPath();
-        ctx.moveTo(start.x, start.y);
-        ctx.lineTo(end.x, end.y);
-        ctx.stroke();
-      }
-      ctx.restore();
-      ctx.strokeStyle = '#e7d78e';
-      ctx.lineWidth = 2;
-      ctx.stroke();
     } else {
       ctx.strokeStyle = '#658675';
       ctx.lineWidth = 5;
@@ -3850,7 +3801,7 @@ export class Game {
     }
     for (const e of this.enemies) {
       if (e.hp <= 0) continue;
-      const enemyPoint = cityFootprint ? toCityPoint(e.group.position.x, e.group.position.z) : { x: p(e.group.position.x), y: p(e.group.position.z) };
+      const enemyPoint = { x: p(e.group.position.x), y: p(e.group.position.z) };
       ctx.fillStyle = e.boss ? '#dda4e9' : '#d6a871';
       ctx.beginPath();
       ctx.arc(
@@ -3862,7 +3813,7 @@ export class Game {
       );
       ctx.fill();
     }
-    const heroPoint = cityFootprint ? toCityPoint(this.hero.x, this.hero.z) : { x: p(this.hero.x), y: p(this.hero.z) };
+    const heroPoint = { x: p(this.hero.x), y: p(this.hero.z) };
     ctx.save();
     ctx.translate(heroPoint.x, heroPoint.y);
     ctx.rotate(Math.atan2(this.direction.x, -this.direction.z));

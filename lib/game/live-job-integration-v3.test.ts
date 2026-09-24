@@ -23,7 +23,7 @@ function warrior(level: number) {
   return hero;
 }
 
-test('live V3 trainer view exposes both specialization siblings with Level 60 gating', () => {
+await test('live V3 trainer view exposes both specialization siblings with Level 60 gating', () => {
   const low = warrior(59);
   const lowView = getVisibleJobArchitecture(low);
   assert.deepEqual(lowView.v3SpecializationChoices.map((choice) => choice.id), ['berserker', 'blade_master']);
@@ -37,7 +37,7 @@ test('live V3 trainer view exposes both specialization siblings with Level 60 ga
   assert.deepEqual(getJobProgression(ready).map((stage) => stage.name), ['Adventurer', 'Warrior', 'Berserker / Blade Master']);
 });
 
-test('live Berserker transition uses canonical refund and locks Blade Master sibling', () => {
+await test('live Berserker transition uses canonical refund and locks Blade Master sibling', () => {
   const hero = warrior(60);
   assert.equal(learnSkill(hero, 'v3-warrior-strike'), true);
   const total = hero.skillProgressionV3!.totalEarnedSP;
@@ -52,7 +52,7 @@ test('live Berserker transition uses canonical refund and locks Blade Master sib
   assert.equal(getVisibleJobArchitecture(hero).currentName, 'Berserker');
 });
 
-test('live Blade Master transition exposes Twin Blade Mastery without granting Dual Wield', () => {
+await test('live Blade Master transition exposes Twin Blade Mastery without granting Dual Wield', () => {
   const hero = warrior(60);
   assert.equal(chooseSpecialization(hero, 'blade_master'), true);
   assert.equal(hero.specialization, 'blade_master');
@@ -70,7 +70,7 @@ test('live Blade Master transition exposes Twin Blade Mastery without granting D
   assert.equal(getVisibleJobArchitecture(hero).currentName, 'Blade Master');
 });
 
-test('V3 specialization identity survives save/load and legacy characters remain separate', () => {
+await test('V3 specialization identity survives save/load and legacy characters remain separate', () => {
   for (const specialization of ['berserker', 'blade_master'] as const) {
     const hero = warrior(60);
     assert.equal(chooseSpecialization(hero, specialization), true);
@@ -90,7 +90,7 @@ test('V3 specialization identity survives save/load and legacy characters remain
   assert.equal(restoredLegacy.specialization, null);
 });
 
-test('V3 NPC copy and development fixtures follow the live progression contract', () => {
+await test('V3 NPC copy and development fixtures follow the live progression contract', () => {
   const hero = warrior(60);
   const coreNpc = CITIES.arunika.npcList.find((npc) => npc.service === 'core')!;
   const specializationNpc = CITIES.jayantara.npcList.find((npc) => npc.service === 'special')!;

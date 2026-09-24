@@ -24,7 +24,7 @@ await page.route('**/lib/game/world.ts*', async route => {
 
 const check = name => { checks.push(name); console.log('PASS', name); };
 const gameState = () => page.evaluate(() => ({ paused: window.__pauseQA.paused, started: window.__pauseQA.started }));
-const closeDialog = dialog => dialog.locator('[data-slot="dialog-close"]').click();
+const _closeDialog = dialog => dialog.locator('[data-slot="dialog-close"]').click();
 
 try {
   await page.goto('http://localhost:3001/', { waitUntil: 'networkidle' });

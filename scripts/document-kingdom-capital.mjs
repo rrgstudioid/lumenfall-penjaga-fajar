@@ -7,7 +7,7 @@ import {
   perimeter,
   roads,
   districts,
-  pathLength,
+  pathLength as _pathLength,
 } from '../tests/browser/kingdom-capital-layout.ts';
 const out = path.resolve('dev-prototypes/kingdom-capital-v11'),
   read = (name) =>

@@ -13,7 +13,7 @@ async function source(){
   body.scene.userData.lumenfallAnimations=replaceRunningClip(body.animations,await motion());
   body.scene.userData.runningAnimationSource='army-man-running-blender';return body.scene;
 }
-test('Blender output contains motion only, with a seamless 50-frame loop and stable scale',async()=>{
+await test('Blender output contains motion only, with a seamless 50-frame loop and stable scale',async()=>{
   const bytes=await readFile(new URL('../../public'+ARMY_RUNNING_ASSET,import.meta.url));assert.ok(bytes.length<40000);
   const json=JSON.parse(bytes.subarray(20,20+bytes.readUInt32LE(12)).toString());
   assert.equal(json.meshes,undefined);assert.equal(json.images,undefined);assert.equal(json.textures,undefined);
@@ -26,7 +26,7 @@ test('Blender output contains motion only, with a seamless 50-frame loop and sta
     if(n===4)for(let i=0;i<track.values.length;i+=4)assert.ok(Math.abs(Math.hypot(...track.values.slice(i,i+4))-1)<1e-5);
   }
 });
-test('only Run is replaced; existing idle/walk/combat data is kept',async()=>{
+await test('only Run is replaced; existing idle/walk/combat data is kept',async()=>{
   const body=await gltf('/assets/characters/male-revision-02/male-revision-02-dual-sword.glb'),run=await motion();
   const merged=replaceRunningClip(body.animations,run);
   assert.equal(merged.length,body.animations.length);assert.equal(merged.filter(c=>c.name==='Run').length,1);
@@ -34,12 +34,12 @@ test('only Run is replaced; existing idle/walk/combat data is kept',async()=>{
   assert.throws(()=>prepareArmyRunningClip([]));
   assert.throws(()=>prepareArmyRunningClip([new T.AnimationClip('wrong',1,[])]));
 });
-test('stride cadence follows actual speed instead of changing gameplay movement',()=>{
+await test('stride cadence follows actual speed instead of changing gameplay movement',()=>{
   assert.equal(armyRunningCadence(),1);
   assert.ok(Math.abs(armyRunningCadence(6.2*1.22)-1.454615)<1e-5);
   assert.equal(armyRunningCadence(-1),.5);assert.equal(armyRunningCadence(100),2.4);
 });
-test('running articulates feet/hands, keeps equipment sockets, and returns to procedural idle',async()=>{
+await test('running articulates feet/hands, keeps equipment sockets, and returns to procedural idle',async()=>{
   const model=createCharacterModel(freshHero(),{assetSource:source});assert.equal(await model.ready,true);
   model.actor.position.set(12,3,-17);model.actor.rotation.y=1.2;
   const visual=model.actor.getObjectByName('MaleRevision02Visual')!,points:Record<string,T.Vector3[]>={FootL:[],FootR:[],HandL:[],HandR:[]};

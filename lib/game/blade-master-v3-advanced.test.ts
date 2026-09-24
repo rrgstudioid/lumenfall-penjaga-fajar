@@ -24,7 +24,7 @@ function setup(level = 80) {
   return { hero, main, off };
 }
 
-test('7B exactly nine skills, 149 SP total, ranks, levels, prerequisites and no AoE', () => {
+await test('7B exactly nine skills, 149 SP total, ranks, levels, prerequisites and no AoE', () => {
   const skills = Object.values(BLADE_MASTER_V3_SKILL_MAP);
   assert.equal(skills.length,9);
   assert.equal(skills.reduce((sum,skill) => sum + Array.from({length:skill.maxRank},(_,i)=>typeof skill.spCostPerRank==='number'?skill.spCostPerRank:skill.spCostPerRank?.[i]??0).reduce((a,b)=>a+b,0),0),149);
@@ -36,7 +36,7 @@ test('7B exactly nine skills, 149 SP total, ranks, levels, prerequisites and no 
   assert.deepEqual([...BLADE_MASTER_DUAL_MANA_SKILLS],[id('twin-assault'),id('cross-sever'),id('blade-tempest')]);
 });
 
-test('7B purchase gates enforce level, cross-tier requirements, 18-SP investment and rank limits', () => {
+await test('7B purchase gates enforce level, cross-tier requirements, 18-SP investment and rank limits', () => {
   const {hero}=setup(65);
   hero.skillProgressionV3!.skillRanks[id('twin-blade-mastery')]=3;
   assert.equal(canLearnSkill(id('cross-sever'),hero).ok,false);
@@ -57,7 +57,7 @@ test('7B purchase gates enforce level, cross-tier requirements, 18-SP investment
   assert.equal(reset.ok,false); // No Gold in this fixture; no accidental free respec.
 });
 
-test('Cross Sever composes one combined impact and shared core exactly once', () => {
+await test('Cross Sever composes one combined impact and shared core exactly once', () => {
   const {hero,off}=setup(); const skill=BLADE_MASTER_V3_RUNTIME_MAP[id('cross-sever')];
   const stats=derivedStats(hero); const action=resolveHeroSkill(hero,skill,5,stats);
   assert.equal(action.hitSequence.length,1);assert.equal(action.hitSequence[0].weaponHand,'BOTH');
@@ -70,16 +70,15 @@ test('Cross Sever composes one combined impact and shared core exactly once', ()
   assert.equal(off.baseStats.attack,70);
 });
 
-test('Twin Assault world-path sequence applies both hits to monster HP in the actual runtime flow', () => {
+await test('Twin Assault world-path sequence applies both hits to monster HP in the actual runtime flow', () => {
   const {hero}=setup(80);
   const stats=derivedStats(hero);
   const target={ hp: 400, maxHP: 400, defense: 0, magicDefense: 0, evasion: 0, level: 1, country: 'none', marked: false, statusEffects: {}, sourceOwnedStatuses: {} as Record<string, import('./combat-status.ts').SourceOwnedStatus[]> };
   const action=resolveHeroSkill(hero,BLADE_MASTER_V3_RUNTIME_MAP[id('twin-assault')],8,stats);
   assert.equal(action.hitSequence.length,2);
-  let hpBefore=target.hp;
   let totalDamage=0;
   for (const hit of action.hitSequence) {
-    const prepared = resolveTargetHit(hit, action.targetModifiers, target, 0, { position: { x: 0, z: 0 } });
+    const prepared = resolveTargetHit(hit, action.targetModifiers, target, 0, { position: { attackerPosition: { x: 0, z: 0 }, targetPosition: { x: 1, z: 0 }, targetForward: { x: -1, z: 0 } } });
     const hitResult = prepared.accuracy >= 0 && (prepared.accuracy > (target.evasion ?? 0) || (prepared.accuracy === (target.evasion ?? 0)));
     if (!hitResult) continue;
     const raw = skillHitDamage(prepared, stats);
@@ -87,14 +86,13 @@ test('Twin Assault world-path sequence applies both hits to monster HP in the ac
     const damage = Math.round(raw);
     target.hp = Math.max(0, target.hp - damage);
     totalDamage += damage;
-    hpBefore = target.hp;
   }
   assert.ok(totalDamage > 0, 'Twin Assault must reduce target HP');
   assert.ok(target.hp < 400, 'Monster HP must mutate after the actual hits resolve');
   assert.equal(target.hp, 400 - totalDamage);
 });
 
-test('Blade Master V4 exposes canonical base-damage ranges and rank power factor', () => {
+await test('Blade Master V4 exposes canonical base-damage ranges and rank power factor', () => {
   const twin = BLADE_MASTER_V3_SKILL_MAP[id('twin-assault')];
   assert.deepEqual(twin.baseDamageMinByRank, [100, 106, 112, 118, 124, 131, 138, 145]);
   assert.deepEqual(twin.baseDamageMaxByRank, [150, 157, 164, 171, 178, 185, 192, 200]);
@@ -105,7 +103,7 @@ test('Blade Master V4 exposes canonical base-damage ranges and rank power factor
   assert.deepEqual(tempest.rankPowerFactorByRank, [1, 1.05, 1.1]);
 });
 
-test('Twin Assault rolls once per cast and splits the shared core correctly across its two hits', () => {
+await test('Twin Assault rolls once per cast and splits the shared core correctly across its two hits', () => {
   const { hero } = setup(80);
   const skill = BLADE_MASTER_V3_RUNTIME_MAP[id('twin-assault')];
   const stats = derivedStats(hero);
@@ -116,7 +114,7 @@ test('Twin Assault rolls once per cast and splits the shared core correctly acro
   assert.ok(action.hitSequence.every((hit) => hit.baseDamage > 0));
 });
 
-test('Piercing Sequence and Tempest preserve real hits, fixed timing, hand identity and weighted shared contribution', () => {
+await test('Piercing Sequence and Tempest preserve real hits, fixed timing, hand identity and weighted shared contribution', () => {
   const {hero}=setup();
   for(const [short,rank,weights,hands,total] of [
     ['piercing-sequence',5,[.3,.3,.4],['MAIN','MAIN','MAIN'],1.55],
@@ -133,7 +131,7 @@ test('Piercing Sequence and Tempest preserve real hits, fixed timing, hand ident
   }
 });
 
-test('Tempo caps at three, refreshes, expires, Drive consumes by stack count and clears on capability loss', () => {
+await test('Tempo caps at three, refreshes, expires, Drive consumes by stack count and clears on capability loss', () => {
   for(let stacks=1;stacks<=3;stacks++){
     const state=new TransientCombatState();
     for(let n=0;n<stacks+1;n++)state.gainBladeTempo(n,5);
@@ -152,7 +150,7 @@ test('Tempo caps at three, refreshes, expires, Drive consumes by stack count and
   state.updateBladeTempo(11,false);assert.equal(state.tempoCount(11),0);assert.equal(state.bladeTempoDrive,null);
 });
 
-test('Impact contract preserves Flow/Tempo until first damaging hit and generates at most one stack per cast', () => {
+await test('Impact contract preserves Flow/Tempo until first damaging hit and generates at most one stack per cast', () => {
   const {hero}=setup(),target={hp:100,sourceOwnedStatuses:{} as Record<string,import('./combat-status.ts').SourceOwnedStatus[]>};
   const state=new TransientCombatState();state.openBladeFlow(0,3);
   const twin=resolveHeroSkill(hero,BLADE_MASTER_V3_RUNTIME_MAP[id('twin-assault')],1);
@@ -176,7 +174,7 @@ test('Impact contract preserves Flow/Tempo until first damaging hit and generate
   assert.equal(ultimate.prepare(tempest.hitSequence[0],0,4,target,'A',.2).damageMultiplier,tempest.hitSequence[0].damageMultiplier);
 });
 
-test('Mastery and Drive Mana reductions use strongest source on dual skills only', () => {
+await test('Mastery and Drive Mana reductions use strongest source on dual skills only', () => {
   const {hero}=setup();const stats={...derivedStats(hero),manaCostReduction:3};
   for(const short of ['twin-assault','cross-sever','blade-tempest']){
     const skill=BLADE_MASTER_V3_RUNTIME_MAP[id(short)];const rank=skill.maxLevel;
@@ -187,7 +185,7 @@ test('Mastery and Drive Mana reductions use strongest source on dual skills only
   assert.equal(resolveHeroSkill(hero,piercing,5,stats,undefined,[],undefined,18).manaCost,Math.ceil(20*.97));
 });
 
-test('Tempo Drive uses canonical rank Mana/cooldown, receives Mastery reduction, and not its own active reduction', () => {
+await test('Tempo Drive uses canonical rank Mana/cooldown, receives Mastery reduction, and not its own active reduction', () => {
   const {hero}=setup(); const stats={...derivedStats(hero),manaCostReduction:0};
   const drive=BLADE_MASTER_V3_RUNTIME_MAP[id('tempo-drive')];
   assert.deepEqual(drive.rankValues?.map(value=>value.manaCost),[14,15,16,17,18]);
@@ -198,7 +196,7 @@ test('Tempo Drive uses canonical rank Mana/cooldown, receives Mastery reduction,
   assert.equal(resolveHeroSkill(hero,drive,5,stats,undefined,[],undefined,18).manaCost,Math.ceil(18*.92));
 });
 
-test('Armor Break source ownership is queryable independently of strongest mitigation', () => {
+await test('Armor Break source ownership is queryable independently of strongest mitigation', () => {
   const target={sourceOwnedStatuses: {} as Record<string,import('./combat-status.ts').SourceOwnedStatus[]>};
   applySourceOwnedStatus(target,'armor_break',{sourceActorId:'A',sourceSkillId:'v3-warrior-armor-breaker',strength:6,appliedAt:0,duration:10});
   applySourceOwnedStatus(target,'armor_break',{sourceActorId:'B',sourceSkillId:'v3-warrior-armor-breaker',strength:12,appliedAt:0,duration:3});
@@ -209,7 +207,7 @@ test('Armor Break source ownership is queryable independently of strongest mitig
   assert.equal(hasActiveStatusFromSource(target,'armor_break','B',4),false);
 });
 
-test('7B hotbar rejects unlearned ranks and accepts purchased active skill references', () => {
+await test('7B hotbar rejects unlearned ranks and accepts purchased active skill references', () => {
   const {hero}=setup();
   assert.equal(assignPrimaryHotbarSlot(hero,0,id('cross-sever')).ok,false);
   hero.skillProgressionV3!.skillRanks[id('cross-sever')]=1;hero.skillLevels[id('cross-sever')]=1;
@@ -219,7 +217,7 @@ test('7B hotbar rejects unlearned ranks and accepts purchased active skill refer
   assert.equal(assignPrimaryHotbarSlot(hero,1,id('twin-blade-mastery')).ok,false);
 });
 
-test('Tempo Drive ASPD uses existing character stat modifier path and never rewrites fixed hit timing', () => {
+await test('Tempo Drive ASPD uses existing character stat modifier path and never rewrites fixed hit timing', () => {
   const {hero}=setup();const base=derivedStats(hero).attackSpeed;
   hero.combatStateModifiers=[{id:'v3-blade-master-tempo-drive-speed',stats:{percent:{attackSpeed:20}}}];
   assert.ok(Math.abs(derivedStats(hero).attackSpeed-base*1.2)<1e-6);
@@ -229,7 +227,7 @@ test('Tempo Drive ASPD uses existing character stat modifier path and never rewr
   assert.deepEqual(before,after);
 });
 
-test('Lv75/80 controlled damage sanity matrix does not duplicate weapon or stat layers', () => {
+await test('Lv75/80 controlled damage sanity matrix does not duplicate weapon or stat layers', () => {
   const matrix=[];
   for(const level of [75,80]){
     const {hero}=setup(level),stats=derivedStats(hero);

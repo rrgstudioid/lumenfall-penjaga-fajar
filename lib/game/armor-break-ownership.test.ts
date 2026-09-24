@@ -8,7 +8,7 @@ import { resolveSkillAction } from './skill-action.ts';
 
 const target = () => ({ statusEffects: {}, sourceOwnedStatuses: {} });
 
-test('Armor Break keeps independent source applications and resolves strongest-only', () => {
+await test('Armor Break keeps independent source applications and resolves strongest-only', () => {
   const enemy = target();
   applySourceOwnedStatus(enemy, 'armor_break', { sourceActorId: 'A', sourceSkillId: 'armor-breaker', strength: 6, appliedAt: 0, duration: 10 });
   applySourceOwnedStatus(enemy, 'armor_break', { sourceActorId: 'B', sourceSkillId: 'armor-breaker', strength: 12, appliedAt: 1, duration: 5 });
@@ -21,7 +21,7 @@ test('Armor Break keeps independent source applications and resolves strongest-o
   assert.equal(getActiveStatusApplications(enemy, 'armor_break', 6).length, 1);
 });
 
-test('same source refreshes one Armor Break record and source-aware payoff excludes other actors', () => {
+await test('same source refreshes one Armor Break record and source-aware payoff excludes other actors', () => {
   const enemy = target();
   applySourceOwnedStatus(enemy, 'armor_break', { sourceActorId: 'A', sourceSkillId: 'armor-breaker', strength: 6, appliedAt: 0, duration: 4 });
   applySourceOwnedStatus(enemy, 'armor_break', { sourceActorId: 'A', sourceSkillId: 'armor-breaker', strength: 9, appliedAt: 3, duration: 8 });
@@ -34,7 +34,7 @@ test('same source refreshes one Armor Break record and source-aware payoff exclu
   assert.equal(resolveTargetHit(hit, [mod], enemy, 3, { source: { sourceActorId: 'B', sourceGeneration: 1 }, now: 3 }).damageMultiplier, 1);
 });
 
-test('source-owned Armor Break is runtime-only and expires without stale mitigation', () => {
+await test('source-owned Armor Break is runtime-only and expires without stale mitigation', () => {
   const enemy = target();
   applySourceOwnedStatus(enemy, 'armor_break', { sourceActorId: 'A', sourceSkillId: 'armor-breaker', strength: 12, appliedAt: 0, duration: 2 });
   clearExpiredSourceStatuses(enemy, 2);
@@ -42,7 +42,7 @@ test('source-owned Armor Break is runtime-only and expires without stale mitigat
   assert.deepEqual(enemy.sourceOwnedStatuses, {});
 });
 
-test('real Warrior V3 Armor Breaker ranks reach mitigation with canonical strength', () => {
+await test('real Warrior V3 Armor Breaker ranks reach mitigation with canonical strength', () => {
   const skill = WARRIOR_V3_RUNTIME_MAP['v3-warrior-armor-breaker'];
   const values: number[] = [];
   for (let rank = 1; rank <= 5; rank++) {

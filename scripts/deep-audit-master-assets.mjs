@@ -14,7 +14,7 @@ const a1Summary = safeJson(path.join(dataRoot, 'asset-audit-summary.json')) ?? {
 const modelExts = new Set(['.gltf', '.glb', '.fbx', '.obj', '.blend', '.dae', '.3ds', '.usd', '.usdz']);
 const archiveExts = new Set(['.zip', '.7z', '.rar', '.mhpkg', '.pak', '.package']);
 const textureExts = new Set(['.dds', '.png', '.jpg', '.jpeg', '.tga', '.exr', '.hdr', '.ktx', '.ktx2', '.tif', '.tiff']);
-const materialBlendRoots = new Set(['master_ material_ lumenfall']);
+const _materialBlendRoots = new Set(['master_ material_ lumenfall']);
 
 function mkdir(p) { fs.mkdirSync(p, { recursive: true }); }
 function allFiles(dir) {
@@ -65,9 +65,9 @@ function performanceClass(meta) {
 function gltfMeta(p) {
   const j = safeJson(p);
   if (!j) return { metadataStatus: 'UNREADABLE_JSON' };
-  let meshCount = Array.isArray(j.meshes) ? j.meshes.length : 0;
-  let nodeCount = Array.isArray(j.nodes) ? j.nodes.length : 0;
-  let materialSlotCount = Array.isArray(j.materials) ? j.materials.length : 0;
+  const meshCount = Array.isArray(j.meshes) ? j.meshes.length : 0;
+  const nodeCount = Array.isArray(j.nodes) ? j.nodes.length : 0;
+  const materialSlotCount = Array.isArray(j.materials) ? j.materials.length : 0;
   let triangleCount = 0;
   const bboxMin = [Infinity, Infinity, Infinity];
   const bboxMax = [-Infinity, -Infinity, -Infinity];
@@ -124,18 +124,18 @@ const modelFiles = files.filter(p => {
   return rel(p).toLowerCase().includes('master_model_lumenfall');
 });
 const textures = files.filter(p => textureExts.has(ext(p)));
-const extensionCounts = Object.fromEntries([...new Set(files.map(ext))].sort().map(e => [e || '[no extension]', files.filter(p => ext(p) === e).length]));
-const topLevelFolders = [...new Set(files.map(p => path.relative(sourceRoot, p).split(path.sep)[0]))].sort();
+const extensionCounts = Object.fromEntries([...new Set(files.map(ext))].sort((a,b)=>String(a).localeCompare(String(b))).map(e => [e || '[no extension]', files.filter(p => ext(p) === e).length]));
+const topLevelFolders = [...new Set(files.map(p => path.relative(sourceRoot, p).split(path.sep)[0]))].sort((a,b)=>String(a).localeCompare(String(b)));
 
 const archiveRecords = archives.map(p => {
   const listing = archiveListing(p);
   const nested = listing.entries.filter(e => archiveExts.has(ext(e)));
-  return { path: p, relativePath: rel(p), extension: ext(p), sizeBytes: bytes(p), sha256: sha256(p), readable: listing.readable, fileCount: listing.entries.length, contentExtensions: [...new Set(listing.entries.map(ext).filter(Boolean))].sort(), nestedArchiveEntries: nested, nestedDepth: Math.max(0, ...listing.entries.map(nestedDepth)), packageType: ext(p) === '.mhpkg' ? 'MHPKG' : ext(p).slice(1).toUpperCase(), modelRelevance: listing.entries.some(e => modelExts.has(ext(e))) };
+  return { path: p, relativePath: rel(p), extension: ext(p), sizeBytes: bytes(p), sha256: sha256(p), readable: listing.readable, fileCount: listing.entries.length, contentExtensions: [...new Set(listing.entries.map(ext).filter(Boolean))].sort((a,b)=>String(a).localeCompare(String(b))), nestedArchiveEntries: nested, nestedDepth: Math.max(0, ...listing.entries.map(nestedDepth)), packageType: ext(p) === '.mhpkg' ? 'MHPKG' : ext(p).slice(1).toUpperCase(), modelRelevance: listing.entries.some(e => modelExts.has(ext(e))) };
 });
 
 const priorModel = safeJson(path.join(dataRoot, 'master-model-catalog.json')) ?? { records: [] };
 const priorByName = new Map((priorModel.records ?? []).map(r => [norm(r.displayName || ''), r]));
-let blendMeta = safeJson(blenderMetaPath) ?? {};
+const blendMeta = safeJson(blenderMetaPath) ?? {};
 const blendMetaDir = path.join(stagingRoot, 'blend-meta');
 if (fs.existsSync(blendMetaDir)) {
   for (const metaPath of allFiles(blendMetaDir).filter(p => p.toLowerCase().endsWith('.json'))) {
@@ -181,11 +181,11 @@ for (const term of ['castle','palace','keep','fort','fortress','citadel','wall',
 }
 const familiesByCategory = {};
 for (const r of uniqueFamilies.values()) (familiesByCategory[r.category] ??= []).push(r.assetId);
-const architectureStatus = term => categorySearch[term].length ? 'FOUND' : 'NOT_FOUND';
+const _architectureStatus = term => categorySearch[term].length ? 'FOUND' : 'NOT_FOUND';
 const modelCandidates = term => [...uniqueFamilies.values()]
   .filter(r => new RegExp(term, 'i').test(r.displayName) || r.variants.some(v => new RegExp(term, 'i').test(v.relativePath)))
   .map(r => r.assetId);
-const modularKits = [...new Set(modelFiles.map(p => rel(p).split('/').find(part => /MegaKit|Kit|Exports/i.test(part))).filter(Boolean))].sort();
+const modularKits = [...new Set(modelFiles.map(p => rel(p).split('/').find(part => /MegaKit|Kit|Exports/i.test(part))).filter(Boolean))].sort((a,b)=>String(a).localeCompare(String(b)));
 const heroStatus = {
   castlePalace: categorySearch.castle.length || categorySearch.palace.length || categorySearch.keep.length || categorySearch.fort.length ? 'PARTIAL' : 'NOT_FOUND',
   religiousLandmark: categorySearch.church.length || categorySearch.chapel.length || categorySearch.temple.length || categorySearch.shrine.length || categorySearch.cathedral.length ? 'FOUND' : 'NOT_FOUND',
@@ -195,7 +195,7 @@ const heroStatus = {
 
 const materialCatalogPath = path.join(dataRoot, 'master-material-catalog.json');
 const priorMaterials = safeJson(materialCatalogPath) ?? { records: [] };
-const materialRecords = priorMaterials.records ?? [];
+const _materialRecords = priorMaterials.records ?? [];
 const modelCatalog = {
   schemaVersion: 'A1.5', generatedAt: new Date().toISOString(), sourceRoot, sourcePathNote: sourceRoot === requestedRoot ? null : `Requested path absent; authoritative local root used: ${sourceRoot}`,
   rawFileCounts: { totalPhysicalFiles: files.length, modelFormatFiles: modelFiles.length, textureFiles: textures.length },

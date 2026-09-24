@@ -18,7 +18,7 @@ const dagger=(id:string)=>({...createItem('field-verdant-plains-dagger',{id}),al
 const definition=():SkillDefinition=>({...structuredClone(ALL_SKILLS.find(s=>s.id==='v2-warrior-strike')!),id:'fixture-thief-only',job:'thief',tree:{id:'thief',architecture:'v2'},weaponRequirement:[],modifiers:[]});
 const rear:PositionContext={attackerPosition:{x:0,z:2},targetPosition:{x:0,z:0},targetForward:forwardFromYaw(0)};
 
-test('4B canonical Thief fixture: no Rogue/Warrior inheritance, no public activation, save identities stay distinct',()=>{
+await test('4B canonical Thief fixture: no Rogue/Warrior inheritance, no public activation, save identities stay distinct',()=>{
   const hero=createV2CoreFoundationHero('thief',30);
   assert.equal(hero.job,'thief');assert.equal(hero.coreJob,'thief');assert.equal(hero.progressionArchitecture,'v2_test');
   assert(activeSkills(hero).every(s=>s.job==='adventurer'||s.job==='thief'));
@@ -36,7 +36,7 @@ test('4B canonical Thief fixture: no Rogue/Warrior inheritance, no public activa
   assert(Number.isFinite(derivedStats(hero).physicalAttack));
 });
 
-test('4B real dual dagger: distinct one-hand instances only, slot validation and no style-based Attack duplication',()=>{
+await test('4B real dual dagger: distinct one-hand instances only, slot validation and no style-based Attack duplication',()=>{
   const main=dagger('main'),off=dagger('off');
   assert.equal(resolveWeaponStyle(main,off),'dual_dagger');
   assert.equal(resolveWeaponStyle(main,null),'dagger');assert.equal(resolveWeaponStyle(main,main),'dagger');
@@ -57,7 +57,7 @@ test('4B real dual dagger: distinct one-hand instances only, slot validation and
   assert.equal(calculateEquipmentStats(h).attack,before,'existing equipped-item contributions only; style is not a multiplier');
 });
 
-test('4B position uses target world facing, configurable cones, safe zero/invalid geometry',()=>{
+await test('4B position uses target world facing, configurable cones, safe zero/invalid geometry',()=>{
   assert.equal(relativePosition(rear),'rear');
   assert.equal(relativePosition({...rear,attackerPosition:{x:0,z:-2}}),'front');
   assert.equal(relativePosition({...rear,attackerPosition:{x:2,z:0}}),'side');
@@ -69,7 +69,7 @@ test('4B position uses target world facing, configurable cones, safe zero/invali
   assert.equal(relativePosition({...rear,cameraYaw:Math.PI} as PositionContext),'rear');
 });
 
-test('4B stealth lifecycle: explicit break reasons, finite duration, legacy no-break default, no AI invisibility claim',()=>{
+await test('4B stealth lifecycle: explicit break reasons, finite duration, legacy no-break default, no AI invisibility claim',()=>{
   const h=createV2CoreFoundationHero('thief');
   assert.equal(enterStealth(h,Infinity),false);
   assert(enterStealth(h,3,{breakOn:['basic_attack','damage_dealt','received_damage','offensive_skill']}));
@@ -82,7 +82,7 @@ test('4B stealth lifecycle: explicit break reasons, finite duration, legacy no-b
   assert.deepEqual(STEALTH_CAPABILITIES,{combatCondition:true,enemyDetection:false,lineOfSight:false});
 });
 
-test('4B timed Mark reuses timer storage, legacy boolean semantics preserved, target-local conditions',()=>{
+await test('4B timed Mark reuses timer storage, legacy boolean semantics preserved, target-local conditions',()=>{
   const a={marked:false,statusEffects:{} as Record<string,number>},b={marked:false};
   applyStatus(a,'mark',2);assert(hasStatus(a,'mark'));assert(!hasStatus(b,'mark'));
   applyStatus(a,'mark',3);assert.equal(a.statusEffects.marked,3);
@@ -90,7 +90,7 @@ test('4B timed Mark reuses timer storage, legacy boolean semantics preserved, ta
   a.marked=true;assert(hasStatus(a,'mark'));removeStatus(a,'mark');assert(!hasStatus(a,'mark'));
 });
 
-test('4B conditional action crit/damage: marked + stealth + rear + real dual dagger; unqualified stats stay unchanged',()=>{
+await test('4B conditional action crit/damage: marked + stealth + rear + real dual dagger; unqualified stats stay unchanged',()=>{
   const h=createV2CoreFoundationHero('thief');const main=dagger('m'),off=dagger('o');h.inventory=[main,off];h.equipment.mainHand=main.id;h.equipment.offHand=off.id;
   const mod:CombatModifier={id:'fixture-conditions',selector:{weaponStyles:['dual_dagger']},condition:{targetStatuses:['mark'],attackerStealthed:true,targetPosition:'rear'},action:{damagePercent:20,criticalRateBonus:10,criticalDamageBonus:30,accuracyBonus:12}};
   const stats=derivedStats(h),s=definition();s.modifiers=[mod];
@@ -106,7 +106,7 @@ test('4B conditional action crit/damage: marked + stealth + rear + real dual dag
   assert.equal(criticalChance(500),.8,'existing live cap');
 });
 
-test('4B impact vs explicit cast snapshot remain distinct; conditional crit CP only scores resolved facts',()=>{
+await test('4B impact vs explicit cast snapshot remain distinct; conditional crit CP only scores resolved facts',()=>{
   const h=createV2CoreFoundationHero('thief'),stats=derivedStats(h),s=definition();
   const mod:CombatModifier={id:'position-fixture',condition:{targetPosition:'rear'},action:{damagePercent:25,criticalRateBonus:20,criticalDamageBonus:40}};
   s.modifiers=[mod];s.canCrit=true;

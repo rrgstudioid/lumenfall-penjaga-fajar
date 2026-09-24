@@ -6,7 +6,7 @@ const timeout = window.setTimeout(() => {
     result.textContent = `HARNESS_RUNTIME_IMPORT_TIMEOUT: ${Math.round(performance.now() - startedAt)}ms`;
   }
 }, 8000);
-import('./stun-smoke.ts?spv3_43=2').then(() => {
+import('./stun-smoke.ts').then(() => {
   window.clearTimeout(timeout);
 }).catch((error) => {
   window.clearTimeout(timeout);

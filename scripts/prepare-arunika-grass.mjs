@@ -77,6 +77,6 @@ const assets=[['grass_ground_color_2k.webp',ground,3,false,2048],['grass_ground_
   ['grass_tuft_color_alpha_2k.webp',rgba,4,true,2048],['grass_tuft_normal_rough_1k.webp',await downsampleNR(nr),4,true,1024]];
 for(const [file,data,channels,lossless,resolution] of assets) {
   const bytes=await sharp(data,{raw:{width:resolution,height:resolution,channels}}).webp({lossless,quality:94,effort:6}).toBuffer();
-  await writeFile(out+file,bytes);console.log(`${file}: ${bytes.length} bytes`);
+  await writeFile(out+file,bytes);console.log(`${String(file)}: ${bytes.length} bytes`);
 }
 console.log(JSON.stringify({cards,groundTile:4.8,source:'grass_medium_01_4k.blend.zip',seed:73581,stamps:2600}));

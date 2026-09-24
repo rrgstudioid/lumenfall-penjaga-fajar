@@ -1,9 +1,11 @@
+// Tests capture prototype methods only to restore them after loader stubs.
+/* oxlint-disable typescript/unbound-method */
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as T from 'three';
 import { createArunikaTuftGeometry, enhanceArunikaGrassTufts, loadArunikaGrassTextures } from './arunika-grass-material.ts';
 
-test('grass cards stay inside the old tuft footprint, with six triangles and atlas UVs', () => {
+await test('grass cards stay inside the old tuft footprint, with six triangles and atlas UVs', () => {
   const geometry = createArunikaTuftGeometry();
   geometry.computeBoundingBox();
   const size = geometry.boundingBox!.getSize(new T.Vector3());
@@ -14,7 +16,7 @@ test('grass cards stay inside the old tuft footprint, with six triangles and atl
   geometry.dispose();
 });
 
-test('source grass loads once, retries failure and preserves instance placements', async () => {
+await test('source grass loads once, retries failure and preserves instance placements', async () => {
   const original = T.TextureLoader.prototype.loadAsync;
   let requests = 0, fail = true;
   T.TextureLoader.prototype.loadAsync = async function(url: string) {

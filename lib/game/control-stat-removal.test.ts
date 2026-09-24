@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { createV2TestHero, authorizeV2Warrior, derivedStats, resolveHeroSkill } from './rules.ts';
 import { WARRIOR_V2_ACTIVE, WARRIOR_V2_PASSIVES } from './warrior-v2.ts';
 
-test('removed poise/stat systems leave clean V2 actions and stats', () => {
+await test('removed poise/stat systems leave clean V2 actions and stats', () => {
   const hero = createV2TestHero();
   hero.level = 59;
   assert.equal(authorizeV2Warrior(hero), true);
@@ -18,7 +18,7 @@ test('removed poise/stat systems leave clean V2 actions and stats', () => {
   }
 });
 
-test('redesign-only Warrior nodes remain inert until owner review', () => {
+await test('redesign-only Warrior nodes remain inert until owner review', () => {
   for (const id of ['firm-footing', 'heavy-impact', 'indomitable-will']) {
     const passive = WARRIOR_V2_PASSIVES.find((entry) => entry.id === `v2-warrior-${id}`);
     assert.ok(passive);

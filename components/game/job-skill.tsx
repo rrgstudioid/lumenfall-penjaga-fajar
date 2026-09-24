@@ -385,7 +385,7 @@ export function JobSkill({
               {!v3Definition && <dl>
                 <div>
                   <dt>Character requirement</dt>
-                  <dd>Lv. {v3Definition?.rankLevelRequirements?.[Math.min(level, selected.maxLevel - 1)] ?? selected.unlockLevel}</dd>
+                  <dd>Lv. {selected.unlockLevel}</dd>
                 </div>
                 <div>
                   <dt>Job requirement</dt>
@@ -397,15 +397,12 @@ export function JobSkill({
                 </div>
                 <div>
                   <dt>Skill Point cost</dt>
-                  <dd>{v3Definition ? `${nextRankCost} SP / rank` : selectedActive && rankSource(hero, 'active', selected.id).granted > 0 ? `Rank ${rankSource(hero, 'active', selected.id).granted} granted · 0 SP; rank lanjutan 1 SP` : '1 SP / level'}</dd>
+                  <dd>{selectedActive && rankSource(hero, 'active', selected.id).granted > 0 ? `Rank ${rankSource(hero, 'active', selected.id).granted} granted · 0 SP; rank lanjutan 1 SP` : '1 SP / level'}</dd>
                 </div>
                 <div>
                   <dt>Prerequisite</dt>
                   <dd>
-                    {v3Definition ? [
-                      ...(v3Definition.prerequisiteSkills ?? []).map(p => `${v3Definitions[p.skillId]?.name ?? p.skillId} R${p.requiredRank}`),
-                      ...(v3Definition.jobInvestmentRequirement ? [`${v3Definition.jobInvestmentRequirement.minimumSP} SP di ${v3Definition.jobInvestmentRequirement.jobId}`] : []),
-                    ].join(' + ') || 'Tidak ada' : selected.investmentRequirement
+                    {selected.investmentRequirement
                       ? `${selected.investmentRequirement.paidRanks} paid SP · ${selected.investmentRequirement.tree.id} (granted rank tidak dihitung)`
                       : selected.prerequisites?.length
                         ? selected.prerequisites

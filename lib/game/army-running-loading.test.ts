@@ -1,3 +1,5 @@
+// Tests capture prototype methods only to restore them after loader stubs.
+/* oxlint-disable typescript/unbound-method */
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
@@ -6,7 +8,7 @@ import {ARMY_RUNNING_ASSET} from './army-running.ts';
 import {loadRevision02Character,REVISION02_ANIMATED_ASSET} from './revision02-character.ts';
 import {disposeCharacterModel} from './character-model.ts';
 async function local(path:string){const b=await readFile(new URL('../../public'+path,import.meta.url));return new GLTFLoader().parseAsync(b.buffer.slice(b.byteOffset,b.byteOffset+b.byteLength),'');}
-test('optional animation failure preserves the body/old Run and retries on a later load',async()=>{
+await test('optional animation failure preserves the body/old Run and retries on a later load',async()=>{
   const body=await local(REVISION02_ANIMATED_ASSET),motion=await local(ARMY_RUNNING_ASSET);
   const original=GLTFLoader.prototype.loadAsync,warn=console.warn;let attempts=0,bodyLoads=0;
   GLTFLoader.prototype.loadAsync=async(url)=>{

@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { activeSkills, chooseV3Berserker, chooseV3Warrior, createV3AdventurerHero, learnSkill, parseSave } from './rules.ts';
 import { BERSERKER_V3_SKILLS, BERSERKER_V3_RUNTIME_SKILLS, EARTH_SPLITTER_STUN_CHANCE, FURY_HARVEST_RECOVERY_PERCENT } from './berserker-v3.ts';
-import { canPurchaseSkillRank, createSkillProgressionV3, purchaseSkillRankV3, spentSkillPointsV3 } from './skill-progression-v3.ts';
+import { canPurchaseSkillRank as _canPurchaseSkillRank, createSkillProgressionV3, purchaseSkillRankV3 as _purchaseSkillRankV3, spentSkillPointsV3 } from './skill-progression-v3.ts';
 import { BerserkerV3RuntimeFixture } from './berserker-v3-fixture.ts';
 
 const setup = (level = 80) => {
@@ -14,7 +14,7 @@ const setup = (level = 80) => {
   return hero;
 };
 
-test('Berserker V3 exposes exactly nine canonical skills and no sibling content', () => {
+await test('Berserker V3 exposes exactly nine canonical skills and no sibling content', () => {
   assert.deepEqual(BERSERKER_V3_SKILLS.map((skill) => skill.id), [
     'v3-berserker-two-hand-mastery', 'v3-berserker-raging-cleave', 'v3-berserker-crushing-blow',
     'v3-berserker-iron-blood', 'v3-berserker-breaker-entry', 'v3-berserker-earth-splitter',
@@ -25,7 +25,7 @@ test('Berserker V3 exposes exactly nine canonical skills and no sibling content'
   assert.equal(BERSERKER_V3_RUNTIME_SKILLS.filter((skill) => skill.usableFromHotbar).length, 8);
 });
 
-test('Berserker Damage V4 data and Earth Splitter hit weights are canonical', () => {
+await test('Berserker Damage V4 data and Earth Splitter hit weights are canonical', () => {
   const raging = BERSERKER_V3_SKILLS.find((skill) => skill.id === 'v3-berserker-raging-cleave');
   const earth = BERSERKER_V3_SKILLS.find((skill) => skill.id === 'v3-berserker-earth-splitter');
   assert.deepEqual(raging?.baseDamageMinByRank, [120, 126, 132, 138, 145, 152, 160, 168]);
@@ -42,7 +42,7 @@ test('Berserker Damage V4 data and Earth Splitter hit weights are canonical', ()
   assert.deepEqual(weights, [0.2, 0.22, 0.25, 0.33]);
 });
 
-test('Lv59 cannot transition or purchase Berserker; Lv60 transition refunds skills and blocks Blade Master', () => {
+await test('Lv59 cannot transition or purchase Berserker; Lv60 transition refunds skills and blocks Blade Master', () => {
   const low = createV3AdventurerHero();
   low.level = 59;
   assert.equal(chooseV3Warrior(low), true);
@@ -55,7 +55,7 @@ test('Lv59 cannot transition or purchase Berserker; Lv60 transition refunds skil
   assert.equal(activeSkills(hero).some((skill) => skill.id.includes('blade-master')), false);
 });
 
-test('Berserker prerequisites and rank gates follow the strict contract', () => {
+await test('Berserker prerequisites and rank gates follow the strict contract', () => {
   const hero = setup(80);
   assert.equal(learnSkill(hero, 'v3-berserker-raging-cleave'), false);
   assert.equal(learnSkill(hero, 'v3-warrior-strike'), true);
@@ -73,7 +73,7 @@ test('Berserker prerequisites and rank gates follow the strict contract', () => 
   assert.equal(learnSkill(hero, 'v3-berserker-breaker-entry'), true);
 });
 
-test('Berserker cost model and Earth Splitter Stun data are explicit and finite', () => {
+await test('Berserker cost model and Earth Splitter Stun data are explicit and finite', () => {
   assert.equal(BERSERKER_V3_SKILLS.find((skill) => skill.id === 'v3-berserker-two-hand-mastery')?.spCostPerRank, 4);
   assert.equal(BERSERKER_V3_SKILLS.find((skill) => skill.id === 'v3-berserker-trance')?.spCostPerRank, 5);
   assert.deepEqual([...EARTH_SPLITTER_STUN_CHANCE], [.08, .10, .12, .15, .18]);
@@ -85,7 +85,7 @@ test('Berserker cost model and Earth Splitter Stun data are explicit and finite'
   assert.equal(spentSkillPointsV3(state, definitions), 149);
 });
 
-test('Berserker save reload keeps lineage and ranks but not transient state fields', () => {
+await test('Berserker save reload keeps lineage and ranks but not transient state fields', () => {
   const hero = setup(80);
   hero.skillProgressionV3!.skillRanks['v3-berserker-two-hand-mastery'] = 3;
   hero.skillLevels['v3-berserker-two-hand-mastery'] = 3;
@@ -97,7 +97,7 @@ test('Berserker save reload keeps lineage and ranks but not transient state fiel
   assert.equal(loaded!.activeBuffs['v3-berserker-trance'], undefined);
 });
 
-test('clean Berserker runtime fixture validates window, AoE, recovery, Trance and per-target Stun', () => {
+await test('clean Berserker runtime fixture validates window, AoE, recovery, Trance and per-target Stun', () => {
   const fixture = new BerserkerV3RuntimeFixture();
   fixture.setTargets(5);
   assert.equal(fixture.ironChargeImpact().breakerEntryActive, true);

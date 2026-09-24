@@ -4,8 +4,8 @@ import type { SkillDefinitionV3, SkillProgressionV3State } from './skill-progres
 const twoHand = ['two_hand_sword'];
 const swords = ['one_hand_sword', 'two_hand_sword'];
 const motion = (motionArchetype: string, motionNotes: string, animationNoGo: string[]) => ({ motionArchetype, motionNotes, animationNoGo });
-const rankValues = (coefficients: number[], str: number[], mana: number[], cooldown: number[], extra: Array<Record<string, number>> = []) =>
-  coefficients.map((physicalCoefficient, index) => ({ physicalCoefficient, statScaling: { str: str[index] }, manaCost: mana[index], cooldown: cooldown[index], ...(extra[index] ?? {}) }));
+const _rankValues = (coefficients: number[], str: number[], mana: number[], cooldown: number[], extra: Array<Record<string, number>> = []) =>
+  coefficients.map((physicalCoefficient, index) => ({ physicalCoefficient, statScaling: { str: str[index] }, manaCost: mana[index], cooldown: cooldown[index], ...extra[index] }));
 
 const makeDamage = (patch: Partial<SkillDefinitionV3> & Pick<SkillDefinitionV3, 'id' | 'name' | 'maxRank' | 'rankLevelRequirements' | 'damageProfile' | 'resourceCost' | 'cooldown' | 'presentation' | 'motion'>): SkillDefinitionV3 => ({
   jobId: 'berserker', jobTier: 'specialization', spCostPerRank: 3, skillType: 'ACTIVE_DAMAGE',
@@ -149,7 +149,7 @@ const adapter = (definition: SkillDefinitionV3): SkillDefinition => {
     magicCoefficient: 0, damageType: 'physical', progressionMode: 'rank_values', rankValues, rankEffects, knockbackStrength: 0,
     targetType: definition.targeting?.targetType === 'frontal_arc' ? 'frontal_arc' : definition.targeting?.targetType === 'area' ? 'area' : definition.targeting?.targetType === 'self' ? 'self' : 'single',
     range: definition.targeting?.range ?? 0, areaRadius: definition.targeting?.radius ?? 0, maxTargets: definition.targeting?.maxTargets, duration: 0, statusEffect: null, effect,
-    animation: effect === 'buff' || effect === 'ultimate' ? 'magic_cast' : 'basic_attack', visualEffect: effect === 'ultimate' ? 'thunder' : effect === 'buff' ? 'barrier' : '', soundEffect: '',
+    animation: effect === 'buff' ? 'magic_cast' : 'basic_attack', visualEffect: effect === 'buff' ? 'barrier' : '', soundEffect: '',
     weaponRequirement: (definition.weaponRequirement ?? []) as SkillDefinition['weaponRequirement'], masteryOptions: [], usableFromHotbar: definition.skillType !== 'MASTERY', hotbarCategory: 'primary',
     // Runtime SkillDefinition remains an actionable shape; usableFromHotbar=false
     // keeps Mastery out of casting/hotbar while the V3 schema retains MASTERY.
@@ -164,7 +164,7 @@ export const BERSERKER_V3_RUNTIME_MAP = Object.fromEntries(BERSERKER_V3_RUNTIME_
 export const BERSERKER_V3_JOB = { id: 'berserker', tier: 'specialization' as const, parent: 'warrior' };
 
 export function berserkerV3StateAfterSpecialization(previous: SkillProgressionV3State): SkillProgressionV3State {
-  return { ...previous, skillRanks: { ...(previous.grantedRanks ?? {}) }, chosenCoreJob: 'warrior', chosenSpecialization: 'berserker', chosenAdvancedJob: null };
+  return { ...previous, skillRanks: { ...previous.grantedRanks }, chosenCoreJob: 'warrior', chosenSpecialization: 'berserker', chosenAdvancedJob: null };
 }
 
 export const BERSERKER_MASTERY_ACCURACY = [2, 4, 6, 8, 10] as const;

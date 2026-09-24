@@ -8,7 +8,7 @@ const catalogEquipment = Object.values(ITEM_CATALOG).filter((item) =>
   ['weapon', 'armor', 'accessory'].includes(item.category),
 );
 
-test('Equipment Merchant lists every catalog weapon, armor, and accessory for every job', () => {
+await test('Equipment Merchant lists every catalog weapon, armor, and accessory for every job', () => {
   const expected = catalogEquipment.map((item) => item.templateId);
   for (const coreJob of [null, 'warrior', 'rogue', 'hunter', 'wizard', 'acolyte'] as const) {
     const hero = freshHero();
@@ -17,7 +17,7 @@ test('Equipment Merchant lists every catalog weapon, armor, and accessory for ev
   }
 });
 
-test('buying equipment ignores job restriction while equipping still enforces it', () => {
+await test('buying equipment ignores job restriction while equipping still enforces it', () => {
   const hero = freshHero();
   hero.inCity = true;
   hero.coreJob = 'warrior';
@@ -31,7 +31,7 @@ test('buying equipment ignores job restriction while equipping still enforces it
   assert.equal(canEquipItem(owned, { level: hero.level, coreJob: hero.coreJob, specialization: hero.specialization }).ok, false);
 });
 
-test('magnified equipment remains sellable when unequipped and socket-free', () => {
+await test('magnified equipment remains sellable when unequipped and socket-free', () => {
   const hero = freshHero();
   const equipment = catalogEquipment.find((item) => item.templateId === 'fajar-necklace')!;
   hero.inventory = [
@@ -43,7 +43,7 @@ test('magnified equipment remains sellable when unequipped and socket-free', () 
   assert.equal(sellInventoryItem(hero, 'sale-necklace', 1, ['weapon', 'armor', 'accessory']).ok, true);
 });
 
-test('all catalog equipment remains sellable when unequipped and socket-free', () => {
+await test('all catalog equipment remains sellable when unequipped and socket-free', () => {
   const hero = freshHero();
   for (const item of catalogEquipment) {
     const equipment = { ...item, id: `sale-${item.templateId}`, quantity: 1 };

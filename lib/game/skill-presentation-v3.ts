@@ -131,7 +131,7 @@ function nextRankRows(definition: SkillDefinitionV3, runtime: SkillDefinition, r
   const current = runtimeRankValue(runtime, rank);
   const next = runtimeRankValue(runtime, rank + 1);
   const rows: SkillPresentationRow[] = [];
-  const add = (label: string, before: number | undefined, after: number | undefined, format = String) => {
+  const add = (label: string, before: number | undefined, after: number | undefined, format: (value: number) => string = String) => {
     if (before !== undefined && after !== undefined && before !== after) rows.push({ label, value: `${format(before)} → ${format(after)}` });
   };
   const currentMin = runtime.baseDamageMinByRank?.[rankIndex(rank, runtime.maxLevel)];

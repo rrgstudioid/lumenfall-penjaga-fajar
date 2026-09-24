@@ -111,8 +111,9 @@ export function ItemHover({ as = 'span', item, buyPrice, children, ...props }: {
   children: ReactNode;
 } & ButtonHTMLAttributes<HTMLElement>) {
   const [point, setPoint] = useState<Point | null>(null);
+  const isOpen = Boolean(point);
   useEffect(() => {
-    if (!point) return;
+    if (!isOpen) return;
     const hide = () => setPoint(null);
     const key = (event: KeyboardEvent) => { if (event.key === 'Escape') hide(); };
     window.addEventListener('blur', hide);
@@ -129,7 +130,7 @@ export function ItemHover({ as = 'span', item, buyPrice, children, ...props }: {
       document.removeEventListener('pointerdown', hide, true);
       document.removeEventListener('visibilitychange', hide);
     };
-  }, [Boolean(point)]);
+  }, [isOpen]);
 
   const follow = (event: PointerEvent<HTMLElement>) => {
     // Touch continues to use the existing click flow; dragging doesn't spawn tooltips.

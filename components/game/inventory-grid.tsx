@@ -46,9 +46,6 @@ export function InventoryGrid({
     : displayed;
   return (
     <>
-      <p className="inventory-drag-hint">
-        Item usable dapat ditarik ke PrimaryHotbar. Inventory otomatis dirapikan berdasarkan Sort.
-      </p>
       <div className="inventory-grid" aria-label="Grid inventory">
         {Array.from({ length: slots.length }, (_, index) => {
           const item = visibleItems[index];

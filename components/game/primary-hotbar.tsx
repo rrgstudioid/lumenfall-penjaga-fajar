@@ -145,6 +145,8 @@ export function PrimaryHotbar({
   const [dragKind, setDragKind] = useState<Drag['kind'] | null>(null);
   const editMode = state.hotbarEditMode === true;
   const interactive = active || bindingEnabled;
+  // Synchronize external state after mount; reading it during SSR would break hydration.
+  /* oxlint-disable react/react-compiler */
   useEffect(() => {
     const reset = () => {
       setSavedLayout(null);
@@ -166,6 +168,7 @@ export function PrimaryHotbar({
     window.addEventListener(UI_LAYOUT_RESET_EVENT, reset);
     return () => window.removeEventListener(UI_LAYOUT_RESET_EVENT, reset);
   }, [layoutId]);
+  /* oxlint-enable react/react-compiler */
   useEffect(() => {
     const resize = () => {
       if (!panel.current) return;

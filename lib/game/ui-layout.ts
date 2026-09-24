@@ -54,7 +54,7 @@ export function readUILayout(storage?: LayoutStorage): WindowLayout {
     return Object.fromEntries(
       Object.entries(stored.windows).flatMap(([id, position]) => {
         if (!id || !validPosition(position)) return [];
-        const layout = { x: Math.round(position.x), y: Math.round(position.y) };
+        const layout: WindowLayout[string] = { x: Math.round(position.x), y: Math.round(position.y) };
         if (validSize(position)) {
           Object.assign(layout, {
             width: Math.round(position.width),
@@ -119,7 +119,7 @@ export function saveWindowPosition(
       windows: {
         ...readUILayout(storage),
         [id]: {
-          ...(readUILayout(storage)[id] ?? {}),
+          ...readUILayout(storage)[id],
           x: Math.round(position.x),
           y: Math.round(position.y),
         },

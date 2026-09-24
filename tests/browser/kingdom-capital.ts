@@ -6,7 +6,7 @@ import {
   plazaToCastle,
   roads,
   districts,
-  height,
+  height as _height,
 } from './kingdom-capital-layout';
 const favicon = document.createElement('link');
 favicon.rel = 'icon';

@@ -1,3 +1,4 @@
+import type { StatusTarget } from './combat-status.ts';
 import { BERSERKER_V3_RUNTIME_MAP, EARTH_SPLITTER_STUN_CHANCE, FURY_HARVEST_RECOVERY_PERCENT } from './berserker-v3.ts';
 import { WARRIOR_V3_RUNTIME_MAP } from './warrior-v3.ts';
 import { resolveSkillAction, selectSkillTargets, skillHitDamage, type ResolvedSkillAction } from './skill-action.ts';
@@ -16,7 +17,7 @@ type FixtureStats = {
   skillDamage: number; expGain: number; goldDropRate: number; itemDropRate: number; materialDropRate: number;
 };
 
-export type BerserkerFixtureTarget = StunTarget & { id: string; hp: number; maxHP: number; armorBreak: boolean; stunImmune: boolean; position: { x: number; z: number }; stunState?: StunState };
+export type BerserkerFixtureTarget = StatusTarget & StunTarget & { id: string; hp: number; maxHP: number; armorBreak: boolean; stunImmune: boolean; position: { x: number; z: number }; stunState?: StunState };
 
 /** Clean development-only specialization fixture. It never imports world.ts or any map/runtime renderer. */
 export class BerserkerV3RuntimeFixture {

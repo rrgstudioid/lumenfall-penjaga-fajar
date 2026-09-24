@@ -1,3 +1,5 @@
+// Tests capture prototype methods only to restore them after loader stubs.
+/* oxlint-disable typescript/unbound-method */
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
@@ -19,7 +21,7 @@ function named(root: T.Object3D, name: string) {
   assert.ok(found, name); return found;
 }
 
-test('ships the original male-base-02 GLB, not a high-poly revision', async () => {
+await test('ships the original male-base-02 GLB, not a high-poly revision', async () => {
   const scene = await source(); let total = 0, hair = 0;
   scene.traverse(o => { if (o instanceof T.Mesh) { const n = (o.geometry.index?.count ?? o.geometry.attributes.position.count) / 3; total += n; if (o.name.startsWith('Hair')) hair += n; } });
   assert.equal(total, REVISION02_TRIANGLES); assert.equal(total - hair, 19134);
@@ -27,7 +29,7 @@ test('ships the original male-base-02 GLB, not a high-poly revision', async () =
   disposeCharacterModel(scene);
 });
 
-test('world and preview factory use the rigged revision at the existing game scale', async () => {
+await test('world and preview factory use the rigged revision at the existing game scale', async () => {
   const model = createCharacterModel(freshHero(), { assetSource: source });
   assert.equal(await model.ready, true);
   assert.equal(model.actor.userData.assetKind, 'male-revision-02');
@@ -42,7 +44,7 @@ test('world and preview factory use the rigged revision at the existing game sca
   disposeCharacterModel(model.actor);
 });
 
-test('weapons remain at real GLB grip sockets through motion, combat and transformed actors', async () => {
+await test('weapons remain at real GLB grip sockets through motion, combat and transformed actors', async () => {
   const hero = freshHero(), sword = createItem('legacy-fajar-blade');
   hero.inventory.push(sword); hero.equipment.mainHand = sword.id;
   const model = createCharacterModel(hero, { assetSource: source });
@@ -80,7 +82,7 @@ test('weapons remain at real GLB grip sockets through motion, combat and transfo
   disposeCharacterModel(model.actor); disposeCharacterModel(next.actor);
 });
 
-test('late loads cannot resurrect a disposed character; load errors retain fallback', async () => {
+await test('late loads cannot resurrect a disposed character; load errors retain fallback', async () => {
   const scene = await source(); let resolve!: (scene:T.Group)=>void;
   const model=createCharacterModel(freshHero(),{assetSource:()=>new Promise(r=>{resolve=r;})});
   disposeCharacterModel(model.actor);resolve(scene);assert.equal(await model.ready,false);
@@ -90,7 +92,7 @@ test('late loads cannot resurrect a disposed character; load errors retain fallb
   finally { console.warn=warn; }
 });
 
-test('cached world/preview loads have independent skeletons and disposable resources', async () => {
+await test('cached world/preview loads have independent skeletons and disposable resources', async () => {
   const original=GLTFLoader.prototype.loadAsync, template=await source();let loads=0;
   const bytes=await readFile(new URL('../../public'+ARMY_RUNNING_ASSET,import.meta.url));
   const motion=await new GLTFLoader().parseAsync(bytes.buffer.slice(bytes.byteOffset,bytes.byteOffset+bytes.byteLength),'');

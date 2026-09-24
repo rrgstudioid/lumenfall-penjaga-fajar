@@ -18,7 +18,7 @@ import {
   type ScopedHitComposition,
 } from './combat-modifiers.ts';
 
-export type ResolvedSkillHit = Required<Omit<SkillHit, 'statusEffect'>> & {
+export type ResolvedSkillHit = Required<Omit<SkillHit, 'statusEffect' | 'weaponHand' | 'sharedContributionWeight' | 'weaponContributionCoefficient'>> & Pick<SkillHit, 'weaponHand' | 'sharedContributionWeight' | 'weaponContributionCoefficient'> & {
   /** Per-hand CFV3 physical foundation, composed once by the V3 weapon resolver. */
   composedPhysicalPower?: number;
   scopedComposition?: ScopedHitComposition;
@@ -108,7 +108,7 @@ export function resolveSkillAction(
     Math.max(1, skill.maxLevel),
   );
   const legacy = skillCombatScaling(skill);
-  const values: Required<SkillRankValues> = {
+  const values: Required<Omit<SkillRankValues, 'maxTargets' | 'statScaling'>> & Pick<SkillRankValues, 'maxTargets'> = {
     baseDamage: skill.baseDamage,
     physicalCoefficient: explicit
       ? (skill.physicalCoefficient ?? 0)
@@ -131,7 +131,9 @@ export function resolveSkillAction(
     movementDistance: skill.movementDistance ?? 0,
   };
   let statScaling = skill.statScaling ?? {};
-  for (const key of valueKeys) values[key] = safe(values[key]);
+  for (const key of valueKeys) {
+    if (key !== 'maxTargets') values[key] = safe(values[key]);
+  }
   const applyValues = (patch?: SkillRankValues) => {
     for (const key of valueKeys)
       if (patch?.[key] !== undefined && Number.isFinite(patch[key]))
@@ -151,7 +153,6 @@ export function resolveSkillAction(
       skill.statuses = structuredClone(rankEffect.statuses);
     if (rankEffect.hitSequence)
       skill.hitSequence = structuredClone(rankEffect.hitSequence);
-    const counter = context.combat?.counter?.result;
   }
   const statuses = [...(skill.statuses ?? [])];
   const tags = [...(skill.tags ?? [])];
@@ -185,7 +186,7 @@ export function resolveSkillAction(
     : null;
   const corePower = hasSkillBaseDamage && baseDamageRoll !== null ? baseDamageRoll * skillPowerFactor : null;
   const hitSequence: ResolvedSkillHit[] = hits
-    .map((hit, index) => {
+    .map((hit) => {
       const totalWeight = hits.reduce((sum, candidate) => sum + (candidate.sharedContributionWeight ?? 1), 0) || hits.length;
       const share = corePower !== null ? (corePower * ((hit.sharedContributionWeight ?? 1) / totalWeight)) : 0;
       const baseComponent = hasSkillBaseDamage ? share : safe(hit.baseDamage);

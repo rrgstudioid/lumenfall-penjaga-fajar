@@ -47,7 +47,7 @@ await test('legacy invalid coordinates migrate without touching inventory, quest
     const h=freshHero();h.inCity=false;h.x=p.x;h.z=p.z;h.monsterRespawnState={'verdant-plains-5:spawn:100':Date.now()+120000};h.gold=9876;
     const loaded=parseSave(JSON.stringify(h))!;assert(terrainWalkable(t,loaded));
     for(const key of ['inventory','equipment','gold','level','xp','completedQuests','monsterRespawnState','pet'] as const){
-      const comparable=(value:any)=>Array.isArray(value)?value.map(({isEquipped,...rest})=>rest):value;
+      const comparable=(value:unknown)=>Array.isArray(value)?value.map((entry:Record<string, unknown>)=>{const {isEquipped:_isEquipped,...rest}=entry;return rest;}):value;
       assert.deepEqual(comparable(loaded[key]),comparable(h[key]),key);
     }
   }

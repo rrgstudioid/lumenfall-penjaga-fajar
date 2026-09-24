@@ -22,7 +22,7 @@ for (const terrain of [VERDANT_TERRAIN, EAST_GATE_TERRAIN]) {
     const m=mesh.material;
     materials[m.name || m.type]=(materials[m.name || m.type]??0)+1;
   });
-  snapshot[terrain.id]={geometryHash:createHash('sha256').update(triangles.sort().join('\n')).digest('hex'), triangles:triangles.length,
+  snapshot[terrain.id]={geometryHash:createHash('sha256').update(triangles.sort((a,b)=>String(a).localeCompare(String(b))).join('\n')).digest('hex'), triangles:triangles.length,
     instanceHash:createHash('sha256').update(JSON.stringify(instances)).digest('hex'), layout:JSON.stringify(terrain), materials};
 }
 const path='work/arunika-material/layout-before.json';

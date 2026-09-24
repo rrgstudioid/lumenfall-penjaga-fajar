@@ -1,4 +1,4 @@
-import { applySourceOwnedStatus, clearExpiredSourceStatuses, effectiveArmorBreakStrength, getActiveStatusApplications, hasActiveStatusFromSource } from './combat-status.ts';
+import { applySourceOwnedStatus, clearExpiredSourceStatuses, effectiveArmorBreakStrength, getActiveStatusApplications, hasActiveStatusFromSource as _hasActiveStatusFromSource } from './combat-status.ts';
 import { resolveTargetHit, type CombatModifier } from './combat-modifiers.ts';
 import { ARMOR_BREAK_REDUCTION_BY_RANK } from './warrior-v3.ts';
 
