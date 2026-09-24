@@ -29,6 +29,7 @@ import {
   chooseCoreJob,
   chooseMastery,
   chooseSpecialization,
+  chooseV3Warrior,
   derivedStats,
   emptyEquipment,
   enhancementPreview,
@@ -37,6 +38,7 @@ import {
   freshHero,
   gainXP,
   hasEquippedGear,
+  createV3AdventurerHero,
   maxHP,
   parseSave,
   skillsFor,
@@ -141,6 +143,9 @@ await test('job reset returns to Adventurer without losing earned level points o
     chosenSpecialization: 'berserker',
     chosenAdvancedJob: null,
   };
+  const sword = createItem('legacy-fajar-blade', { id: 'job-reset-sword' });
+  hero.inventory.push(sword);
+  equipItem(hero, sword.id, 'mainHand');
 
   const result = resetJobToAdventurer(hero);
   assert.equal(result.ok, true);
@@ -153,11 +158,24 @@ await test('job reset returns to Adventurer without losing earned level points o
   assert.equal(result.hero.allocatedStats.dex, 0);
   assert.equal(result.hero.allocatedStats.int, 0);
   assert.equal(result.hero.gold, 1000);
+  assert.equal(result.hero.equipment.mainHand, null);
+  assert.equal(result.hero.equipment.offHand, null);
   assert.ok(result.hero.statPoints >= calculateTotalStatPoints(hero.level, hero.progressionArchitecture));
   assert.equal(result.hero.skillProgressionV3?.totalEarnedSP, 18);
   assert.equal(result.hero.skillProgressionV3?.skillRanks['v3-adventurer-quick-slash'], 1);
   assert.equal(result.hero.skillProgressionV3?.chosenCoreJob, null);
   assert.equal(result.hero.skillProgressionV3?.chosenSpecialization, null);
+});
+
+await test('job promotion refuses to proceed while gear is still equipped', () => {
+  const hero = createV3AdventurerHero();
+  hero.level = 15;
+  hero.inventory.push(createItem('legacy-fajar-blade', { id: 'v3-job-block-sword' }));
+  equipItem(hero, 'v3-job-block-sword', 'mainHand');
+
+  assert.equal(chooseV3Warrior(hero), false);
+  assert.equal(hero.coreJob, null);
+  assert.equal(hero.equipment.mainHand, 'v3-job-block-sword');
 });
 
 await test('old saves migrate to Adventurer without losing progress', () => {
@@ -260,32 +278,40 @@ await test('core job promotion requires empty gear and resets skills and hotbars
   hero.quickHotbars.q.assignment = 'fajar-step';
 
   assert.equal(hasEquippedGear(hero), true);
-  assert.equal(chooseCoreJob(hero, 'hunter'), false);
-  assert.equal(hero.coreJob, null);
-  assert.equal(hero.equipment.mainHand, `${hero.slotId}-fajar-blade`);
-  assert.equal(hero.skillLevels['fajar-step'], 3);
-
-  hero.equipment = emptyEquipment();
-  hero.inventory = hero.inventory.map((item) => ({ ...item, isEquipped: false }));
-  const bladeId = `${hero.slotId}-fajar-blade`;
-  assert.equal(hasEquippedGear(hero), false);
   assert.equal(chooseCoreJob(hero, 'hunter'), true);
   assert.equal(hero.coreJob, 'hunter');
-  assert.deepEqual(hero.allocatedStats, { str: 0, vit: 0, dex: 0, int: 0 });
-  assert.ok(hero.skillPoints >= 7);
-  assert.ok(Object.values(hero.skillLevels).every((level) => level === 0));
-  assert.ok(Object.values(hero.passiveLevels).every((level) => level === 0));
-  assert.deepEqual(hero.masteryChoices, {});
-  assert.ok(hero.primaryHotbar.every((id) => id === null));
-  assert.deepEqual(hero.primaryHotbarOverflow, []);
-  assert.equal(hero.quickHotbars.q.assignment, null);
-  assert.equal(hero.quickHotbars.e.assignment, null);
   assert.equal(hero.equipment.mainHand, null);
-  assert.equal(hero.selectedAmmo, null);
+  assert.equal(hero.skillLevels['fajar-step'], 0);
+
+  const bladeId = `${hero.slotId}-fajar-blade`;
+  assert.equal(hasEquippedGear(hero), false);
+  assert.equal(hero.equipment.mainHand, null);
   assert.equal(hero.inventory.find((item) => item.id === bladeId)?.isEquipped, false);
   const trainingBow = hero.inventory.find((item) => item.requiredCoreJob === 'hunter');
   assert.ok(trainingBow);
   assert.notEqual(trainingBow?.isEquipped, true);
+
+  const next = freshHero();
+  gainXP(next, 50000);
+  next.equipment = emptyEquipment();
+  next.inventory = next.inventory.map((item) => ({ ...item, isEquipped: false }));
+  assert.equal(chooseCoreJob(next, 'hunter'), true);
+  assert.equal(next.coreJob, 'hunter');
+  assert.deepEqual(next.allocatedStats, { str: 0, vit: 0, dex: 0, int: 0 });
+  assert.ok(next.skillPoints >= 7);
+  assert.ok(Object.values(next.skillLevels).every((level) => level === 0));
+  assert.ok(Object.values(next.passiveLevels).every((level) => level === 0));
+  assert.deepEqual(next.masteryChoices, {});
+  assert.ok(next.primaryHotbar.every((id) => id === null));
+  assert.deepEqual(next.primaryHotbarOverflow, []);
+  assert.equal(next.quickHotbars.q.assignment, null);
+  assert.equal(next.quickHotbars.e.assignment, null);
+  assert.equal(next.equipment.mainHand, null);
+  assert.equal(next.selectedAmmo, null);
+  assert.equal(next.inventory.find((item) => item.id === bladeId)?.isEquipped, false);
+  const nextTrainingBow = next.inventory.find((item) => item.requiredCoreJob === 'hunter');
+  assert.ok(nextTrainingBow);
+  assert.notEqual(nextTrainingBow?.isEquipped, true);
 });
 
 await test('attribute preview changes derived stats and enhancement exposes risk', () => {

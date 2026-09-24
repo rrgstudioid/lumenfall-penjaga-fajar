@@ -561,6 +561,7 @@ export function createV3AdventurerHero(slotId = 'v3-adventurer-development', cha
 /** Explicit development-only Core transition; legacy Warrior V2 is untouched. */
 export function chooseV3Warrior(hero: Hero): boolean {
   if (hero.skillArchitectureVersion !== 3 || hero.level < 15 || hero.coreJob || !hero.skillProgressionV3) return false;
+  if (hasEquippedGear(hero)) return false;
   hero.skillProgressionV3 = warriorV3StateAfterCoreChange(hero.skillProgressionV3);
   hero.coreJob = 'warrior';
   hero.job = 'warrior';
@@ -578,6 +579,7 @@ export function chooseV3Warrior(hero: Hero): boolean {
 /** Development-only V3 specialization transition; legacy V2 promotion is untouched. */
 export function chooseV3Berserker(hero: Hero): boolean {
   if (hero.skillArchitectureVersion !== 3 || hero.level < 60 || hero.coreJob !== 'warrior' || hero.specialization || !hero.skillProgressionV3) return false;
+  if (hasEquippedGear(hero)) return false;
   hero.skillProgressionV3 = berserkerV3StateAfterSpecialization(hero.skillProgressionV3);
   hero.specialization = 'berserker';
   hero.job = 'warrior';
@@ -595,6 +597,7 @@ export function chooseV3Berserker(hero: Hero): boolean {
 /** Development-only V3 Blade Master transition; V2 promotion remains separate. */
 export function chooseV3BladeMaster(hero: Hero): boolean {
   if (hero.skillArchitectureVersion !== 3 || hero.level < 60 || hero.coreJob !== 'warrior' || hero.specialization || !hero.skillProgressionV3) return false;
+  if (hasEquippedGear(hero)) return false;
   hero.skillProgressionV3 = bladeMasterV3StateAfterSpecialization(hero.skillProgressionV3);
   hero.specialization = 'blade_master'; hero.job = 'warrior'; hero.jobTier = 'specialization'; hero.weaponType = 'dual_sword';
   hero.skillLevels = Object.fromEntries([...ADVENTURER_V3_RUNTIME_SKILLS, ...WARRIOR_V3_RUNTIME_SKILLS, ...BLADE_MASTER_V3_RUNTIME_SKILLS].map((skill) => [skill.id, hero.skillProgressionV3!.skillRanks[skill.id] ?? 0]));
@@ -1162,6 +1165,24 @@ export function hasEquippedGear(hero: Pick<Hero, 'equipment'>) {
   );
 }
 
+export function stripEquippedGear(hero: Hero, options: { preservePet?: boolean } = {}) {
+  const preservePet = options.preservePet ?? true;
+  const next = { ...hero.equipment };
+  for (const slot of Object.keys(next) as EquipSlot[]) {
+    if (slot === 'pet' && preservePet) continue;
+    next[slot] = null;
+  }
+  hero.equipment = next;
+  hero.inventory = hero.inventory.map((entry) => ({
+    ...entry,
+    isEquipped: Object.values(hero.equipment).includes(entry.id),
+  }));
+  hero.hp = Math.min(hero.hp, maxHP(hero));
+  hero.maxMana = derivedStats(hero).maxMana;
+  hero.mana = Math.min(hero.mana, hero.maxMana);
+  return hero;
+}
+
 function resetPromotionSkills(hero: Hero, returnedPoints: number) {
   hero.skillPoints += returnedPoints;
   hero.skillLevels = {...hero.skillLevels,...Object.fromEntries(ALL_SKILLS.map((skill) => [skill.id, 0]))};
@@ -1357,6 +1378,9 @@ export const calculateTotalStatPoints=(level:number,_architecture:ProgressionArc
 export function resetJobToAdventurer(hero: Hero) {
   if (hero.job === 'adventurer' && !hero.coreJob && !hero.specialization) {
     return { ok: false, reason: 'Karakter sudah dalam status Adventurer.', hero, cost: RESET_JOB_GOLD_COST };
+  }
+  if (hasEquippedGear(hero)) {
+    return { ok: false, reason: 'Job tidak dapat diubah. Lepaskan seluruh equipment terlebih dahulu.', hero, cost: RESET_JOB_GOLD_COST };
   }
   if (hero.gold < RESET_JOB_GOLD_COST) {
     return { ok: false, reason: 'GOLD tidak cukup untuk mengubah job.', hero, cost: RESET_JOB_GOLD_COST };
@@ -2058,6 +2082,7 @@ export function chooseSpecialization(
     hero.specialization
   )
     return false;
+  if (hasEquippedGear(hero)) stripEquippedGear(hero, { preservePet: true });
   const previousSkills=activeSkills(hero);
   hero.job = hero.coreJob;
   hero.jobTier = 'specialization';
