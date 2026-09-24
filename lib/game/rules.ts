@@ -1260,7 +1260,8 @@ export function gainXP(hero: Hero, amount: number) {
       hero.skillProgressionV3 = { ...hero.skillProgressionV3, totalEarnedSP: hero.skillProgressionV3.totalEarnedSP + earnedSP };
     hero.statPoints += STAT_POINTS_PER_LEVEL;
     hero.hp = maxHP(hero);
-    hero.maxMana = derivedStats(hero).maxMana;hero.mana=Math.min(hero.mana,hero.maxMana);
+    hero.maxMana = derivedStats(hero).maxMana;
+    hero.mana = hero.maxMana;
     levels++;
   }
   if (hero.level >= cap) hero.xp = 0;
