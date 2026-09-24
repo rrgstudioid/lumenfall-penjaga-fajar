@@ -8,11 +8,12 @@ type Props = {
   hero: Hero;
   onChooseWarrior: () => void;
   onChooseSpecialization: (id: 'berserker' | 'blade_master') => void;
+  onResetToAdventurer: () => void;
 };
 
 /** Shared live/development presentation for the V3 Job Trainer. Gameplay
  * authority remains in the supplied rule-backed callbacks. */
-export function V3JobTrainer({ hero, onChooseWarrior, onChooseSpecialization }: Props) {
+export function V3JobTrainer({ hero, onChooseWarrior, onChooseSpecialization, onResetToAdventurer }: Props) {
   const view = getVisibleJobArchitecture(hero);
   if (!view.v3) return null;
   return <>
@@ -38,6 +39,13 @@ export function V3JobTrainer({ hero, onChooseWarrior, onChooseSpecialization }: 
       </div>
     ) : (
       <p>{view.currentName} aktif. Skill Adventurer, Warrior, dan {view.currentName} tersedia di panel K. Specialization saudara tetap terkunci.</p>
+    )}
+    {hero.job !== 'adventurer' && (
+      <button className="class-choice" disabled={hero.gold < 500} onClick={onResetToAdventurer}>
+        <div><strong>Ubah Job ke Adventurer</strong><small>Biaya 500 GOLD</small></div>
+        <span>Reset job saat ini ke Adventurer</span>
+        <p>SP dan Stat yang sudah didapat dari level tetap tersimpan; hanya alokasi job aktif yang dihapus agar karakter kembali ke baseline Adventurer.</p>
+      </button>
     )}
   </>;
 }
