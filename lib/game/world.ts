@@ -240,6 +240,7 @@ type Enemy = {
   hp: number;
   max: number;
   boss: boolean;
+  dummy?: boolean;
   home: T.Vector3;
   cooldown: number;
   windup: number;
@@ -1037,6 +1038,103 @@ export class Game {
       this.makeEnemy(spawn.id, spawn.x, spawn.z, spawn.definition.variant === 'boss', spawn.definition);
     }
     this.bossSpawned = true;
+  }
+  buildTrainingDummies() {
+    if (!this.hero.inCity) return;
+    const cityId = this.hero.currentCity;
+    const dummyLocations: Record<string, { x: number; z: number }> = {
+      arunika: { x: 0, z: -12 },
+      jayantara: { x: 0, z: -18 },
+    };
+    const location = dummyLocations[cityId] ?? { x: 0, z: -10 };
+    const dummyDefinition: MonsterDefinition = {
+      id: `training-dummy-${cityId}`,
+      name: 'Training Dummy',
+      level: 1,
+      rank: 'normal',
+      variant: 'normal',
+      exp: 0,
+      maxHP: 999999,
+      attack: 0,
+      defense: 0,
+      magicDefense: 0,
+      attackSpeed: 1,
+      movementSpeed: 0,
+      attackRange: 0,
+      dropRate: 0,
+      lootTable: [],
+      respawnTime: 999999,
+      visualScale: 1,
+      nameColor: '#d9f0ff',
+      statusLabel: 'Training',
+      respawn: 999999,
+    };
+    const g = new T.Group();
+    g.position.set(location.x, this.groundHeight(location.x, location.z), location.z);
+    this.scene.add(g);
+    const body = new T.Mesh(
+      new T.CylinderGeometry(0.9, 1.15, 2.6, 16),
+      new T.MeshStandardMaterial({ color: '#dfe8ef', emissive: '#3d5b7d', emissiveIntensity: 0.28 }),
+    );
+    body.position.y = 1.3;
+    g.add(body);
+    const top = new T.Mesh(
+      new T.CylinderGeometry(0.8, 0.8, 0.5, 18),
+      new T.MeshStandardMaterial({ color: '#c9d9ea', emissive: '#6ea8d5', emissiveIntensity: 0.32 }),
+    );
+    top.position.y = 2.8;
+    g.add(top);
+    const ring = this.mesh(
+      new T.RingGeometry(1.8, 2.1, 40),
+      new T.MeshBasicMaterial({ color: '#b9d7ff', transparent: true, opacity: 0.7, depthWrite: false, side: T.DoubleSide }),
+      g,
+      0,
+      0.12,
+      0,
+    );
+    ring.rotation.x = -Math.PI / 2;
+    const dummy: Enemy = {
+      id: Number(`${Date.now()}${Math.random().toString().slice(2, 8)}`) % 1000000,
+      definition: dummyDefinition,
+      respawnKey: `training-dummy-${cityId}`,
+      respawnDeadline: 0,
+      group: g,
+      hp: dummyDefinition.maxHP,
+      max: dummyDefinition.maxHP,
+      boss: false,
+      dummy: true,
+      home: g.position.clone(),
+      cooldown: 0,
+      windup: 0,
+      respawn: 0,
+      flash: 0,
+      ring,
+      stun: 0,
+      slow: 0,
+      root: 0,
+      poison: 0,
+      poisonTick: 0,
+      marked: false,
+      weakPoint: false,
+      defenseDown: 0,
+      attack: 0,
+      attackRange: 0,
+      movementSpeed: 0,
+    };
+    this.enemies.push(dummy);
+    this.registerTargetEnemy(dummy);
+    const label = document.createElement('div');
+    label.className = 'enemy-label';
+    const name = document.createElement('small');
+    name.textContent = 'Training Dummy · City Test';
+    name.style.color = '#d9f0ff';
+    const track = document.createElement('div');
+    const fill = document.createElement('i');
+    track.appendChild(fill);
+    label.appendChild(name);
+    label.appendChild(track);
+    this.labelHost.appendChild(label);
+    this.enemyLabels.set(dummy.id, label);
   }
   makeEnemy(id: number, x: number, z: number, boss: boolean, definition?: MonsterDefinition) {
     const g = new T.Group();
@@ -2991,6 +3089,13 @@ export class Game {
     const penetration = damageType === 'magic' ? playerStats.magicPenetration : playerStats.physicalPenetration;
     const armorBreakStrength = effectiveArmorBreakStrength(e, this.combatTime);
     const finalDamage = mitigateDamage(damage, defense * (armorBreakStrength > 0 ? Math.max(0, 1 - armorBreakStrength / 100) : 1), attackerLevel, penetration);
+    if (e.dummy) {
+      e.hp = e.max;
+      e.flash = 0.14;
+      this.float(e.group.position, String(Math.round(finalDamage)), 'damage');
+      this.effect(e.group.position, '#d9f0ff', 8);
+      return finalDamage;
+    }
     e.hp = Math.max(0, e.hp - finalDamage);
     if(finalDamage>0){breakStealth(this.hero,'damage_dealt');this.updateStealthPresentation();}
     if(this.currentTarget?.instanceId===e.group.uuid)this.updateTargetPresentation();
