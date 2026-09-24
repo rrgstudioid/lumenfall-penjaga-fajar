@@ -70,6 +70,20 @@ await test('Arcane Magnifier unlocks a real inventory item immutably and recalcu
   assert.equal(restored.inventory.find(item => item.id === magnifier.id)?.quantity, 1);
 });
 
+await test('Arcane Magnifier reveals Unique Stats on merchant equipment without pre-rolled stats', () => {
+  const hero = freshHero();
+  const necklace = createItem('fajar-necklace', { id: 'merchant-necklace' });
+  const magnifier = createItem('magnifier', { id: 'merchant-magnifier', quantity: 1 });
+  hero.inventory = [necklace, magnifier];
+  const result = unlockUniqueStats(hero, necklace.id);
+  const revealed = hero.inventory.find(item => item.id === necklace.id);
+
+  assert.equal(result.ok, true);
+  assert.equal(revealed?.uniqueStatsLocked, false);
+  assert.equal(Object.keys(revealed?.bonusStats ?? {}).length, 1);
+  assert.equal(hero.inventory.some(item => item.id === magnifier.id), false);
+});
+
 await test('obsolete equipment affixes do not contribute before or after revealing Unique Stats', () => {
   const item = createItem('legacy-fajar-blade', {
     id: 'hidden-with-affix',
