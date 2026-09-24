@@ -25,6 +25,23 @@ test('Berserker V3 exposes exactly nine canonical skills and no sibling content'
   assert.equal(BERSERKER_V3_RUNTIME_SKILLS.filter((skill) => skill.usableFromHotbar).length, 8);
 });
 
+test('Berserker Damage V4 data and Earth Splitter hit weights are canonical', () => {
+  const raging = BERSERKER_V3_SKILLS.find((skill) => skill.id === 'v3-berserker-raging-cleave');
+  const earth = BERSERKER_V3_SKILLS.find((skill) => skill.id === 'v3-berserker-earth-splitter');
+  assert.deepEqual(raging?.baseDamageMinByRank, [120, 126, 132, 138, 145, 152, 160, 168]);
+  assert.deepEqual(raging?.baseDamageMaxByRank, [170, 178, 186, 194, 203, 212, 222, 232]);
+  assert.equal(raging?.skillPowerFactor, 8);
+  assert.deepEqual(raging?.rankPowerFactorByRank, [1, 1.05, 1.1, 1.15, 1.2, 1.25, 1.3, 1.35]);
+  assert.deepEqual(earth?.baseDamageMinByRank, [180, 195, 210, 230, 250]);
+  assert.deepEqual(earth?.baseDamageMaxByRank, [240, 260, 280, 305, 330]);
+  assert.equal(earth?.skillPowerFactor, 8);
+  assert.deepEqual(earth?.rankPowerFactorByRank, [1, 1.05, 1.1, 1.15, 1.2]);
+  const runtimeEarth = BERSERKER_V3_RUNTIME_SKILLS.find((skill) => skill.id === 'v3-berserker-earth-splitter');
+  assert.ok(runtimeEarth?.rankEffects?.some((entry) => (entry.hitSequence ?? []).length === 4));
+  const weights = runtimeEarth!.rankEffects![0].hitSequence!.map((hit) => hit.sharedContributionWeight ?? 1);
+  assert.deepEqual(weights, [0.2, 0.22, 0.25, 0.33]);
+});
+
 test('Lv59 cannot transition or purchase Berserker; Lv60 transition refunds skills and blocks Blade Master', () => {
   const low = createV3AdventurerHero();
   low.level = 59;
