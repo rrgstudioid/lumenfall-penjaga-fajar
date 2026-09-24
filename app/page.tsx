@@ -31,7 +31,7 @@ import {
   Sun,
   Sword,
   Sparkles,
-  FlaskConical,
+  FlaskConical as _FlaskConical,
   Coins,
   Backpack,
   ScrollText,
@@ -1592,10 +1592,10 @@ export default function Home() {
             </span>
           )}
           <DialogTitle className={panel === 'character' ? 'sr-only' : 'dialog-heading'}>
-            {panelTitles[panel] || 'Petualangan'}
+            {panel === 'bag' ? <><span aria-hidden="true">✦</span> INVENTORY <span aria-hidden="true">✦</span></> : panelTitles[panel] || 'Petualangan'}
           </DialogTitle>
-          <DialogDescription className={panel === 'character' ? 'sr-only' : 'dialog-subtitle'}>
-            {panel === 'pause'
+          <DialogDescription className={panel === 'character' || panel === 'bag' ? 'sr-only' : 'dialog-subtitle'}>
+            {panel === 'bag' ? 'Inventory items, capacity, and gold.' : panel === 'pause'
               ? 'Tarik napas. Lembah akan menunggumu.'
               : panel === 'character'
                 ? 'Kenali kekuatanmu. Siapkan langkah berikutnya. · C untuk tutup'
@@ -1988,11 +1988,10 @@ export default function Home() {
             </div>
           )}
           {panel === 'bag' && (
-            <div className="dialog-stack">
-              <div className="balance">
-                <Backpack size={18} /> {hero.inventory.filter((item) => !item.isEquipped).length}/
-                {hero.inventoryCapacity} <span>Slot</span>
-                <span className="inventory-gold"><Coins size={13} /> {hero.gold} GOLD</span>
+            <div className="dialog-stack inventory-content">
+              <div className="inventory-resources">
+                <span className="inventory-capacity"><Backpack aria-hidden="true" /><strong>{hero.inventory.filter((item) => !item.isEquipped).length} / {hero.inventoryCapacity}</strong><span>SLOT</span></span>
+                <span className="inventory-gold"><Coins aria-hidden="true" /><strong>{hero.gold.toLocaleString('en-US')}</strong><span>GOLD</span></span>
               </div>
               <div className="inventory-toolbar">
                 {hero.pendingLoot.length > 0 && (
@@ -2011,7 +2010,7 @@ export default function Home() {
                     if (game.current?.sortInventoryLayout()) setInventorySort('manual');
                   }}
                 >
-                  Sort
+                  <span aria-hidden="true">✦</span> SORT ITEMS <span aria-hidden="true">✦</span>
                 </button>
               </div>
               <div className="inventory-layout">
@@ -2036,8 +2035,6 @@ export default function Home() {
                             ? Math.max(8, point.y - 10)
                             : Math.min(point.y + 10, window.innerHeight - 80),
                         }}
-                        onPointerDown={(event) => event.stopPropagation()}
-                        onClick={(event) => event.stopPropagation()}
                       >
                         {item.equipSlot && (
                           <button
@@ -2352,6 +2349,10 @@ export default function Home() {
                   null
                 )}
               </div>
+              <footer className="inventory-footer">
+                <p>Drag usable item to PrimaryHotbar <span>|</span> Right-click item to see Use, Discard, Magnifier</p>
+                <div className="inventory-brand"><span aria-hidden="true">✦</span> LUMENFALL <span aria-hidden="true">✦</span></div>
+              </footer>
               <AlertDialog
                 open={Boolean(discardTarget)}
                 onOpenChange={(open) => !open && setDiscardTarget(null)}
