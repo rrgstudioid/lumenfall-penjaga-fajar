@@ -67,6 +67,7 @@ export type StatBlock = {
   skillPower?: number;
   resourceEfficiency?: number;
   maxMana?: number;
+  maxManaPercent?: number;
   attackPercent?: number;
   physicalDamage?: number;
   magicAttack?: number;

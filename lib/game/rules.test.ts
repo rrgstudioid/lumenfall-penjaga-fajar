@@ -469,3 +469,46 @@ await test('equipment metadata, assets, rarity colors, and reset stats share the
   const beforeId=equipped.id;const result=resetCharacterStats(hero);assert.equal(result.ok,true);assert.equal(result.hero.gold,1000-RESET_STATS_GOLD_COST);assert.equal(result.hero.statPoints,calculateTotalStatPoints(hero.level));assert.deepEqual(result.hero.allocatedStats,{str:0,vit:0,dex:0,int:0});
   const preserved=result.hero.inventory.find(item=>item.id===beforeId)!;assert.equal(preserved.affixes[0].id,'optimizer-kept');assert.equal(result.hero.equipment.mainHand,beforeId);
 });
+
+await test('max mana uses canonical level + bonus int + job factor formula', () => {
+  const bonusInt = (value: number) => Math.max(0, value - 15);
+  const foundation = (level: number, effectiveInt: number) => Math.floor(60 + (level * 2.5) + ((level ** 2) * 0.01) + (bonusInt(effectiveInt) * 3));
+  assert.equal(foundation(15, 15), 99);
+  assert.equal(foundation(60, 15), 246);
+  assert.equal(foundation(80, 15), 324);
+  assert.equal(foundation(100, 15), 410);
+  assert.equal(bonusInt(15), 0);
+  assert.equal(bonusInt(20), 5);
+  assert.equal(bonusInt(35), 20);
+  assert.equal(bonusInt(60), 45);
+
+  const hero = freshHero();
+  hero.level = 80;
+  hero.allocatedStats.int = 0;
+  hero.job = 'warrior';
+  hero.coreJob = 'warrior';
+  assert.equal(derivedStats(hero).maxMana, 324);
+
+  const berserker = freshHero();
+  berserker.level = 80;
+  berserker.allocatedStats.int = 0;
+  berserker.job = 'warrior';
+  berserker.coreJob = 'warrior';
+  berserker.specialization = 'berserker';
+  assert.equal(derivedStats(berserker).maxMana, 340);
+
+  const blade = freshHero();
+  blade.level = 80;
+  blade.allocatedStats.int = 0;
+  blade.job = 'warrior';
+  blade.coreJob = 'warrior';
+  blade.specialization = 'blade_master';
+  assert.equal(derivedStats(blade).maxMana, 356);
+
+  const wizard = freshHero();
+  wizard.level = 80;
+  wizard.allocatedStats.int = 0;
+  wizard.job = 'wizard';
+  wizard.coreJob = 'wizard';
+  assert.equal(derivedStats(wizard).maxMana, 518);
+});
