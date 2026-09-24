@@ -134,6 +134,13 @@ function nextRankRows(definition: SkillDefinitionV3, runtime: SkillDefinition, r
   const add = (label: string, before: number | undefined, after: number | undefined, format = String) => {
     if (before !== undefined && after !== undefined && before !== after) rows.push({ label, value: `${format(before)} → ${format(after)}` });
   };
+  const currentMin = runtime.baseDamageMinByRank?.[rankIndex(rank, runtime.maxLevel)];
+  const nextMin = runtime.baseDamageMinByRank?.[rankIndex(rank + 1, runtime.maxLevel)];
+  const currentMax = runtime.baseDamageMaxByRank?.[rankIndex(rank, runtime.maxLevel)];
+  const nextMax = runtime.baseDamageMaxByRank?.[rankIndex(rank + 1, runtime.maxLevel)];
+  if (currentMin !== undefined && nextMin !== undefined && currentMax !== undefined && nextMax !== undefined) {
+    rows.push({ label: 'Base Damage', value: `${currentMin}–${currentMax} → ${nextMin}–${nextMax}` });
+  }
   add('Physical Attack', current.physicalCoefficient, next.physicalCoefficient, coefficient);
   for (const stat of ['str', 'dex', 'vit', 'int'] as const) add(`Bonus ${stat.toUpperCase()}`, current.statScaling?.[stat], next.statScaling?.[stat], coefficient);
   add('Mana', current.manaCost, next.manaCost);
