@@ -29,6 +29,7 @@ export const BERSERKER_V3_SKILLS: readonly SkillDefinitionV3[] = [
   makeArea({
     id: 'v3-berserker-raging-cleave', name: 'Raging Cleave', maxRank: 8, rankLevelRequirements: [60, 63, 65, 68, 70, 73, 76, 79],
     damageProfile: { physicalCoefficient: .95, statScaling: { str: .15 } }, resourceCost: { mana: 14 }, cooldown: 7,
+    baseDamageMinByRank: [120, 126, 132, 138, 145, 152, 160, 168], baseDamageMaxByRank: [170, 178, 186, 194, 203, 212, 222, 232], skillPowerFactor: 8, rankPowerFactorByRank: [1, 1.05, 1.1, 1.15, 1.2, 1.25, 1.3, 1.35],
     prerequisiteSkills: [{ skillId: 'v3-warrior-sweeping-slash', requiredRank: 4 }], weaponRequirement: twoHand,
     targeting: { targetType: 'frontal_arc', range: 5.5, radius: 4.6, maxTargets: 4 }, effects: { tags: ['berserker_damage', 'no-stun', 'no-knockback'] },
     presentation: { description: 'Swing your Two-Hand Sword in a massive sweeping arc, striking multiple enemies in front of you with overwhelming force.' },
@@ -37,6 +38,7 @@ export const BERSERKER_V3_SKILLS: readonly SkillDefinitionV3[] = [
   makeDamage({
     id: 'v3-berserker-crushing-blow', name: 'Crushing Blow', maxRank: 5, rankLevelRequirements: [60, 65, 69, 74, 79],
     damageProfile: { physicalCoefficient: 1.2, statScaling: { str: .22 } }, resourceCost: { mana: 14 }, cooldown: 8.5,
+    baseDamageMinByRank: [170, 185, 200, 215, 230], baseDamageMaxByRank: [240, 260, 280, 300, 320], skillPowerFactor: 8, rankPowerFactorByRank: [1, 1.05, 1.1, 1.15, 1.2],
     presentation: { description: 'Deliver a brutal Two-Hand Sword strike against a single enemy, sacrificing speed for tremendous impact.' },
     motion: motion('TWO_HAND_POWER_STRIKE', 'Deliberate heavy two-hand power strike.', ['no stun', 'no knockback', 'no AoE']),
   }),
@@ -50,6 +52,7 @@ export const BERSERKER_V3_SKILLS: readonly SkillDefinitionV3[] = [
   makeArea({
     id: 'v3-berserker-breaker-entry', name: 'Breaker Entry', maxRank: 5, rankLevelRequirements: [60, 67, 71, 75, 79],
     damageProfile: { physicalCoefficient: .75, statScaling: { str: .10 } }, resourceCost: { mana: 12 }, cooldown: 10,
+    baseDamageMinByRank: [90, 100, 110, 120, 130], baseDamageMaxByRank: [130, 142, 154, 166, 180], skillPowerFactor: 8, rankPowerFactorByRank: [1, 1.05, 1.1, 1.15, 1.2],
     weaponRequirement: swords, prerequisiteSkills: [{ skillId: 'v3-warrior-iron-charge', requiredRank: 3 }],
     targeting: { targetType: 'area', radius: 3.5, maxTargets: 3 }, effects: { tags: ['breaker-entry-consumer', 'no-charge', 'no-stun', 'no-knockback'] },
     presentation: { description: 'Follow a successful charge with a crushing sweep, striking nearby enemies as you force your way into the fight.' },
@@ -58,16 +61,18 @@ export const BERSERKER_V3_SKILLS: readonly SkillDefinitionV3[] = [
   makeArea({
     id: 'v3-berserker-earth-splitter', name: 'Earth Splitter', maxRank: 5, rankLevelRequirements: [66, 69, 72, 76, 80],
     damageProfile: { physicalCoefficient: 1.2, statScaling: { str: .25 } }, resourceCost: { mana: 22 }, cooldown: 14,
+    baseDamageMinByRank: [180, 195, 210, 230, 250], baseDamageMaxByRank: [240, 260, 280, 305, 330], skillPowerFactor: 8, rankPowerFactorByRank: [1, 1.05, 1.1, 1.15, 1.2],
     prerequisiteSkills: [{ skillId: 'v3-berserker-raging-cleave', requiredRank: 3 }],
     targeting: { targetType: 'area', radius: 5, maxTargets: 5 },
     stunProfile: { chance: [.08, .10, .12, .15, .18], pveDuration: 1.5, pvpDuration: .75, minimumTravelDistance: 0, targetPolicy: 'NORMAL' },
     effects: { tags: ['berserker_damage', 'per-target-stun', 'radial', 'no-knockback'] },
     presentation: { description: 'Drive your Two-Hand Sword into the earth with tremendous force, damaging nearby enemies and giving the impact a chance to Stun them.' },
-    motion: motion('EARTH_SPLITTING_SLAM', 'One heavy radial earth impact.', ['no repeated shockwaves', 'no knockback', 'no Stagger', 'no spinning attack']),
+    motion: motion('MULTI_HOP_GROUND_STOMP', 'Heavy upward leap with both hands lifting the greatsword overhead. Each stomp drives the blade downward into the ground with a crushing impact, then the arms and sword recover back to the neutral guard pose after landing.', ['no repeated shockwaves', 'no knockback', 'no Stagger', 'no spinning attack', 'no fixed step sequence', 'no floating airborne slash', 'no teleport', 'no high acrobatics']),
   }),
   makeArea({
     id: 'v3-berserker-ruinous-arc', name: 'Ruinous Arc', maxRank: 5, rankLevelRequirements: [66, 71, 74, 77, 80],
     damageProfile: { physicalCoefficient: 1.1, statScaling: { str: .20 } }, resourceCost: { mana: 17 }, cooldown: 10.5,
+    baseDamageMinByRank: [145, 158, 171, 184, 198], baseDamageMaxByRank: [200, 217, 234, 251, 270], skillPowerFactor: 8, rankPowerFactorByRank: [1, 1.05, 1.1, 1.15, 1.2],
     prerequisiteSkills: [{ skillId: 'v3-warrior-armor-breaker', requiredRank: 3 }], targeting: { targetType: 'frontal_arc', range: 5.2, radius: 4.5, maxTargets: 4 },
     effects: { tags: ['berserker_damage', 'armor-break-payoff:8', 'no-stun', 'no-knockback'] },
     presentation: { description: 'Carve a devastating arc through enemies in front of you, dealing greater damage to targets already weakened by your Armor Break.' },
@@ -76,6 +81,7 @@ export const BERSERKER_V3_SKILLS: readonly SkillDefinitionV3[] = [
   makeArea({
     id: 'v3-berserker-fury-harvest', name: 'Fury Harvest', maxRank: 5, rankLevelRequirements: [70, 73, 75, 78, 80],
     damageProfile: { physicalCoefficient: 1, statScaling: { str: .15 } }, resourceCost: { mana: 24 }, cooldown: 13,
+    baseDamageMinByRank: [115, 125, 135, 145, 155], baseDamageMaxByRank: [165, 178, 191, 204, 218], skillPowerFactor: 8, rankPowerFactorByRank: [1, 1.05, 1.1, 1.15, 1.2],
     prerequisiteSkills: [{ skillId: 'v3-berserker-earth-splitter', requiredRank: 3 }, { skillId: 'v3-berserker-iron-blood', requiredRank: 2 }],
     targeting: { targetType: 'area', radius: 4.5, maxTargets: 5 }, effects: { tags: ['berserker_damage', 'fury-harvest-recovery', 'controlled-circular', 'no-knockback'] },
     presentation: { description: 'Sweep through nearby enemies and draw strength from every foe struck, restoring a portion of your HP based on the number of enemies hit.' },
@@ -101,6 +107,8 @@ const arrays: Record<string, { coefficients: number[]; str: number[]; mana: numb
   'v3-berserker-trance': { coefficients: [0,0,0], str: [0,0,0], mana: [30,34,38], cooldown: [90,88,85], duration: [12,14,16] },
 };
 
+const earthSplitterHitWeights = [0.20, 0.22, 0.25, 0.33] as const;
+
 const ironBlood = [
   { hp: 5, dr: 2, duration: 8, mana: 18, cooldown: 34 }, { hp: 6, dr: 2.5, duration: 9, mana: 20, cooldown: 33.5 },
   { hp: 7, dr: 3, duration: 10, mana: 22, cooldown: 33 }, { hp: 8.5, dr: 4, duration: 11, mana: 24, cooldown: 32.5 },
@@ -120,8 +128,18 @@ const adapter = (definition: SkillDefinitionV3): SkillDefinition => {
     ...(values?.radius ? { radius: values.radius[index] } : {}),
     ...(values?.maxTargets ? { maxTargets: values.maxTargets[index] } : {}),
   }));
+  const earthSplitterHitSequence = definition.id === 'v3-berserker-earth-splitter'
+    ? earthSplitterHitWeights.map((weight, index) => ({
+        delay: index * 0.18,
+        physicalCoefficient: 1,
+        sharedContributionWeight: weight,
+        weaponHand: 'MAIN' as const,
+        statusEffect: { id: 'stun', duration: 0.1 },
+      }))
+    : undefined;
   const rankEffects = blood?.map((entry) => ({ temporaryBuffs: [{ duration: entry.duration, modifier: { id: `${definition.id}-buff`, stats: { percent: { maxHP: entry.hp, damageReduction: entry.dr } } } }] }))
-    ?? (definition.id === 'v3-berserker-two-hand-mastery' ? [2,4,6,8,10].map((accuracy) => ({ modifiers: [{ id: `${definition.id}-accuracy`, stats: { flat: { accuracy } } }] })) : undefined);
+    ?? (definition.id === 'v3-berserker-two-hand-mastery' ? [2,4,6,8,10].map((accuracy) => ({ modifiers: [{ id: `${definition.id}-accuracy`, stats: { flat: { accuracy } } }] })) : undefined)
+    ?? (earthSplitterHitSequence ? [{ hitSequence: earthSplitterHitSequence }] : undefined);
   const effect = definition.skillType === 'ACTIVE_BUFF' || definition.skillType === 'MASTERY' || definition.id === 'v3-berserker-trance' ? 'buff' : definition.targeting?.targetType === 'area' || definition.targeting?.targetType === 'frontal_arc' ? 'aoe_damage' : 'damage';
   return {
     id: definition.id, name: definition.name, description: definition.presentation?.description ?? '', job: 'warrior', specialization: 'berserker',
@@ -136,7 +154,7 @@ const adapter = (definition: SkillDefinitionV3): SkillDefinition => {
     // Runtime SkillDefinition remains an actionable shape; usableFromHotbar=false
     // keeps Mastery out of casting/hotbar while the V3 schema retains MASTERY.
     skillType: 'active', tags: ['v3-berserker', ...(definition.effects?.tags ?? [])], prerequisiteSkillIds: definition.prerequisiteSkills?.map((entry) => entry.skillId),
-    stunProfile: definition.stunProfile, statuses: [],
+    stunProfile: definition.stunProfile, statuses: [], baseDamageMinByRank: definition.baseDamageMinByRank, baseDamageMaxByRank: definition.baseDamageMaxByRank, skillPowerFactor: definition.skillPowerFactor, rankPowerFactorByRank: definition.rankPowerFactorByRank,
   };
 };
 
