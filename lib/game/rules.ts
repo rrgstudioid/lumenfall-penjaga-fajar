@@ -1350,8 +1350,75 @@ export function applyStatPreview(hero: Hero, preview: AllocatedStats) {
 }
 
 export const RESET_STATS_GOLD_COST=500;
+export const RESET_JOB_GOLD_COST = 500;
 /** Earned points follow actual levels; content caps belong to progression, not stat math. */
 export const calculateTotalStatPoints=(level:number,_architecture:ProgressionArchitecture='legacy')=>Math.max(0,Math.floor(level)-1)*STAT_POINTS_PER_LEVEL;
+export function resetJobToAdventurer(hero: Hero) {
+  if (hero.job === 'adventurer' && !hero.coreJob && !hero.specialization) {
+    return { ok: false, reason: 'Karakter sudah dalam status Adventurer.', hero, cost: RESET_JOB_GOLD_COST };
+  }
+  if (hero.gold < RESET_JOB_GOLD_COST) {
+    return { ok: false, reason: 'GOLD tidak cukup untuk mengubah job.', hero, cost: RESET_JOB_GOLD_COST };
+  }
+  const next: Hero = {
+    ...hero,
+    gold: hero.gold - RESET_JOB_GOLD_COST,
+    job: 'adventurer',
+    jobTier: 'adventurer',
+    coreJob: null,
+    specialization: null,
+    weaponType: 'one_hand_sword',
+    statPoints: calculateTotalStatPoints(hero.level, hero.progressionArchitecture),
+    allocatedStats: { str: 0, vit: 0, dex: 0, int: 0 },
+    primaryHotbar: hero.primaryHotbar.map(() => null),
+    primaryHotbarOverflow: [],
+    quickHotbars: emptyQuickHotbars(),
+    masteryChoices: {},
+    activeBuffs: {},
+    statusEffects: {},
+    temporaryModifiers: undefined,
+    combatStateModifiers: undefined,
+    manualGuardActive: false,
+    rankOwnership: normalizedRankOwnership(hero),
+  };
+  if (hero.skillArchitectureVersion === 3 && hero.skillProgressionV3) {
+    const state = refundAllSkillPointsForJobChange(hero.skillProgressionV3);
+    next.skillProgressionV3 = {
+      ...state,
+      chosenCoreJob: null,
+      chosenSpecialization: null,
+      chosenAdvancedJob: null,
+    };
+    next.skillLevels = Object.fromEntries(
+      ADVENTURER_V3_RUNTIME_SKILLS.map((skill) => [skill.id, next.skillProgressionV3!.skillRanks[skill.id] ?? 0]),
+    );
+    next.passiveLevels = {};
+    next.skillPoints = 0;
+  } else {
+    const skillLevels = { ...hero.skillLevels };
+    const passiveLevels = { ...hero.passiveLevels };
+    for (const skill of ALL_SKILLS) {
+      if (skill.id in skillLevels) skillLevels[skill.id] = rankSource(hero, 'active', skill.id).granted;
+    }
+    for (const passive of ALL_PASSIVES) {
+      if (passive.id in passiveLevels) passiveLevels[passive.id] = rankSource(hero, 'passive', passive.id).granted;
+    }
+    next.skillLevels = skillLevels;
+    next.passiveLevels = passiveLevels;
+    next.skillPoints = Math.max(0, hero.skillPoints + refundableSkillPoints(hero));
+    next.rankOwnership = normalizedRankOwnership(next);
+  }
+  const stats = derivedStats(next);
+  next.hp = Math.min(next.hp, stats.maxHP);
+  next.maxMana = stats.maxMana;
+  next.mana = Math.min(next.mana, stats.maxMana);
+  return {
+    ok: true,
+    reason: `Job berhasil diubah ke Adventurer. Stat Point dan SP yang sudah didapat dari level tetap tersimpan. Biaya ${RESET_JOB_GOLD_COST} GOLD telah dipotong.`,
+    hero: next,
+    cost: RESET_JOB_GOLD_COST,
+  };
+}
 export function resetCharacterStats(hero: Hero) {
   const spent = Object.values(hero.allocatedStats).reduce(
     (sum, value) => sum + value,

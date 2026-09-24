@@ -1782,6 +1782,7 @@ export default function Home() {
                 hero={hero}
                 onChooseWarrior={() => game.current?.chooseCoreJob('warrior')}
                 onChooseSpecialization={(id) => game.current?.chooseSpecialization(id)}
+                onResetToAdventurer={() => game.current?.resetJobToAdventurer()}
               />
               {visibleJobs.v2 && !hero.coreJob && (
                 <>

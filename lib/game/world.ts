@@ -57,6 +57,7 @@ import {
   loadCharacter,
   listCharacters,
   resetCharacterStats,
+  resetJobToAdventurer as resetJobToAdventurerRules,
   resetSkillPoints as resetSkillPointsRules,
   allocateStatPoint as allocateStatPointRules,
   unlockUniqueStats as unlockUniqueStatsRules,
@@ -2222,6 +2223,19 @@ export class Game {
     const result=resetSkillPointsRules(this.hero);
     if(result.ok){this.clearSkillRuntime();this.hero=validatePrimaryHotbar(result.hero);this.save();}
     this.message(result.reason);this.emit();return result.ok;
+  }
+  resetJobToAdventurer() {
+    if (!this.currentNpc || !this.currentNpc.services.includes('job')) return false;
+    const result = resetJobToAdventurerRules(this.hero);
+    if (result.ok) {
+      this.clearSkillRuntime();
+      this.hero = result.hero;
+      this.rebuildHeroAppearance();
+      this.save();
+      this.emit();
+    }
+    this.message(result.reason);
+    return result.ok;
   }
   unlockUniqueStats(itemId:string) {
     this.hero={...this.hero};const result=unlockUniqueStatsRules(this.hero,itemId);
