@@ -92,6 +92,7 @@ import {
 import {
   ITEM_CATALOG,
   RARITY_META,
+  calculateEnhancedBaseStats,
   equipmentUsageDescription,
   type InventorySort,
 } from '@/lib/game/items';
@@ -1444,14 +1445,18 @@ export default function Home() {
           <div className="floating-item-title">
             <ItemIcon item={hoveredItem} className="item-symbol" />
             <div>
-              <strong><JobText>{hoveredItem.name}</JobText></strong>
+              <strong><JobText>{hoveredItem.name}</JobText>{hoveredItem.enhancementLevel > 0 ? ` +${hoveredItem.enhancementLevel}` : ''}</strong>
               <small>{RARITY_META[hoveredItem.rarity].label} · {hoveredItem.category}</small>
             </div>
           </div>
 
           <div className="floating-item-group">
             {['weapon', 'armor', 'accessory'].includes(hoveredItem.category) ? (() => {
-              const hoveredEquipmentLines = equipmentUsageDescription({ ...hoveredItem, bonusStats: {} }).split(' · ');
+              const hoveredEquipmentLines = equipmentUsageDescription({
+                ...hoveredItem,
+                baseStats: calculateEnhancedBaseStats(hoveredItem),
+                bonusStats: {},
+              }).split(' · ');
               const hoveredMetadata = hoveredEquipmentLines.filter(line => /^(Level|Jenis|Slot):/.test(line));
               const hoveredRequirement = hoveredEquipmentLines.find(line => line.startsWith('Syarat:'));
               const hoveredStats = hoveredEquipmentLines.filter(line => !/^(Level|Jenis|Slot|Syarat|Harga jual):/.test(line));
@@ -1490,7 +1495,6 @@ export default function Home() {
               );
             })() : <p><JobText>{hoveredItem.description}</JobText></p>}
           </div>
-
           <div className="floating-item-group floating-item-meta-block">
             <small className="floating-item-price-line">Harga jual: {hoveredItem.sellValue.toLocaleString()} GOLD</small>
           </div>

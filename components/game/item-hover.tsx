@@ -3,7 +3,7 @@ import { JobText, useJobText } from './job-presentation-context';
 
 import { createElement, useEffect, useLayoutEffect, useRef, useState, type ButtonHTMLAttributes, type PointerEvent, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
-import { equipmentUsageDescription, RARITY_META, type ItemData } from '@/lib/game/items';
+import { calculateEnhancedBaseStats, equipmentUsageDescription, RARITY_META, type ItemData } from '@/lib/game/items';
 import { ItemIcon } from './entry-icon';
 
 // Accept shop templates as well as actual owned instances. Never manufacture
@@ -12,7 +12,11 @@ type HoverItem = Omit<ItemData, 'id' | 'quantity'> & Partial<Pick<ItemData, 'id'
 type Point = { x: number; y: number };
 
 function equipmentTooltipSections(item: HoverItem) {
-  const lines = equipmentUsageDescription({ ...item, bonusStats: {} }).split(' · ');
+  const lines = equipmentUsageDescription({
+    ...item,
+    baseStats: calculateEnhancedBaseStats(item),
+    bonusStats: {},
+  }).split(' · ');
   const isMetadata = (line: string) => /^(Level|Jenis|Slot|Syarat|Harga jual):/.test(line);
   return {
     metadata: lines.filter(line => /^(Level|Jenis|Slot):/.test(line)),

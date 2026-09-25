@@ -1426,6 +1426,14 @@ export function validateOffHandCompatibility(main: ItemData | null, offHand: Ite
 }
 
 export function calculateBaseEquipmentStats(item: ItemData): StatBlock { return {...item.baseStats}; }
+export function calculateEnhancedBaseStats(
+  item: Pick<ItemData, 'baseStats' | 'enhancementLevel'>,
+): StatBlock {
+  const factor = 1 + item.enhancementLevel * 0.08;
+  return Object.fromEntries(
+    Object.entries(item.baseStats).map(([key, value]) => [key, (value ?? 0) * factor]),
+  ) as StatBlock;
+}
 /** Only retained Bonus/Unique Stats contribute; generic equipment options are obsolete. */
 export function calculateEquipmentUniqueStats(item:ItemData):StatBlock{return item.uniqueStatsLocked?{}:{...item.bonusStats};}
 export function calculateRuneStats(item: ItemData): StatBlock {

@@ -39,6 +39,7 @@ import {
 import {
   RARITY_META,
   RUNE_RARITY_RULES,
+  calculateEnhancedBaseStats,
   type EquipSlot,
   type ItemData,
 } from '@/lib/game/items';
@@ -239,8 +240,12 @@ export function CharacterScreen({
             'All jobs'}</JobText>{' '}
           · {item.handedness.replaceAll('_', ' ')}
         </p>
-        <h4>Base stats</h4>
-        <StatBlockList value={item.baseStats} />
+        <h4>
+          {item.enhancementLevel > 0
+            ? `Base stats after enhancement (+${item.enhancementLevel})`
+            : 'Base stats (+0)'}
+        </h4>
+        <StatBlockList value={calculateEnhancedBaseStats(item)} />
         <h4>Unique stats</h4>
         {item.uniqueStatsLocked ? (
           <>
@@ -766,7 +771,7 @@ export function CharacterScreen({
                                 {slot.label} ·{' '}
                                 {equipped.handedness.replaceAll('_', ' ')}
                               </p>
-                              <StatBlockList value={equipped.baseStats} />
+                              <StatBlockList value={calculateEnhancedBaseStats(equipped)} />
                               {equipped.uniqueStatsLocked ? (
                                 <small>Unique Stats terkunci.</small>
                               ) : (
