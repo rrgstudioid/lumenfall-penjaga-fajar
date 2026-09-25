@@ -1,5 +1,9 @@
 <!doctype html>
 <html lang="id"><head><meta charset="UTF-8"><title>Cena — rig & equipment review</title>
-<style>body{margin:0;background:#18232b;color:#eee;font:15px system-ui}canvas{display:block}#info{position:absolute;top:20px;left:24px;pointer-events:none}h1{font-size:23px;margin:0 0 6px}p{margin:4px 0}</style>
-</head><body><div id="info"><h1>Cena · karakter male</h1><p id="status">Memuat model…</p><p>Body + 52 tulang · animasi bawaan tidak aktif · senjata dari equipment game</p></div>
+<style>body{margin:0;background:#18232b;color:#eee;font:15px system-ui}canvas{display:block}#info{position:absolute;top:20px;left:24px;pointer-events:none}h1{font-size:23px;margin:0 0 6px}p{margin:4px 0}#controls{position:absolute;bottom:16px;left:16px;right:16px;background:#18232be8;padding:12px;border-radius:8px}button,select{padding:7px;margin:3px;background:#36424a;color:white;border:1px solid #82929e;border-radius:4px}</style>
+</head><body><div id="info"><h1>Cena · karakter male</h1><p id="status">Memuat model…</p><p>Animasi game lama → rig Cena · bukan animasi bawaan Cena · equipment game</p></div>
+<div id="controls"><label>Equipment <select id="equipment"><option value="unarmed">Tanpa senjata</option><option value="one">1H</option><option value="dual">Dual Sword</option><option value="meteor">Dual Meteor</option><option value="two">2H</option><option value="female">Female regression</option></select></label>
+<button data-view="front">Depan</button><button data-view="side">Samping</button><button data-view="back">Belakang</button><button data-view="hands">Tangan kanan</button><button data-view="handsReverse">Tangan kiri</button>
+<button data-view="face">Wajah depan</button><button data-view="faceSide">Profil dagu</button><button data-view="faceThreeQuarter">Wajah ¾</button>
+<button data-pose="idle">Idle</button><button data-pose="walk">Jalan</button><button data-pose="run">Lari</button><button data-pose="attack">Serang berulang</button><button data-pose="paused">Pause</button><p>Drag untuk memutar · scroll untuk zoom · fixture terisolasi, tidak membaca/menulis save game.</p></div>
 <script type="module" src="./cena-character-fixture.ts"></script></body></html>
