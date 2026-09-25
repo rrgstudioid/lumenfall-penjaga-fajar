@@ -1040,7 +1040,10 @@ export class Game {
     this.scene.add(this.actor);
   }
   buildEnemies() {
-    if (this.hero.inCity) return;
+    if (this.hero.inCity) {
+      this.buildTrainingDummies();
+      return;
+    }
     for (const spawn of fieldSpawns(FIELDS[this.hero.currentField])) {
       this.makeEnemy(spawn.id, spawn.x, spawn.z, spawn.definition.variant === 'boss', spawn.definition);
     }
