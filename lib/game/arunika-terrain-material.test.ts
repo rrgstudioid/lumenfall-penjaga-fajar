@@ -1,3 +1,5 @@
+// Tests capture prototype methods only to restore them after loader stubs.
+/* oxlint-disable typescript/unbound-method */
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as T from 'three';
@@ -7,7 +9,7 @@ import { buildArunikaTerrainMask } from './arunika-terrain-mask.ts';
 import { enhancePadangTerrainSurface, ARUNIKA_TERRAIN_MATERIAL } from './arunika-terrain-material.ts';
 import { buildFieldTerrain } from './field-terrain-renderer.ts';
 
-test('spatial mask has strong rocky interiors, dominant grass and protected roads', () => {
+await test('spatial mask has strong rocky interiors, dominant grass and protected roads', () => {
   const snapshot = JSON.stringify(VERDANT_TERRAIN);
   const mask = buildArunikaTerrainMask(VERDANT_TERRAIN);
   assert.equal(JSON.stringify(VERDANT_TERRAIN), snapshot, 'layout data must not change');
@@ -30,7 +32,7 @@ test('spatial mask has strong rocky interiors, dominant grass and protected road
   }
 });
 
-test('load failure, retry, geometry preservation, regional isolation and shader layering', async () => {
+await test('load failure, retry, geometry preservation, regional isolation and shader layering', async () => {
   const original = T.TextureLoader.prototype.loadAsync;
   let fail = true, requests = 0;
   T.TextureLoader.prototype.loadAsync = async function (url: string) {
@@ -75,7 +77,7 @@ test('load failure, retry, geometry preservation, regional isolation and shader 
   } finally { T.TextureLoader.prototype.loadAsync = original; }
 });
 
-test('manifest points to available 2K runtime images, not the broken legacy PNGs', () => {
+await test('manifest points to available 2K runtime images, not the broken legacy PNGs', () => {
   const root = new URL('../../public/assets/materials/terrain/arunika/rocky-terrain-02/', import.meta.url);
   const manifest = JSON.parse(readFileSync(new URL('manifest.json', root), 'utf8'));
   assert.equal(manifest.revision, 2);

@@ -4,7 +4,7 @@ import { DEFAULT_UI_SCALE, INTERFACE_STORAGE_KEY, loadUIScale, normalizeUIScale,
 import { clampWindowPosition } from './ui-layout.ts';
 import { clampPrimaryHotbarLayout } from './hotbar.ts';
 
-test('interface preference defaults, clamps, steps and survives reload without touching saves', () => {
+await test('interface preference defaults, clamps, steps and survives reload without touching saves', () => {
   const entries = new Map([['character-save', 'unchanged']]);
   const storage = { getItem: (key: string) => entries.get(key) ?? null, setItem: (key: string, value: string) => { entries.set(key, value); } };
   assert.equal(loadUIScale(storage), DEFAULT_UI_SCALE);
@@ -21,7 +21,7 @@ test('interface preference defaults, clamps, steps and survives reload without t
   assert.equal(loadUIScale({getItem(){throw Error('blocked');}}),100);
 });
 
-test('scaled window and hotbar dimensions clamp in visual viewport pixels', () => {
+await test('scaled window and hotbar dimensions clamp in visual viewport pixels', () => {
   for (const viewport of [{width:1366,height:768},{width:1920,height:1080},{width:2560,height:1440}]) {
     for (const scale of [.75,1,1.25,1.5]) {
       const size={width:600*scale,height:Math.min(500*scale,viewport.height*.86)};

@@ -1,6 +1,6 @@
 // Development-only entry. This renders the real Character Overview and K panel.
 // It never reads or writes the production character-save namespace.
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useCallback, useMemo, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { CharacterOverview } from '../../components/game/character-overview';
 import { JobSkill } from '../../components/game/job-skill';
@@ -54,16 +54,19 @@ function Fixture() {
 
   // A mounted client effect is the hydration boundary. Only then may storage
   // be read and the development character injected into the real UI.
+  // Synchronize external state after mount; reading it during SSR would break hydration.
+  /* oxlint-disable react/react-compiler */
   useEffect(() => {
     const loaded = loadFixture();
     setHero(loaded.hero);
     setSource(loaded.source);
   }, []);
+  /* oxlint-enable react/react-compiler */
 
-  const persist = (next: Hero) => {
+  const persist = useCallback((next: Hero) => {
     window.sessionStorage.setItem(STORAGE_KEY, JSON.stringify(next));
     setHero(next);
-  };
+  }, []);
   const game = useMemo(() => ({
     equipItem(itemId: string, slot?: EquipSlot) {
       if (!hero) return false;
@@ -85,7 +88,7 @@ function Fixture() {
       persist(next);
       return true;
     },
-  }), [hero]);
+  }), [hero, persist]);
 
   if (!hero) return <main className="bm-fixture-shell" data-boot-stage="hydrating">Memuat fixture development…</main>;
 

@@ -97,7 +97,7 @@ const materials = {
 const tsc = spawnSync(process.execPath, ['node_modules/typescript/bin/tsc', '--noEmit', '--pretty', 'false', '--incremental', 'false'], {cwd:root,encoding:'utf8',maxBuffer:20*1024*1024});
 write(stage + '/evidence/typescript-after.log', (tsc.stdout || '') + (tsc.stderr || ''));
 const diagnostics = (tsc.stdout || '').split(/\r?\n/).filter(x=>x.includes('error TS'));
-const primary = diagnostics.filter(x=>/^lib\/game\//.test(x));
+const primary = diagnostics.filter(x=>x.startsWith('lib/game/'));
 const newFiles = diagnostics.filter(x=>x.includes('kingdom-pilot'));
 const build = spawnSync(process.execPath, ['node_modules/vite/bin/vite.js','build','--config','tests/browser/kingdom-pilot.vite.config.ts'], {cwd:root,encoding:'utf8',maxBuffer:10*1024*1024});
 write(stage + '/evidence/build.log', (build.stdout || '') + (build.stderr || ''));
@@ -109,7 +109,7 @@ const checks = {
 };
 if (newFiles.length || build.status !== 0) throw Error('New pilot diagnostics or build failure; inspect evidence logs');
 const allFiles = fs.readdirSync(path.join(root,stage),{recursive:true,withFileTypes:true}).filter(x=>x.isFile());
-const diskBytes = allFiles.reduce((n,x)=>n+fs.statSync(path.join(x.parentPath ?? x.path,x.name)).size,0);
+const diskBytes = allFiles.reduce((n,x)=>n+fs.statSync(path.join(x.parentPath,x.name)).size,0);
 const output = {
   schemaVersion:1, phase:'A3', devOnly:true, generatedAt:new Date().toISOString(),
   sourceRoot:manifest.sourceRoot, style:'STYLE_A_MEDIEVAL_VILLAGE_MODULAR',

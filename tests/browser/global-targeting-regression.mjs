@@ -92,7 +92,7 @@ try {
   assert.equal(failure.basic, 'TARGET_OUT_OF_RANGE'); assert(!failure.skill);
   assert.equal(failure.mana, failure.afterMana); assert.equal(failure.hpB, failure.afterHpB); assert.equal(failure.target, failure.a);
   evidence.push({ outOfRange: failure });
-  await page.evaluate(() => { const g = window.__warriorQA.game; window.__globalTargets[0].hp = 0; window.__globalDraw(); });
+  await page.evaluate(() => { const _g = window.__warriorQA.game; window.__globalTargets[0].hp = 0; window.__globalDraw(); });
   assert.equal((await state()).target, null);
   assert(await frame.isHidden());
   assert.deepEqual(errors, []);

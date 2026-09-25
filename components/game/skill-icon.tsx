@@ -1,3 +1,5 @@
+/* Fixed local game sprites intentionally bypass the Next image optimization service. */
+/* oxlint-disable next/no-img-element */
 import {
   ArrowRight,
   ArrowUpRight,

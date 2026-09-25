@@ -1,3 +1,5 @@
+// Tests capture prototype methods only to restore them after loader stubs.
+/* oxlint-disable typescript/unbound-method */
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
@@ -7,7 +9,7 @@ import { createCharacterModel, disposeCharacterModel } from './character-model.t
 import { freshHero, createItem } from './rules.ts';
 import { HUNYUAN_CHARACTER_ASSET, HUNYUAN_CHARACTER_TRIANGLES, loadHunyuanCharacter } from './hunyuan-character.ts';
 
-test('Hunyuan body loads with texture, animates, and keeps equipment at both grip sockets', async () => {
+await test('Hunyuan body loads with texture, animates, and keeps equipment at both grip sockets', async () => {
   // Node has no image decoder; retain the embedded PNG dimensions for loader validation.
   Object.assign(globalThis, { self: globalThis, createImageBitmap: async (blob: Blob) => {
     const bytes = new DataView(await blob.arrayBuffer());

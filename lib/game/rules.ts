@@ -42,6 +42,7 @@ import {
   RUNE_REFORGE_STEP_WEIGHT,
   RUNE_REMOVAL_GOLD_COST,
   rollRuneAffixes,
+  rollUniqueStats,
   normalizeSocketedRune,
   type RuneRarity,
   RUNE_THEME_POOLS,
@@ -185,7 +186,6 @@ export const JOB_MANA_FACTORS: Record<string, number> = Object.freeze({
   specialist: 1.15,
   siege: 1.2,
   guardian: 1,
-  ranger: 1.25,
   guardian_legacy: 1,
   hunter: 1.05,
   wizard: 1.6,
@@ -222,7 +222,7 @@ export const getJobManaFactor = (hero: Pick<Hero, 'job' | 'coreJob' | 'specializ
   return JOB_MANA_FACTORS[normalized] ?? JOB_MANA_FACTORS[normalized.replace(/-/g, '_')] ?? 1;
 };
 export const resolveMaxMana = (
-  hero: Pick<Hero, 'job' | 'coreJob' | 'specialization' | 'level'>,
+  hero: Pick<Hero, 'job' | 'coreJob' | 'specialization' | 'level' | 'allocatedStats'>,
   allocated: AllocatedStats = hero.allocatedStats,
   contributions: Partial<StatBlock> = {},
 ): number => {
@@ -1375,7 +1375,8 @@ export function gainXP(hero: Hero, amount: number) {
       hero.skillProgressionV3 = { ...hero.skillProgressionV3, totalEarnedSP: hero.skillProgressionV3.totalEarnedSP + earnedSP };
     hero.statPoints += STAT_POINTS_PER_LEVEL;
     hero.hp = maxHP(hero);
-    hero.maxMana = derivedStats(hero).maxMana;hero.mana=Math.min(hero.mana,hero.maxMana);
+    hero.maxMana = derivedStats(hero).maxMana;
+    hero.mana = hero.maxMana;
     levels++;
   }
   if (hero.level >= cap) hero.xp = 0;
@@ -1742,6 +1743,9 @@ export function equipItem(hero: Hero, itemId: string, targetSlot?: EquipSlot) {
 export function unequipItem(hero: Hero, slot: EquipSlot) {
   const itemId = hero.equipment[slot];
   if (!itemId) return { ok: false, reason: 'Slot sudah kosong.' };
+  const carriedCount = hero.inventory.filter(item => !item.isEquipped).length;
+  if (carriedCount >= hero.inventoryCapacity)
+    return { ok: false, reason: 'Inventory penuh. Kosongkan satu slot terlebih dahulu.' };
   if (slot === 'mainHand' && hero.equipment.offHand === itemId)
     hero.equipment.offHand = null;
   if (slot === 'offHand' && hero.equipment.mainHand === itemId)
@@ -2246,10 +2250,11 @@ export function unlockUniqueStats(hero: Hero, itemId: string) {
   if (!item) return {ok:false,reason:'Equipment tidak ditemukan di Inventory.'};
   if (!['weapon','armor','accessory'].includes(item.category) || !item.equipSlot)
     return {ok:false,reason:'Unique Stats hanya dapat dibuka pada equipment.'};
-  if (!item.uniqueStatsLocked) return {ok:false,reason:'Unique Stats sudah terbuka atau item ini tidak memiliki Unique Stats.'};
+  if (!item.uniqueStatsLocked && Object.keys(item.bonusStats).length) return {ok:false,reason:'Unique Stats sudah terbuka atau item ini tidak memiliki Unique Stats.'};
   if (item.isLocked) return {ok:false,reason:'Equipment sedang terkunci.'};
   if (!magnifier) return {ok:false,reason:'Membutuhkan 1 Magnifier.'};
-  hero.inventory=hero.inventory.map(entry=>entry.id===itemId?{...entry,uniqueStatsLocked:false,bonusStats:{...entry.bonusStats}}:entry.id===magnifier.id?{...entry,quantity:entry.quantity-1}:entry).filter(entry=>entry.quantity>0);
+  const revealedStats = Object.keys(item.bonusStats).length ? item.bonusStats : rollUniqueStats(item);
+  hero.inventory=hero.inventory.map(entry=>entry.id===itemId?{...entry,uniqueStatsLocked:false,bonusStats:{...revealedStats}}:entry.id===magnifier.id?{...entry,quantity:entry.quantity-1}:entry).filter(entry=>entry.quantity>0);
   return {ok:true,reason:'Unique Stats berhasil dibuka.'};
 }
 export function learnPassive(hero: Hero, passiveId?: string) {

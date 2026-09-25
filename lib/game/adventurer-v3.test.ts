@@ -4,7 +4,7 @@ import {
   activeSkills,
   canCastSkill,
   createV3AdventurerHero,
-  gainXP,
+  gainXP as _gainXP,
   learnSkill,
   maxHP,
   parseSave,

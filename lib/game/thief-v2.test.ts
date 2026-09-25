@@ -5,7 +5,7 @@ import {
   THIEF_V2_PASSIVES as passives,
   THIEF_TREE,
 } from './thief-v2.ts';
-import { ALL_SKILLS, ALL_PASSIVES } from './skills.ts';
+import { ALL_SKILLS, ALL_PASSIVES as _ALL_PASSIVES } from './skills.ts';
 import {
   createV2CoreFoundationHero,
   createV2TestHero,
@@ -63,7 +63,7 @@ const rear = {
   targetForward: forwardFromYaw(0),
 };
 
-test('4C FINAL melee range is exactly 3.5m at every rank; Mark and Lunge keep explicit ranges', () => {
+await test('4C FINAL melee range is exactly 3.5m at every rank; Mark and Lunge keep explicit ranges', () => {
   const h = hero();
   for (const slug of ['quick-stab', 'twin-fang', 'crippling-cut', 'venom-edge', 'marked-strike', 'blade-flurry', 'silent-opening', 'rear-rend', 'weakpoint-assault']) {
     const definition = skill(slug);
@@ -79,7 +79,7 @@ test('4C FINAL melee range is exactly 3.5m at every rank; Mark and Lunge keep ex
   }
 });
 
-test('4C registry: exact 16+14, 140 total/139 paid, development root grant idempotent and public locked', () => {
+await test('4C registry: exact 16+14, 140 total/139 paid, development root grant idempotent and public locked', () => {
   assert.equal(skills.length, 16);
   assert.equal(passives.length, 14);
   assert.equal(
@@ -108,7 +108,7 @@ test('4C registry: exact 16+14, 140 total/139 paid, development root grant idemp
   assert.equal(parseSave(JSON.stringify(h))!.coreJob, 'thief');
 });
 
-test('4C every active: exact locks, rank ceilings, physical/zero INT and skill-power coefficients; target-free actions distinct', () => {
+await test('4C every active: exact locks, rank ceilings, physical/zero INT and skill-power coefficients; target-free actions distinct', () => {
   const locks = [
     0.22, 0.3, 0.2, 0.3, 0.42, 0.35, 0.35, 0.25, 0.45, 0.32, 0.68, 0.45, 0.5,
     0.3, 0.65, 0.4,
@@ -200,7 +200,7 @@ const damageContract: Record<string, number[][]> = {
     [48, 2.25, 14, 22, 14],
   ],
 };
-test('4C independent golden damage tables: every rank, no legacy +12% double scaling', () => {
+await test('4C independent golden damage tables: every rank, no legacy +12% double scaling', () => {
   const h = hero();
   for (const [slug, rows] of Object.entries(damageContract))
     rows.forEach(([base, c, _legacyValue, mp, cd], i) => {
@@ -224,7 +224,7 @@ test('4C independent golden damage tables: every rank, no legacy +12% double sca
       );
     });
 });
-test('4C Rank1 deterministic 200 attack raw totals, local payoff group Mark+Rear adds not multiplies', () => {
+await test('4C Rank1 deterministic 200 attack raw totals, local payoff group Mark+Rear adds not multiplies', () => {
   const h = hero(),
     stats = { ...derivedStats(h), physicalAttack: 200 },
     marks = new PersonalMarks();
@@ -277,7 +277,7 @@ test('4C Rank1 deterministic 200 attack raw totals, local payoff group Mark+Rear
   }
   marks.clear();
 });
-test('4C personal mark: source/generation isolation, refresh/move, independent actors, expiry/death/cleanup, no persistence', () => {
+await test('4C personal mark: source/generation isolation, refresh/move, independent actors, expiry/death/cleanup, no persistence', () => {
   const marks = new PersonalMarks(),
     a = {},
     b = {},
@@ -306,7 +306,7 @@ test('4C personal mark: source/generation isolation, refresh/move, independent a
   marks.update(0);
   marks.clear();
 });
-test('4C movement vector: normalized input/facing/backward and collision callback substeps, no facing mutation', () => {
+await test('4C movement vector: normalized input/facing/backward and collision callback substeps, no facing mutation', () => {
   const face = { x: 0, z: -1 };
   assert.deepEqual(directionalVector('input', face, { x: 1, z: 0 }), {
     x: 1,
@@ -326,7 +326,7 @@ test('4C movement vector: normalized input/facing/backward and collision callbac
   assert.equal(calls, 18);
   assert.deepEqual(face, { x: 0, z: -1 });
 });
-test('4C passive selectors: exact durations, movement, damage/crit scopes, no basic/Adventurer leakage', () => {
+await test('4C passive selectors: exact durations, movement, damage/crit scopes, no basic/Adventurer leakage', () => {
   const h = hero();
   for (const p of passives) h.passiveLevels[p.id] = p.maxLevel;
   near(resolveHeroSkill(h, skill('smoke-veil'), 5).duration, 6.875);
@@ -353,7 +353,7 @@ test('4C passive selectors: exact durations, movement, damage/crit scopes, no ba
     ).targetModifiers.some((m) => m.id.startsWith('v2-thief')),
   );
 });
-test('4C Rear Awareness / Opportunist only explicit tags and source-owned mark; rear remains impact-time', () => {
+await test('4C Rear Awareness / Opportunist only explicit tags and source-owned mark; rear remains impact-time', () => {
   const h = hero();
   h.passiveLevels[id('rear-awareness')] = 5;
   h.passiveLevels[id('opportunist')] = 5;
@@ -394,7 +394,7 @@ test('4C Rear Awareness / Opportunist only explicit tags and source-owned mark; 
   );
   marks.clear();
 });
-test('4C multi-hit every rank: exact time/coefficients and independent queue lifecycle, no ASPD rewrite', () => {
+await test('4C multi-hit every rank: exact time/coefficients and independent queue lifecycle, no ASPD rewrite', () => {
   const h = hero();
   for (let r = 1; r <= 5; r++)
     for (const [slug, delays] of [
@@ -429,7 +429,7 @@ test('4C multi-hit every rank: exact time/coefficients and independent queue lif
       assert(hits.length <= 2);
     }
 });
-test('4C exact mana rotations 81/47; Instinct ranks apply only future Thief actions and expire', () => {
+await test('4C exact mana rotations 81/47; Instinct ranks apply only future Thief actions and expire', () => {
   const h = hero(),
     sum = (slugs: string[]) =>
       slugs.reduce((n, s) => n + resolveHeroSkill(h, skill(s), 1).manaCost, 0);
@@ -481,7 +481,7 @@ test('4C exact mana rotations 81/47; Instinct ranks apply only future Thief acti
     assert.equal(resolveHeroSkill(h, skill('blade-flurry'), 1).manaCost, 15);
   }
 });
-test('4C prerequisites use paid ownership; 25 gate, reset refund/root/clean transient and legal hotbar', () => {
+await test('4C prerequisites use paid ownership; 25 gate, reset refund/root/clean transient and legal hotbar', () => {
   const h = hero();
   assert(!canLearnSkill(id('instinct'), h).ok);
   assert(!learnSkill(h, id('blade-flurry')));
@@ -524,9 +524,9 @@ test('4C prerequisites use paid ownership; 25 gate, reset refund/root/clean tran
   assert.equal(reset.hero.skillLevels[id('quick-stab')], 1);
   assert.equal(reset.hero.skillLevels[id('instinct')], 0);
   assert(!reset.hero.statusEffects.stealth);
-  assert(!reset.hero.activeBuffs[id('instinct')]);
+  assert(!(reset.hero.activeBuffs as Record<string, number>)[id('instinct')]);
 });
-test('4C CP uses resolved hits and poison duration, no fictitious Mark hit/positional bonus; INT independent', () => {
+await test('4C CP uses resolved hits and poison duration, no fictitious Mark hit/positional bonus; INT independent', () => {
   const h = hero();
   for (const s of skills) h.skillLevels[s.id] = s.maxLevel;
   const profile = buildCombatPowerProfile(h);
@@ -549,7 +549,7 @@ test('4C CP uses resolved hits and poison duration, no fictitious Mark hit/posit
   );
 });
 
-test('4C Evasive Instinct threshold uses final unconditional Max HP including Agile Conditioning', () => {
+await test('4C Evasive Instinct threshold uses final unconditional Max HP including Agile Conditioning', () => {
   const h = hero();
   h.passiveLevels[id('agile-conditioning')] = 5;
   h.hp = 99999;
@@ -561,7 +561,7 @@ test('4C Evasive Instinct threshold uses final unconditional Max HP including Ag
   near(derivedStats(h).evasion, normal.evasion);
 });
 
-test('4C exact full prerequisite graph, no hidden rank dependencies', () => {
+await test('4C exact full prerequisite graph, no hidden rank dependencies', () => {
   const expected: Record<string, Array<[string, number]>> = {
     slipstep: [['quick-stab', 1]],
     'mark-prey': [['quick-stab', 2]],
@@ -622,7 +622,7 @@ test('4C exact full prerequisite graph, no hidden rank dependencies', () => {
   });
 });
 
-test('4C independent full multi-hit coefficient tables, not full cast coefficient per hit', () => {
+await test('4C independent full multi-hit coefficient tables, not full cast coefficient per hit', () => {
   const contract = {
     'twin-fang': [
       [
@@ -687,7 +687,7 @@ test('4C independent full multi-hit coefficient tables, not full cast coefficien
     );
 });
 
-test('4C legal Lv59 58-paid-SP / 174-stat-point crit diagnostic, actual combat cap retained', (t) => {
+await test('4C legal Lv59 58-paid-SP / 174-stat-point crit diagnostic, actual combat cap retained', (t) => {
   const h = hero();
   h.skillPoints = 58;
   h.allocatedStats = { str: 90, vit: 24, dex: 60, int: 0 };

@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useEffect, useRef, useState } from 'react';
 import { isResourceEnabled } from '@/lib/game/gameplay-config';
@@ -31,7 +31,7 @@ import {
   Sun,
   Sword,
   Sparkles,
-  FlaskConical,
+  FlaskConical as _FlaskConical,
   Coins,
   Backpack,
   ScrollText,
@@ -172,7 +172,7 @@ const initial: Snapshot = {
 
 const panelTitles: Record<string, string> = {
   pause: 'System Menu',
-  bag: 'Perbekalan perjalanan',
+  bag: 'Inventory',
   forge: 'Tempa / Enhance',
   character: 'Character',
   jobSkill: 'Job Skill',
@@ -216,6 +216,7 @@ export default function Home() {
     [engine, setEngine] = useState<Game | null>(null),
     [ready, setReady] = useState(false),
     [error, setError] = useState(''),
+    [loadingDestination, setLoadingDestination] = useState<string | null>(null),
     [panel, setPanel] = useState(''),
     [roster, setRoster] = useState<CharacterSlot[]>([]),
     [selectedSlot, setSelectedSlot] = useState('slot-1'),
@@ -302,6 +303,16 @@ export default function Home() {
             },
             () => setPanel((p) => (p ? '' : 'pause')),
             loadingSlot,
+            (transition) => {
+              if (cancelled) return;
+              if (transition.loading) {
+                setLoadingDestination(transition.label);
+                setFlow('loading');
+                return;
+              }
+              setLoadingDestination(null);
+              setFlow('world');
+            },
           );
           game.current = instance;
           await instance.prepareWorld();
@@ -775,7 +786,7 @@ export default function Home() {
           {Object.keys(hero.statusEffects).length > 0 && (
             <div className="status-icons" aria-label="Status effect aktif">
               {Object.keys(hero.statusEffects).map((status) => (
-                <span key={status} title={status === 'stealth' ? 'Stealth combat state — bukan jaminan tidak terdeteksi musuh.' : status} className={status === 'stealth' ? 'stealth-status-label' : undefined}>
+                  <span key={status} title={status === 'stealth' ? 'Stealth combat state — bukan jaminan tidak terdeteksi musuh.' : status} className={status === 'stealth' ? 'stealth-status-label' : undefined}>
                   {status === 'stealth' ? `STEALTH · ${Math.max(0,hero.statusEffects[status]).toFixed(1)}s` : status.slice(0, 3).toUpperCase()}
                 </span>
               ))}
@@ -901,7 +912,7 @@ export default function Home() {
       </aside>
       {boss && state.started && (
         <div className="boss-bar">
-          <span>FIELD BOSS · LV. {boss.level}</span>
+              <span>FIELD BOSS · LV. {boss.level}</span>
           <h2>{state.bossName}</h2>
           <Progress value={(boss.hp / boss.max) * 100} aria-label="HP boss" />
           <small>
@@ -921,7 +932,7 @@ export default function Home() {
         roster={roster} selectedSlot={selectedSlot} selectionMode={selectionMode} previewHero={previewHero}
         appearance={creationAppearance} name={creationName} validation={validateCharacterName(creationName)}
         architecture={creationArchitecture} onArchitecture={setCreationArchitecture}
-        error={creationError || error} muted={muted} fullscreen={isFullscreen}
+        error={creationError || error} muted={muted} fullscreen={isFullscreen} loadingDestination={loadingDestination}
         onContinue={continueAdventure} onNew={openNewGame} onLoad={openLoadGame}
         onOptions={() => setFlow('options')} onQuit={() => setQuitConfirmOpen(true)}
         onBack={() => { setCreationError(''); setError(''); setFlow(flow === 'creation' ? 'selection' : 'main'); }}
@@ -1187,8 +1198,7 @@ export default function Home() {
                         equipped ||
                         item.sockets.some((socket) => socket.rune) ||
                         item.isQuestItem ||
-                        item.isSoulbound ||
-                        !item.isSellable ||
+                        (!['weapon', 'armor', 'accessory'].includes(item.category) && (item.isSoulbound || !item.isSellable)) ||
                         item.sellValue <= 0 ||
                         (currentNpc.service === 'equipment' &&
                           !['weapon', 'armor', 'accessory'].includes(
@@ -1437,10 +1447,53 @@ export default function Home() {
               <small>{RARITY_META[hoveredItem.rarity].label} · {hoveredItem.category}</small>
             </div>
           </div>
-          <p><JobText>{['weapon', 'armor', 'accessory'].includes(hoveredItem.category)
-            ? equipmentUsageDescription(hoveredItem)
-            : hoveredItem.description}</JobText></p>
-          <small>Qty {hoveredItem.quantity}</small>
+
+          <div className="floating-item-group">
+            {['weapon', 'armor', 'accessory'].includes(hoveredItem.category) ? (() => {
+              const hoveredEquipmentLines = equipmentUsageDescription({ ...hoveredItem, bonusStats: {} }).split(' · ');
+              const hoveredMetadata = hoveredEquipmentLines.filter(line => /^(Level|Jenis|Slot):/.test(line));
+              const hoveredRequirement = hoveredEquipmentLines.find(line => line.startsWith('Syarat:'));
+              const hoveredStats = hoveredEquipmentLines.filter(line => !/^(Level|Jenis|Slot|Syarat|Harga jual):/.test(line));
+              const hoveredUniqueStats = hoveredItem.uniqueStatsLocked || !Object.keys(hoveredItem.bonusStats).length
+                ? []
+                : equipmentUsageDescription({ ...hoveredItem, baseStats: {}, bonusStats: hoveredItem.bonusStats })
+                  .split(' · ')
+                  .filter(line => !/^(Syarat|Level|Jenis|Slot|Harga jual):/.test(line));
+              const showUnmagnified = hoveredItem.uniqueStatsLocked || hoveredUniqueStats.length === 0;
+              return (
+                <>
+                  <div className="floating-item-equipment-meta">
+                    {hoveredMetadata.map(line => <small key={line} className="floating-item-detail-line"><JobText>{line}</JobText></small>)}
+                    {hoveredRequirement && <small className="floating-item-detail-line"><JobText>{hoveredRequirement}</JobText></small>}
+                  </div>
+                  <div className="floating-item-equipment-stats">
+                    {hoveredStats.map(line => <small key={line} className="floating-item-detail-line floating-item-stat-line"><JobText>{line}</JobText></small>)}
+                  </div>
+                  <div className="floating-item-unique-stats">
+                    <small className="floating-item-unique-label">Unique status</small>
+                    {showUnmagnified
+                      ? <small className="floating-item-unmagnified">Unmagnified</small>
+                      : hoveredUniqueStats.map(line => <small key={line} className="floating-item-detail-line floating-item-stat-line"><JobText>{line}</JobText></small>)}
+                  </div>
+                  <div className="floating-item-sockets">
+                    <small className="floating-item-unique-label">Socket</small>
+                    {hoveredItem.sockets.length ? hoveredItem.sockets.map((socket, index) => (
+                      <small key={socket.id} className={`floating-item-detail-line${socket.rune ? ' floating-item-stat-line' : ''}`}>
+                        Socket {index + 1} : <JobText>{socket.rune
+                          ? socket.rune.affixes.map(affix => `${affix.label} +${affix.value}${affix.unit === 'percent' ? '%' : ''}`).join(' · ') || socket.rune.name
+                          : 'Kosong'}</JobText>
+                      </small>
+                    )) : <small className="floating-item-detail-line">Tidak memiliki socket</small>}
+                  </div>
+                </>
+              );
+            })() : <p><JobText>{hoveredItem.description}</JobText></p>}
+          </div>
+
+          <div className="floating-item-group floating-item-meta-block">
+            <small className="floating-item-price-line">Harga jual: {hoveredItem.sellValue.toLocaleString()} GOLD</small>
+          </div>
+
           <InventoryCombatPowerPreview hero={hero} item={hoveredItem} />
         </div>,
         document.body,
@@ -1533,14 +1586,16 @@ export default function Home() {
           initialFocus={panel === 'character' ? () => document.querySelector<HTMLElement>('.character-dialog [data-slot="dialog-close"]') : undefined}
           className={`game-dialog ${panel === 'pause' ? 'pause-dialog' : ''} ${panel === 'bag' || panel === 'jobSkill' ? 'binding-window' : ''} ${panel === 'bag' ? 'inventory-dialog' : panel === 'character' ? 'character-dialog' : panel === 'jobSkill' ? 'job-skill-dialog' : panel === 'forge' ? 'forge-dialog' : ''}`}
         >
-          <span className={panel === 'character' ? 'sr-only' : 'eyebrow'}>
-            LUMENFALL / {panel === 'pause' ? 'JEDA' : 'PERJALANANMU'}
-          </span>
+          {panel !== 'bag' && (
+            <span className={panel === 'character' ? 'sr-only' : 'eyebrow'}>
+              LUMENFALL / {panel === 'pause' ? 'JEDA' : 'PERJALANANMU'}
+            </span>
+          )}
           <DialogTitle className={panel === 'character' ? 'sr-only' : 'dialog-heading'}>
-            {panelTitles[panel] || 'Petualangan'}
+            {panel === 'bag' ? <><span aria-hidden="true">✦</span> INVENTORY <span aria-hidden="true">✦</span></> : panelTitles[panel] || 'Petualangan'}
           </DialogTitle>
-          <DialogDescription className={panel === 'character' ? 'sr-only' : 'dialog-subtitle'}>
-            {panel === 'pause'
+          <DialogDescription className={panel === 'character' || panel === 'bag' ? 'sr-only' : 'dialog-subtitle'}>
+            {panel === 'bag' ? 'Inventory items, capacity, and gold.' : panel === 'pause'
               ? 'Tarik napas. Lembah akan menunggumu.'
               : panel === 'character'
                 ? 'Kenali kekuatanmu. Siapkan langkah berikutnya. · C untuk tutup'
@@ -1933,11 +1988,10 @@ export default function Home() {
             </div>
           )}
           {panel === 'bag' && (
-            <div className="dialog-stack">
-              <div className="balance">
-                <Backpack size={18} /> {hero.inventory.filter((item) => !item.isEquipped).length}/
-                {hero.inventoryCapacity} <span>slot terpakai · </span>
-                <Coins size={16} /> {hero.gold} GOLD
+            <div className="dialog-stack inventory-content">
+              <div className="inventory-resources">
+                <span className="inventory-capacity"><Backpack aria-hidden="true" /><strong>{hero.inventory.filter((item) => !item.isEquipped).length} / {hero.inventoryCapacity}</strong><span>SLOT</span></span>
+                <span className="inventory-gold"><Coins aria-hidden="true" /><strong>{hero.gold.toLocaleString('en-US')}</strong><span>GOLD</span></span>
               </div>
               <div className="inventory-toolbar">
                 {hero.pendingLoot.length > 0 && (
@@ -1956,23 +2010,88 @@ export default function Home() {
                     if (game.current?.sortInventoryLayout()) setInventorySort('manual');
                   }}
                 >
-                  Sort
+                  <span aria-hidden="true">✦</span> SORT ITEMS <span aria-hidden="true">✦</span>
                 </button>
               </div>
-              <InventoryGrid
-                hero={hero}
-                filter="all"
-                sort={inventorySort}
-                selectedId={selectedItemId}
-                onSelect={setSelectedItemId}
-                onHover={(id, position) => {
-                  setHoveredItemId(id || null);
-                  setHoveredItemPosition(position);
-                }}
-              />
-              {selectedItem ? (
+              <div className="inventory-layout">
+                <div className="inventory-browser">
+                  <InventoryGrid
+                    hero={hero}
+                    filter="all"
+                    sort={inventorySort}
+                    selectedId={selectedItemId}
+                    onSelect={setSelectedItemId}
+                    onHover={(id, position) => {
+                      setHoveredItemId(id || null);
+                      setHoveredItemPosition(position);
+                    }}
+                    renderActions={(item, point) => (
+                      <div
+                        className="inventory-slot-actions"
+                        data-open-above={point.y > window.innerHeight * 0.55 ? 'true' : undefined}
+                        style={{
+                          left: Math.min(point.x + 10, window.innerWidth - 240),
+                          top: point.y > window.innerHeight * 0.55
+                            ? Math.max(8, point.y - 10)
+                            : Math.min(point.y + 10, window.innerHeight - 80),
+                        }}
+                      >
+                        {item.equipSlot && (
+                          <button
+                            className="secondary-button"
+                            onClick={() => {
+                              const offHand =
+                                hero.equipment.offHand &&
+                                hero.equipment.offHand !== item.id
+                                  ? hero.inventory.find((entry) => entry.id === hero.equipment.offHand)
+                                  : null;
+                              if (
+                                item.equipSlot === 'mainHand' &&
+                                (item.twoHanded || item.handedness === 'two_hand') &&
+                                offHand &&
+                                !(item.equipmentType === 'bow' && offHand.equipmentType === 'quiver')
+                              ) setEquipConfirmTarget(item);
+                              else game.current?.equipItem(item.id);
+                            }}
+                          >
+                            Equip <ArrowUpRight size={13} />
+                          </button>
+                        )}
+                        {(item.useEffect || item.category === 'pet') && (
+                          <button className="secondary-button" onClick={() => game.current?.useItem(item.id)}>
+                            Use
+                          </button>
+                        )}
+                        {Object.values(hero.equipment).includes(item.id) && (
+                          <button
+                            className="secondary-button"
+                            onClick={() => game.current?.unequipItem(item.equipSlot ?? 'mainHand')}
+                          >
+                            Unequip
+                          </button>
+                        )}
+                        {['weapon', 'armor', 'accessory'].includes(item.category) &&
+                          (item.uniqueStatsLocked || !Object.keys(item.bonusStats).length) && (
+                            <button
+                              className="secondary-button"
+                              disabled={item.isLocked || !hero.inventory.some((entry) => entry.itemType === 'magnifier' && entry.quantity > 0)}
+                              onClick={() => game.current?.unlockUniqueStats(item.id)}
+                            >
+                              Unlock Magnifier
+                            </button>
+                          )}
+                        {!item.isQuestItem && (
+                          <button className="danger-button" onClick={() => setDiscardTarget(item)}>
+                            <Trash2 size={13} /> Discard
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  />
+                </div>
+                {selectedItem ? (
                 <article
-                  className={`item-detail rarity-${selectedItem.rarity}`}
+                  className={`item-detail inventory-action-panel rarity-${selectedItem.rarity}`}
                 >
                   <div className="item-detail-head">
                     <ItemIcon item={selectedItem} className="item-symbol" />
@@ -1996,11 +2115,13 @@ export default function Home() {
                       <X size={16} />
                     </button>
                   </div>
-                  <p>
-                    <JobText>{['weapon', 'armor', 'accessory'].includes(selectedItem.category)
-                      ? equipmentUsageDescription(selectedItem)
-                      : selectedItem.description}</JobText>
-                  </p>
+                  <div className="item-detail-description">
+                    <p>
+                      <JobText>{['weapon', 'armor', 'accessory'].includes(selectedItem.category)
+                        ? equipmentUsageDescription(selectedItem)
+                        : selectedItem.description}</JobText>
+                    </p>
+                  </div>
                   {selectedItem.itemType === 'magnifier' && (
                     <p className="unique-stats-help">
                       Pilih equipment dengan ikon gembok di Inventory, lalu tekan
@@ -2174,7 +2295,7 @@ export default function Home() {
                     {['weapon', 'armor', 'accessory'].includes(
                       selectedItem.category,
                     ) && (
-                      selectedItem.uniqueStatsLocked ? (
+                      (selectedItem.uniqueStatsLocked || !Object.keys(selectedItem.bonusStats).length) ? (
                         <button
                           className="secondary-button"
                           disabled={
@@ -2224,26 +2345,14 @@ export default function Home() {
                       </div>
                     )}
                 </article>
-              ) : (
-                <p className="muted-copy">
-                  Pilih item untuk melihat tooltip, perbandingan, equip, use,
-                  atau discard. Untuk enhancement, temui Forge Master di kota.
-                </p>
-              )}
-              <p className="muted-copy">Tempa / Enhance hingga +12 hanya melalui NPC Forge Master di kota.</p>
-              <p className="muted-copy">
-                <FlaskConical size={14} /> Health Potion ×{hero.potions} ·
-                gunakan melalui Inventory atau PrimaryHotbar (tombol 1–0). Drag
-                item ke slot lain untuk memindahkan posisinya.
-              </p>
-              <button className="secondary-button" disabled>
-                Beli ramuan melalui Pedagang Umum
-              </button>
-              <p className="muted-copy">
-                Equipment: Common, Uncommon, Rare, Epic, Legendary, dan Mythic.
-                Field Boss dapat menjatuhkan equipment bersocket serta Rune
-                unik.
-              </p>
+                ) : (
+                  null
+                )}
+              </div>
+              <footer className="inventory-footer">
+                <p>Drag usable item to PrimaryHotbar <span>|</span> Right-click item to see Use, Discard, Magnifier</p>
+                <div className="inventory-brand"><span aria-hidden="true">✦</span> LUMENFALL <span aria-hidden="true">✦</span></div>
+              </footer>
               <AlertDialog
                 open={Boolean(discardTarget)}
                 onOpenChange={(open) => !open && setDiscardTarget(null)}
@@ -2754,3 +2863,5 @@ export default function Home() {
     </GameDragDropProvider></JobPresentationContext.Provider>
   );
 }
+
+

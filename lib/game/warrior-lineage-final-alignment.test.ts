@@ -22,7 +22,7 @@ import { createItem } from './items.ts';
 import {
   activeSkills,
   basicAttackPower,
-  chooseV3Berserker,
+  chooseV3Berserker as _chooseV3Berserker,
   chooseV3BladeMaster,
   chooseV3Warrior,
   createV3AdventurerHero,
@@ -57,7 +57,7 @@ function oneHandSword(id: string, attack: number) {
   });
 }
 
-test('FINAL A: Lv15 controlled Warrior Strike raw is exactly 45.04', () => {
+await test('FINAL A: Lv15 controlled Warrior Strike raw is exactly 45.04', () => {
   const hero = createV3AdventurerHero('controlled-l15', 'Controlled Lv15');
   hero.level = 15;
   hero.allocatedStats = { ...hero.allocatedStats, str: 13 };
@@ -68,7 +68,7 @@ test('FINAL A: Lv15 controlled Warrior Strike raw is exactly 45.04', () => {
   assert.equal(skillHitDamage(action.hitSequence[0], stats), 45.04);
 });
 
-test('FINAL B: canonical normal SP milestones are exact', () => {
+await test('FINAL B: canonical normal SP milestones are exact', () => {
   assert.deepEqual(
     [1,2,10,14,20,21,30,40,41,60,61,70,80].map((level) => [level, warriorLineageSkillPointsAtLevel(level)]),
     [[1,0],[2,1],[10,9],[14,13],[20,19],[21,21],[30,39],[40,59],[41,62],[60,119],[61,123],[70,159],[80,199]],
@@ -80,7 +80,7 @@ test('FINAL B: canonical normal SP milestones are exact', () => {
   }
 });
 
-test('FINAL C: Adventurer canonical gates, scaling, Mana and cooldown arrays are exact', () => {
+await test('FINAL C: Adventurer canonical gates, scaling, Mana and cooldown arrays are exact', () => {
   assert.equal(ADVENTURER_V3_SKILL_MAP['v3-adventurer-quick-slash'].rankLevelRequirements?.[0], 1);
   assert.equal(ADVENTURER_V3_SKILL_MAP['v3-adventurer-power-strike'].rankLevelRequirements?.[0], 1);
   assert.equal(ADVENTURER_V3_SKILL_MAP['v3-adventurer-minor-heal'].rankLevelRequirements?.[0], 1);
@@ -92,7 +92,7 @@ test('FINAL C: Adventurer canonical gates, scaling, Mana and cooldown arrays are
   assert.deepEqual(adventurerV3RankValues('v3-adventurer-minor-heal').map((rank) => rank.cooldown), [30,28,26]);
 });
 
-test('FINAL D: DOCX R1 gates and Warrior buff rank Mana/cooldown are exact', () => {
+await test('FINAL D: DOCX R1 gates and Warrior buff rank Mana/cooldown are exact', () => {
   const warriorGates: Record<string, number> = {
     'v3-warrior-strike':15,'v3-warrior-iron-charge':15,'v3-warrior-sweeping-slash':15,
     'v3-warrior-guard-stance':15,'v3-warrior-armor-breaker':17,'v3-warrior-battle-cry':20,
@@ -112,7 +112,7 @@ test('FINAL D: DOCX R1 gates and Warrior buff rank Mana/cooldown are exact', () 
   }
 });
 
-test('FINAL E: Battle Cry raises outgoing physical damage but leaves PATK unchanged', () => {
+await test('FINAL E: Battle Cry raises outgoing physical damage but leaves PATK unchanged', () => {
   const hero = warrior(59);
   const strike = WARRIOR_V3_RUNTIME_MAP['v3-warrior-strike'];
   const statsBefore = derivedStats(hero);
@@ -127,7 +127,7 @@ test('FINAL E: Battle Cry raises outgoing physical damage but leaves PATK unchan
   assert.ok(Math.abs(basicAttackPower(hero) / basicBefore - 1.07) < 1e-10);
 });
 
-test('FINAL F/G: canonical selector enforces current rank radius/cap and fixture-equivalent behavior', () => {
+await test('FINAL F/G: canonical selector enforces current rank radius/cap and fixture-equivalent behavior', () => {
   const hero = warrior(59);
   const entries = [1,2,3,3.8,4.2,4.6,5].map((x, index) => ({ target: `T${index + 1}`, id: `T${index + 1}`, position: { x, z: 0 }, alive: true }));
   const sweepingR1 = resolveHeroSkill(hero, WARRIOR_V3_RUNTIME_MAP['v3-warrior-sweeping-slash'], 1);
@@ -140,7 +140,7 @@ test('FINAL F/G: canonical selector enforces current rank radius/cap and fixture
   assert.equal(selectSkillTargets({ action: groundR5, origin:{x:0,z:0}, forward:{x:1,z:0}, candidates:entries }).length, 6);
 });
 
-test('FINAL H: Offhand +100 raw ATK does not change inherited Warrior SINGLE_MAIN damage', () => {
+await test('FINAL H: Offhand +100 raw ATK does not change inherited Warrior SINGLE_MAIN damage', () => {
   const hero = warrior(80);
   assert.equal(chooseV3BladeMaster(hero), true);
   const main = oneHandSword('final-main', 100);
@@ -159,7 +159,7 @@ test('FINAL H: Offhand +100 raw ATK does not change inherited Warrior SINGLE_MAI
   assert.equal(after, before);
 });
 
-test('FINAL I: Counterflow requires a fresh Block/Parry CounterContext', () => {
+await test('FINAL I: Counterflow requires a fresh Block/Parry CounterContext', () => {
   const policy = BLADE_MASTER_V3_RUNTIME_MAP['v3-blade-master-counterflow'].counterPolicy!;
   const events = new DefenseEvents();
   assert.equal(counterContextAllowed(events.snapshot(policy.accepted, policy.windowMs, 0), policy.accepted), false);
@@ -172,7 +172,7 @@ test('FINAL I: Counterflow requires a fresh Block/Parry CounterContext', () => {
   assert.equal(counterContextAllowed(events.snapshot(policy.accepted, policy.windowMs, 4001), policy.accepted), false);
 });
 
-test('FINAL J/K: Blade Focus Flow durations and Twin Assault one-Tempo-per-cast are exact', () => {
+await test('FINAL J/K: Blade Focus Flow durations and Twin Assault one-Tempo-per-cast are exact', () => {
   assert.deepEqual([...BLADE_FOCUS_FLOW_DURATION], [3.5,3.75,4,4.25,4.5]);
   assert.deepEqual(BLADE_MASTER_V3_RUNTIME_MAP['v3-blade-master-blade-focus'].rankValues?.map((rank) => rank.duration), [20,22,24,26,28]);
   const state = new TransientCombatState();
@@ -184,7 +184,7 @@ test('FINAL J/K: Blade Focus Flow durations and Twin Assault one-Tempo-per-cast 
   assert.equal(session.prepare({ ...resolveHeroSkill(warrior(80), WARRIOR_V3_RUNTIME_MAP['v3-warrior-strike'], 1).hitSequence[0] }, 0, 0, target, 'A', 0).damageMultiplier > 0, true);
 });
 
-test('FINAL L/M: Berserker Mastery whitelist and Trance resource arrays are exact', () => {
+await test('FINAL L/M: Berserker Mastery whitelist and Trance resource arrays are exact', () => {
   assert.deepEqual([...BERSERKER_MASTERY_MANA_SKILLS], [
     'v3-berserker-raging-cleave','v3-berserker-crushing-blow','v3-berserker-earth-splitter',
     'v3-berserker-ruinous-arc','v3-berserker-fury-harvest','v3-berserker-trance',
@@ -205,7 +205,7 @@ test('FINAL L/M: Berserker Mastery whitelist and Trance resource arrays are exac
   for (const [id, gate] of Object.entries(berserkerGates)) assert.equal(BERSERKER_V3_SKILL_MAP[id].rankLevelRequirements?.[0], gate, id);
 });
 
-test('FINAL N: Blade Rush reaches a safe pass-through endpoint behind target', () => {
+await test('FINAL N: Blade Rush reaches a safe pass-through endpoint behind target', () => {
   const target = { x: 2.5, z: 0 };
   const endpoint = passThroughEndpoint(target, { x: 1, z: 0 });
   assert.deepEqual(endpoint, { x: 4, z: 0 });
@@ -216,7 +216,7 @@ test('FINAL N: Blade Rush reaches a safe pass-through endpoint behind target', (
   assert.ok(Math.abs(actor.x - 4) < 1e-10);
 });
 
-test('FINAL DOCX R1 Blade Master gates and prerequisite graph are exact', () => {
+await test('FINAL DOCX R1 Blade Master gates and prerequisite graph are exact', () => {
   const gates: Record<string, number> = {
     'v3-blade-master-twin-blade-mastery':60,'v3-blade-master-twin-assault':60,'v3-blade-master-blade-rush':60,
     'v3-blade-master-counterflow':63,'v3-blade-master-blade-focus':63,'v3-blade-master-cross-sever':65,
@@ -226,7 +226,7 @@ test('FINAL DOCX R1 Blade Master gates and prerequisite graph are exact', () => 
   assert.deepEqual(BLADE_MASTER_V3_SKILL_MAP['v3-blade-master-blade-focus'].prerequisiteSkills, [{ skillId:'v3-warrior-battle-focus', requiredRank:3 }]);
 });
 
-test('FINAL save keeps lineage/ranks but clears every Warrior-lineage combat transient', () => {
+await test('FINAL save keeps lineage/ranks but clears every Warrior-lineage combat transient', () => {
   const hero = warrior(80);
   assert.equal(chooseV3BladeMaster(hero), true);
   hero.skillProgressionV3!.skillRanks['v3-blade-master-twin-blade-mastery'] = 3;

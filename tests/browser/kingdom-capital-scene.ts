@@ -1,6 +1,6 @@
 import * as T from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
-import { DDSLoader } from 'three/examples/jsm/loaders/DDSLoader.js';
+import { DDSLoader as _DDSLoader } from 'three/examples/jsm/loaders/DDSLoader.js';
 import {
   perimeter,
   roads,
@@ -675,7 +675,7 @@ export async function buildCapital(structureOnly: boolean) {
     w: number,
     d: number,
     storeys: number,
-    variant: number,
+    _variant: number,
   ) {
     const y = height(x, z),
       angle = 0;
@@ -991,6 +991,8 @@ export async function buildCapital(structureOnly: boolean) {
   }
   function flush() {
     for (const group of chunks.values()) {
+      // Snapshot is required because removing children mutates this array.
+      // oxlint-disable-next-line unicorn/no-useless-spread
       for (const child of [...group.children]) {
         if (child instanceof T.InstancedMesh) child.dispose();
         group.remove(child);

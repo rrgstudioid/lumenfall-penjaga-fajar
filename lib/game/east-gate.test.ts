@@ -108,7 +108,7 @@ await test('old saves gain starting field safely; East invalid coordinates reloc
     h.currentField=t.id;h.inCity=false;Object.assign(h,p);loaded=parseSave(JSON.stringify(h))!;
     assert(terrainWalkable(t,loaded));assert.equal(loaded.currentField,t.id);
     for(const k of ['gold','inventory','equipment','completedQuests','activeQuests','monsterRespawnState','level','xp','primaryHotbar'] as const){
-      const comparable=(value:any)=>Array.isArray(value)?value.map((entry:any)=>entry==null?entry:(()=>{const {isEquipped,...rest}=entry;return rest;})()):value;
+      const comparable=(value:unknown)=>Array.isArray(value)?value.map((entry:unknown)=>entry==null?entry:(()=>{const {isEquipped:_isEquipped,...rest}=entry as Record<string, unknown>;return rest;})()):value;
       assert.deepEqual(comparable(loaded[k]),comparable(h[k]),k);
     }
   }

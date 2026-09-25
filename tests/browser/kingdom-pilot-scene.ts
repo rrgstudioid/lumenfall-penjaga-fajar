@@ -80,7 +80,7 @@ export async function buildPilot() {
       invalidIndices = 0,
       degenerate = 0;
     const materials = new Set<string>(),
-      hierarchy: unknown[] = [],
+      hierarchy: Array<{name:string;type:string;scale:number[]}> = [],
       textures: unknown[] = [];
     root.traverse((o) => {
       hierarchy.push({
@@ -147,7 +147,7 @@ export async function buildPilot() {
       missingUV,
       invalidIndices,
       degenerate,
-      negativeScale: hierarchy.some((x: any) =>
+      negativeScale: hierarchy.some((x) =>
         x.scale.some((n: number) => n < 0),
       ),
     };
@@ -428,7 +428,7 @@ export async function buildPilot() {
       display,
       name !== 'lantern_wall',
     );
-  const tree = model(treeId, 7, 0, 9),
+  const _tree = model(treeId, 7, 0, 9),
     rock = model(rockId, 11, 0, 9, 0, display, true);
   // Derive a conservative lower-trunk collider from sampled source bark/trunk slices.
   const trunkSource = cache.get(treeId)!.clone(true);
@@ -582,7 +582,7 @@ export async function buildPilot() {
           metalness: 'metalnessMap',
         } as const
       )[role as 'color'];
-      (mat as any)[key] = t;
+      mat[key] = t;
     }
     remapMats.set(m.family, mat);
   }
@@ -601,7 +601,7 @@ export async function buildPilot() {
                 ? 'stone_architecture'
                 : null;
   let remapped = false;
-  const remapBindings: unknown[] = [];
+  const remapBindings: Array<{material:string;[key:string]:unknown}> = [];
   function setRemap(value: boolean) {
     remapped = value;
     display.traverse((o) => {
@@ -612,7 +612,7 @@ export async function buildPilot() {
       const next = ms.map((m) => {
         const f = family(m.name);
         if (!f) return m;
-        if (!remapBindings.some((x: any) => x.material === m.name))
+        if (!remapBindings.some((x) => x.material === m.name))
           remapBindings.push({
             material: m.name,
             family: f,

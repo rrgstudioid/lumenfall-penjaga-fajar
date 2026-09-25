@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { WARRIOR_V3_RUNTIME_SKILLS, WARRIOR_V3_SKILLS } from './warrior-v3.ts';
-import { applyStun, chargeStunEligible, clearExpiredStun, isStunned, remainingStun, stunChanceForRank } from './stun.ts';
+import { applyStun, chargeStunEligible, clearExpiredStun, isStunned, remainingStun, stunChanceForRank, type StunTarget } from './stun.ts';
 import { createV3AdventurerHero, parseSave } from './rules.ts';
 
 await test('Iron Charge owns the only live Warrior V3 Stun profile', () => {
@@ -28,21 +28,21 @@ await test('Iron Charge distance threshold and rank chance are deterministic dat
 });
 
 await test('Stun stores source/profile/expiry fields and refreshes without additive stacking', () => {
-  const target: { stunState?: any } = {};
+  const target: StunTarget = {};
   assert.equal(applyStun(target, { sourceActorId: 'hero-1', sourceSkillId: 'v3-warrior-iron-charge', chance: .2, pveDuration: 1.5, pvpDuration: .75, targetPolicy: 'NORMAL', now: 10 }), true);
   assert.equal(isStunned(target, 10.5), true);
   assert.equal(remainingStun(target, 10.5), 1);
   assert.equal(applyStun(target, { sourceActorId: 'hero-1', sourceSkillId: 'v3-warrior-iron-charge', chance: .2, pveDuration: 1.5, pvpDuration: .75, targetPolicy: 'NORMAL', now: 10.5 }), true);
-  assert.equal(target.stunState.expiresAt, 12);
+  assert.equal(target.stunState!.expiresAt, 12);
   assert.equal(applyStun(target, { sourceActorId: 'hero-1', sourceSkillId: 'v3-warrior-iron-charge', chance: .2, pveDuration: 1.5, pvpDuration: .75, targetPolicy: 'NORMAL', now: 10.6 }), true);
-  assert.equal(target.stunState.expiresAt, 12.1);
-  assert.notEqual(target.stunState.expiresAt, 12.5);
+  assert.equal(target.stunState!.expiresAt, 12.1);
+  assert.notEqual(target.stunState!.expiresAt, 12.5);
   clearExpiredStun(target, 12.1);
   assert.equal(isStunned(target, 12.1), false);
 });
 
 await test('Stun immunity rejects control but does not belong to a resistance stat', () => {
-  const target: { stunImmune?: boolean; stunState?: unknown } = { stunImmune: true };
+  const target: StunTarget = { stunImmune: true };
   assert.equal(applyStun(target, { sourceActorId: 'hero-1', sourceSkillId: 'v3-warrior-iron-charge', chance: .3, pveDuration: 1.5, pvpDuration: .75, targetPolicy: 'NORMAL', now: 0 }), false);
   assert.equal(target.stunState, undefined);
 });

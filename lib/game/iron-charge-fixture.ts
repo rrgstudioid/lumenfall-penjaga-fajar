@@ -1,3 +1,4 @@
+import type { StatusTarget } from './combat-status.ts';
 import { applyStun, chargeStunEligible, clearExpiredStun, isStunned, remainingStun, stunChanceForRank, type StunState } from './stun.ts';
 import { resolveTargetHit } from './combat-modifiers.ts';
 import { mitigateDamage } from './combat-mechanics.ts';
@@ -20,7 +21,7 @@ type FixtureStats = {
 
 export type FixtureTrace = { system: 'iron-charge-fixture'; stage: string; time: number; [key: string]: unknown };
 
-export type FixtureTarget = {
+export type FixtureTarget = StatusTarget & {
   id: string;
   hp: number;
   max: number;

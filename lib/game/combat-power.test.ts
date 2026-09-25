@@ -44,7 +44,7 @@ const withStats = (hero: Hero, overrides: Partial<ReturnType<typeof calculateFin
   return calculateCombatPowerFromStats(stats, buildCombatPowerProfile(hero, stats));
 };
 
-test('A / G: physical kit uses physical coefficients, unused magic gives no offensive CP', () => {
+await test('A / G: physical kit uses physical coefficients, unused magic gives no offensive CP', () => {
   const hero = build(), cp = calculateCombatPower(hero);
   assert.equal(cp.details.physicalRelevance, 1);
   assert.equal(cp.details.magicRelevance, 0);
@@ -52,7 +52,7 @@ test('A / G: physical kit uses physical coefficients, unused magic gives no offe
   assert.equal(withStats(hero, { magicAttack: 99999 }).offensivePower, cp.offensivePower);
   assert(withStats(hero, { physicalAttack: 999 }).offensivePower > cp.offensivePower);
 });
-test('B: real Wizard uses magic spells but still has physical basics; no false pure-magic job rule', () => {
+await test('B: real Wizard uses magic spells but still has physical basics; no false pure-magic job rule', () => {
   const hero = build('wizard'), cp = calculateCombatPower(hero);
   assert(cp.details.magicRelevance > 0 && cp.details.physicalRelevance > 0);
   assert(cp.details.magicContribution > 0);
@@ -65,7 +65,7 @@ test('B: real Wizard uses magic spells but still has physical basics; no false p
   assert.equal(result.details.magicRelevance, 1);
   assert.equal(result.offensivePower, calculateCombatPowerFromStats({ ...stats, physicalAttack: 999999 }, pure).offensivePower);
 });
-test('C: mixed scaling is shared by actual damage and CP, including a magic-capable physical job', () => {
+await test('C: mixed scaling is shared by actual damage and CP, including a magic-capable physical job', () => {
   const hero = build();
   const skill = { ...activeSkills(hero).find(s => s.job === 'warrior')!, combatScaling: { physical: .65, magic: .35, damageType: 'physical' as const } };
   const stats = calculateFinalCharacterStats(hero);
@@ -81,7 +81,7 @@ test('C: mixed scaling is shared by actual damage and CP, including a magic-capa
   assert(calculateCombatPowerFromStats({ ...stats, magicAttack: stats.magicAttack + 50 }, profile).offensivePower > cp.offensivePower);
   assert(calculateCombatPowerFromStats({ ...stats, physicalAttack: stats.physicalAttack + 50 }, profile).offensivePower > cp.offensivePower);
 });
-test('D: same All Job item has build-dependent delta and no rarity points', () => {
+await test('D: same All Job item has build-dependent delta and no rarity points', () => {
   const deltas = ['warrior', 'wizard'].map(job => {
     const hero = build(job as CoreJobId);
     const ring = createItem('arunika-ring1', { baseStats: { str: 8, int: 8, attack: 20, magicAttack: 20, defense: 50 }, bonusStats: {} });
@@ -97,7 +97,7 @@ test('D: same All Job item has build-dependent delta and no rarity points', () =
   });
   assert.notEqual(deltas[0], deltas[1]);
 });
-test('E / F: defense and magic defense both increase balanced global EHP for every job', () => {
+await test('E / F: defense and magic defense both increase balanced global EHP for every job', () => {
   for (const job of ['warrior', 'wizard', 'rogue', 'hunter', 'acolyte'] as CoreJobId[]) {
     const hero = build(job), stats = calculateFinalCharacterStats(hero), before = calculateCombatPower(hero);
     const defense = withStats(hero, { physicalDefense: stats.physicalDefense + 100 });
@@ -111,14 +111,14 @@ test('E / F: defense and magic defense both increase balanced global EHP for eve
     near(before.details.physicalEHP, stats.maxHP / incoming);
   }
 });
-test('balanced defensive coverage beats an extreme one-channel build', () => {
+await test('balanced defensive coverage beats an extreme one-channel build', () => {
   const hero = build(), profile = buildCombatPowerProfile(hero), stats = calculateFinalCharacterStats(hero);
   const balanced = calculateCombatPowerFromStats({ ...stats, maxHP: 10000, physicalDefense: 10000, magicDefense: 10000 }, profile);
   const extreme = calculateCombatPowerFromStats({ ...stats, maxHP: 10000, physicalDefense: 18000, magicDefense: 2000 }, profile);
   assert(balanced.details.coreDefensiveEHP > extreme.details.coreDefensiveEHP);
   assert(balanced.defensivePower > extreme.defensivePower);
 });
-test('geometric defensive EHP is symmetric and numerically safe', () => {
+await test('geometric defensive EHP is symmetric and numerically safe', () => {
   const hero = build(), profile = buildCombatPowerProfile(hero), stats = calculateFinalCharacterStats(hero);
   const ab = calculateCombatPowerFromStats({ ...stats, maxHP: 10000, physicalDefense: 9000, magicDefense: 2000 }, profile);
   const ba = calculateCombatPowerFromStats({ ...stats, maxHP: 10000, physicalDefense: 2000, magicDefense: 9000 }, profile);
@@ -128,7 +128,7 @@ test('geometric defensive EHP is symmetric and numerically safe', () => {
     assert(Number.isFinite(result.total) && result.total >= 0);
   }
 });
-test('magic-only defensive gear increases CP without changing live combat rules', () => {
+await test('magic-only defensive gear increases CP without changing live combat rules', () => {
   const hero = build(), stats = calculateFinalCharacterStats(hero);
   const base = calculateCombatPower(hero);
   const magicOnly = withStats(hero, { magicDefense: stats.magicDefense + 250 });
@@ -141,7 +141,7 @@ test('magic-only defensive gear increases CP without changing live combat rules'
     100 * (1 - Math.max(0, stats.physicalDefense) /
       (Math.max(0, stats.physicalDefense) + 500 + Math.max(1, hero.level) * 10)));
 });
-test('standard reference target is independent of mutable field roster and map', () => {
+await test('standard reference target is independent of mutable field roster and map', () => {
   const hero = build(), before = calculateCombatPower(hero), profile = buildCombatPowerProfile(hero);
   const snapshot = JSON.stringify(profile.targets);
   profile.targets[0].defense += 99999;
@@ -150,7 +150,7 @@ test('standard reference target is independent of mutable field roster and map',
   hero.currentField = 'east-gate'; hero.x = 999; hero.z = -999;
   assert.equal(calculateCombatPower(hero).total, before.total);
 });
-test('H: socket STR flows through final stats once, identical to the same base stat', () => {
+await test('H: socket STR flows through final stats once, identical to the same base stat', () => {
   const hero = build(), ring = addStats(hero, {}), before = calculateCombatPower(hero);
   const rune = createRuneItem('might', 'rare');
   rune.affixes = [{ id: 'str', stat: 'str', label: 'STR', value: 8, unit: 'flat', quality: 'normal', source: 'rune', locked: false }];
@@ -160,7 +160,7 @@ test('H: socket STR flows through final stats once, identical to the same base s
   ring.sockets = []; ring.baseStats = { str: 8 };
   assert.deepEqual(calculateCombatPower(hero), runed);
 });
-test('I: enhancement uses actual stat multiplier, never a level score', () => {
+await test('I: enhancement uses actual stat multiplier, never a level score', () => {
   const hero = build(), ring = addStats(hero, { attack: 80 });
   const before = calculateCombatPower(hero);
   ring.enhancementLevel = 8;
@@ -172,7 +172,7 @@ test('I: enhancement uses actual stat multiplier, never a level score', () => {
   ring.enhancementLevel = 12;
   assert.deepEqual(calculateCombatPower(hero), empty);
 });
-test('J: preview never mutates state and equals actual equip; invalid slot has no After Equip', () => {
+await test('J: preview never mutates state and equals actual equip; invalid slot has no After Equip', () => {
   const hero = build(), ring = createItem('arunika-ring1', { baseStats: { str: 20, defense: 80 } });
   hero.inventory.push(ring);
   const original = JSON.stringify(hero);
@@ -184,7 +184,7 @@ test('J: preview never mutates state and equals actual equip; invalid slot has n
   assert(equipItem(hero, ring.id, 'ring2').ok);
   assert.deepEqual(calculateCombatPower(hero), preview.combatPower.after);
 });
-test('stat preview is immutable and reconciliation/display rounding are exact', () => {
+await test('stat preview is immutable and reconciliation/display rounding are exact', () => {
   const hero = build(), original = JSON.stringify(hero);
   const preview = previewStatCombatPower(hero, { str: 101 });
   assert(preview.delta > 0);
@@ -193,7 +193,7 @@ test('stat preview is immutable and reconciliation/display rounding are exact', 
   assert.equal(cp.total, Math.round(CONFIG.displayScale * (cp.offensivePower + cp.defensivePower + cp.sustainPower + cp.utilityPower + cp.specialEffectPower)));
   assert.equal(cp.contributions.reduce((sum, c) => sum + c.value, 0), cp.total);
 });
-test('critical expected damage uses percent format, cap80; skills do not crit', () => {
+await test('critical expected damage uses percent format, cap80; skills do not crit', () => {
   const hero = build(), stats = calculateFinalCharacterStats(hero), profile = buildCombatPowerProfile(hero);
   near(criticalChance(12.5), .125);
   const cp = calculateCombatPowerFromStats({ ...stats, criticalRate: 12.5, criticalDamage: 200 }, profile);
@@ -203,7 +203,7 @@ test('critical expected damage uses percent format, cap80; skills do not crit', 
   const spells = { ...profile, actions: profile.actions.filter(a => !a.critical) };
   assert.equal(calculateCombatPowerFromStats({ ...stats, criticalRate: 0 }, spells).offensivePower, calculateCombatPowerFromStats({ ...stats, criticalRate: 100 }, spells).offensivePower);
 });
-test('speed controlled; inactive accuracy, HP regen, loot and text-only procs do not inflate CP', () => {
+await test('speed controlled; inactive accuracy, HP regen, loot and text-only procs do not inflate CP', () => {
   const hero = build(), before = calculateCombatPower(hero);
   assert.equal(withStats(hero, { accuracy: 99999, hpRecovery: 99999, expGain: 9999 }).total, before.total);
   assert.equal(withStats(hero, { attackSpeed: 300 }).total, withStats(hero, { attackSpeed: 9999 }).total);
@@ -214,7 +214,7 @@ test('speed controlled; inactive accuracy, HP regen, loot and text-only procs do
   assert.equal(effect.specialEffectPower, 0);
   assert(effect.details.unsupportedEffects.includes(ring.uniqueEffect));
 });
-test('block/evasion use expected damage reduction and live caps', () => {
+await test('block/evasion use expected damage reduction and live caps', () => {
   const hero = build(), before = calculateCombatPower(hero);
   const block = withStats(hero, { blockRate: 50 });
   assert(block.defensivePower > before.defensivePower);
@@ -222,7 +222,7 @@ test('block/evasion use expected damage reduction and live caps', () => {
   assert.equal(block.total, withStats(hero, { blockRate: 999 }).total);
   assert.equal(withStats(hero, { evasion: 50 }).total, withStats(hero, { evasion: 999 }).total);
 });
-test('healing power only enters usable heal; MP and CDR have no duplicate raw-stat awards', () => {
+await test('healing power only enters usable heal; MP and CDR have no duplicate raw-stat awards', () => {
   const warrior = build();
   assert.equal(withStats(warrior, { healingPower: 9999 }).sustainPower, calculateCombatPower(warrior).sustainPower);
   const healer = build('acolyte'), cp = calculateCombatPower(healer);
@@ -236,7 +236,7 @@ test('healing power only enters usable heal; MP and CDR have no duplicate raw-st
   const before = calculateCombatPower(bare);
   assert.equal(withStats(bare, { maxMana: 9999, manaRecovery: 9999, manaCostReduction: 50, cooldownReduction: 30 }).total, before.total);
 });
-test('resource budget is shared once across spells, MP and regen improve only a resource-limited rotation', () => {
+await test('resource budget is shared once across spells, MP and regen improve only a resource-limited rotation', () => {
   const hero = build('wizard'), stats = calculateFinalCharacterStats(hero), profile = buildCombatPowerProfile(hero);
   for (const a of profile.actions) if (!a.critical) { a.manaCost = 100; a.rate = 1; }
   const low = calculateCombatPowerFromStats({ ...stats, maxMana: 100, manaRecovery: 8 }, profile);
@@ -246,7 +246,7 @@ test('resource budget is shared once across spells, MP and regen improve only a 
   const spent = profile.actions.reduce((sum, a) => sum + a.rate * a.manaCost, 0) * low.details.resourceFactor;
   near(spent, 100 / CONFIG.encounterSeconds + 8);
 });
-test('job advancement invalidates CP and reads newly granted specialization kit/passive', () => {
+await test('job advancement invalidates CP and reads newly granted specialization kit/passive', () => {
   const hero = build(), before = getCombatPower(hero);
   for (const slot of Object.keys(hero.equipment) as Array<keyof Hero['equipment']>) if (slot !== 'pet') unequipItem(hero, slot);
   assert(chooseSpecialization(hero, 'gatotkaca'));
@@ -255,7 +255,7 @@ test('job advancement invalidates CP and reads newly granted specialization kit/
   assert(next.details.evaluatedSkillIds.some(id => id.startsWith('gatotkaca-')));
   assert.deepEqual(next, calculateCombatPower(hero));
 });
-test('locked Unique Stats excluded until Magnifier; ignored generic affixes stay excluded', () => {
+await test('locked Unique Stats excluded until Magnifier; ignored generic affixes stay excluded', () => {
   const hero = build(), ring = addStats(hero, {});
   const baseline = calculateCombatPower(hero);
   ring.bonusStats = { attack: 99 }; ring.uniqueStatsLocked = true;
@@ -265,7 +265,7 @@ test('locked Unique Stats excluded until Magnifier; ignored generic affixes stay
   ring.bonusStats = {}; ring.affixes = [{ id: 'retired', stat: 'attack', value: 9999, unit: 'flat', label: 'retired' }];
   assert.equal(calculateCombatPower(hero).total, baseline.total);
 });
-test('cache reacts to in-place stat/equipment/rune/skill/passive/buff changes but not frame data', () => {
+await test('cache reacts to in-place stat/equipment/rune/skill/passive/buff changes but not frame data', () => {
   clearCombatPowerCache();
   const hero = build(), before = getCombatPower(hero);
   hero.hp--; hero.mana--; hero.x++; hero.z++;
@@ -284,7 +284,7 @@ test('cache reacts to in-place stat/equipment/rune/skill/passive/buff changes bu
   delete hero.activeBuffs.damageReduction;
   assert.notEqual(getCombatPower(hero), buffed);
 });
-test('save/load re-derives CP; no persistent CP property is written', () => {
+await test('save/load re-derives CP; no persistent CP property is written', () => {
   const hero = build(), state = JSON.stringify(hero);
   getCombatPower(hero);
   assert.equal(JSON.stringify(hero), state);
@@ -292,7 +292,7 @@ test('save/load re-derives CP; no persistent CP property is written', () => {
   assert.equal(getCombatPower(loaded).total, calculateCombatPower(loaded).total);
   assert(!Object.keys(loaded).some(key => /combatpower/i.test(key)));
 });
-test('all legacy skill damage and mitigation remain identical after shared-math extraction', () => {
+await test('all legacy skill damage and mitigation remain identical after shared-math extraction', () => {
   const hero = build('wizard'), stats = calculateFinalCharacterStats(hero);
   for (const skill of ALL_SKILLS.filter(s=>s.tree?.architecture!=='v2')) {
     const level = hero.skillLevels[skill.id] ?? 1;
@@ -309,14 +309,14 @@ test('all legacy skill damage and mitigation remain identical after shared-math 
     assert.equal(mitigateDamage(300, defense, 50, pen), 300 * (1 - effective / (effective + 1000)));
   }
 });
-test('physical skill does not implicitly scale from INT', () => {
+await test('physical skill does not implicitly scale from INT', () => {
   const warrior = build('warrior');
   const physical = activeSkills(warrior).find(skill => skill.job === 'warrior' && skill.effect !== 'heal')!;
   const baseline = skillDamagePreview(warrior, physical);
   const highInt = { ...warrior, allocatedStats: { ...warrior.allocatedStats, int: 100 } };
   assert.equal(skillDamagePreview(highInt, physical), baseline);
 });
-test('magic skill responds to Magic Attack, while explicit Skill Power is opt-in', () => {
+await test('magic skill responds to Magic Attack, while explicit Skill Power is opt-in', () => {
   const wizard = build('wizard');
   const magic = activeSkills(wizard).find(skill => skill.job === 'wizard' && skill.effect !== 'heal')!;
   const baseline = skillDamagePreview(wizard, magic);
@@ -326,7 +326,7 @@ test('magic skill responds to Magic Attack, while explicit Skill Power is opt-in
   const parts = skillDamageParts(wizard, explicit, 1, { ...calculateFinalCharacterStats(wizard), skillPower: 10 });
   assert.ok(parts.skillPowerCoefficient > 0);
 });
-test('hybrid skill exposes separate physical and magic coefficients', () => {
+await test('hybrid skill exposes separate physical and magic coefficients', () => {
   const hero = build('warrior');
   const source = activeSkills(hero).find(skill => skill.job === 'warrior' && skill.effect !== 'heal')!;
   const hybrid = { ...source, combatScaling: { physical: .5, magic: .5, skillPower: 0, damageType: 'physical' as const } };
@@ -334,13 +334,13 @@ test('hybrid skill exposes separate physical and magic coefficients', () => {
   assert.ok(parts.physicalCoefficient > 0);
   assert.ok(parts.magicCoefficient > 0);
 });
-test('special evaluator de-duplicates actual effects and caps; debug off by default', () => {
+await test('special evaluator de-duplicates actual effects and caps; debug off by default', () => {
   assert.equal(evaluateSpecialEffectPower([{ id: 'x', power: 20 }, { id: 'x', power: 20 }], 1000), 20);
   assert.equal(evaluateSpecialEffectPower([{ id: 'x', power: 999999 }], 1000), 150);
   assert.equal(CONFIG.debug, false);
   assert(JSON.parse(formatCombatPowerDebug(getCombatPower(build()))).physicalEHP > 0);
 });
-test('additional inefficient skills do not force mana away from a stronger usable rotation', () => {
+await test('additional inefficient skills do not force mana away from a stronger usable rotation', () => {
   const hero = build('wizard'), stats = calculateFinalCharacterStats(hero), profile = buildCombatPowerProfile(hero);
   profile.actions = [{ ...profile.actions[0], id: 'strong', critical: false, attackSpeed: false,
     physicalCoefficient: 0, magicCoefficient: 2, manaCost: 100, rate: 1 }];
@@ -349,7 +349,7 @@ test('additional inefficient skills do not force mana away from a stronger usabl
   profile.actions.push({ ...profile.actions[0], id: 'weak', magicCoefficient: .01 });
   assert.equal(calculateCombatPowerFromStats(limited, profile).total, before.total);
 });
-test('one instance in both hands and pet bonus stats are never counted twice', () => {
+await test('one instance in both hands and pet bonus stats are never counted twice', () => {
   const hero = build();
   const before = calculateCombatPower(hero);
   hero.equipment.offHand = hero.equipment.mainHand;
@@ -361,7 +361,7 @@ test('one instance in both hands and pet bonus stats are never counted twice', (
   hero.pet = { id: 'qa', level: 1, exp: 0, maxExp: 100, rarity: 'rare', passive: '', bonusStats: { attack: 20 } };
   assert.equal(calculateCombatPower(hero).total, gear.total);
 });
-test('real socket, successful enhancement and Magnifier operations each refresh derived CP', () => {
+await test('real socket, successful enhancement and Magnifier operations each refresh derived CP', () => {
   const hero = build(), npc = CITIES.arunika.npcList.find(n => n.id === 'aruna-3')!;
   hero.inCity = true; hero.currentCity = 'arunika'; hero.x = npc.x; hero.z = npc.z;
   const ring = addStats(hero, { attack: 80 });

@@ -65,7 +65,7 @@ function Harness() {
     started: true,
     dead: false,
     blocked: false,
-    hotbarEditMode: false,
+    cameraMode: 'follow', hotbarEditMode: false,
     commits: 0,
     uses: 0,
     clock: 10000,
@@ -175,7 +175,7 @@ function Harness() {
   }, [host, panel]);
   const hero = host.hero;
   const state: Snapshot = {
-    hotbarEditMode: host.hotbarEditMode,
+    cameraMode: 'follow', hotbarEditMode: host.hotbarEditMode,
     hero,
     started: true,
     paused: !!panel,

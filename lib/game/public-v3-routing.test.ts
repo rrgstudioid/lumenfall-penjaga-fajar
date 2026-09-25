@@ -4,7 +4,7 @@ import { createNewCharacter, chooseCoreJob, chooseSpecialization, learnSkill, re
 import { getJobSkillNodes, getJobProgression } from './character-view.ts';
 import { getVisibleJobArchitecture } from './job-presentation.ts';
 
-test('public creation opts into V3 without migrating legacy character creation', () => {
+await test('public creation opts into V3 without migrating legacy character creation', () => {
   const old = createNewCharacter('slot-1','Legacy Test');
   const saved = JSON.stringify(old);
   const modern = createNewCharacter('slot-2','Modern Test',{},'v3_adventurer');
@@ -16,7 +16,7 @@ test('public creation opts into V3 without migrating legacy character creation',
   assert(getJobSkillNodes(modern,'adventurer').active.every(s=>s.id.startsWith('v3-adventurer-')));
 });
 
-test('public job routing preserves V3 budget/ancestry, enforces gates and buys Berserker ranks', () => {
+await test('public job routing preserves V3 budget/ancestry, enforces gates and buys Berserker ranks', () => {
   const hero=createNewCharacter('slot-2','Public Routing',{},'v3_adventurer');
   hero.skillProgressionV3!.totalEarnedSP=200;
   hero.level=14;

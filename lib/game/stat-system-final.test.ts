@@ -3,7 +3,7 @@ import { test } from 'node:test';
 import { derivedStats, freshHero, parseSave } from './rules.ts';
 import { RUNE_THEME_POOLS } from './items.ts';
 
-test('final stat system applies the documented primary-stat increments', () => {
+await test('final stat system applies the documented primary-stat increments', () => {
   const hero = freshHero();
   const base = derivedStats(hero);
   const one = (stat: 'str' | 'vit' | 'dex' | 'int') => {
@@ -26,7 +26,7 @@ test('final stat system applies the documented primary-stat increments', () => {
   assert.ok(Math.abs(one('int').manaRecovery - base.manaRecovery - 0.1) < 1e-9);
 });
 
-test('old STA saves migrate to VIT and removed rune stats are remapped', () => {
+await test('old STA saves migrate to VIT and removed rune stats are remapped', () => {
   const old = JSON.stringify({
     version: 3,
     level: 4,
@@ -43,5 +43,5 @@ test('old STA saves migrate to VIT and removed rune stats are remapped', () => {
   assert.ok(!RUNE_THEME_POOLS.arcana.includes('cooldownReduction'));
   assert.ok(RUNE_THEME_POOLS.elements.includes('magicDefense'));
   assert.ok(!RUNE_THEME_POOLS.elements.includes('elementalResistance'));
-  assert.ok(!RUNE_THEME_POOLS.guardian.includes('tenacity'));
+  assert.ok(!RUNE_THEME_POOLS.guardian.some(stat => String(stat) === 'tenacity'));
 });

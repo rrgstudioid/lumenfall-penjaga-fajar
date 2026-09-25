@@ -80,7 +80,7 @@ function Fixture() {
       <section className="bm-fixture-panel class-panel" aria-label={`${panel} acceptance`}>
         {panel === 'trainer' && <div className="dialog-stack">
           <JobArchitecturePreview hero={hero} />
-          <V3JobTrainer hero={hero}
+          <V3JobTrainer hero={hero} onResetToAdventurer={() => setHero(adventurer15())}
             onChooseWarrior={() => commit((next) => { chooseCoreJob(next, 'warrior'); })}
             onChooseSpecialization={(id) => commit((next) => { chooseSpecialization(next, id); })} />
         </div>}

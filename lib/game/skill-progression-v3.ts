@@ -355,7 +355,7 @@ export function refundAllSkillPointsForJobChange(
 ): SkillProgressionV3State {
   return {
     ...state,
-    skillRanks: { ...(state.grantedRanks ?? {}) },
+    skillRanks: { ...state.grantedRanks },
   };
 }
 
@@ -375,13 +375,13 @@ function mergeProfile(
   override: SkillProfileV3 | undefined,
 ): SkillProfileV3 {
   if (!base && !override) return {};
-  const merged = { ...(base ?? {}), ...(override ?? {}) } as SkillProfileV3;
+  const merged = { ...base, ...override } as SkillProfileV3;
   if (base?.damageProfile || override?.damageProfile)
-    merged.damageProfile = { ...(base?.damageProfile ?? {}), ...(override?.damageProfile ?? {}) };
+    merged.damageProfile = { ...base?.damageProfile, ...override?.damageProfile };
   if (base?.statScaling || override?.statScaling)
-    merged.statScaling = { ...(base?.statScaling ?? {}), ...(override?.statScaling ?? {}) };
+    merged.statScaling = { ...base?.statScaling, ...override?.statScaling };
   if (base?.resourceCost || override?.resourceCost)
-    merged.resourceCost = { ...(base?.resourceCost ?? {}), ...(override?.resourceCost ?? {}) };
+    merged.resourceCost = { ...base?.resourceCost, ...override?.resourceCost };
   return merged;
 }
 

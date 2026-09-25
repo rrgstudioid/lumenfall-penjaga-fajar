@@ -453,7 +453,7 @@ export const THIEF_V2_ACTIVE: SkillDefinition[] = [
           [8, 0.6],
           [14, 0.9],
         ],
-      ].map((hits, r) => ({
+      ].map((hits, _r) => ({
         hitSequence: hits.map(([baseDamage, physicalCoefficient], i) => ({
           delay: [0, 0.16, 0.38][i],
           baseDamage,

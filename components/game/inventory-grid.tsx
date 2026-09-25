@@ -1,5 +1,8 @@
 'use client';
 import type { Hero } from '@/lib/game/rules';
+import type { ItemData } from '@/lib/game/items';
+import { useState, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 import { presentJobText } from '@/lib/game/job-presentation';
 import {
   filterInventory,
@@ -19,15 +22,18 @@ export function InventoryGrid({
   selectedId,
   onSelect,
   onHover,
+  renderActions,
 }: {
   hero: Hero;
   filter: InventoryFilter;
   sort: InventorySort;
   selectedId: string | null;
-  onSelect: (id: string) => void;
+  onSelect: (id: string | null) => void;
   onHover?: (id: string, position: { x: number; y: number } | null) => void;
+  renderActions?: (item: ItemData, point: { x: number; y: number }) => ReactNode;
 }) {
   const { begin } = useGameDrag();
+  const [actionPoint, setActionPoint] = useState<{ x: number; y: number } | null>(null);
   const slots = getInventorySlots(hero);
   const byId = new Map(hero.inventory.filter((item) => !item.isEquipped).map((item) => [item.id, item]));
   const manual = sort === 'manual';
@@ -40,15 +46,12 @@ export function InventoryGrid({
     : displayed;
   return (
     <>
-      <p className="inventory-drag-hint">
-        Item usable dapat ditarik ke PrimaryHotbar. Inventory otomatis dirapikan berdasarkan Sort.
-      </p>
       <div className="inventory-grid" aria-label="Grid inventory">
         {Array.from({ length: slots.length }, (_, index) => {
           const item = visibleItems[index];
           return (
+            <div className="inventory-slot-wrap" key={index}>
             <button
-              key={index}
               type="button"
               data-drag-source={item ? 'item' : undefined}
               data-inventory-index={index}
@@ -71,7 +74,18 @@ export function InventoryGrid({
                   inventorySlot: slots.indexOf(item.id),
                 })
               }
-              onClick={() => item && onSelect(item.id)}
+              onClick={(event) => {
+                if (!item) return;
+                if (selectedId === item.id) {
+                  setActionPoint(null);
+                  onSelect(null);
+                  onHover?.('', null);
+                  return;
+                }
+                onHover?.('', null);
+                setActionPoint({ x: event.clientX, y: event.clientY });
+                onSelect(item.id);
+              }}
               aria-label={
                 item
                   ? `${presentJobText(hero, item.name)}, ${RARITY_META[item.rarity].label}, ${item.quantity}`
@@ -95,6 +109,10 @@ export function InventoryGrid({
                 <span className="slot-index">{index + 1}</span>
               )}
             </button>
+            {item && selectedId === item.id && actionPoint && typeof document !== 'undefined'
+              ? createPortal(renderActions?.(item, actionPoint), document.body)
+              : null}
+            </div>
           );
         })}
       </div>

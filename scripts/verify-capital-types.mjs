@@ -1,6 +1,6 @@
 import ts from 'typescript';
 import fs from 'node:fs';
-const cfg = ts.readConfigFile('tsconfig.json', ts.sys.readFile),
+const cfg = ts.readConfigFile('tsconfig.json', (path) => ts.sys.readFile(path)),
   parsed = ts.parseJsonConfigFileContent(cfg.config, ts.sys, '.');
 const files = parsed.fileNames.filter(
   (f) =>

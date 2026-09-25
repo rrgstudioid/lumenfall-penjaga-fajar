@@ -28,7 +28,7 @@ const step = (state: CameraZoomState, frames = 180) => {
   return state;
 };
 
-test('wheel changes one shared framing target and clamps both ends', () => {
+await test('wheel changes one shared framing target and clamps both ends', () => {
   near(wheelCameraFraming(0.5, -100), 0.65);
   near(wheelCameraFraming(0.5, -1000), 1);
   near(wheelCameraFraming(0.5, 1000), 0);
@@ -36,7 +36,7 @@ test('wheel changes one shared framing target and clamps both ends', () => {
   near(wheelCameraFraming(0.5, -1, 2, 800), 1);
 });
 
-test('framing continuously maps to far, medium, and near camera parameters', () => {
+await test('framing continuously maps to far, medium, and near camera parameters', () => {
   const far = stepCameraZoom({ ...initial(), targetFraming: 0, currentFraming: 0 }, .62, 1 / 60, true);
   const mid = stepCameraZoom({ ...initial(), targetFraming: .5, currentFraming: .5 }, .62, 1 / 60, true);
   const nearView = stepCameraZoom({ ...initial(), targetFraming: 1, currentFraming: 1 }, .62, 1 / 60, true);
@@ -49,7 +49,7 @@ test('framing continuously maps to far, medium, and near camera parameters', () 
   assert.ok(far.pitchOffset > mid.pitchOffset && mid.pitchOffset > nearView.pitchOffset);
 });
 
-test('RMB vertical stage one lowers the angle while remaining far, then stage two closes in', () => {
+await test('RMB vertical stage one lowers the angle while remaining far, then stage two closes in', () => {
   let state = { ...initial(), rmbFramingActive: true, rmbFramingTarget: 0, rmbFraming: 0 };
   state = step(state, 120);
   const ground = stepCameraZoom({ ...state, rmbFramingTarget: .55 }, state.yaw, 1 / 60, true);
@@ -60,14 +60,14 @@ test('RMB vertical stage one lowers the angle while remaining far, then stage tw
   assert.ok(close.targetHeight > ground.targetHeight);
 });
 
-test('wheel-only framing remains unchanged when RMB vertical mode is inactive', () => {
+await test('wheel-only framing remains unchanged when RMB vertical mode is inactive', () => {
   const state = { ...initial(), targetFraming: 0, currentFraming: 0, rmbFramingActive: false };
   const view = stepCameraZoom(state, state.yaw, 1 / 60, true);
   assert.ok(view.distance > C.max - .01);
   near(view.targetHeight, C.farTargetHeight);
 });
 
-test('wheel zoom preserves a ground-level RMB pitch before near pivot blending', () => {
+await test('wheel zoom preserves a ground-level RMB pitch before near pivot blending', () => {
   let state = {
     ...initial(),
     rmbFramingActive: true,
@@ -88,7 +88,7 @@ test('wheel zoom preserves a ground-level RMB pitch before near pivot blending',
   assert.ok(groundZoom.targetHeight < C.farTargetHeight + 0.1);
 });
 
-test('wheel and vertical drag can hand off through the same state without a jump', () => {
+await test('wheel and vertical drag can hand off through the same state without a jump', () => {
   let state = initial();
   state.targetFraming = wheelCameraFraming(state.targetFraming, -175);
   state = step(state, 60);
@@ -99,7 +99,7 @@ test('wheel and vertical drag can hand off through the same state without a jump
   assert.ok(Math.abs(after.framing - before) < .1);
 });
 
-test('reverse input smoothly returns from near to high-angle far view', () => {
+await test('reverse input smoothly returns from near to high-angle far view', () => {
   let state = { ...initial(), targetFraming: 1, currentFraming: 1, rmbFramingTarget: 1, rmbFraming: 1, rmbFramingActive: true };
   state = step(state, 180);
   assert.ok(state.distance <= C.min + .01);
@@ -110,14 +110,14 @@ test('reverse input smoothly returns from near to high-angle far view', () => {
   assert.ok(state.distance >= C.max - .01);
 });
 
-test('horizontal orbit remains independent while framing changes', () => {
+await test('horizontal orbit remains independent while framing changes', () => {
   const state = { ...initial(), targetFraming: 1, currentFraming: .4, rmbFramingTarget: 1, rmbFraming: .4, rmbFramingActive: true };
   const view = stepCameraZoom(state, 2.1, 1 / 60, true);
   assert.ok(view.state.yaw > state.yaw);
   assert.ok(view.state.currentFraming > state.currentFraming);
 });
 
-test('distance framing mapping is reversible', () => {
+await test('distance framing mapping is reversible', () => {
   near(framingFromDistance(C.max), 0);
   near(framingFromDistance(C.min), 1);
   assert.ok(framingFromDistance(12) > 0 && framingFromDistance(12) < 1);

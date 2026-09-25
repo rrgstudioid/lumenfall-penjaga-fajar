@@ -93,10 +93,9 @@ export function ForgePanel({
     (candidate) => candidate.id === npcId,
   );
   const accessReason = forgeAccessReason(hero, npcId);
-  useEffect(() => {
-    if (!hasSeal && useSeal) setUseSeal(false);
-    if (!hasFateRune && useFateRune) setUseFateRune(false);
-  }, [hasSeal, hasFateRune, useSeal, useFateRune]);
+  // Reconcile selection before rendering a preview with unavailable materials.
+  if (!hasSeal && useSeal) setUseSeal(false);
+  if (!hasFateRune && useFateRune) setUseFateRune(false);
   const preview = selected ? enhancementPreview(hero, selected.id, useSeal, useFateRune) : null;
   const current = selected ? itemStats(selected) : {};
   const next =

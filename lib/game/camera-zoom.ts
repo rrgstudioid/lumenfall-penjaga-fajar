@@ -43,7 +43,7 @@ export function wheelCameraFraming(framing: number, delta: number, mode = 0, pag
   return clamp01(framing - pixels * CAMERA_ZOOM.wheelFramingSpeed);
 }
 
-export function stepCameraZoom(state: CameraZoomState, followYaw: number, dt: number, freeOrbit = false) {
+export function stepCameraZoom(state: CameraZoomState, followYaw: number, dt: number, _freeOrbit = false) {
   const rmbAlpha = 1 - Math.exp(-Math.max(0, dt) * CAMERA_ZOOM.transitionSpeed);
   const wheelAlpha = 1 - Math.exp(-Math.max(0, dt) * CAMERA_ZOOM.wheelTransitionSpeed);
   const currentFraming = state.currentFraming + (state.targetFraming - state.currentFraming) * wheelAlpha;

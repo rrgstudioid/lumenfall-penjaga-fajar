@@ -9,7 +9,7 @@ import {
   pathLength,
 } from './kingdom-capital-layout.ts';
 
-test('castle courtyard is filled terrain, not a floating corner slab', () => {
+await test('castle courtyard is filled terrain, not a floating corner slab', () => {
   for (const [x, z] of [
     [-20, -250],
     [90, -250],
@@ -19,7 +19,7 @@ test('castle courtyard is filled terrain, not a floating corner slab', () => {
   ])
     assert.ok(height(x, z) >= 127.5, `${x},${z}`);
 });
-test('six stair centre-lines remain continuous at road/landing joins', () => {
+await test('six stair centre-lines remain continuous at road/landing joins', () => {
   for (const road of roads.filter((r) => r.stairs)) {
     const [a, b] = road.points,
       n = Math.ceil(pathLength([a, b]) / 0.1);
@@ -32,7 +32,7 @@ test('six stair centre-lines remain continuous at road/landing joins', () => {
     }
   }
 });
-test('capital footprint and principal travel cannot regress to a small arena', () => {
+await test('capital footprint and principal travel cannot regress to a small arena', () => {
   const xs = perimeter.map((p) => p[0]),
     zs = perimeter.map((p) => p[1]);
   assert.equal(Math.max(...xs) - Math.min(...xs), 680);

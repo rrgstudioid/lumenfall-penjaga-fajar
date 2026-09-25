@@ -15,7 +15,7 @@ function equipped() {
 }
 const point = (object: T.Object3D) => object.getWorldPosition(new T.Vector3());
 
-test('temporary aura switch disables legacy body, weapon and ember effects', () => {
+await test('temporary aura switch disables legacy body, weapon and ember effects', () => {
   for (const options of [undefined, { aura: true }, { aura: false }]) {
     // No DOM/TextureLoader stub: disabled aura must not request its atlas either.
     const m = createCharacterModel(equipped(), options);
@@ -31,7 +31,7 @@ test('temporary aura switch disables legacy body, weapon and ember effects', () 
   }
 });
 
-test('loading character keeps attachment pivots without the retired procedural body', () => {
+await test('loading character keeps attachment pivots without the retired procedural body', () => {
   const m = createCharacterModel(freshHero(), { aura: false });
   assert.equal(m.rig.leftLowerLeg.parent, m.rig.leftUpperLeg);
   assert.equal(m.rig.rightFoot.parent, m.rig.rightLowerLeg);
@@ -49,7 +49,7 @@ test('loading character keeps attachment pivots without the retired procedural b
   disposeCharacterModel(m.actor);
 });
 
-test('walk moves both full leg chains in opposite phases and settles when stopped', () => {
+await test('walk moves both full leg chains in opposite phases and settles when stopped', () => {
   const m = createCharacterModel(freshHero(), { aura: false });
   const before = point(m.rig.rightFoot);
   m.animator.update(.15, { moving: true });
@@ -62,7 +62,7 @@ test('walk moves both full leg chains in opposite phases and settles when stoppe
   disposeCharacterModel(m.actor);
 });
 
-test('equipment follows its owning joints during walk, attack and body turn', () => {
+await test('equipment follows its owning joints during walk, attack and body turn', () => {
   const m = createCharacterModel(equipped(), { aura: false });
   const weapon = m.actor.getObjectByName('equipment:mainHand')!;
   const glove = m.actor.getObjectByName('equipment:gloves:right')!;
@@ -81,7 +81,7 @@ test('equipment follows its owning joints during walk, attack and body turn', ()
   disposeCharacterModel(m.actor);
 });
 
-test('timed attack/cast poses complete, stay finite, and restore across equipment rebuilds', () => {
+await test('timed attack/cast poses complete, stay finite, and restore across equipment rebuilds', () => {
   const m = createCharacterModel(equipped(), { aura: false });
   for (const action of ['basic_attack', 'ranged_attack', 'magic_cast', 'dash', 'hit'] as const) {
     m.animator.reset(); m.animator.play(action, .5); m.animator.update(.2);
@@ -99,7 +99,7 @@ test('timed attack/cast poses complete, stay finite, and restore across equipmen
   disposeCharacterModel(m.actor);
 });
 
-test('swords are held at the grip centre and point forward relative to character facing', () => {
+await test('swords are held at the grip centre and point forward relative to character facing', () => {
   for (const equipmentType of ['one_hand_sword', 'two_hand_sword'] as const) {
     const hero = equipped();
     hero.inventory.find(item => item.id === hero.equipment.mainHand)!.equipmentType = equipmentType;
@@ -133,7 +133,7 @@ test('swords are held at the grip centre and point forward relative to character
   }
 });
 
-test('all sword-like equipment uses the owning hand and points forward, including twin blades', () => {
+await test('all sword-like equipment uses the owning hand and points forward, including twin blades', () => {
   const swordTemplates = ['legacy-fajar-blade', 'jayantara-two-hand-sword', 'caroq-daggers', 'anom-dagger'];
   for (const templateId of swordTemplates) {
     const hero = freshHero();
@@ -156,7 +156,7 @@ test('all sword-like equipment uses the owning hand and points forward, includin
   }
 });
 
-test('creating/animating a character does not mutate saved equipment or stats', () => {
+await test('creating/animating a character does not mutate saved equipment or stats', () => {
   const hero = equipped(), before = JSON.stringify(hero);
   const m = createCharacterModel(hero, { aura: false });
   m.animator.play('magic_cast'); m.animator.update(.1, { moving: true, sprinting: true });
@@ -164,7 +164,7 @@ test('creating/animating a character does not mutate saved equipment or stats', 
   disposeCharacterModel(m.actor);
 });
 
-test('owned geometry, materials and textures dispose once including shared equipment material', () => {
+await test('owned geometry, materials and textures dispose once including shared equipment material', () => {
   const m = createCharacterModel(equipped(), { aura: false });
   const resources = new Set<T.BufferGeometry | T.Material | T.Texture>();
   m.actor.traverse(object => {

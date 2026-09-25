@@ -70,6 +70,20 @@ await test('progression caps at level 50 and grants skill points', () => {
   assert.equal(hero.hp, maxHP(hero));
 });
 
+await test('level-up restores mana to full, not just the current value', () => {
+  const hero = freshHero();
+  hero.level = 1;
+  hero.xp = 0;
+  hero.mana = 0;
+  hero.hp = 1;
+
+  gainXP(hero, 999999);
+
+  assert.equal(hero.level, 50);
+  assert.equal(hero.hp, maxHP(hero));
+  assert.equal(hero.mana, derivedStats(hero).maxMana);
+});
+
 await test('all five Core Jobs and ten Special Jobs are represented', () => {
   assert.equal(Object.keys(CORE_JOBS).length, 5);
   assert.equal(Object.keys(SPECIALIZATIONS).length, 10);
@@ -234,6 +248,16 @@ await test('inventory stacks consumables while equipment remains separate', () =
     4,
   );
   assert.equal(gearResult.inventory.length, 2);
+});
+
+await test('equipped items do not consume visible inventory capacity', () => {
+  const equipped = createItem('legacy-fajar-blade', { id: 'equipped-blade', isEquipped: true });
+  const carried = Array.from({ length: 4 }, (_, index) => createItem('forest-vest', { id: `carried-${index}` }));
+  const incoming = createItem('forest-vest', { id: 'incoming-vest' });
+  const result = addItemToInventory([equipped, ...carried], incoming, 5);
+  assert.equal(result.added, 1);
+  assert.equal(result.remaining, 0);
+  assert.equal(result.inventory.filter((item) => !item.isEquipped).length, 5);
 });
 
 await test('job weapon restriction and data-driven equipment work', () => {

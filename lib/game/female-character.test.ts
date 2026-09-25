@@ -14,13 +14,13 @@ async function asset(){
   const gltf=await loader.parseAsync(b.buffer.slice(b.byteOffset,b.byteOffset+b.byteLength),'');
   gltf.scene.userData.lumenfallAnimations=gltf.animations;gltf.scene.userData.runningAnimationSource='army-man-running-blender';return gltf;
 }
-test('legacy saves stay male and female choice survives serialization without changing stats',()=>{
+await test('legacy saves stay male and female choice survives serialization without changing stats',()=>{
   const hero=freshHero('slot-2','adventurer','Female QA','female');assert.equal(parseSave(JSON.stringify(hero))?.gender,'female');
   const old={...freshHero()};delete (old as Partial<typeof old>).gender;
   const loaded=parseSave(JSON.stringify(old))!;assert.equal(loaded.gender,'male');assert.equal(loaded.gold,old.gold);assert.deepEqual(loaded.equipment,old.equipment);
   assert.equal(parseSave(JSON.stringify({...hero,gender:'invalid'}))?.gender,'male');
 });
-test('female asset keeps the original 9389 triangles and has weighted geometry and all game clips',async()=>{
+await test('female asset keeps the original 9389 triangles and has weighted geometry and all game clips',async()=>{
   const g=await asset();let triangles=0,skinned=0;
   g.scene.traverse(o=>{if(!(o instanceof T.Mesh))return;triangles+=(o.geometry.index?.count??o.geometry.attributes.position.count)/3;
     assert.ok(o instanceof T.SkinnedMesh,o.name+' skinned');skinned++;
@@ -31,7 +31,7 @@ test('female asset keeps the original 9389 triangles and has weighted geometry a
   const size=new T.Box3().setFromObject(g.scene).getSize(new T.Vector3());assert.ok(size.y>2&&size.y<2.1,JSON.stringify(size));
   disposeCharacterModel(g.scene);
 });
-test('female body runs/attacks/returns to idle with finite skin and hand-attached equipment',async()=>{
+await test('female body runs/attacks/returns to idle with finite skin and hand-attached equipment',async()=>{
   const hero=freshHero('slot-2','adventurer','Female QA','female');
   const model=createCharacterModel(hero,{assetSource:async()=>(await asset()).scene});assert.equal(await model.ready,true);
   assert.equal(model.actor.userData.assetKind,'female-rpg');assert.ok(model.actor.getObjectByName('FemaleRPGVisual'));

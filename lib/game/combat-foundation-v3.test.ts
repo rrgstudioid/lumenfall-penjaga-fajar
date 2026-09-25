@@ -12,7 +12,7 @@ import {
   freshHero,
 } from './rules.ts';
 
-test('CFV3-1 uses the canonical primary-stat and +2-per-level foundations', () => {
+await test('CFV3-1 uses the canonical primary-stat and +2-per-level foundations', () => {
   const hero = freshHero();
   assert.deepEqual(hero.allocatedStats, { str: 0, vit: 0, dex: 0, int: 0 });
   assert.equal(derivedStats(hero).maxMana, 100 + BASE_PRIMARY_STAT * 3);
@@ -23,7 +23,7 @@ test('CFV3-1 uses the canonical primary-stat and +2-per-level foundations', () =
   assert.equal(calculateTotalStatPoints(100, 'v2_test'), 198);
 });
 
-test('CFV3-1 base physical attack table is independent from legacy job attack profiles', () => {
+await test('CFV3-1 base physical attack table is independent from legacy job attack profiles', () => {
   const expected: Record<number, number> = {
     1: 8, 5: 12, 10: 18, 14: 22, 15: 23,
     20: 29, 30: 40, 40: 51, 50: 62, 59: 71, 60: 73,
@@ -32,7 +32,7 @@ test('CFV3-1 base physical attack table is independent from legacy job attack pr
     assert.equal(basePhysicalAttackForLevel(Number(level)), value);
 });
 
-test('CFV3-1 starter allocation scenarios use weapon-configured STR contribution', () => {
+await test('CFV3-1 starter allocation scenarios use weapon-configured STR contribution', () => {
   const make = (level: number, str: number, vit: number, dex: number) => {
     const hero = freshHero();
     hero.level = level;
@@ -47,7 +47,7 @@ test('CFV3-1 starter allocation scenarios use weapon-configured STR contribution
   assert.equal(derivedStats(unarmed).physicalAttack, 23);
 });
 
-test('CFV3-2.1 retires the legacy hero.weapon combat contribution', () => {
+await test('CFV3-2.1 retires the legacy hero.weapon combat contribution', () => {
   const hero = freshHero();
   hero.level = 61;
   hero.allocatedStats = { str: 120, vit: 0, dex: 0, int: 0 };
@@ -56,7 +56,7 @@ test('CFV3-2.1 retires the legacy hero.weapon combat contribution', () => {
   assert.equal(derivedStats(hero).physicalAttack, 74);
 });
 
-test('CFV3-2.1 applies raw ATK to magic only for a Staff or Wand', () => {
+await test('CFV3-2.1 applies raw ATK to magic only for a Staff or Wand', () => {
   const hero = freshHero();
   hero.level = 30;
   hero.equipment.mainHand = null;
@@ -73,7 +73,7 @@ test('CFV3-2.1 applies raw ATK to magic only for a Staff or Wand', () => {
   assert.equal(derivedStats(hero).magicAttack, unarmedMagic + 20);
 });
 
-test('CFV3-2.1 treats magicAttack Rune affixes as flat and resourceEfficiency as percent metadata', () => {
+await test('CFV3-2.1 treats magicAttack Rune affixes as flat and resourceEfficiency as percent metadata', () => {
   const hero = freshHero();
   const rune = createItem('rune-arcana', {
     id: 'cfv3-21-rune',
@@ -95,7 +95,7 @@ test('CFV3-2.1 treats magicAttack Rune affixes as flat and resourceEfficiency as
   assert.equal(stats.maxMana, derivedStats(freshHero()).maxMana);
 });
 
-test('CFV3-1 first V2 Core Job change refunds all earned allocation points', () => {
+await test('CFV3-1 first V2 Core Job change refunds all earned allocation points', () => {
   const hero = createV2TestHero();
   hero.level = 15;
   hero.allocatedStats = { str: 5, vit: 4, dex: 3, int: 2 };
@@ -105,7 +105,7 @@ test('CFV3-1 first V2 Core Job change refunds all earned allocation points', () 
   assert.equal(hero.statPoints, 28);
 });
 
-test('basic attacks read the central physical attack foundation', () => {
+await test('basic attacks read the central physical attack foundation', () => {
   const hero = freshHero();
   hero.equipment.mainHand = null;
   assert.equal(basicAttackPower(hero), derivedStats(hero).physicalAttack);

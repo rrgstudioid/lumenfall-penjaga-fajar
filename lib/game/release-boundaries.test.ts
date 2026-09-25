@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { SANDS_MAP_ANCHOR, SANDS_MAP_SCALE, sandsWorldPoint } from './sands-coordinates.ts';
 
-test('server-safe coordinate extraction preserves original Sands coordinates', () => {
+await test('server-safe coordinate extraction preserves original Sands coordinates', () => {
   assert.equal(SANDS_MAP_SCALE, 1.5);
   assert.deepEqual(SANDS_MAP_ANCHOR, { x: 0, z: 35 });
   assert.deepEqual(sandsWorldPoint(0, 35), { x: 0, z: 35 });
@@ -13,7 +13,7 @@ test('server-safe coordinate extraction preserves original Sands coordinates', (
   }
 });
 
-test('region construction and tree decoration do not shadow each other', () => {
+await test('region construction and tree decoration do not shadow each other', () => {
   const source=readFileSync(new URL('world.ts',import.meta.url),'utf8');
   assert.equal((source.match(/^  buildRegionDecor\(/gm)||[]).length,1);
   assert.equal((source.match(/^  buildTreeDecor\(/gm)||[]).length,1);

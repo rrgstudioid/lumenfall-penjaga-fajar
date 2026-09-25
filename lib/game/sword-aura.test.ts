@@ -4,7 +4,7 @@ import * as T from 'three';
 import { freshHero } from './rules.ts';
 import { createCharacterModel, disposeCharacterModel } from './character-model.ts';
 
-test('only the +5 sword aura is active while newer weapon VFX stays disabled', t => {
+await test('only the +5 sword aura is active while newer weapon VFX stays disabled', t => {
   t.mock.method(T.TextureLoader.prototype, 'load', (_url: string, onLoad: (texture: T.Texture) => void) => {
     const texture = new T.Texture(); onLoad(texture); return texture;
   });

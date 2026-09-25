@@ -16,7 +16,7 @@ async function actualSword() {
   return (await loader.parseAsync(bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength), '')).scene;
 }
 
-test('real Crimson GLB handle is at the palm and its blade points forward in every heading', async () => {
+await test('real Crimson GLB handle is at the palm and its blade points forward in every heading', async () => {
   const source = await actualSword();
   const fitted = alignCrimsonSword(source, 1.1);
   const blade = fitted.getObjectByName('sword_swordTX_0') as T.Mesh;
@@ -55,11 +55,11 @@ test('real Crimson GLB handle is at the palm and its blade points forward in eve
   disposeCharacterModel(character.actor);
 });
 
-test('an unexpected GLB cannot silently attach at an arbitrary guessed offset', () => {
+await test('an unexpected GLB cannot silently attach at an arbitrary guessed offset', () => {
   assert.throws(() => alignCrimsonSword(new T.Group(), 1.55), /mesh is missing/);
 });
 
-test('Meteor Sword orange emissive materials pulse without changing its geometry', () => {
+await test('Meteor Sword orange emissive materials pulse without changing its geometry', () => {
   const model = new T.Group();
   const mesh = new T.Mesh(new T.BoxGeometry(1, 1, 1), new T.MeshStandardMaterial({
     name: 'sword_swordTX_0', emissive: '#ff7a20', emissiveIntensity: 0.2,
@@ -78,7 +78,7 @@ test('Meteor Sword orange emissive materials pulse without changing its geometry
   mesh.geometry.dispose(); (mesh.material as T.Material).dispose();
 });
 
-test('Meteor Sword loads Crimson at 2.25x original size with aligned grip and +5 aura during animation', async t => {
+await test('Meteor Sword loads Crimson at 2.25x original size with aligned grip and +5 aura during animation', async t => {
   const source = await actualSword();
   t.mock.method(T.TextureLoader.prototype, 'load', (_url: string, onLoad: (texture: T.Texture) => void) => {
     const texture = new T.Texture(); onLoad(texture); return texture;
@@ -140,7 +140,7 @@ test('Meteor Sword loads Crimson at 2.25x original size with aligned grip and +5
   disposeCharacterModel(character.actor);
 });
 
-test('Jayantara Greatsword and other one-hand swords keep their procedural models and +5 aura', t => {
+await test('Jayantara Greatsword and other one-hand swords keep their procedural models and +5 aura', t => {
   const load = t.mock.method(GLTFLoader.prototype, 'load', () => {
     assert.fail('only Meteor Sword may request the Crimson GLB');
   });

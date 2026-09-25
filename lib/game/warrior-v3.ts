@@ -2,8 +2,8 @@ import type { SkillDefinition, SkillRankValues } from './skills.ts';
 import type { SkillDefinitionV3, SkillProgressionV3State } from './skill-progression-v3.ts';
 
 const swords = ['one_hand_sword', 'two_hand_sword'];
-const r = (values: SkillRankValues[]) => values;
-const profile = (coefficient: number, str: number, mana: number, cooldown: number) => ({
+const _r = (values: SkillRankValues[]) => values;
+const _profile = (coefficient: number, str: number, mana: number, cooldown: number) => ({
   damageProfile: { physicalCoefficient: coefficient, statScaling: { str } },
   resourceCost: { mana }, cooldown,
 });
@@ -92,5 +92,5 @@ export const WARRIOR_V3_RUNTIME_MAP = Object.fromEntries(WARRIOR_V3_RUNTIME_SKIL
 export const WARRIOR_V3_JOB = { id: 'warrior', tier: 'core' as const, parent: 'adventurer' };
 
 export function warriorV3StateAfterCoreChange(previous: SkillProgressionV3State): SkillProgressionV3State {
-  return { ...previous, skillRanks: { ...(previous.grantedRanks ?? {}) }, chosenCoreJob: 'warrior', chosenSpecialization: null, chosenAdvancedJob: null };
+  return { ...previous, skillRanks: { ...previous.grantedRanks }, chosenCoreJob: 'warrior', chosenSpecialization: null, chosenAdvancedJob: null };
 }

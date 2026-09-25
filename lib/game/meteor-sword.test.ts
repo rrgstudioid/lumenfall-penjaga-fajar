@@ -5,7 +5,7 @@ import { freshHero, parseSave } from './rules.ts';
 
 const meteorId = 'field-meteorfall-citadel-sword';
 
-test('Meteor Sword is Legacy in the catalog and new items, including loot rarity overrides', () => {
+await test('Meteor Sword is Legacy in the catalog and new items, including loot rarity overrides', () => {
   const template = ITEM_CATALOG[meteorId];
   assert.equal(template.rarity, 'legacy');
   assert.equal(RARITY_META[template.rarity].label, 'Legacy');
@@ -23,7 +23,7 @@ test('Meteor Sword is Legacy in the catalog and new items, including loot rarity
   }
 });
 
-test('saved Meteor Swords become Legacy without losing ownership, enhancement, runes or existing stats', () => {
+await test('saved Meteor Swords become Legacy without losing ownership, enhancement, runes or existing stats', () => {
   const hero = freshHero();
   const meteor = {
     ...createItem(meteorId, {
@@ -58,7 +58,7 @@ test('saved Meteor Swords become Legacy without losing ownership, enhancement, r
   assert.equal(JSON.stringify(meteor), before, 'normalization does not mutate the original save');
 });
 
-test('other Meteor weapons and Jayantara keep their existing rarities and random overrides', () => {
+await test('other Meteor weapons and Jayantara keep their existing rarities and random overrides', () => {
   for (const templateId of ['field-meteorfall-citadel-dagger', 'field-sunken-ruins-sword', 'jayantara-two-hand-sword']) {
     const originalRarity = templateId === 'jayantara-two-hand-sword' ? 'epic' : 'common';
     assert.equal(ITEM_CATALOG[templateId].rarity, originalRarity);

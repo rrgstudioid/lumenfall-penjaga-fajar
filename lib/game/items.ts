@@ -1274,7 +1274,7 @@ export function addItemToInventory(
       }
     }
   }
-  while (remaining > 0 && next.length < capacity) {
+  while (remaining > 0 && next.filter((item) => !item.isEquipped).length < capacity) {
     const quantity = incoming.stackable
       ? Math.min(remaining, incoming.maxStack)
       : 1;

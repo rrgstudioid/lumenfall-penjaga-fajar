@@ -125,7 +125,7 @@ document.querySelector('#basic')!.addEventListener('click', () => { reset(2.5); 
 document.querySelector('#reset')!.addEventListener('click', () => { reset(2.5); write('RESET', state({ x: 0, z: 0 })); });
 
 reset(2.5);
-function runLockCase() {
+function _runLockCase() {
   const result = cast(6);
   const before = { x: game.actor.position.x, z: game.actor.position.z };
   game.move(1, 0);
@@ -136,7 +136,7 @@ function runLockCase() {
   const skillAccepted = game.castSkill('v3-warrior-iron-charge');
   return { ...result, movedWhileStunned: moved, basicDamageWhileStunned: basicDamage, skillAcceptedWhileStunned: skillAccepted, stunned: Boolean(target.stunState && target.stunState.expiresAt > game.combatTime) };
 }
-function runRecoveryCase() {
+function _runRecoveryCase() {
   cast(6);
   game.combatTime += 1.6;
   const before = { x: game.actor.position.x, z: game.actor.position.z };

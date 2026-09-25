@@ -5,7 +5,7 @@ import { ArunikaMaterials, ARUNIKA_SURFACES, addArunikaSurfaceUv, setArunikaShri
 import { buildFieldTerrain } from './field-terrain-renderer.ts';
 import { VERDANT_TERRAIN, EAST_GATE_TERRAIN } from './field-terrain.ts';
 
-test('all surface families are lightweight, distinctly named and share one region-owned clock',()=>{
+await test('all surface families are lightweight, distinctly named and share one region-owned clock',()=>{
   const palette=new ArunikaMaterials();
   for(const kind of Object.keys(ARUNIKA_SURFACES) as Array<keyof typeof ARUNIKA_SURFACES>) {
     const mat=palette.get(kind),shader={uniforms:{} as Record<string,unknown>,vertexShader:T.ShaderLib.standard.vertexShader,fragmentShader:T.ShaderLib.standard.fragmentShader};
@@ -23,7 +23,7 @@ test('all surface families are lightweight, distinctly named and share one regio
   palette.dispose();assert.equal(disposed,Object.keys(ARUNIKA_SURFACES).length);assert.equal(palette.cache.size,0);
 });
 
-test('upright and horizontal boxes have finite, noncollapsed physical UVs without changing vertices',()=>{
+await test('upright and horizontal boxes have finite, noncollapsed physical UVs without changing vertices',()=>{
   const geo=new T.BoxGeometry(4,3,2).toNonIndexed(),before=Array.from(geo.attributes.position.array);
   addArunikaSurfaceUv(geo);
   assert.deepEqual(Array.from(geo.attributes.position.array),before);
@@ -34,7 +34,7 @@ test('upright and horizontal boxes have finite, noncollapsed physical UVs withou
   }
 });
 
-test('Padang static objects are assigned by function; East Gate does not adopt the palette',()=>{
+await test('Padang static objects are assigned by function; East Gate does not adopt the palette',()=>{
   const palette=new ArunikaMaterials(),padang=buildFieldTerrain(VERDANT_TERRAIN,palette);
   const names=new Set<string>();let extra=0;
   padang.group.traverse(object=>{
@@ -53,7 +53,7 @@ test('Padang static objects are assigned by function; East Gate does not adopt t
   east.group.traverse(object=>{if(object instanceof T.Mesh)assert.equal((object.material as T.Material).userData.arunikaSurface,undefined);});
 });
 
-test('shared shrine restores original materials after travelling away, including repeated visits',()=>{
+await test('shared shrine restores original materials after travelling away, including repeated visits',()=>{
   const shrine=new T.Group(),stone=new T.MeshStandardMaterial({color:'gray'}),crystal=new T.MeshStandardMaterial({color:'cyan'});
   const base=new T.Mesh(new T.CylinderGeometry(3,3,.3,8),stone),gem=new T.Mesh(new T.OctahedronGeometry(.7),crystal);
   shrine.add(base,gem);const vertices=Array.from(base.geometry.attributes.position.array);
