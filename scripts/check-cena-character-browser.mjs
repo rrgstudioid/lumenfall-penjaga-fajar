@@ -51,7 +51,7 @@ try {
       result = await page.evaluate(() => window.__cenaReview.snapshot());
     }
     assert.equal(result.asset, mode === 'female' ? 'female-rpg' : 'cena');
-    if (mode !== 'female') { assert.equal(result.mixer, true); assert.deepEqual(new Set(result.nativeAnimations), new Set(['Walk', 'Run', 'DualSword_Attack_01', 'DualSword_Attack_02', 'DualSword_Attack_03'])); }
+    if (mode !== 'female') { assert.equal(result.mixer, true); assert.deepEqual(new Set(result.nativeAnimations), new Set(['Walk', 'Run', 'Run_Start', 'Run_Stop', 'DualSword_Attack_01', 'DualSword_Attack_02', 'DualSword_Attack_03'])); }
     assert.ok(result.rightGripError < 1e-5 && result.leftGripError < 1e-5);
     for (const value of Object.values(result.anatomyAlignment)) assert.ok(value > .96, 'hilt follows finger grip, not only socket');
     for (const value of Object.values(result.bladeWidthUp)) assert.ok(value > .9, 'idle blade width is upright, not a horizontal tray');
@@ -79,6 +79,20 @@ try {
   await page.evaluate(() => window.__cenaReview.equip('meteor'));
   await page.waitForFunction(() => window.__cenaReview.snapshot().meteorModels === 2);
   await page.evaluate(() => window.__cenaReview.render('threeQuarter'));
+  for (const [button, expected] of [['run', 'Run_Start'], [null, 'Run'], ['idle', 'Run_Stop'], [null, '']]) {
+    if (button) await page.locator(`[data-pose="${button}"]`).click();
+    await page.waitForFunction(clip => window.__cenaReview.snapshot().activeClip === clip, expected);
+    const start = await page.evaluate(() => window.__cenaReview.snapshot());
+    await page.waitForFunction(frame => window.__cenaReview.snapshot().playbackFrames > frame + 12, start.playbackFrames);
+    const state = await page.evaluate(() => window.__cenaReview.snapshot());
+    assert.equal(state.activeClip, expected);
+    assert.equal(state.runSource, 'cena-run-f0');
+    assert.deepEqual(state.actorPosition, [0, 0, 0], 'no root-motion displacement of gameplay actor');
+    assert.ok(state.rightGripError < 1e-5 && state.leftGripError < 1e-5);
+    for (const value of Object.values(state.anatomyAlignment)) assert.ok(value > .96);
+    await page.screenshot({ path: resolve(out, `run-f0-${expected || 'recovered'}.png`) });
+    cases.push({ mode: `run-f0-${expected || 'recovered'}`, ...state });
+  }
   for (const [button, expected] of [['walk', 'Walk'], ['run', 'Run'], ['attack', 'DualSword_Attack_01']]) {
     await page.locator(`[data-pose="${button}"]`).click();
     await page.waitForFunction(clip => window.__cenaReview.snapshot().activeClip === clip, expected);
@@ -102,6 +116,19 @@ try {
   }
   await page.locator('[data-pose="idle"]').click();
   await page.waitForFunction(() => window.__cenaReview.snapshot().activeClip === '');
+  // Deterministic close-up review of the real animator throughout the run cycle.
+  await page.evaluate(() => window.__cenaReview.equip('unarmed'));
+  for (const [phase, seconds, stopSeconds] of [['start', .3, null], ['loop', 1.1, null], ['loop2', 1.4, null], ['stop', 1.4, .4], ['stopEnd', 1.4, 1.4]]) {
+    await page.evaluate(([time, stop]) => window.__cenaReview.sampleRun(time, stop ?? undefined), [seconds, stopSeconds]);
+    for (const view of ['neckSide', 'neckFront', 'side', 'front']) {
+      await page.evaluate(v => window.__cenaReview.render(v), view);
+      await page.screenshot({ path: resolve(out, `neck-final-${phase}-${view}.png`) });
+    }
+    const state = await page.evaluate(() => window.__cenaReview.snapshot());
+    assert.ok(state.rightGripError < 1e-5 && state.leftGripError < 1e-5);
+    assert.deepEqual(state.actorPosition, [0, 0, 0]);
+    cases.push({ mode: `neck-${phase}`, ...state });
+  }
   assert.ok(!requestedAssets.some(url => url.includes('astra-hunyuan') || url.includes('army-running')), 'no old character mesh downloaded at runtime');
   assert.deepEqual(diagnostics, { consoleErrors: [], warnings: [], pageErrors: [], requestFailures: [] });
   await writeFile(resolve(out, 'report.json'), JSON.stringify({ status: 'PASS', cases, diagnostics }, null, 2));

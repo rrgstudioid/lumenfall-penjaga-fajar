@@ -10,18 +10,25 @@ import { freshHero, createItem } from './rules.ts';
 import { CENA_CHARACTER_ASSET, CENA_CHARACTER_TRIANGLES, loadCenaCharacter } from './cena-character.ts';
 import { CRIMSON_SWORD_GRIP, setCrimsonSwordGripRoll } from './special-sword-model.ts';
 import { cloneCharacterSource } from './revision02-character.ts';
-import { CENA_LEGACY_CLIPS, CENA_LEGACY_MOTION_ASSET } from './cena-motion.ts';
+import { CENA_RUNTIME_CLIPS, CENA_LEGACY_MOTION_ASSET, CENA_RUN_ASSET } from './cena-motion.ts';
 
-await test('Cena body keeps rig/grips and uses only retargeted old game animation, never source actions', async t => {
+await test('Cena keeps rig/grips with legacy walk/attacks and only approved Run F0 source actions', async t => {
   const motionBytes = await readFile(new URL('../../public' + CENA_LEGACY_MOTION_ASSET, import.meta.url), 'utf8');
+  const runBytes = await readFile(new URL('../../public' + CENA_RUN_ASSET, import.meta.url), 'utf8');
   t.mock.method(globalThis, 'fetch', async (url: string) => {
-    assert.equal(url, CENA_LEGACY_MOTION_ASSET);
-    return new Response(motionBytes, { status: 200 });
+    assert.ok(url === CENA_LEGACY_MOTION_ASSET || url === CENA_RUN_ASSET);
+    return new Response(url === CENA_RUN_ASSET ? runBytes : motionBytes, { status: 200 });
   });
   const bytes = await readFile(new URL('../../public' + CENA_CHARACTER_ASSET, import.meta.url));
   const pack = JSON.parse(motionBytes);
   assert.equal(pack.targetSHA256, createHash('sha256').update(bytes).digest('hex'), 'motion baked for this exact body');
-  for (const clip of pack.clips) for (const track of clip.tracks) {
+  const runPack = JSON.parse(runBytes);
+  assert.equal(runPack.targetSHA256, pack.targetSHA256);
+  assert.equal(runPack.source, 'Cena_Textured_RunLibrary.blend');
+  assert.deepEqual(runPack.diagnostics.map((c: { sourceAction: string }) => c.sourceAction), [
+    'Cena_SS_Run_Start_F_0_InPlace', 'Cena_SS_Run_Loop_F_0_InPlace', 'Cena_SS_Run_Stop_F_0_InPlace',
+  ]);
+  for (const clip of [...pack.clips, ...runPack.clips]) for (const track of clip.tracks) {
     assert.ok(track.name.endsWith('.quaternion') || track.name === 'pelvis.position');
     assert.ok(!/finger|thumb|index|middle|ring|pinky|scale/i.test(track.name), 'do not overwrite static finger grip or body proportions');
   }
@@ -56,11 +63,16 @@ await test('Cena body keeps rig/grips and uses only retargeted old game animatio
     assert.equal(await model.ready, true);
     assert.equal(JSON.stringify(hero), saved);
     assert.equal(model.actor.userData.assetKind, 'cena');
-    assert.deepEqual(new Set(model.actor.userData.nativeAnimations), new Set(CENA_LEGACY_CLIPS));
+    assert.deepEqual(new Set(model.actor.userData.nativeAnimations), new Set(CENA_RUNTIME_CLIPS));
+    assert.equal(model.actor.userData.runningAnimationSource, 'cena-run-f0');
     assert.ok(model.actor.userData.animationMixer);
     const loadedClips = model.actor.userData.animationMixer.getRoot().userData.lumenfallAnimations as T.AnimationClip[];
     assert.ok(loadedClips.find(c => c.name === 'DualSword_Attack_01')!.duration > 1, 'source injected empty 1-second clip ignored');
-    assert.equal(new Set(loadedClips.map(c => c.uuid)).size, 5, 'distinct mixer action identities');
+    assert.equal(new Set(loadedClips.map(c => c.uuid)).size, 7, 'distinct mixer action identities');
+    for (const name of ['Walk', 'DualSword_Attack_01', 'DualSword_Attack_02', 'DualSword_Attack_03']) {
+      assert.deepEqual(T.AnimationClip.toJSON(loadedClips.find(c => c.name === name)!),
+        T.AnimationClip.toJSON(T.AnimationClip.parse(pack.clips.find((c: { name: string }) => c.name === name))), 'unrelated clips unchanged');
+    }
     const visual = model.actor.getObjectByName('CenaVisual')!;
     const pos = (o: T.Object3D) => o.getWorldPosition(new T.Vector3());
     const axis = (o: T.Object3D) => new T.Vector3(0, 1, 0).transformDirection(o.matrixWorld);
@@ -132,6 +144,41 @@ await test('Cena body keeps rig/grips and uses only retargeted old game animatio
       const mixer = model.actor.userData.animationMixer as T.AnimationMixer;
       assert.ok(mixer.existingAction(loadedClips.find(c => c.name === clip)!)!.getEffectiveWeight() > .99, `${clip} actual mixer action, not label only`);
     }
+    // Real lifecycle, not manually selecting a loop in the fixture.
+    model.animator.reset();
+    const tick = (count: number, moving = false, sprinting = false, dead = false) => {
+      for (let i = 0; i < count; i++) { model.animator.update(1 / 60, { moving, sprinting, dead, speed: 5.2 }); if (i % 10 === 0) check(); }
+    };
+    tick(1, true, true);
+    assert.equal(model.actor.userData.activeNativeAnimation, 'Run_Start');
+    tick(49, true, true);
+    assert.equal(model.actor.userData.activeNativeAnimation, 'Run_Start');
+    tick(18, true, true);
+    assert.equal(model.actor.userData.activeNativeAnimation, 'Run');
+    const run = loadedClips.find(c => c.name === 'Run')!;
+    assert.ok(Math.abs(run.duration - 2 / 3) < 1e-6);
+    for (const track of run.tracks) {
+      const size = track.getValueSize();
+      assert.deepEqual(Array.from(track.values.slice(0, size)), Array.from(track.values.slice(-size)), 'closed loop seam');
+    }
+    tick(1);
+    assert.equal(model.actor.userData.activeNativeAnimation, 'Run_Stop');
+    tick(80);
+    assert.equal(model.actor.userData.activeNativeAnimation, 'Run_Stop', 'stop is not cut off at one frame');
+    tick(30);
+    assert.equal(model.actor.userData.activeNativeAnimation, '');
+    checkRelaxedStance();
+    tick(5, true, true); tick(1);
+    assert.equal(model.actor.userData.activeNativeAnimation, 'Run_Stop', 'short input can stop during start');
+    tick(1, true, true);
+    assert.equal(model.actor.userData.activeNativeAnimation, 'Run_Start', 'restart can interrupt stop');
+    tick(1, true, false);
+    assert.equal(model.actor.userData.activeNativeAnimation, 'Walk');
+    tick(2, true, true); tick(1, false, false, true);
+    assert.equal(model.actor.userData.activeNativeAnimation, '', 'death interrupts locomotion');
+    model.animator.reset(); tick(5, true, true); tick(1);
+    model.animator.play('basic_attack'); tick(1);
+    assert.equal(model.actor.userData.activeNativeAnimation, 'DualSword_Attack_01', 'stop does not lock combat');
     model.animator.reset();
     for (let combo = 1; combo <= 3; combo++) {
       const name = `DualSword_Attack_0${combo}`;
@@ -155,7 +202,7 @@ await test('Cena body keeps rig/grips and uses only retargeted old game animatio
     }
     assert.ok(pos(bones.get('WeaponSocketR')!).distanceTo(first) > .01);
     assert.deepEqual(model.actor.position.toArray(), [12, 3, -17]);
-    assert.ok(CENA_LEGACY_CLIPS.includes(model.actor.userData.activeNativeAnimation));
+    assert.ok(CENA_RUNTIME_CLIPS.includes(model.actor.userData.activeNativeAnimation));
     model.animator.reset();
     checkRelaxedStance();
     const copy = await loadCenaCharacter();
