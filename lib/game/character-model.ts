@@ -5,7 +5,7 @@ import type { Hero } from './rules.ts';
 import { getCharacterEquipmentLayers } from './character-view.ts';
 import { createProceduralAnimator } from './character-animation.ts';
 import { createRevision02Binding } from './revision02-character.ts';
-import { loadHunyuanCharacter } from './hunyuan-character.ts';
+import { loadCenaCharacter } from './cena-character.ts';
 import { armyRunningCadence } from './army-running.ts';
 import {loadFemaleCharacter,FEMALE_CHARACTER_TRIANGLES} from './female-character.ts';
 import { attachSwordAura, fitSwordAuraToBlade, updateSwordAuras } from './sword-aura.ts';
@@ -43,7 +43,7 @@ function loadCrimsonSword(holder: T.Group, placeholder: T.Object3D[], actor: T.G
   }, undefined, error => console.warn('Crimson sword unavailable; retaining default sword.', error));
 }
 
-// The male body is the rigged Hunyuan GLB; female characters use their own rig.
+// The male body is the rigged Cena GLB; female characters use their own rig.
 // These lightweight pivots remain only as the gameplay/animation attachment
 // hierarchy for equipment, sockets, and procedural combat poses.
 // Keep the flipbook assets and attachment code for reactivation later.
@@ -66,6 +66,7 @@ function applyCharacterAppearance(scene: T.Group, hero: Hero) {
   const hairColor = new T.Color(HAIR_COLORS[appearance.hairColorId] ?? HAIR_COLORS.light_brown);
   const skinColor = new T.Color(SKIN_TONES[appearance.skinToneId] ?? SKIN_TONES.tone_02);
   scene.userData.appearance = { ...appearance };
+  if (scene.userData.preserveAuthoredAppearance) return;
   scene.traverse(object => {
     if (!(object instanceof T.Mesh)) return;
     const materials = Array.isArray(object.material) ? object.material : [object.material];
@@ -86,7 +87,7 @@ export function createCharacterModel(hero: Hero, options: { aura?: boolean; asse
   const female=hero.gender==='female';
   const actor = new T.Group();
   actor.name = 'LUMENFALL_Character';
-  actor.userData = { assetKind: female?'female-rpg-loading':'astra-hunyuan-loading', gender:female?'female':'male', animationType: 'skinned-procedural-retarget' };
+  actor.userData = { assetKind: female?'female-rpg-loading':'cena-loading', gender:female?'female':'male', animationType: 'skinned-procedural-retarget' };
   const root = new T.Group(); root.name = 'Root'; actor.add(root);
   const hips = new T.Group(); hips.name = 'Hips'; hips.position.y = 0.95; root.add(hips);
   const spine = new T.Group(); spine.name = 'Spine'; spine.position.y = 0.12; hips.add(spine);
@@ -164,6 +165,7 @@ export function createCharacterModel(hero: Hero, options: { aura?: boolean; asse
       const dagger = type === 'dagger' || type === 'off_hand_dagger';
       const sword = type === 'one_hand_sword' || type === 'two_hand_sword';
       const bladeLike = sword || dagger;
+      (slot === 'mainHand' ? arm : leftSocket).userData.gripAxisCorrection = bladeLike ? Math.PI / 2 : 0;
       const length = type === 'two_hand_sword' ? 1.55 : dagger ? 0.58 : 1.1;
       // Every blade uses the same hand contract: its grip centre is the palm,
       // while its cutting edge points along the character's forward -Z axis.
@@ -360,7 +362,7 @@ export function createCharacterModel(hero: Hero, options: { aura?: boolean; asse
     restore(saved: Parameters<typeof procedural.restore>[0]) { procedural.restore(saved); nativeActions.forEach(action => action.stop()); nativeActive = undefined; nativeActiveName = ''; nativeReleasing = undefined; nativeReleaseRemaining = 0; nativeComboIndex = 0; nativeComboIdleTime = 0; binding.update(); },
   };
   animator.update(0);
-  const source = options.assetSource ?? (typeof window !== 'undefined' ? female?loadFemaleCharacter:loadHunyuanCharacter : undefined);
+  const source = options.assetSource ?? (typeof window !== 'undefined' ? female?loadFemaleCharacter:loadCenaCharacter : undefined);
   actor.visible = !source;
   actor.userData.modelStatus = source ? 'loading' : 'fallback';
   const ready = source ? source().then(scene => {
@@ -368,16 +370,18 @@ export function createCharacterModel(hero: Hero, options: { aura?: boolean; asse
     try {
       applyCharacterAppearance(scene, hero);
       binding.attach(scene);
-      const clips = (scene.userData.lumenfallAnimations ?? []) as T.AnimationClip[];
-      nativeMixer = new T.AnimationMixer(scene);
-      actor.userData.animationMixer = nativeMixer;
-      nativeActions = new Map(clips.filter(clip => nativeAttackNames.includes(clip.name) || nativeLocomotionNames.has(clip.name)).map(clip => [
-        clip.name,
-        nativeMixer!.clipAction(clip),
-      ]));
+      const clips = (scene.userData.nativeAnimationsDisabled ? [] : scene.userData.lumenfallAnimations ?? []) as T.AnimationClip[];
+      if (clips.length) {
+        nativeMixer = new T.AnimationMixer(scene);
+        actor.userData.animationMixer = nativeMixer;
+        nativeActions = new Map(clips.filter(clip => nativeAttackNames.includes(clip.name) || nativeLocomotionNames.has(clip.name)).map(clip => [
+          clip.name,
+          nativeMixer!.clipAction(clip),
+        ]));
+      }
       animator.update(0);
       actor.userData.modelStatus = 'ready';
-      actor.userData.animationType = 'dual-sword-native-retarget';
+      actor.userData.animationType = nativeActions.size ? 'dual-sword-native-retarget' : 'skinned-procedural-retarget';
       actor.userData.runningAnimationSource=scene.userData.runningAnimationSource??'legacy-run';
       actor.userData.nativeAnimations = [...nativeActions.keys()];
       actor.visible = true;

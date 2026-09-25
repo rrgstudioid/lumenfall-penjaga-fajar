@@ -59,16 +59,23 @@ const joints = {
   leftUpperLeg: 'ThighL', leftLowerLeg: 'ShinL', leftFoot: 'FootL',
 } as const;
 type Joint = keyof typeof joints;
+export type CharacterVisualProfile = {
+  assetKind: string;
+  visualName: string;
+  triangles: number;
+  jointNames?: Partial<Record<Joint, string>>;
+  useWeaponSocketOrientation?: boolean;
+};
 const cleanName = (name: string) => name.replace(/[. _]/g, '');
 
 /** Retarget the game's existing poses; combat timing/movement remains in world.ts.
  * Canonical game-axis offsets are conjugated into each bone's bind frame.
  * Afterwards the old equipment pivots follow the actual skinned joints.
  */
-export function createRevision02Binding(rig: CharacterRig, actor: T.Group, fallback: T.Mesh[], equipped: Set<string>, profile={assetKind:'male-revision-02',visualName:'MaleRevision02Visual',triangles:REVISION02_TRIANGLES}) {
+export function createRevision02Binding(rig: CharacterRig, actor: T.Group, fallback: T.Mesh[], equipped: Set<string>, profile: CharacterVisualProfile={assetKind:'male-revision-02',visualName:'MaleRevision02Visual',triangles:REVISION02_TRIANGLES}) {
   const rest = new Map<Joint, { q: T.Quaternion; p: T.Vector3 }>();
   for (const key of Object.keys(joints) as Joint[]) rest.set(key, { q: rig[key].quaternion.clone(), p: rig[key].position.clone() });
-  type Binding = { key: Joint; bone: T.Bone; q: T.Quaternion; p: T.Vector3; frame: T.Quaternion; inverse: T.Quaternion; anchor: T.Vector3 };
+  type Binding = { key: Joint; bone: T.Bone; q: T.Quaternion; p: T.Vector3; frame: T.Quaternion; inverse: T.Quaternion; anchor: T.Vector3; weaponSocket?: T.Object3D };
   let bindings: Binding[] = [];
   let visual: T.Group | undefined;
   let hipsParentInverse = new T.Quaternion();
@@ -77,10 +84,11 @@ export function createRevision02Binding(rig: CharacterRig, actor: T.Group, fallb
   const p = new T.Vector3(), move = new T.Vector3();
 
   function attach(model: T.Group) {
-    const visualProfile = model.userData.characterVisualProfile ?? profile;
+    const visualProfile: CharacterVisualProfile = model.userData.characterVisualProfile ?? profile;
+    const boneNames = { ...joints, ...visualProfile.jointNames };
     const bones = new Map<string, T.Bone>();
     model.traverse(o => { if (o instanceof T.Bone) bones.set(cleanName(o.name), o); });
-    for (const name of Object.values(joints)) if (!bones.has(name)) throw new Error(`Revision 02 missing bone ${name}`);
+    for (const name of Object.values(boneNames)) if (!bones.has(cleanName(name))) throw new Error(`${visualProfile.assetKind} missing bone ${name}`);
     const box = new T.Box3().setFromObject(model);
     modelScale = actor.userData.heightMeters / box.getSize(new T.Vector3()).y;
     visual = new T.Group(); visual.name = visualProfile.visualName;
@@ -91,7 +99,7 @@ export function createRevision02Binding(rig: CharacterRig, actor: T.Group, fallb
     const rootMatrixInverse = rig.root.matrixWorld.clone().invert();
     const socket = (name: string) => { let found: T.Object3D | undefined; model.traverse(o => { if (cleanName(o.name) === name) found = o; }); return found; };
     bindings = (Object.keys(joints) as Joint[]).map(key => {
-      const bone = bones.get(joints[key])!;
+      const bone = bones.get(cleanName(boneNames[key]))!;
       const frame = rootInverse.clone().multiply(bone.getWorldQuaternion(new T.Quaternion()));
       let anchor = new T.Vector3();
       const hand = key === 'rightHand' ? socket('WeaponSocketR') : key === 'leftHand' ? socket('WeaponSocketL') : undefined;
@@ -101,7 +109,8 @@ export function createRevision02Binding(rig: CharacterRig, actor: T.Group, fallb
         anchor.set(0, offset, key.endsWith('Foot') ? -.04 : 0).applyQuaternion(frame.clone().invert());
       }
       if (key === 'hips') hipsParentInverse = rootInverse.clone().multiply(bone.parent!.getWorldQuaternion(new T.Quaternion())).invert();
-      return { key, bone, q: bone.quaternion.clone(), p: bone.position.clone(), frame, inverse: frame.clone().invert(), anchor };
+      return { key, bone, q: bone.quaternion.clone(), p: bone.position.clone(), frame, inverse: frame.clone().invert(), anchor,
+        weaponSocket: visualProfile.useWeaponSocketOrientation ? hand : undefined };
     });
     // Keep the rest frame independent of actor placement at asynchronous load time.
     actor.userData.revision02Origin = new T.Vector3().setFromMatrixPosition(visual.matrixWorld).applyMatrix4(rootMatrixInverse).toArray();
@@ -137,6 +146,17 @@ export function createRevision02Binding(rig: CharacterRig, actor: T.Group, fallb
       parent.worldToLocal(p); parent.getWorldQuaternion(parentQ).invert();
       joint.position.copy(p); joint.quaternion.copy(parentQ).multiply(q);
       joint.updateWorldMatrix(false, false);
+      if (b.weaponSocket) {
+        const pivot = actor.getObjectByName(b.key === 'rightHand' ? 'RightHandSocket' : 'LeftHandSocket');
+        if (pivot) {
+          // Keep the artist's fitted grip axis. Blade holders already rotate
+          // local +Y to -Z, so cancel that once before applying the socket frame.
+          pivot.quaternion.copy(joint.getWorldQuaternion(new T.Quaternion()).invert())
+            .multiply(b.weaponSocket.getWorldQuaternion(new T.Quaternion()))
+            .multiply(new T.Quaternion().setFromAxisAngle(new T.Vector3(1, 0, 0), pivot.userData.gripAxisCorrection ?? 0));
+          pivot.updateWorldMatrix(false, true);
+        }
+      }
     }
   }
   function update() {

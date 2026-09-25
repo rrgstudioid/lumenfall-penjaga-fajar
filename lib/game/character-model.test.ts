@@ -44,7 +44,7 @@ await test('loading character keeps attachment pivots without the retired proced
     if (object instanceof T.Mesh) { meshes++; triangles += (object.geometry.index?.count ?? object.geometry.attributes.position.count) / 3; }
   });
   assert.ok(meshes <= 6 && triangles < 500, 'only equipment/accessory geometry remains during GLB loading');
-  assert.equal(m.actor.userData.assetKind, 'astra-hunyuan-loading');
+  assert.equal(m.actor.userData.assetKind, 'cena-loading');
   assert.ok(m.actor.userData.heightMeters > 2.3 && m.actor.userData.heightMeters < 2.5, 'keeps the previous game model scale');
   disposeCharacterModel(m.actor);
 });
