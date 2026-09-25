@@ -1325,7 +1325,6 @@ export class Game {
       this.scene.remove(nearestGold.group);
       nearestGold.label.remove();
       this.groundGold = this.groundGold.filter(drop => drop !== nearestGold);
-      this.message(`${nearestGold.amount} GOLD diambil.`);
       this.save();
       this.emit();
       return true;
@@ -1348,7 +1347,6 @@ export class Game {
       }
     });
     this.groundLoot = this.groundLoot.filter(loot => loot !== nearestItem);
-    this.message(`${nearestItem.item.name}${nearestItem.item.quantity > 1 ? ` x${nearestItem.item.quantity}` : ''} diambil.`, nearestItem.item);
     this.save();
     this.emit();
     return true;
@@ -1797,7 +1795,7 @@ export class Game {
         refreshUnlocks(this.hero);
       }
     }
-    this.save();this.message(result.reason);return result.ok;
+    this.save();if(!result.ok)this.message(result.reason);else this.emit();return result.ok;
   }
   fieldAction(action:string,id='') {
     if(this.hero.inCity){this.message('Field camp hanya tersedia di field map.');return false;}
@@ -1806,7 +1804,7 @@ export class Game {
     if(action==='buy'&&this.currentNpc.services.includes('buy')) result=buyFieldShopItem(this.hero,this.hero.currentField,id);
     if(action==='city'&&this.currentNpc.services.includes('teleport')) return this.changeRegion(this.hero.currentCity);
     if(action==='teleport'&&this.currentNpc.services.includes('teleport')) { this.message('Buka peta dengan M untuk memilih field yang sudah terbuka.'); return true; }
-    this.save();this.message(result.reason);return result.ok;
+    this.save();if(!result.ok)this.message(result.reason);else this.emit();return result.ok;
   }
   emit() {
     const musicId = this.hero.inCity ? CITIES[this.hero.currentCity]?.musicId : FIELDS[this.hero.currentField]?.musicId;
@@ -1830,7 +1828,7 @@ export class Game {
     this.notice = text;
     this.noticeItem = item ? { templateId: item.templateId, rarity: item.rarity } : null;
     this.noticeId++;
-    this.noticeTimer = 4.5;
+    this.noticeTimer = 1;
     this.emit();
   }
   selectCharacter(slotId: string, _job: JobId = 'adventurer', gender: 'male'|'female' = 'male') {
@@ -2016,7 +2014,6 @@ export class Game {
       this.skillCooldowns = {};
       this.rebuildHeroAppearance();
       this.save();
-      this.message(`Core Job terbuka: ${combatProfile(this.hero).label}.`);
       this.emit();
       return true;
     }
@@ -2035,7 +2032,6 @@ export class Game {
       this.skillCooldowns = {};
       this.rebuildHeroAppearance();
       this.save();
-      this.message(`Special Job dipilih: ${combatProfile(this.hero).label}.`);
       this.emit();
       return true;
     }
@@ -2052,7 +2048,6 @@ export class Game {
     if (!this.hero.masteryQuestClaimed && !this.atJobTrainer('special')) return false;
     if (chooseMastery(this.hero, skillId, choice)) {
       this.save();
-      this.message(`Mastery ${choice} diterapkan pada skill.`);
       this.emit();
       return true;
     }
@@ -2065,7 +2060,6 @@ export class Game {
     this.hero={...this.hero};
     if (learnSkill(this.hero, skillId)) {
       this.save();
-      this.message('Skill level meningkat.');
       this.emit();
       return true;
     }
@@ -2078,7 +2072,6 @@ export class Game {
     this.hero={...this.hero};
     if (learnPassive(this.hero,passiveId)) {
       this.save();
-      this.message('Passive job meningkat.');
       this.emit();
       return true;
     }
@@ -2089,7 +2082,7 @@ export class Game {
   }
   equipItem(itemId: string, targetSlot?: EquipSlot) {
     const result = equipInventoryItem(this.hero, itemId, targetSlot);
-    this.message(result.reason);
+    if (!result.ok) this.message(result.reason);
     if (result.ok) {
       this.syncCombatModifiers();
       this.rebuildHeroAppearance();
@@ -2115,7 +2108,7 @@ export class Game {
   }
   unequipItem(slot: EquipSlot) {
     const result = unequipInventoryItem(this.hero, slot);
-    this.message(result.reason);
+    if (!result.ok) this.message(result.reason);
     if (result.ok) {
       this.syncCombatModifiers();
       this.rebuildHeroAppearance();
@@ -2130,7 +2123,7 @@ export class Game {
     if(!result.ok){this.message(result.reason);return false;}
     try { saveCharacter(next,true); }
     catch {this.message('Save gagal. Transaksi Rune dibatalkan; periksa penyimpanan browser.');return false;}
-    this.hero=next;this.saved=true;this.message(result.reason);this.emit();return true;
+    this.hero=next;this.saved=true;this.emit();return true;
   }
   socketRune(equipmentId:string,runeId:string,socketIndex:number){
     return this.commitRuneAction(hero=>socketInventoryRune(hero,equipmentId,runeId,socketIndex,this.forgeNpcId));
@@ -2141,7 +2134,7 @@ export class Game {
   useItem(itemId: string) {
     this.hero={...this.hero,stamina:this.stamina};
     const result = consumeInventoryItem(this.hero, itemId);
-    this.message(result.reason);
+    if (!result.ok) this.message(result.reason);
     if (result.ok) {
       this.stamina=this.hero.stamina;
       this.sound(600,0.18);
@@ -2162,7 +2155,7 @@ export class Game {
       if (target.type === 'inventory')
         window.dispatchEvent(new CustomEvent('lumenfall:inventory-layout-changed'));
     }
-    this.message(result.reason);
+    if (!result.ok) this.message(result.reason);
     return result.ok;
   }
   savePrimaryHotbar() {
@@ -2173,7 +2166,7 @@ export class Game {
     if(!this.hotbarEditMode)return false;
     const result=assignHotbarSlot(this.hero,slotIndex,entryId);
     if(result.ok){this.hero=result.hero;this.savePrimaryHotbar();}
-    this.message(result.reason);return result.ok;
+    if(!result.ok)this.message(result.reason);return result.ok;
   }
   swapPrimaryHotbarSlots(source:number,target:number) {
     if(!this.hotbarEditMode)return;
@@ -2198,7 +2191,7 @@ export class Game {
     if(!this.hotbarEditMode)return false;
     const result=assignQuickSlot(this.hero,id,entryId);
     if(result.ok){this.hero=result.hero;this.savePrimaryHotbar();}
-    this.message(result.reason);return result.ok;
+    if(!result.ok)this.message(result.reason);return result.ok;
   }
   removeQuickHotbarSlot(id:QuickHotbarId) {
     if(!this.hotbarEditMode)return;
@@ -2239,7 +2232,7 @@ export class Game {
       const item=this.hero.inventory.find(item=>item.templateId===id&&item.quantity>0);
       used=!!item&&this.useItem(item.id);
     } else if(id==='basic-attack') {
-      if(this.attackTimer>0){this.message('Basic Attack masih cooldown.');return false;}
+      if(this.attackTimer>0)return false;
       this.action('attack');used=this.attackTimer>0;
     } else if(id==='rest') {this.action('heal');used=this.hero.inCity||this.nearSanctuary;}
     if(used){this.lastHotbarSlot=typeof slot==='number'?slot:slot==='q'?10:11;this.hotbarUseSequence++;this.save();this.emit();}
@@ -2258,7 +2251,7 @@ export class Game {
   }
   discardItem(itemId: string, quantity = 1) {
     const result = discardInventoryItem(this.hero, itemId, quantity);
-    this.message(result.reason);
+    if (!result.ok) this.message(result.reason);
     if (result.ok) {
       this.save();
       this.emit();
@@ -2274,11 +2267,8 @@ export class Game {
   collectLoot() {
     const count = collectPendingLoot(this.hero);
     this.save();
-    this.message(
-      count
-        ? `${count} item tersimpan masuk ke Inventory.`
-        : 'Inventory masih penuh. Kosongkan slot terlebih dahulu.',
-    );
+    if (!count) this.message('Inventory masih penuh. Kosongkan slot terlebih dahulu.');
+    else this.emit();
   }
   enhancementPreview(itemId: string, useSeal = this.hero.enhancementSealEnabled !== false, useFateRune = false) {
     return enhancementPreview(this.hero, itemId, useSeal, useFateRune);
@@ -2298,7 +2288,7 @@ export class Game {
     }
     const equipped = Object.values(this.hero.equipment).includes(itemId);
     const result = enhanceItem(this.hero, itemId, Math.random(), expectedLevel, useSeal, useFateRune);
-    this.message(result.reason);
+    if (!result.ok) this.message(result.reason);
     if (result.attempted) {
       // Apply +10 VFX immediately, including removal on downgrade/destruction.
       if (equipped) this.rebuildHeroAppearance();
@@ -2310,7 +2300,7 @@ export class Game {
   }
   evolvePet() {
     const result = evolvePetRules(this.hero);
-    this.message(result.reason);
+    if (!result.ok) this.message(result.reason);
     if (result.ok) {
       this.save();
       this.emit();
@@ -2319,11 +2309,7 @@ export class Game {
   }
   applyStatPreview(preview: AllocatedStats) {
     const ok = applyStatPreview(this.hero, preview);
-    this.message(
-      ok
-        ? 'Atribut berhasil diperbarui.'
-        : 'Status Point tidak cukup untuk preview ini.',
-    );
+    if (!ok) this.message('Status Point tidak cukup untuk preview ini.');
     if (ok) {
       this.save();
       this.emit();
@@ -2332,7 +2318,7 @@ export class Game {
   }
   respecStats() {
     const result = resetCharacterStats(this.hero);
-    this.message(result.reason);
+    if (!result.ok) this.message(result.reason);
     if (result.ok) {
       this.hero=result.hero;
       this.save();
@@ -2343,12 +2329,12 @@ export class Game {
   allocateStatPoint(stat: keyof AllocatedStats) {
     const result=allocateStatPointRules(this.hero,stat);
     if(result.ok){this.hero=result.hero;this.save();}
-    this.message(result.reason);this.emit();return result.ok;
+    if(!result.ok)this.message(result.reason);this.emit();return result.ok;
   }
   resetSkillPoints() {
     const result=resetSkillPointsRules(this.hero);
     if(result.ok){this.clearSkillRuntime();this.hero=validatePrimaryHotbar(result.hero);this.save();}
-    this.message(result.reason);this.emit();return result.ok;
+    if(!result.ok)this.message(result.reason);this.emit();return result.ok;
   }
   resetJobToAdventurer() {
     if (!this.currentNpc || !this.currentNpc.services.includes('job')) return false;
@@ -2360,12 +2346,12 @@ export class Game {
       this.save();
       this.emit();
     }
-    this.message(result.reason);
+    if(!result.ok)this.message(result.reason);
     return result.ok;
   }
   unlockUniqueStats(itemId:string) {
     this.hero={...this.hero};const result=unlockUniqueStatsRules(this.hero,itemId);
-    if(result.ok)this.save();this.message(result.reason);this.emit();return result.ok;
+    if(result.ok)this.save();if(!result.ok)this.message(result.reason);this.emit();return result.ok;
   }
   atJobTrainer(service:'core'|'special') {
     const npc=this.currentNpc;
@@ -2431,7 +2417,10 @@ export class Game {
     }
     // Structural validation first; mana is paid against the final contextual action below.
     const validation=canCastSkillRules(this.hero,skill.id,this.skillCooldowns,this.equippedWeaponType(),0);
-    if(!validation.ok){this.message(validation.reason);return false;}
+    if(!validation.ok){
+      if(!validation.reason.includes('masih cooldown'))this.message(validation.reason);
+      return false;
+    }
     this.syncCombatModifiers();
     if (skill.id === 'v3-blade-master-tempo-drive' && this.transientCombat.tempoCount(this.combatTime) === 0) return this.failTarget('TEMPO_REQUIRED');
     const tempoReduction=this.transientCombat.bladeTempoDrive?.manaReductionPercent ?? 0;
@@ -2479,7 +2468,7 @@ export class Game {
     const support=combatSupportFor(this.hero);
     const windows=this.transientCombat.windowModifiers(preview,support,this.combatTime);
     const action=resolveHeroSkill(this.hero,skill,level,stats,counter,windows,this.skillImpactContext(selection.target),tempoReduction);
-    if(!this.consumeMana(action.manaCost)){this.message('Mana tidak cukup.');return false;}
+    if(!this.consumeMana(action.manaCost))return false;
     this.lastActionFailure=null;
     if(targetRequirement(action)!=='self'&&action.hitSequence.some(hit=>skillHitDamage(hit,stats)>0))breakStealth(this.hero,'offensive_skill');
     this.updateStealthPresentation();
@@ -2932,7 +2921,6 @@ export class Game {
         0.45,
       );
     }
-    this.message(`${skill.name} digunakan.`);
   }
   /** Probe the final Charge gap without moving the actor. Being inside impact
    * range must not permit a hit through a trunk/rock that blocked the approach.
@@ -2972,7 +2960,7 @@ export class Game {
         healAtCity(this.hero);
         if (isResourceEnabled(this.hero, 'stamina')) this.stamina = derivedStats(this.hero).staminaMax;
         this.save();
-        this.message(isResourceEnabled(this.hero, 'stamina') ? 'Tabib kota memulihkan HP, Mana, stamina, dan statusmu.' : 'Tabib kota memulihkan HP, Mana, dan statusmu.');
+        this.emit();
         return;
       }
       if (this.nearSanctuary) {
@@ -2980,7 +2968,6 @@ export class Game {
         if (isResourceEnabled(this.hero, 'stamina')) this.stamina = 100;
         this.effect(this.actor.position, '#b6f3ce', 20);
         this.save();
-        this.message('Cahaya kuil memulihkanmu.');
       } else this.message('Dekati kristal di Kuil Fajar untuk beristirahat.');
     }
     this.emit();
@@ -3098,7 +3085,7 @@ export class Game {
   nova() {
     if(this.actionLock?.active(this.combatTime))return this.failTarget('ACTION_LOCKED');
     if (!this.started || this.paused || this.dead || this.hotbarInteracting || this.cooldown > 0) return;
-    if(!this.consumeMana(35)){this.message('Mana tidak cukup.');return;}
+    if(!this.consumeMana(35))return;
     this.cooldown = 8;
     this.characterModel.animator.play('magic_cast', .65);
     this.ring(this.actor.position, '#baf5dc', 6.5, 0.6);
@@ -3174,14 +3161,13 @@ export class Game {
         'reward',
       );
       if (loots.length) {
-        this.message(`${loots.map(loot => loot.name).join(', ')} jatuh. Tekan Space untuk mengambil.`, loots[0]);
         this.float(e.group.position, 'DROP · SPACE', 'reward');
       }
       if (levels) {
         this.ring(this.actor.position, '#ffe4a1', 4, 0.8);
         this.message(`Level ${this.hero.level}! Kekuatan dan HP bertambah.`);
       }
-      if (!this.hero.questClaimed && this.hero.kills >= 6)
+      if (!this.hero.questClaimed && this.hero.kills === 6)
         this.message('Objective misi selesai. Temui Quest NPC untuk mengklaim reward.');
       if (e.boss) {
         if (!this.hero.defeatedFieldBosses.includes(this.hero.currentField))
@@ -3378,7 +3364,11 @@ export class Game {
     }
     if (this.noticeTimer > 0) {
       this.noticeTimer -= dt;
-      if (this.noticeTimer <= 0) this.notice = '';
+      if (this.noticeTimer <= 0) {
+        this.notice = '';
+        this.noticeItem = null;
+        this.emit();
+      }
     }
     for (let i = this.particles.length - 1; i >= 0; i--) {
       const p = this.particles[i];

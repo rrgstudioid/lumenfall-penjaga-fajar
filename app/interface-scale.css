@@ -2,6 +2,7 @@
 :root { --lumenfall-ui-scale: 1; }
 
 .game-shell > :is(.player-card, .quest-card, .map-panel, .toast, .boss-bar, .start-screen, .shrine-prompt, .touch-movement),
+body > .toast,
 .topbar > :is(.brand, .location, .top-tools),
 .game-footer > :is(.journey-note, .experience),
 .lumenfall-draggable-window[data-slot],
@@ -20,6 +21,7 @@
   /* Existing translateX(-50%) remains part of transform; this keeps the screen anchor fixed. */
   transform-origin: 0 0;
 }
+body > .toast { transform-origin: 0 0; }
 .game-shell > .start-screen { transform-origin: 0 0; }
 .lumenfall-draggable-window[data-slot] { transform-origin: center; }
 .lumenfall-draggable-window[data-ui-positioned='true'] {

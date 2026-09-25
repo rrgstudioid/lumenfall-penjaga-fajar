@@ -2073,9 +2073,10 @@ kbd {
 }
 .toast {
   position: absolute;
-  top: 116px;
+  top: 50px;
   left: 50%;
   transform: translateX(-50%);
+  z-index: 2147483000;
   max-width: 450px;
   padding: 12px 19px;
   border-radius: 5px;
@@ -2084,6 +2085,10 @@ kbd {
   display: flex;
   gap: 9px;
   align-items: center;
+  background: linear-gradient(140deg, #163d33fa, #0e3028f7);
+  border: 1px solid #d7e4be70;
+  box-shadow: 0 8px 28px #03140ed9, 0 0 0 1px #061d1570;
+  isolation: isolate;
   animation: toast-enter 0.3s ease-out;
   pointer-events: none;
 }
@@ -3558,7 +3563,6 @@ button.shop-row:disabled {
     margin-top: 13px;
   }
   .toast {
-    top: 96px;
   }
 }
 @media (max-width: 760px) {
@@ -3754,12 +3758,10 @@ button.shop-row:disabled {
     padding: 8px 12px;
   }
   .toast {
-    top: 324px;
     width: max-content;
     max-width: calc(100% - 35px);
     font-size: 11px;
     padding: 10px 13px;
-    z-index: 12;
   }
   .boss-bar {
     top: 310px;
@@ -3842,7 +3844,6 @@ button.shop-row:disabled {
     top: 287px;
   }
   .toast {
-    top: 285px;
   }
 }
 @media (prefers-reduced-motion: reduce) {

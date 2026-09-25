@@ -941,11 +941,12 @@ export default function Home() {
         onEnter={startSelectedCharacter} onCreate={beginAdventure}
         onSound={toggleSound} onFullscreen={toggleFullscreen}
       />}
-      {state.notice && state.started && (
+      {state.notice && state.started && typeof document !== 'undefined' && createPortal(
         <output className="toast glass" key={state.noticeId}>
           {state.noticeItem ? <ItemIcon item={state.noticeItem} /> : <Sparkles size={16} />}
           <JobText>{state.notice}</JobText>
-        </output>
+        </output>,
+        document.body,
       )}
       {active && state.nearShrine && (
         <button className="shrine-prompt glass" onClick={() => act('heal')}>
