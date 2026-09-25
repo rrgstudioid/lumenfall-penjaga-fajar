@@ -80,7 +80,7 @@ export async function buildPilot() {
       invalidIndices = 0,
       degenerate = 0;
     const materials = new Set<string>(),
-      hierarchy: Array<{name:string;type:string;scale:number[]}> = [],
+      hierarchy: Array<{name:string;type:string;position:number[];scale:number[]}> = [],
       textures: unknown[] = [];
     root.traverse((o) => {
       hierarchy.push({

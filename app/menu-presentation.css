@@ -1,5 +1,5 @@
 /* Dedicated menu scene: deliberately independent of in-world window styling/scaling. */
-.game-shell.menu-mode > :not(.menu-presentation) { visibility: hidden !important; pointer-events: none !important; }
+.game-shell.menu-mode > :not(.menu-presentation):not(.map-load-error) { visibility: hidden !important; pointer-events: none !important; }
 .game-shell.menu-mode > .world { visibility: hidden; }
 .menu-presentation {
   --menu-silver: #e4effc; --menu-blue: #8bd7ff; --menu-gold: #edc677;

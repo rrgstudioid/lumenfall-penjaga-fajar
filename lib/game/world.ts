@@ -287,18 +287,28 @@ export class Game {
   terrainSurface: T.Mesh | null = null;
   arunikaMaterials: ArunikaMaterials | null = null;
   sandsGround: ImportedMapGround | null = null;
+  averion: Awaited<ReturnType<typeof import('./averion-map').buildStage03>> | null = null;
+  private averionUseSpawn = false;
+  private averionCameraDistance = 9;
+  get isAverion() { return this.hero.inCity && this.hero.currentCity === 'averion'; }
   get isSandsLocation() { return !this.hero.inCity && this.hero.currentField === 'sands-location'; }
   get fieldTerrain() { return this.hero.inCity ? undefined : FIELD_TERRAINS[this.hero.currentField]; }
-  get nearSanctuary() {const p=this.fieldTerrain?.sanctuary??{x:0,z:0};return Math.hypot(this.hero.x-p.x,this.hero.z-p.z)<5.3;}
+  get nearSanctuary() {if(this.isAverion)return false;const p=this.fieldTerrain?.sanctuary??{x:0,z:0};return Math.hypot(this.hero.x-p.x,this.hero.z-p.z)<5.3;}
   groundHeight(x:number,z:number) {
+    if(this.isAverion)return this.averion?.groundHeight(x,z)??this.actor.position.y;
     if(this.isSandsLocation)return this.sandsGround?.heightAt(x,z)??0;
     const t=this.fieldTerrain;return t?terrainHeight(t,x,z):0;
   }
   groundDistance(a:T.Vector3,b:T.Vector3) {
     // Preserve the old flat-ground combat ranges when actors stand on different elevations.
-    return this.fieldTerrain||this.isSandsLocation?Math.hypot(a.x-b.x,a.z-b.z):a.distanceTo(b);
+    return this.fieldTerrain||this.isSandsLocation||this.isAverion?Math.hypot(a.x-b.x,a.z-b.z):a.distanceTo(b);
   }
   placeActor() {
+    if(this.isAverion) {
+      this.actor.visible=!!this.averion;
+      if(!this.averion)return;
+      if(!this.averion.collision.valid(this.hero))Object.assign(this.hero,this.averion.spawn);
+    } else this.actor.visible=true;
     const t=this.fieldTerrain;
     if(t)Object.assign(this.hero,nearestTerrainPoint(t,{x:this.hero.x,z:this.hero.z}));
     if(this.isSandsLocation&&this.sandsGround)Object.assign(this.hero,this.sandsGround.nearestPoint(this.hero,FIELDS['sands-location'].entry));
@@ -629,7 +639,7 @@ export class Game {
     public onSnapshot: (snapshot: Snapshot) => void,
     public onPause: () => void,
     initialSlot = 'slot-1',
-    public onMapTransition?: (state: { id: string; loading: boolean; label: string }) => void,
+    public onMapTransition?: (state: { id: string; loading: boolean; label: string; error?: string }) => void,
   ) {
     try {
       this.slotId = initialSlot;
@@ -1040,6 +1050,7 @@ export class Game {
     this.scene.add(this.actor);
   }
   buildEnemies() {
+    if(this.isAverion)return;
     if (this.hero.inCity) {
       this.buildTrainingDummies();
       return;
@@ -1473,6 +1484,7 @@ export class Game {
   }
   buildRegionDecor() {
     const buildToken=++this.regionBuildToken;
+    if(this.averion){this.averion.root.removeFromParent();this.averion.dispose();this.averion=null;}
     this.regionLoads = [];
     this.regionLoadError = null;
     setArunikaShrineMaterials(this.shrine,null);
@@ -1485,6 +1497,19 @@ export class Game {
     this.scene.remove(this.regionDecor);
     this.regionDecor.traverse(object => { if(object instanceof T.Mesh){object.geometry.dispose(); const materials=Array.isArray(object.material)?object.material:[object.material]; materials.forEach(material=>material.dispose());} });
     this.regionDecor = new T.Group(); this.scene.add(this.regionDecor);
+    this.followCamera.far=this.freeCamera.far=this.isAverion?650:160;
+    this.followCamera.updateProjectionMatrix();this.freeCamera.updateProjectionMatrix();
+    this.worldLightRig.traverse(o=>{
+      if(o instanceof T.HemisphereLight){o.intensity=this.isAverion?1.2:2.2;o.color.set(this.isAverion?'#eef5ff':'#f2f8d6');o.groundColor.set(this.isAverion?'#687b55':'#3f5d45');}
+      if(o instanceof T.DirectionalLight){
+        o.intensity=this.isAverion?2:2.6;o.position.set(-20,40,15);o.target.position.set(0,0,0);o.target.updateMatrixWorld();
+        const size=this.isAverion?2048:1024;
+        if(o.shadow.mapSize.x!==size){o.shadow.map?.dispose();o.shadow.map=null;o.shadow.mapSize.set(size,size);}
+        const extent=this.isAverion?35:42;
+        Object.assign(o.shadow.camera,{left:-extent,right:extent,top:extent,bottom:-extent,far:this.isAverion?150:130});o.shadow.camera.updateProjectionMatrix();
+        o.shadow.bias=this.isAverion?-.0015:-.0001;o.shadow.normalBias=this.isAverion?.12:.045;
+      }
+    });
     const city = CITIES[this.hero.currentCity];
     const field = FIELDS[this.hero.currentField];
     const color = this.hero.inCity ? this.hero.currentCity==='arunika'?'#dfe9bb':'#d8d9d0' : field.color;
@@ -1501,6 +1526,19 @@ export class Game {
     const sanctuary=this.fieldTerrain?.sanctuary??{x:0,z:0};
     this.shrine.position.set(sanctuary.x,this.groundHeight(sanctuary.x,sanctuary.z),sanctuary.z);
     this.shrine.visible=true;
+    if(this.isAverion) {
+      this.terrain.visible=false;this.shrine.visible=false;this.actor.visible=false;
+      this.scene.background=new T.Color('#b9d5e3');this.scene.fog=new T.Fog('#b9d5e3',350,650);
+      this.regionLoads.push(import('./averion-map').then(module=>module.buildStage03()).then(map=>{
+        if(this.disposed||buildToken!==this.regionBuildToken){map.dispose();return;}
+        this.averion=map;this.regionDecor.add(map.root);
+        if(this.averionUseSpawn||!map.collision.valid(this.hero))Object.assign(this.hero,map.spawn);
+        this.averionUseSpawn=false;this.averionCameraDistance=9;
+        this.followView.distance=this.followView.targetDistance=9;
+        this.placeActor();this.cameraFocus.copy(this.actor.position);this.drawMap();
+      }).catch(error=>{if(!this.disposed&&buildToken===this.regionBuildToken)this.regionLoadError=error;throw error;}));
+      return;
+    }
     if(isSandsLocation) {
       this.terrain.visible=false;
       this.shrine.visible=false;
@@ -1671,6 +1709,7 @@ export class Game {
     if(this.transitioning) return false;
     const result=travel(this.hero,id); if(!result.ok){this.message(result.reason);return false;}
     const destinationLabel = CITIES[id]?.displayName ?? FIELDS[id]?.displayName ?? 'Area baru';
+    this.averionUseSpawn=id==='averion';
     this.clearSkillRuntime();
     this.closeNpcMenu();
     this.transitioning=true;this.clearInput();
@@ -1686,14 +1725,16 @@ export class Game {
         this.cameraFocus.copy(this.actor.position);
         await this.waitForRegionLoads();
         this.invincible=2;
+        this.transitioning=false;
         this.save();
         this.message(result.reason);
       } catch (error) {
         console.warn('Gagal memuat region tujuan.', error);
+        this.regionLoadError=error instanceof Error?error:new Error(String(error));
         this.message('Map tujuan belum siap sepenuhnya. Silakan coba lagi sebentar.');
       } finally {
         this.transitioning=false;
-        this.onMapTransition?.({ id, loading: false, label: destinationLabel });
+        this.onMapTransition?.({ id, loading: false, label: destinationLabel, error: this.regionLoadError ? 'ERROR: Map gagal dimuat. Periksa koneksi, lalu tekan Retry.' : undefined });
         this.emit();
       }
     })();
@@ -1879,6 +1920,9 @@ export class Game {
     try { saveCharacter(this.hero); } catch { this.saved = false; }
   }
   restoreSavedPosition() {
+    refreshUnlocks(this.hero);
+    // Validate Averion saves against its collision package once it has loaded.
+    if(this.isAverion)return;
     const valid = (position: { x: number; z: number }) => {
       if (!Number.isFinite(position.x) || !Number.isFinite(position.z)) return false;
       const extent = regionHalfExtent(this.hero.inCity);
@@ -1964,7 +2008,7 @@ export class Game {
     else this.keys.delete(key);
   }
   save() {
-    if (!this.started || this.dead) return;
+    if (!this.started || this.dead || this.transitioning || this.regionLoadError || (this.isAverion&&!this.averion)) return;
     this.hero.stamina = this.stamina;
     this.hero.lastPlayedAt = Date.now();
     this.hero.lastSafePosition = { x: this.hero.x, z: this.hero.z };
@@ -3239,6 +3283,7 @@ export class Game {
     ).normalize();
   }
   move(dx: number, dz: number) {
+    if(this.transitioning||this.regionLoadError||(this.isAverion&&!this.averion))return;
     if(isStunned(this.hero,this.combatTime))return;
     const p=moveWithTreeCollisions(this.hero,dx,dz,this.treeColliders,(from,mx,mz)=>this.moveHeroOnGround(from,mx,mz),(x,z)=>this.groundHeight(x,z));
     this.hero.x=p.x;this.hero.z=p.z;
@@ -3263,6 +3308,7 @@ export class Game {
     return this.groundDistance(this.actor.position, target.group.position) <= desiredRange + 1e-4;
   }
   moveHeroOnGround(from:GroundPoint,dx:number,dz:number):GroundPoint {
+    if(this.isAverion)return this.averion?this.averion.move(from,dx,dz):{...from};
     if(this.fieldTerrain) {
       return moveOnTerrain(this.fieldTerrain,from,dx,dz);
     }
@@ -3289,6 +3335,9 @@ export class Game {
   }
   tick = (time: number) => {
     if (this.disposed || !this.started) { this.frame = 0; return; }
+    if(this.transitioning||this.regionLoadError||(this.isAverion&&!this.averion)) {
+      this.lastTime=time;this.frame=requestAnimationFrame(this.tick);return;
+    }
     const dt = Math.min((time - (this.lastTime || time)) / 1000, 0.04);
     this.lastTime = time;
     this.elapsed += dt;
@@ -3414,6 +3463,17 @@ export class Game {
     const targetGroundY = this.groundHeight(this.actor.position.x, this.actor.position.z);
     this.actor.position.y = T.MathUtils.lerp(this.actor.position.y, targetGroundY, 0.18);
     this.updateCamera(dt);
+    if(this.isAverion&&this.averion) {
+      if(this.cameraMode==='follow') {
+        const focus=this.actor.position.clone().add(new T.Vector3(0,1.65,0));
+        const constrained=this.averion.constrainCamera(focus,this.camera.position);
+        const direction=constrained.clone().sub(focus),allowed=direction.length();
+        this.averionCameraDistance=allowed<this.averionCameraDistance?allowed:this.averionCameraDistance+(allowed-this.averionCameraDistance)*(1-Math.exp(-8*dt));
+        this.camera.position.copy(focus).addScaledVector(direction.normalize(),this.averionCameraDistance);
+      }
+      this.averion.updateLOD(this.camera);
+      this.worldLightRig.traverse(o=>{if(o instanceof T.DirectionalLight){o.position.copy(this.actor.position).add(new T.Vector3(-25,45,20));o.target.position.copy(this.actor.position);o.target.updateMatrixWorld();}});
+    }
     this.camera.updateMatrixWorld();
     updateCharacterBillboards(this.aura, this.camera);
     this.updateFloating(dt);
@@ -3758,10 +3818,15 @@ export class Game {
     ctx.fillRect(0, 0, size, size);
 
 
-    const mapScale = this.fieldTerrain?.id === 'verdant-plains' ? 2 : regionScale(this.hero.inCity);
+    const mapScale = this.isAverion ? 250/106 : this.fieldTerrain?.id === 'verdant-plains' ? 2 : regionScale(this.hero.inCity);
     const p = (v: number) => size / 2 + (v * size) / (106 * mapScale);
 
-    if(this.fieldTerrain) {
+    if(this.isAverion&&this.averion) {
+      ctx.fillStyle='#c6b997';ctx.beginPath();ctx.arc(p(0),p(-1.565295),size*104/250,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle='#697d8b';
+      for(const r of this.averion.manifest.records.filter(r=>r.id.startsWith('LF2_')&&r.id.endsWith('_stone')))ctx.fillRect(p(r.min[0]),p(-r.max[1]),(r.max[0]-r.min[0])*size/250,(r.max[1]-r.min[1])*size/250);
+      for(const a of this.averion.anchors){ctx.fillStyle=a.id==='warp'?'#62cdff':'#fff1b6';ctx.beginPath();ctx.arc(p(a.position[0]),p(a.position[2]),2,0,Math.PI*2);ctx.fill();}
+    } else if(this.fieldTerrain) {
       const t=this.fieldTerrain;
       ctx.fillStyle='#38685b';ctx.beginPath();t.boundary.forEach((q,i)=>i?ctx.lineTo(p(q.x),p(q.z)):ctx.moveTo(p(q.x),p(q.z)));ctx.closePath();ctx.fill();
       ctx.save();ctx.clip();
@@ -3903,6 +3968,7 @@ export class Game {
     this.renderer.setSize(w, h, false);
   };
   keydown = (e: KeyboardEvent) => {
+    if(this.transitioning||this.regionLoadError)return;
     if (!this.started || e.defaultPrevented || this.hotbarInteracting) return;
     if (
       (e.target as HTMLElement)?.closest(
@@ -4098,6 +4164,7 @@ export class Game {
     this.treeColliders=[];
     this.bgm.dispose();
     this.save();
+    if(this.averion){this.averion.root.removeFromParent();this.averion.dispose();this.averion=null;}
     cancelAnimationFrame(this.frame);
     this.frame = 0;
     this.resizeObserver.disconnect();

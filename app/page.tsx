@@ -218,6 +218,7 @@ export default function Home() {
     [ready, setReady] = useState(false),
     [error, setError] = useState(''),
     [loadingDestination, setLoadingDestination] = useState<string | null>(null),
+    [mapError, setMapError] = useState<{id:string;label:string;message:string}|null>(null),
     [panel, setPanel] = useState(''),
     [roster, setRoster] = useState<CharacterSlot[]>([]),
     [selectedSlot, setSelectedSlot] = useState('slot-1'),
@@ -307,7 +308,14 @@ export default function Home() {
             (transition) => {
               if (cancelled) return;
               if (transition.loading) {
+                setMapError(null);
+                setPanel('');
                 setLoadingDestination(transition.label);
+                setFlow('loading');
+                return;
+              }
+              if (transition.error) {
+                setMapError({id:transition.id,label:transition.label,message:transition.error});
                 setFlow('loading');
                 return;
               }
@@ -325,6 +333,7 @@ export default function Home() {
         } catch (cause) {
           if (cancelled) return;
           console.error(cause);
+          if(instance?.isAverion)setMapError({id:'averion',label:'Averion',message:'ERROR: Averion gagal dimuat. Save tetap aman. Periksa koneksi lalu tekan Retry.'});
           setError(
             'Dunia belum dapat dimuat. Save tetap aman. Periksa koneksi dan WebGL, lalu coba Continue atau Load Game lagi.',
           );
@@ -942,6 +951,13 @@ export default function Home() {
         onEnter={startSelectedCharacter} onCreate={beginAdventure}
         onSound={toggleSound} onFullscreen={toggleFullscreen}
       />}
+      {mapError && <div className="map-load-error" role="alertdialog" aria-label="Map gagal dimuat">
+        <h2>{mapError.label}</h2><p>{mapError.message}</p>
+        <button className="primary-button" onClick={()=>{
+          if(loadingSlot)game.current?.changeRegion(mapError.id);
+          else {setMapError(null);startSelectedCharacter();}
+        }}>Retry</button>
+      </div>}
       {state.notice && state.started && typeof document !== 'undefined' && createPortal(
         <output className="toast glass" key={state.noticeId}>
           {state.noticeItem ? <ItemIcon item={state.noticeItem} /> : <Sparkles size={16} />}
@@ -962,7 +978,7 @@ export default function Home() {
         <div className="journey-note">
           <Leaf size={20} strokeWidth={1} />
           <div>
-            Dunia menanti langkahmu.<small>ARUNIKA · CHAPTER ONE</small>
+            Dunia menanti langkahmu.<small>{state.inCity ? state.cityName : state.fieldName} · CHAPTER ONE</small>
           </div>
         </div>
         {flow === 'world' && <HotbarLayer><PrimaryHotbar
