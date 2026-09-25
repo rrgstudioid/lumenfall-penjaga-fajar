@@ -65,6 +65,9 @@ export type CharacterVisualProfile = {
   triangles: number;
   jointNames?: Partial<Record<Joint, string>>;
   useWeaponSocketOrientation?: boolean;
+  /** Visual rest offsets in game-root XYZ radians; never change the bind pose. */
+  restPose?: Partial<Record<Joint, readonly [number, number, number]>>;
+  preserveRestFootHeight?: boolean;
 };
 const cleanName = (name: string) => name.replace(/[. _]/g, '');
 
@@ -75,7 +78,7 @@ const cleanName = (name: string) => name.replace(/[. _]/g, '');
 export function createRevision02Binding(rig: CharacterRig, actor: T.Group, fallback: T.Mesh[], equipped: Set<string>, profile: CharacterVisualProfile={assetKind:'male-revision-02',visualName:'MaleRevision02Visual',triangles:REVISION02_TRIANGLES}) {
   const rest = new Map<Joint, { q: T.Quaternion; p: T.Vector3 }>();
   for (const key of Object.keys(joints) as Joint[]) rest.set(key, { q: rig[key].quaternion.clone(), p: rig[key].position.clone() });
-  type Binding = { key: Joint; bone: T.Bone; q: T.Quaternion; p: T.Vector3; frame: T.Quaternion; inverse: T.Quaternion; anchor: T.Vector3; weaponSocket?: T.Object3D };
+  type Binding = { key: Joint; bone: T.Bone; q: T.Quaternion; p: T.Vector3; frame: T.Quaternion; inverse: T.Quaternion; anchor: T.Vector3; restPose: T.Quaternion; weaponSocket?: T.Object3D };
   let bindings: Binding[] = [];
   let visual: T.Group | undefined;
   let hipsParentInverse = new T.Quaternion();
@@ -109,9 +112,23 @@ export function createRevision02Binding(rig: CharacterRig, actor: T.Group, fallb
         anchor.set(0, offset, key.endsWith('Foot') ? -.04 : 0).applyQuaternion(frame.clone().invert());
       }
       if (key === 'hips') hipsParentInverse = rootInverse.clone().multiply(bone.parent!.getWorldQuaternion(new T.Quaternion())).invert();
+      const angles = visualProfile.restPose?.[key] ?? [0, 0, 0];
       return { key, bone, q: bone.quaternion.clone(), p: bone.position.clone(), frame, inverse: frame.clone().invert(), anchor,
+        restPose: new T.Quaternion().setFromEuler(new T.Euler(...angles)),
         weaponSocket: visualProfile.useWeaponSocketOrientation ? hand : undefined };
     });
+    if (visualProfile.preserveRestFootHeight) {
+      // Compensate only the static stance, once. Walking/death displacement is
+      // still owned by the animator; never move the gameplay actor or collision.
+      const feet = bindings.filter(b => b.key === 'rightFoot' || b.key === 'leftFoot');
+      const footHeight = () => Math.min(...feet.map(b =>
+        b.bone.getWorldPosition(new T.Vector3()).applyMatrix4(rootMatrixInverse).y));
+      const before = footHeight();
+      for (const b of bindings) b.bone.quaternion.copy(b.q).multiply(b.inverse).multiply(b.restPose).multiply(b.frame);
+      rig.root.updateWorldMatrix(true, true);
+      visual.position.y += before - footHeight();
+      rig.root.updateWorldMatrix(true, true);
+    }
     // Keep the rest frame independent of actor placement at asynchronous load time.
     actor.userData.revision02Origin = new T.Vector3().setFromMatrixPosition(visual.matrixWorld).applyMatrix4(rootMatrixInverse).toArray();
     model.traverse(o => {
@@ -164,7 +181,7 @@ export function createRevision02Binding(rig: CharacterRig, actor: T.Group, fallb
     for (const b of bindings) {
       const original = rest.get(b.key)!;
       delta.copy(rig[b.key].quaternion).multiply(q.copy(original.q).invert());
-      b.bone.quaternion.copy(b.q).multiply(b.inverse).multiply(delta).multiply(b.frame);
+      b.bone.quaternion.copy(b.q).multiply(b.inverse).multiply(delta).multiply(b.restPose).multiply(b.frame);
       b.bone.position.copy(b.p);
       if (b.key === 'hips') {
         move.copy(rig.hips.position).sub(original.p).applyQuaternion(hipsParentInverse).divideScalar(modelScale);

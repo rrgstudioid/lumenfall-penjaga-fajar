@@ -9,7 +9,7 @@ import { loadCenaCharacter } from './cena-character.ts';
 import { armyRunningCadence } from './army-running.ts';
 import {loadFemaleCharacter,FEMALE_CHARACTER_TRIANGLES} from './female-character.ts';
 import { attachSwordAura, fitSwordAuraToBlade, updateSwordAuras } from './sword-aura.ts';
-import { alignCrimsonSword, setupCrimsonSwordGlow, updateCrimsonSwordGlow } from './special-sword-model.ts';
+import { alignCrimsonSword, setCrimsonSwordGripRoll, setupCrimsonSwordGlow, updateCrimsonSwordGlow } from './special-sword-model.ts';
 
 const specialSwordLoader = new GLTFLoader();
 // Keep the existing asset URL; item assignment is independent of its original folder.
@@ -22,7 +22,7 @@ function loadCrimsonSword(holder: T.Group, placeholder: T.Object3D[], actor: T.G
       return;
     }
     try {
-      const model = alignCrimsonSword(gltf.scene, targetLength);
+      const model = alignCrimsonSword(gltf.scene, targetLength, actor.userData.importedSwordGripRoll);
       setupCrimsonSwordGlow(model);
       const glowingWeapons = (actor.userData.glowingWeapons ??= []) as T.Object3D[];
       glowingWeapons.push(model);
@@ -323,6 +323,9 @@ export function createCharacterModel(hero: Hero, options: { aura?: boolean; asse
         }
       }
       if (nativeActiveName.startsWith('DualSword_Attack_') && nativeActive && !nativeActive.isRunning()) {
+        // Cena's restored clips last >1s. Count its combo reset pause AFTER
+        // completion, otherwise every fully played attack resets to clip 01.
+        if (actor.userData.assetKind === 'cena') nativeComboIdleTime = 0;
         // Blend the finished native attack back into the original procedural
         // idle/walk pose instead of replacing it with Dual Sword combat idle.
         releaseNative(.24);
@@ -370,6 +373,11 @@ export function createCharacterModel(hero: Hero, options: { aura?: boolean; asse
     try {
       applyCharacterAppearance(scene, hero);
       binding.attach(scene);
+      actor.userData.importedSwordGripRoll = scene.userData.importedSwordGripRoll;
+      // Sword and body load independently: correct already-loaded swords too.
+      for (const sword of actor.userData.glowingWeapons ?? []) {
+        setCrimsonSwordGripRoll(sword, actor.userData.importedSwordGripRoll);
+      }
       const clips = (scene.userData.nativeAnimationsDisabled ? [] : scene.userData.lumenfallAnimations ?? []) as T.AnimationClip[];
       if (clips.length) {
         nativeMixer = new T.AnimationMixer(scene);

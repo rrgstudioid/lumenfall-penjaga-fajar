@@ -39,7 +39,12 @@ export function updateCrimsonSwordGlow(model: T.Object3D, time: number) {
   });
 }
 
-export function alignCrimsonSword(model: T.Group, targetLength: number): T.Group {
+export function setCrimsonSwordGripRoll(model: T.Object3D, roll = -Math.PI / 2) {
+  // Roll around the source blade axis, keeping its tip direction and grip fixed.
+  model.rotation.set(Math.PI / 2 + 0.08, 0, roll);
+}
+
+export function alignCrimsonSword(model: T.Group, targetLength: number, gripRoll = -Math.PI / 2): T.Group {
   const blade = model.getObjectByName('sword_swordTX_0');
   if (!(blade instanceof T.Mesh)) throw new Error('Crimson sword mesh is missing');
   model.updateMatrixWorld(true);
@@ -64,9 +69,8 @@ export function alignCrimsonSword(model: T.Group, targetLength: number): T.Group
   fitted.scale.setScalar(targetLength / sourceLength);
   // Source -Z becomes socket +Y (character forward), with a slight upward tilt.
   // Rotation/scale pivot on the actual handle; its centre stays in the palm.
-  fitted.rotation.x = Math.PI / 2 + 0.08;
-  // Keep the blade's broad face upright, like a sword held edge-down.
-  fitted.rotateZ(-Math.PI / 2);
+  // Older rigs need a quarter-turn; Cena's authored grip already supplies it.
+  setCrimsonSwordGripRoll(fitted, gripRoll);
   fitted.add(source);
 
   // VFX follows the fitted blade frame, not the old procedural sword's axis.
