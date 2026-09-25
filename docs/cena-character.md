@@ -7,7 +7,119 @@ Tanggal: 26 September 2026.
 Factory `lib/game/character-model.ts` sekarang memuat Cena untuk male/legacy male,
 baik di world (`world.ts: createCharacterModel(this.hero)`) maupun Character Preview.
 Female tetap menggunakan `female-rpg-rigged.glb` dan animasinya sendiri.
-Integrasi awal masuk commit `569e348`. Koreksi grip di bawah belum commit/push/publish.
+Integrasi awal masuk commit `569e348`; grip/pose/animasi lama/dagu masuk `4dc0f01`.
+Penggantian Run F0 berikut belum commit/push/publish.
+
+## Postur lari natural — revisi badan, leher dan kepala
+
+Review gambar pemilik menunjukkan koreksi leher saja belum cukup: pose sumber
+masih membungkuk berlebihan dari badan. Baker sekarang memakai
+`balanceCenaRunTorso()` sebelum koreksi cervical. Kemiringan maju tiap segmen
+spine_01→spine_02→spine_03→neck dikurangi menjadi 35% sudut sumber pada bidang
+sagital model. Lateral sway/twist tetap mengikuti sumber. Ini penyesuaian visual
+Run yang diminta pemilik, bukan perubahan kecepatan/gameplay.
+
+- Badan lebih tegak dengan condong ringan; arah pandangan tetap dipertahankan.
+  Kepala mengikuti posisi leher/dada yang baru, bukan digeser melalui teleport
+  atau dipendekkan tulangnya. Bahu/lengan mengikuti rotasi badan dengan artikulasi
+  lokal dan grip tetap sama; timing ayunan tidak berubah.
+- Dibanding paket sebelum koreksi, **54 tracks non-spine/neck/head identik** pada
+  tiga klip, termasuk pelvis, kaki, lengan dan tangan. Durasi juga identik.
+  Semua panjang tulang/skala tetap; hanya rotasi kelima tulang upper body tersebut
+  di-bake ulang. Animasi jalan, serangan dan Blender sumber tidak diedit.
+- Tes setiap sampel Start/Loop/Stop mencatat kemiringan segmen spinal maksimum
+  **20,998°**. Ini ukuran proyeksi segmen, bukan sudut keseluruhan badan atau angka
+  universal biomekanik. Uji regresi membatasi kembali munculnya tekukan ekstrem.
+- **35 focused tests PASS**, lint PASS; **26 headed browser cases PASS**, tanpa
+  console error/warning/page error/request failure. Screenshot close-up dan tubuh
+  penuh depan/samping: `work/cena-character/browser/neck-final-*.png`.
+- Bentuk akhir tetap membutuhkan persetujuan visual pemilik. Full-world/full
+  production build tidak diulang. Belum commit/push/publish revisi Run ini.
+
+## Riwayat koreksi leher Run F0 setelah review pemilik
+
+Close-up samping mengungkap leher hampir mengikuti kemiringan dada sementara
+koreksi pandangan menumpuk pada head. Pada sampel Loop, perubahan lokal neck
+hanya sekitar 1–2° sedangkan salah satu komponen head sekitar 34°. Penjelasan
+awal tentang corrective modifier Blender merupakan konteks ekspor, bukan bukti
+bahwa mengaktifkan modifier saja akan menyelesaikan masalah runtime.
+
+Perbaikan terukur:
+
+- `cena-run-posture.ts` dipakai **offline** oleh baker Run: 65% perbedaan orientasi
+  antara neck dan head (dinormalisasi terhadap bind frame) dibagikan ke neck.
+  Orientasi head di world dipertahankan. Tidak mengubah panjang/posisi lokal tulang,
+  skala, rotasi dada, anggota badan, durasi klip atau gameplay. Paket Run dibuat
+  ulang; Walk dan serangan tidak di-retarget ulang. Tidak mengedit action Blender.
+- `cena-neck.ts` meratakan transisi pengaruh chest/neck/head pada **238 vertex**
+  kulit leher di clone runtime. Mask feathered y 1,62–1,80 dan |x| < 0,12 dalam
+  koordinat model; hanya vertex yang sudah sepenuhnya dipengaruhi tiga tulang itu.
+  Bobot dinormalisasi; tidak ada scale/geometry sculpt atau perubahan data sumber.
+  Pengaruh wajah, bahu, jari, material lain, posisi vertex, normal dan topology
+  tidak berubah. Idempotent dan dijalankan sekali saat load, bukan tiap frame.
+- Paket Run terbaru **212.031 byte**. Source GLB dan `.blend` tetap utuh.
+- **33 focused tests PASS**; mencakup isolasi bobot/source, panjang tulang, arah
+  pandangan, anggota badan, stance/clip lifecycle, finger grip, female/legacy.
+- **26 headed browser cases PASS**, nol console error/warning/page error/request
+  failure. Close-up depan/samping pada Start, dua fase Loop, Stop dan akhir Stop
+  diperiksa manual: `work/cena-character/browser/neck-final-*.png`.
+  Screenshot pembanding awal: `neck-before-*.png`; report pada `browser/report.json`.
+- Preview memiliki tombol **Leher samping / Leher depan** dan Pause. Fixture
+  menggerakkan animator produksi; tidak menjalankan full map atau save pemilik.
+  Lint/build fixture PASS. Full lib/game dan production build tidak diulang.
+
+Ini koreksi visual lokal, bukan sistem corrective skinning Blender lengkap.
+Kontur tetap stylized/low-poly. Review artistik pemilik tetap diperlukan.
+
+## Status terbaru — Run F 0 Start / Loop / Stop
+
+Atas permintaan pemilik, **lari Cena** sekarang memakai tiga action approved dari
+`Cena_Textured_RunLibrary.blend`, bukan Army Run. Jalan dan tiga serangan lama
+tetap identik. Female dan model alternatif tidak diganti.
+
+| Action Blender (InPlace) | Clip runtime | Durasi asli | Sampel 60 FPS |
+| --- | --- | --- | --- |
+| Cena_SS_Run_Start_F_0_InPlace | Run_Start | 0,833333 s | 51 |
+| Cena_SS_Run_Loop_F_0_InPlace | Run | 0,666667 s | 41 |
+| Cena_SS_Run_Stop_F_0_InPlace | Run_Stop | 1,5 s | 91 |
+
+- Sumber: `C:\Users\USER\Documents\Codex_Blender_Combo03\Cena_Textured_RunLibrary.blend`.
+  Scene live diperiksa read-only; karena masih dirty, sampling membaca checkpoint
+  tersimpan melalui Blender background terpisah. Tidak save/reload/ubah scene live.
+- `scripts/sample-cena-run.py` hanya memuat rig dan tiga action dari checkpoint;
+  `scripts/bake-cena-run.mjs` memetakan basis tulang ke GLB runtime saat ini.
+  Pose tulang disampel nyata, bukan animasi procedural pengganti. Hash sumber
+  diverifikasi sebelum/sesudah. Hash body target disimpan dalam paket.
+- Paket animasi saja: `public/assets/characters/cena/cena-run-f0.json`, awal **211.856 byte**
+  (sesudah koreksi leher **212.031 byte**).
+  Tidak menambah duplikat mesh/tekstur. GLB, chin correction, rig, finger grip,
+  socket pedang dan skala tubuh tidak diubah. Finger/scale tracks tidak diekspor.
+- Saat mulai sprint: Start sekali, kemudian Loop berulang. Melepas gerak: Stop
+  sekali, lalu blend kembali ke idle natural. Jalan, lari ulang dan Basic Attack
+  dapat memotong Stop; mati/reset menghentikan state lari. Transisi bersifat visual,
+  tidak mengunci input atau memindahkan actor gameplay. Gerak dunia/collision tetap
+  milik game; root motion tidak diterapkan.
+- Klip diputar pada timing sumber 1x; cadence Army tidak diterapkan ke Run F0.
+  Kecepatan gameplay, damage, hit timing, save dan animasi serangan tidak berubah.
+- Loader mengganti hanya Run lama dan menambah Start/Stop. Army Run dalam paket
+  legacy hanya fallback jika paket baru gagal diunduh (disertai warning). Paket
+  legacy tetap dibutuhkan untuk Walk/serangan; tidak mengunduh body Astra/Army.
+- **31 focused tests PASS / 0 failed** (26 karakter/rig/grip/chin + 5 Army legacy).
+  Termasuk action mixer nyata, source/duration, seam loop, Start→Loop→Stop→idle,
+  stop saat Start, restart saat Stop, walk/attack/death interruption, tidak mengubah
+  actor/save, skin finite, equipment melekat, serta Walk/attacks tidak berubah.
+- **21 headed browser cases PASS** memakai factory/animator produksi; nol console
+  error, warning, page error dan request failure. Screenshot Start/Loop/Stop/idle:
+  `work/cena-character/browser/run-f0-*.png`; report `browser/report.json`.
+  Tampilan kaki dan pedang diperiksa langsung pada screenshot.
+- Lint dan build fixture PASS. Full lib/game/full production build tidak diulang
+  untuk perubahan visual ini. Belum menguji seluruh world/terrain. Animasi asal
+  Sword-and-Shield memiliki pose tangan asimetris; tidak diubah menjadi animasi
+  dual-sword baru. Pedang besar dapat overlap pada pose tertentu. Tidak ada IK
+  medan atau kalibrasi foot sliding terhadap semua variasi movement speed.
+
+Preview `?equipment=meteor&motion=run&review=run-f0` memulai lari; klik **Idle**
+untuk melihat Stop. Fixture tidak membaca/menulis save pemilik.
 
 ## Review kontur dagu
 
@@ -30,9 +142,9 @@ rig/weights/feature preservation, animasi dan senjata. Browser menggunakan
 factory produksi yang sama; full-world/full production build belum diulang.
 Ini koreksi kontur runtime, bukan perubahan sculpt di file Blender sumber.
 
-## Status terbaru — animasi game lama dipulihkan atas persetujuan pemilik
+## Riwayat — animasi game lama dipulihkan atas persetujuan pemilik
 
-Cena sekarang memakai **Walk, Army Run, DualSword_Attack_01/02/03** dari karakter
+Pada tahap ini Cena memakai **Walk, Army Run, DualSword_Attack_01/02/03** dari karakter
 lama Astra, di-retarget ke rig Cena. Animasi yang disertakan dalam sumber Blender
 Cena tetap tidak dipakai. Catatan pengujian "tanpa native mixer" di bagian
 riwayat bawah berlaku untuk tahap body-only sebelumnya, bukan status terbaru.

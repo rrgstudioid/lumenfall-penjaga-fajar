@@ -273,7 +273,7 @@ export function createCharacterModel(hero: Hero, options: { aura?: boolean; asse
     'DualSword_Attack_02',
     'DualSword_Attack_03',
   ];
-  const nativeLocomotionNames = new Set(['Walk', 'Run']);
+  const nativeLocomotionNames = new Set(['Walk', 'Run', 'Run_Start', 'Run_Stop']);
   let nativeComboIndex = 0;
   let nativeComboIdleTime = 0;
   let nativeReleasing: T.AnimationAction | undefined;
@@ -333,7 +333,23 @@ export function createCharacterModel(hero: Hero, options: { aura?: boolean; asse
       const locomotionName = motion?.moving && !motion.dead
         ? motion.sprinting ? 'Run' : 'Walk'
         : '';
-      if (nativeLocomotionNames.has(nativeActiveName)) {
+      const runTransitions = nativeActions.has('Run_Start') && nativeActions.has('Run_Stop');
+      if (runTransitions && (nativeLocomotionNames.has(nativeActiveName) || (!nativeActive && !nativeReleasing))) {
+        if (motion?.dead) {
+          if (nativeActive) releaseNative(.1);
+        } else if (locomotionName === 'Run') {
+          if (nativeActiveName === 'Run_Start') {
+            if (nativeActive && !nativeActive.isRunning()) playNative('Run', true);
+          } else if (nativeActiveName !== 'Run') playNative('Run_Start', false);
+        } else if (locomotionName === 'Walk') {
+          // Walking and attacks interrupt Stop immediately; input is never locked.
+          playNative('Walk', true);
+        } else if (nativeActiveName === 'Run' || nativeActiveName === 'Run_Start') {
+          playNative('Run_Stop', false);
+        } else if (nativeActiveName === 'Run_Stop') {
+          if (nativeActive && !nativeActive.isRunning()) releaseNative(.16);
+        } else if (nativeActiveName === 'Walk') releaseNative(.16);
+      } else if (nativeLocomotionNames.has(nativeActiveName)) {
         if (locomotionName && locomotionName !== nativeActiveName) playNative(locomotionName, true);
         else if (!locomotionName) releaseNative(.16);
       } else if (!nativeActive && !nativeReleasing && locomotionName) {

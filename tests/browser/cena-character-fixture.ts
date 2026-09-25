@@ -53,10 +53,17 @@ function pose(kind: string) {
 }
 function play(kind: string) {
   playback = kind; attackElapsed = 0;
-  if (kind !== 'attack') model.animator.reset();
   if (kind === 'attack') model.animator.play('basic_attack', .6);
 }
 function render(view = 'front') {
+  if (view.startsWith('neck')) {
+    model.actor.updateMatrixWorld(true);
+    const neck = model.actor.getObjectByName('neck_01')!.getWorldPosition(new T.Vector3());
+    const head = model.actor.getObjectByName('head')!.getWorldPosition(new T.Vector3());
+    controls.target.copy(neck).lerp(head, .35);
+    camera.position.copy(controls.target).add(new T.Vector3(view === 'neckFront' ? 0 : 1.15, .12, view === 'neckSide' ? 0 : -1.15));
+    controls.update(); renderer.render(scene, camera); return;
+  }
   const offsets: Record<string, number[]> = { front: [0, 1.45, -6.5], threeQuarter: [4.1, 2.1, -5.2], side: [6, 1.5, 0], back: [0, 1.5, 6.5], hands: [1.7, 1.4, -2.3], handsReverse: [-1.7, 1.4, -2.3], face: [0, 2.2, -1.05], faceSide: [1.05, 2.2, -.06], faceThreeQuarter: [.75, 2.2, -.8] };
   camera.position.fromArray(offsets[view]); controls.target.set(0, view.startsWith('face') ? 2.17 : view.startsWith('hands') ? 1.22 : 1.25, 0); controls.update();
   renderer.render(scene, camera);
@@ -87,6 +94,8 @@ function snapshot() {
   }
   return { asset: model.actor.userData.assetKind, triangles, meshes,
     playback, playbackFrames, activeClip: model.actor.userData.activeNativeAnimation ?? '',
+    runSource: model.actor.userData.runningAnimationSource,
+    actorPosition: model.actor.position.toArray(),
     poseSample: ['handr', 'handl', 'footr', 'footl'].flatMap(name => {
       const bone = sockets.get(name); return bone ? pos(bone).toArray() : [];
     }),
@@ -104,7 +113,13 @@ await equip(initialEquipment === 'meteor' ? 'meteor' : 'unarmed');
 if (initialEquipment === 'meteor') render('handsReverse');
 const initialView = new URLSearchParams(location.search).get('view');
 if (initialView && ['face', 'faceSide', 'faceThreeQuarter'].includes(initialView)) render(initialView);
-Object.assign(window, { __cenaReview: { equip, pose, play, render, snapshot } });
+if (new URLSearchParams(location.search).get('motion') === 'run') { render('threeQuarter'); play('run'); }
+function sampleRun(seconds: number, stopSeconds?: number) {
+  playback = 'paused'; model.animator.reset();
+  for (let i = 0; i < Math.round(seconds * 60); i++) model.animator.update(1 / 60, { moving: true, sprinting: true, speed: 5.2 });
+  if (stopSeconds !== undefined) for (let i = 0; i < Math.round(stopSeconds * 60); i++) model.animator.update(1 / 60, { moving: false });
+}
+Object.assign(window, { __cenaReview: { equip, pose, play, render, snapshot, sampleRun } });
 document.querySelector('#equipment')!.addEventListener('change', async event => {
   await equip((event.target as HTMLSelectElement).value as Parameters<typeof equip>[0]);
   render('hands');
