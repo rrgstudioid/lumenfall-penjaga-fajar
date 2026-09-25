@@ -2766,15 +2766,17 @@ export class Game {
         hit.knockbackStrength,
         hit.damageType, stats, attackerLevel,
       );
+      const dummyImpact = enemy.dummy && amount > 0;
       this.traceV3Damage(skill.skillId, 'hp_mutation', {
         targetId: enemy.id,
         impactIndex: skill.hitSequence.indexOf(snapshotHit),
         hpBefore: beforeHP,
         appliedDamage,
         hpAfter: enemy.hp,
+        dummyImpact,
       });
       if (isIronCharge) this.traceDevelopment('target_hp_changed', { targetId: enemy.id, hpBefore: beforeHP, hpAfter: enemy.hp, damage: Math.max(0, beforeHP - enemy.hp) });
-      if(amount>0&&enemy.hp<beforeHP){
+      if(amount>0&&(enemy.hp<beforeHP||dummyImpact)){
         const firstSuccessfulImpact = !successful;
         successful=true;
         if (!successfulTargetIds.has(enemy.id)) {
