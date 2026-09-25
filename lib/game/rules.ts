@@ -690,7 +690,7 @@ export type V3JobDevelopmentStage = 'warrior-15' | 'warrior-60' | 'berserker-60'
 export function createV3JobDevelopmentHero(stage: V3JobDevelopmentStage): Hero {
   const hero = createV3AdventurerHero(`v3-job-${stage}`, `V3 ${stage}`);
   hero.level = stage === 'warrior-15' ? 15 : 60;
-  if (hero.skillProgressionV3) hero.skillProgressionV3.totalEarnedSP = 500;
+  if (hero.skillProgressionV3) hero.skillProgressionV3.totalEarnedSP = getTotalSkillPointsForLevel(hero.level);
   if (!chooseV3Warrior(hero)) throw new Error(`Unable to create development stage ${stage}`);
   if (stage === 'berserker-60' && !chooseV3Berserker(hero)) throw new Error(`Unable to create development stage ${stage}`);
   if (stage === 'blade-master-60' && !chooseV3BladeMaster(hero)) throw new Error(`Unable to create development stage ${stage}`);
@@ -1341,10 +1341,10 @@ export function allocateStatPoint(hero: Hero, stat: keyof AllocatedStats) {
 
 export function getSkillPointsGrantedAtLevel(level: number): number {
   const clamped = Math.max(1, Math.min(80, Math.floor(level)));
-  if (clamped >= 2 && clamped <= 20) return 1;
-  if (clamped >= 21 && clamped <= 40) return 2;
-  if (clamped >= 41 && clamped <= 60) return 3;
-  if (clamped >= 61 && clamped <= 80) return 4;
+  if (clamped >= 2 && clamped <= 20) return 2;
+  if (clamped >= 21 && clamped <= 40) return 3;
+  if (clamped >= 41 && clamped <= 60) return 4;
+  if (clamped >= 61 && clamped <= 80) return 5;
   return 0;
 }
 
