@@ -19,6 +19,7 @@ import {
 
 const clamp = (n: number, min: number, max: number) => Math.min(max, Math.max(min, n));
 const positive = (n: number) => Number.isFinite(n) ? Math.max(0, n) : 0;
+const expectedDamageRoll = () => 0.5;
 export type PowerAction = {
   targetModifiers?:CombatModifier[];
   id: string;
@@ -104,7 +105,7 @@ export function buildCombatPowerProfile(hero: Hero, stats = calculateFinalCharac
     }
   }
   for (const skill of activeSkills(hero)) {
-    const action=resolveHeroSkill(hero,skill,hero.skillLevels[skill.id],stats);
+    const action=resolveHeroSkill(hero,skill,hero.skillLevels[skill.id],stats,undefined,[],undefined,0,expectedDamageRoll);
     if (!isSkillUnlocked(hero, skill) || !action.weaponAllowed) continue;
     const manaCost = action.manaCost;
     if (manaCost > stats.maxMana) continue;

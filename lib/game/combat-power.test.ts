@@ -1,7 +1,9 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  activeSkills, calculateFinalCharacterStats, chooseCoreJob, chooseSpecialization,
+  activeSkills, allocateStatPoint, calculateFinalCharacterStats, calculateTotalStatPoints,
+  chooseCoreJob, chooseSpecialization, chooseV3BladeMaster, chooseV3Warrior,
+  createV3AdventurerHero, getTotalSkillPointsForLevel,
   equipItem, freshHero, getEquippedItems, parseSave, skillDamageParts, skillDamagePreview, skillHealingPreview,
   unequipItem, socketRune, enhanceItem, unlockUniqueStats, type Hero,
 } from './rules.ts';
@@ -43,6 +45,37 @@ const withStats = (hero: Hero, overrides: Partial<ReturnType<typeof calculateFin
   const stats = { ...calculateFinalCharacterStats(hero), ...overrides };
   return calculateCombatPowerFromStats(stats, buildCombatPowerProfile(hero, stats));
 };
+function buildV3StrengthAllocation(stage: 'warrior' | 'blade-master') {
+  const level = stage === 'warrior' ? 50 : 60;
+  const hero = createV3AdventurerHero(`cp-str-${stage}`, `CP STR ${stage}`);
+  hero.level = level;
+  hero.skillProgressionV3!.totalEarnedSP = getTotalSkillPointsForLevel(level);
+  for (const slot of Object.keys(hero.equipment) as Array<keyof Hero['equipment']>) {
+    if (slot !== 'pet') hero.equipment[slot] = null;
+  }
+  hero.inventory = hero.inventory.map((item) => ({ ...item, isEquipped: false }));
+  assert.equal(chooseV3Warrior(hero), true);
+  if (stage === 'blade-master') assert.equal(chooseV3BladeMaster(hero), true);
+  const mainHand = hero.inventory.find((item) => item.templateId === 'legacy-fajar-blade')!;
+  hero.equipment.mainHand = mainHand.id;
+  hero.inventory = hero.inventory.map((item) => item.id === mainHand.id ? { ...item, isEquipped: true } : item);
+  if (stage === 'blade-master') {
+    const offHand = { ...mainHand, id: `${mainHand.id}-offhand`, isEquipped: true };
+    hero.inventory.push(offHand);
+    hero.equipment.offHand = offHand.id;
+    hero.skillProgressionV3!.skillRanks['v3-blade-master-twin-blade-mastery'] = 1;
+    hero.skillLevels['v3-blade-master-twin-blade-mastery'] = 1;
+  }
+  for (const skill of activeSkills(hero)) {
+    if (!skill.maxLevel) continue;
+    const rank = Math.min(3, skill.maxLevel);
+    hero.skillProgressionV3!.skillRanks[skill.id] = rank;
+    hero.skillLevels[skill.id] = rank;
+  }
+  hero.statPoints = calculateTotalStatPoints(level, hero.progressionArchitecture);
+  hero.allocatedStats = { str: 0, vit: 0, dex: 0, int: 0 };
+  return hero;
+}
 
 await test('A / G: physical kit uses physical coefficients, unused magic gives no offensive CP', () => {
   const hero = build(), cp = calculateCombatPower(hero);
@@ -192,6 +225,25 @@ await test('stat preview is immutable and reconciliation/display rounding are ex
   const cp = preview.after;
   assert.equal(cp.total, Math.round(CONFIG.displayScale * (cp.offensivePower + cp.defensivePower + cp.sustainPower + cp.utilityPower + cp.specialEffectPower)));
   assert.equal(cp.contributions.reduce((sum, c) => sum + c.value, 0), cp.total);
+});
+await test('random skill damage uses a stable CP midpoint and STR allocation never lowers Warrior or Blade Master CP', () => {
+  for (const stage of ['warrior', 'blade-master'] as const) {
+    const hero = buildV3StrengthAllocation(stage);
+    clearCombatPowerCache();
+    const initial = getCombatPower(hero);
+    assert.deepEqual(calculateCombatPower(hero), initial);
+    assert.deepEqual(calculateCombatPower(hero), initial);
+    let previous = initial.total;
+    while (hero.statPoints > 0) {
+      const result = allocateStatPoint(hero, 'str');
+      assert.equal(result.ok, true);
+      Object.assign(hero, result.hero);
+      const current = getCombatPower(hero).total;
+      assert.ok(current >= previous, `${stage} STR ${hero.allocatedStats.str}: CP ${current} < ${previous}`);
+      previous = current;
+    }
+    assert.equal(hero.allocatedStats.str, calculateTotalStatPoints(hero.level, hero.progressionArchitecture));
+  }
 });
 await test('critical expected damage uses percent format, cap80; skills do not crit', () => {
   const hero = build(), stats = calculateFinalCharacterStats(hero), profile = buildCombatPowerProfile(hero);
