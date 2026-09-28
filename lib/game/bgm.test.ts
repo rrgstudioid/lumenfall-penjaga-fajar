@@ -1,3 +1,4 @@
+import { STARTER_FIELD_CONTENT } from './regions.ts';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { statSync } from 'node:fs';
@@ -49,7 +50,7 @@ class FakeMedia implements BgmMedia {
 }
 
 const track = BGM_TRACKS['city-arunika'];
-const fieldTrack = BGM_TRACKS[FIELDS['verdant-plains'].musicId];
+const fieldTrack = BGM_TRACKS[STARTER_FIELD_CONTENT.musicId];
 const flush = async () => {
   await Promise.resolve();
   await Promise.resolve();

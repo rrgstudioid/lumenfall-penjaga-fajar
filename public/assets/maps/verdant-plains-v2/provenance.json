@@ -1,0 +1,53 @@
+{
+  "map": "verdant-plains-v2",
+  "sources": [
+    {
+      "asset": "grass.webp",
+      "source": "C:\\Users\\GG\\Desktop\\Lumenfall\\Master_ Material_ Lumenfall\\Terrain\\grass_ground_2k.blend.zip",
+      "entry": "textures/grass_ground_diff_2k.jpg"
+    },
+    {
+      "asset": "dirt.webp",
+      "source": "C:\\Users\\GG\\Desktop\\Lumenfall\\Master_ Material_ Lumenfall\\Terrain\\dirt_2k.blend.zip",
+      "entry": "textures/dirt_diff_2k.jpg"
+    },
+    {
+      "asset": "sand.webp",
+      "source": "C:\\Users\\GG\\Desktop\\Lumenfall\\Master_ Material_ Lumenfall\\Terrain\\sandy_gravel_02_2k.blend.zip",
+      "entry": "textures/sandy_gravel_02_diff_2k.jpg"
+    },
+    {
+      "asset": "rock.webp",
+      "source": "C:\\Users\\GG\\Desktop\\Lumenfall\\Master_ Material_ Lumenfall\\Rock_Cliff\\rock_face_03_2k.blend.zip",
+      "entry": "textures/rock_face_03_diff_2k.jpg"
+    },
+    {
+      "asset": "wood.webp",
+      "source": "C:\\Users\\GG\\Desktop\\Lumenfall\\Master_ Material_ Lumenfall\\Wood\\medieval_wood_2k.blend.zip",
+      "entry": "textures/medieval_wood_diff_2k.jpg"
+    },
+    {
+      "asset": "shrub.glb",
+      "source": "C:\\Users\\GG\\Desktop\\Lumenfall\\Master_Model_Lumenfall\\Environment\\Ground_Vegatation\\shrub_03_2k.blend.zip"
+    },
+    {
+      "asset": "pier.glb",
+      "source": "C:\\Users\\GG\\Desktop\\Lumenfall\\Master_Model_Lumenfall\\Environment\\Building\\modular_wooden_pier_2k.blend.zip"
+    },
+    {
+      "asset": "banner.glb",
+      "source": "C:\\Users\\GG\\Desktop\\Lumenfall\\Master_Model_Lumenfall\\Environment\\Building\\Fantasy_Props_MegaKit.zip",
+      "entry": "Exports/glTF/Banner_1.gltf"
+    },
+    {
+      "asset": "fir.glb",
+      "source": "scripts/bake-verdant-trees.py: new authored geometry + baked master material atlas"
+    },
+    {
+      "asset": "tree.glb",
+      "source": "scripts/bake-verdant-trees.py: new authored geometry + baked master material atlas"
+    }
+  ],
+  "proceduralBoulders": "lib/game/verdant-plains-visuals.ts: unchanged 3 shared 80-triangle shapes; master rock_boulder_dry color + bump",
+  "additionalTextures": "polish-provenance.json"
+}

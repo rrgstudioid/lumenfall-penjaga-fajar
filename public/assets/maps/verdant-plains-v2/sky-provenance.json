@@ -1,0 +1,38 @@
+{
+  "source": "Ultra Dynamic Sky, owner supplied VaultCache",
+  "exportEngine": "Unreal Engine 5.4.4",
+  "method": "Unreal TextureExporterTGA, then offline packed-channel daylight bake; not a live Unreal/volumetric renderer",
+  "sourceAssets": [
+    {
+      "path": "Textures/StaticClouds/StaticClouds_A.uasset",
+      "bytes": 26035146,
+      "sha256": "cc57c6ce30604a824223797b2dfa4d459b4020eadbc451558ccc972c62134a44"
+    },
+    {
+      "path": "Textures/Sky/Cloud_Wisps.uasset",
+      "bytes": 1485540,
+      "sha256": "59b71554b9e523368464775a0987895b0e0e565bb9f37ecc094fcb1bb04163a5"
+    },
+    {
+      "path": "Textures/Clouds/clouds_diverse.uasset",
+      "bytes": 4724991,
+      "sha256": "0644a0db94fff265d9765f9befaf6df403b267b938a92f9e1a32abf04b372b33"
+    }
+  ],
+  "output": {
+    "file": "sky-clouds.webp",
+    "size": [
+      2048,
+      2048
+    ],
+    "channels": {
+      "R": "baked directional daylight shade",
+      "G": "UDS cloud opacity",
+      "B": "linear cloud wisps"
+    },
+    "colorSpace": "linear data",
+    "bytes": 3743356,
+    "sha256": "3e6683ffd98b0cf4c16b798f3ac242dbe8869d790acf70f85f9dda5e716531e2"
+  },
+  "sourceUnmodified": true
+}

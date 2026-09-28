@@ -1,0 +1,40 @@
+{
+  "sources": [
+    {
+      "asset": "output\\verdant-plains\\polish\\bark.png",
+      "source": "C:\\Users\\GG\\Desktop\\Lumenfall\\Master_ Material_ Lumenfall\\Tree_bark\\bark_willow_2k.blend.zip",
+      "entry": "textures/bark_willow_diff_2k.jpg"
+    },
+    {
+      "asset": "output\\verdant-plains\\polish\\foliage.png",
+      "source": "C:\\Users\\GG\\Desktop\\Lumenfall\\Master_ Material_ Lumenfall\\Terrain\\leafy_grass_2k.blend.zip",
+      "entry": "textures/leafy_grass_diff_2k.jpg"
+    },
+    {
+      "asset": "public\\assets\\maps\\verdant-plains-v2\\boulder-color.webp",
+      "source": "C:\\Users\\GG\\Desktop\\Lumenfall\\Master_ Material_ Lumenfall\\Rock_Cliff\\rock_boulder_dry_2k.blend.zip",
+      "entry": "textures/rock_boulder_dry_diff_2k.jpg"
+    },
+    {
+      "asset": "public\\assets\\maps\\verdant-plains-v2\\boulder-height.webp",
+      "source": "C:\\Users\\GG\\Desktop\\Lumenfall\\Master_ Material_ Lumenfall\\Rock_Cliff\\rock_boulder_dry_2k.blend.zip",
+      "entry": "textures/rock_boulder_dry_disp_2k.png"
+    },
+    {
+      "asset": "public\\assets\\maps\\verdant-plains-v2\\water-normal.webp",
+      "source": "C:\\Users\\GG\\Desktop\\Lumenfall\\Master_ Material_ Lumenfall\\Water\\water_surface_1k_pbr.zip",
+      "entry": "water-water-surface-1k/normal.png"
+    },
+    {
+      "asset": "public\\assets\\maps\\verdant-plains-v2\\water-ocean-normal.webp",
+      "source": "C:\\Users\\GG\\Desktop\\Lumenfall\\Master_ Material_ Lumenfall\\Water\\water_ocean_normal_map_1k_pbr.zip",
+      "entry": "water-ocean-normal-map-1k/normal.png"
+    },
+    {
+      "asset": "public\\assets\\maps\\verdant-plains-v2\\water-color.webp",
+      "source": "C:\\Users\\GG\\Desktop\\Lumenfall\\Master_ Material_ Lumenfall\\Water\\water_surface_1k_pbr.zip",
+      "entry": "water-water-surface-1k/baseColor.png"
+    }
+  ],
+  "trees": "Authored in bake-verdant-trees.py; base color + ambient occlusion baked to 1K atlases."
+}

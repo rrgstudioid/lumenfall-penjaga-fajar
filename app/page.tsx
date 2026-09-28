@@ -152,7 +152,7 @@ const initial: Snapshot = {
   skillViews: [],
   classQuest: 'Level 1/10 · Latih diri sebagai Adventurer',
   cityName: 'Kota Arunika',
-  fieldName: 'Padang Arunika',
+  fieldName: 'Verdant Plains',
   recommendedLevel: '1–8',
   mapId: 'arunika',
   inCity: true,
@@ -320,7 +320,7 @@ export default function Home() {
         } catch (cause) {
           if (cancelled) return;
           console.error(cause);
-          if(instance?.isAverion)setMapError({id:'averion',label:'Averion',message:'ERROR: Averion gagal dimuat. Save tetap aman. Periksa koneksi lalu tekan Retry.'});
+          if(instance?.isAverion||instance?.isPlains)setMapError({id:instance.isPlains?'verdant-plains-v2':'averion',label:instance.isPlains?'Verdant Plains':'Averion',message:'Map gagal dimuat. Save tetap aman. Periksa koneksi lalu tekan Retry.'});
           setError(
             'Dunia belum dapat dimuat. Save tetap aman. Periksa koneksi dan WebGL, lalu coba Continue atau Load Game lagi.',
           );
@@ -674,7 +674,7 @@ export default function Home() {
 
   return (
     <JobPresentationContext.Provider value={hero}><GameDragDropProvider game={engine}>
-    <main className={`game-shell ${flow === 'world' ? 'in-world' : 'menu-mode'} flow-${flow}`}>
+    <main className={`game-shell ${flow === 'world' ? 'in-world' : 'menu-mode'} flow-${flow}`} data-map-id={state.mapId}>
       <InterfaceSettingsRuntime />
       <div ref={host} className="world" data-world-surface />
       <div className="vignette" />
@@ -1562,6 +1562,11 @@ export default function Home() {
                     </button>
                   </div>
                   <InterfaceSettings />
+                  {state.mapId==='verdant-plains-v2' && <label className="setting-row">Detail Verdant Plains
+                    <select aria-label="Detail Verdant Plains" defaultValue={engine?.plains?.quality??'balanced'} onChange={event=>engine?.setPlainsQuality(event.target.value as 'light'|'balanced'|'high')}>
+                      <option value="light">Light</option><option value="balanced">Balanced</option><option value="high">High</option>
+                    </select>
+                  </label>}
                 </>
               )}
             </div>

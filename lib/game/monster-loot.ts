@@ -1,5 +1,5 @@
 import { ITEM_CATALOG, createItem, createRuneItem, type ItemData, type ItemRarity, type ItemSource, type RuneRarity, type RuneTheme } from './items.ts';
-import { FIELDS, fieldContent, type MonsterVariant, type MonsterDefinition } from './regions.ts';
+import { FIELDS, STARTER_FIELD_CONTENT, fieldContent, type MonsterVariant, type MonsterDefinition } from './regions.ts';
 
 export type Weighted<T> = { value: T; weight: number };
 export type LootFamily = 'material'|'potion'|'supplies'|'equipment'|'rune'|'uniqueRune'|'pet'|'fate'|'seal'|'optimizer';
@@ -21,6 +21,7 @@ export const RUNE_DROP_RARITIES:Record<MonsterVariant,Weighted<RuneRarity>[]> = 
   boss:weights({epic:70,legendary:29,ancient:1}),
 };
 export const BOSS_RUNE_DROPS:Record<string,string> = {'verdant-plains':'rune-akar-purba','ironveil-mines':'rune-penjaga-langit','whispering-wilds':'rune-bayangan-caroq','frostfire-highlands':'rune-inti-bara','sunken-ruins':'rune-mata-jayantara','meteorfall-citadel':'rune-raja-meteor'};
+BOSS_RUNE_DROPS['verdant-plains-v2']='rune-akar-purba';
 export function weightedPick<T>(entries:Weighted<T>[],rng:()=>number=Math.random):T {
   const total=entries.reduce((sum,entry)=>sum+Math.max(0,entry.weight),0);
   if(!entries.length||total<=0)throw new Error('Empty loot pool');
@@ -55,11 +56,11 @@ export function lootItemPool(fieldId:string,variant:MonsterVariant,family:LootFa
   }
 }
 export function rollMonsterItem(fieldId:string,variant:MonsterVariant,specialization:string|null,sourceId:string,rng:()=>number=Math.random,categoryRoll?:number):ItemData {
-  const field=FIELDS[fieldId]??FIELDS['verdant-plains'];
+  const field=FIELDS[fieldId]??STARTER_FIELD_CONTENT;
   const family=weightedPick(MONSTER_LOOT_PROFILES[variant],categoryRoll===undefined?rng:()=>categoryRoll);
   const templateId=weightedPick(lootItemPool(field.id,variant,family,specialization),rng);
   const template=ITEM_CATALOG[templateId];
-  const species=[...field.normalMonsters,...field.eliteMonsters,field.fieldBoss].find(monster=>monster.id===sourceId);
+  const species=[...field.normalMonsters,...field.eliteMonsters,field.fieldBoss].find(monster=>monster?.id===sourceId);
   const source:ItemSource={type:variant==='boss'?(field.id==='meteorfall-citadel'?'high_boss':'field_boss'):variant==='elite'?'elite':'monster',sourceId,label:`${species?.name??variant} · ${field.displayName}`};
   if(family==='rune'||family==='uniqueRune'){
     const rarity=family==='uniqueRune'?template.runeRarity??'ancient':weightedPick(RUNE_DROP_RARITIES[variant],rng);

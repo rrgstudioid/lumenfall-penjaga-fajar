@@ -413,7 +413,7 @@ export function GameplayHUD({
             <span />
           </div>
           <p>
-            {state.inCity ? 'Kota aman' : state.cityName}
+            {state.inCity ? 'Kota aman' : state.mapId==='verdant-plains-v2' ? 'Padang Arunika' : state.cityName}
             <b>·</b>Lv. {state.recommendedLevel}
           </p>
         </div>

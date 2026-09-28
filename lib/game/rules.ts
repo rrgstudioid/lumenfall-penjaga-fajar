@@ -1,3 +1,4 @@
+import { PLAINS_ID, PLAINS_ENTRY, restorePlainsPosition } from './verdant-plains-layout.ts';
 import { isResourceEnabled, staminaDerivedValue } from './gameplay-config.ts';
 import { getVisibleJobArchitecture } from './job-presentation.ts';
 import {progressionRules,LEGACY_CONTENT_CAP,type ProgressionArchitecture} from './progression.ts';
@@ -552,7 +553,7 @@ export function freshHero(
     quickHotbars: emptyQuickHotbars(),
     itemCooldowns: {},
     selectedAmmo: null,
-    currentCity: 'arunika', currentField: 'verdant-plains', inCity: true,
+    currentCity: 'arunika', currentField: PLAINS_ID, inCity: true,
     unlockedCities: ['arunika'], unlockedFields: startingFieldIds(),
     completedQuests: [], acceptedQuests: [], activeQuests: [], questCooldowns: {}, cityProgress: {}, fieldProgress: {}, defeatedFieldBosses: [], defeatedBossTimestamp: {}, monsterRespawnState: {}, storage: [],
     characterId: `${slotId}-character`,
@@ -2397,10 +2398,10 @@ function normalizedHero(value: Record<string, unknown>, slotId = 'slot-1') {
     itemCooldowns: Object.fromEntries(Object.entries(recordNumbers(value.itemCooldowns)).filter(([,time])=>Number.isFinite(time)&&time>=0)),
     selectedAmmo: typeof value.selectedAmmo==='string' ? value.selectedAmmo : null,
     currentCity: typeof value.currentCity === 'string' && CITIES[value.currentCity] ? value.currentCity : 'arunika',
-    currentField: typeof value.currentField === 'string' && FIELDS[value.currentField] ? value.currentField : 'verdant-plains',
+    currentField: typeof value.currentField === 'string' && FIELDS[value.currentField] ? value.currentField : PLAINS_ID,
     inCity: typeof value.inCity === 'boolean' ? value.inCity : true,
     unlockedCities: Array.isArray(value.unlockedCities) ? value.unlockedCities.filter((id):id is string=>typeof id==='string'&&Boolean(CITIES[id])) : ['arunika'],
-    unlockedFields: Array.isArray(value.unlockedFields) ? value.unlockedFields.filter((id):id is string=>typeof id==='string'&&Boolean(FIELDS[id])) : ['verdant-plains'],
+    unlockedFields: Array.isArray(value.unlockedFields) ? value.unlockedFields.filter((id):id is string=>typeof id==='string'&&Boolean(FIELDS[id])) : [PLAINS_ID],
     completedQuests: Array.from(new Set([...(Array.isArray(value.completedQuests) ? value.completedQuests.filter((id):id is string=>typeof id==='string').map(migrateFieldQuestId) : []), ...(value.questClaimed === true ? ['main-verdant-bisikan'] : [])])),
     acceptedQuests: Array.from(new Set([...(Array.isArray(value.acceptedQuests) ? value.acceptedQuests : []), ...(Array.isArray(value.activeQuests) ? value.activeQuests : [])].filter((id):id is string=>typeof id==='string').map(migrateFieldQuestId))),
     activeQuests: Array.from(new Set([...(Array.isArray(value.activeQuests) ? value.activeQuests : []), ...(Array.isArray(value.acceptedQuests) ? value.acceptedQuests : [])].filter((id):id is string=>typeof id==='string').map(migrateFieldQuestId))),
@@ -2418,8 +2419,8 @@ function normalizedHero(value: Record<string, unknown>, slotId = 'slot-1') {
     weapon: integer(value.weapon, 0, 20, 0),
     questClaimed: value.questClaimed === true,
     bossDefeated: value.bossDefeated === true,
-    x: integer(value.x, 1-regionHalfExtent(value.inCity !== false), regionHalfExtent(value.inCity !== false)-1, 0),
-    z: integer(value.z, 1-regionHalfExtent(value.inCity !== false), regionHalfExtent(value.inCity !== false)-1, 7),
+    x: value.inCity===false&&value.currentField===PLAINS_ID ? (typeof value.x==='number'?value.x:NaN) : integer(value.x, 1-regionHalfExtent(value.inCity !== false), regionHalfExtent(value.inCity !== false)-1, 0),
+    z: value.inCity===false&&value.currentField===PLAINS_ID ? (typeof value.z==='number'?value.z:NaN) : integer(value.z, 1-regionHalfExtent(value.inCity !== false), regionHalfExtent(value.inCity !== false)-1, 7),
     skillPoints: integer(value.skillPoints, 0, 500, Math.max(0, level - 1)),
     statPoints: integer(value.statPoints, 0, 999, Math.max(0, level - 1) * STAT_POINTS_PER_LEVEL),
     allocatedStats,
@@ -2601,6 +2602,12 @@ function normalizedHero(value: Record<string, unknown>, slotId = 'slot-1') {
   }
   h.itemCooldowns=cooldowns;
   h.unlockedFields=Array.from(new Set([...h.unlockedFields,...startingFieldIds()]));
+  // Coordinates from the retired field belong to a different terrain.
+  if(!h.inCity&&h.currentField===PLAINS_ID&&value.currentField!==PLAINS_ID){
+    h.currentCity=FIELDS[PLAINS_ID].cityId;
+    Object.assign(h,PLAINS_ENTRY);
+  }
+  if(!h.inCity&&h.currentField===PLAINS_ID)Object.assign(h,restorePlainsPosition(h));
   const terrain=!h.inCity?FIELD_TERRAINS[h.currentField]:undefined;
   if(terrain)Object.assign(h,nearestTerrainPoint(terrain,{x:h.x,z:h.z}));
   if(h.progressionArchitecture==='v2_test')delete h.statusEffects.stealth;

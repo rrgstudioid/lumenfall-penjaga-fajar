@@ -1,6 +1,6 @@
 import * as T from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
-import { cloneImportedMap, sandsWorldPoint } from './imported-map.ts';
+import { cloneImportedMap } from './imported-map.ts';
 import { insideBoundary, terrainPathDistance, terrainWater, type FieldTerrain, type GroundPoint } from './field-terrain.ts';
 import { createTreeTrunkCollider } from './tree-collision.ts';
 
@@ -24,7 +24,6 @@ const TREE_HEIGHT: Record<TreeFamily, number> = {
   oak: 5.6, pine: 5.8, spruce: 7, willow: 6.2,
 };
 function treeLimits(regionId: string, inCity: boolean) {
-  if (regionId === 'sands-location') return { height: 5.5, radius: 3.3 };
   return inCity ? { height: 6, radius: 3.6 } : { height: 8, radius: 4.2 };
 }
 
@@ -178,16 +177,7 @@ const eastPlacements: TreePlacement[] = [
   treePlacement('oak', -35, 37, 1.15, 5.8),
 ];
 
-const sandsPlacements: Array<Omit<TreePlacement, 'x'|'z'> & { x: number; z: number }> = [
-  { ...treePlacement('joshua', 0, 0, 1.12, .2), x: -10, z: -22 },
-  { ...treePlacement('acacia', 0, 0, 1.02, 1.4), x: 8, z: -20 },
-  { ...treePlacement('joshua', 0, 0, 1.18, 2.3), x: -9, z: 13 },
-  { ...treePlacement('acacia', 0, 0, 1.06, 3.5), x: 9, z: 15 },
-  { ...treePlacement('joshua', 0, 0, .98, 4.7), x: -4, z: 28 },
-];
-
 function placementForRegion(regionId: string, inCity: boolean, terrain?: FieldTerrain): TreePlacement[] {
-  if (regionId === 'sands-location') return sandsPlacements.map(item => ({ ...item, ...sandsWorldPoint(item.x, item.z) }));
   const candidates = inCity ? cityPlacements : regionId === 'east-gate-arunika' ? eastPlacements : fieldPlacements;
   if (!terrain) return candidates;
   return candidates.filter(item => {

@@ -1,7 +1,7 @@
+import { STARTER_FIELD_CONTENT } from './regions.ts';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { EAST_GATE_TERRAIN, VERDANT_TERRAIN, terrainHeight, terrainWalkable } from './field-terrain.ts';
-import { FIELDS } from './regions.ts';
 import { fieldSpawns } from './field-layout.ts';
 
 await test('Padang Arunika expands horizontally without scaling actors or elevation', () => {
@@ -24,7 +24,7 @@ await test('Padang Arunika expands horizontally without scaling actors or elevat
     assert.ok(Math.abs(expanded) < 20, `elevation was scaled at ${x},${z}`);
   }
 
-  const spawns = fieldSpawns(FIELDS['verdant-plains']);
+  const spawns = fieldSpawns(STARTER_FIELD_CONTENT);
   assert.equal(spawns.length, 42);
   assert.ok(Math.max(...spawns.map(s => Math.abs(s.x)), ...spawns.map(s => Math.abs(s.z))) > 70);
   for (const spawn of spawns) assert.ok(terrainWalkable(padang, spawn, spawn.definition.variant === 'boss' ? 1.8 : .55, true));

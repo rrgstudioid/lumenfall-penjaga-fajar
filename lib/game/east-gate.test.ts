@@ -1,3 +1,4 @@
+import { STARTER_FIELD_CONTENT } from './regions.ts';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as T from 'three';
@@ -9,12 +10,12 @@ import {MONSTER_LOOT_PROFILES,lootItemPool,monsterDropChance} from './monster-lo
 import {freshHero,parseSave} from './rules.ts';
 import {fieldShopStock,buyFieldShopItem,sellInventoryItem} from './city-services.ts';
 import {BGM_TRACKS} from './bgm.ts';
-const east=FIELDS[t.id],old=FIELDS['verdant-plains'];
+const east=FIELDS[t.id],old=STARTER_FIELD_CONTENT;
 
-await test('East Gate remains independent and connected alongside imported Sands',()=>{
-  assert.ok(Object.keys(FIELDS).length >= 8);
-  assert.ok(FIELDS['sands-location']);
-  assert.deepEqual(CITIES.arunika.connectedFields,['verdant-plains','ironveil-mines','whispering-wilds',t.id,'sands-location']);
+await test('East Gate remains independent and connected after Sands retirement',()=>{
+  assert.ok(Object.keys(FIELDS).length >= 7);
+  assert.equal(FIELDS['sands-location'],undefined);
+  assert.deepEqual(CITIES.arunika.connectedFields,['verdant-plains-v2','ironveil-mines','whispering-wilds',t.id]);
   assert.equal(east.chapter,1);assert.equal(east.minLevel,1);assert.equal(east.maxLevel,8);
   assert.equal(east.regionType,'field');assert.equal(east.cityDirection,'east');
   assert.deepEqual(east.subAreas,['Gerbang Timur','Dusun Purnama','Lembah Cahaya']);
@@ -36,6 +37,7 @@ await test('Padang expansion is isolated and East Gate retains its footprint',()
   dispose(group);
 });
 await test('monster and material definitions are references, not copies; every weighted loot pool matches',()=>{
+  assert.ok(east.fieldBoss);
   assert.equal(east.normalMonsters,old.normalMonsters);assert.equal(east.eliteMonsters,old.eliteMonsters);assert.equal(east.fieldBoss,old.fieldBoss);
   assert.equal(east.materialTable,old.materialTable);assert.equal(east.dropTable,old.dropTable);assert.equal(fieldContent(t.id),old);
   for(const v of ['normal','elite','boss'] as const)for(const f of MONSTER_LOOT_PROFILES[v])assert.deepEqual(lootItemPool(t.id,v,f.value),lootItemPool(old.id,v,f.value));
@@ -97,9 +99,9 @@ await test('shared species have independent persistent respawn deadlines in each
 });
 await test('old saves gain starting field safely; East invalid coordinates relocate without losing progress',()=>{
   const starting = startingFieldIds();
-  assert(starting.includes('verdant-plains'));
+  assert(starting.includes('verdant-plains-v2'));
   assert(starting.includes(t.id));
-  assert(starting.includes('sands-location'));
+  assert(!starting.includes('sands-location'));
   const h=freshHero();h.unlockedFields=['verdant-plains','ironveil-mines'];h.gold=5432;
   h.monsterRespawnState={'verdant-plains-5:spawn:100':123456};
   let loaded=parseSave(JSON.stringify(h))!;
@@ -118,7 +120,7 @@ await test('East quest identities and kill counters cannot complete Padang quest
   const quests=registry.filter(q=>q.targetMapId===t.id);assert.equal(quests.length,3);
   for(const q of quests){assert.equal(q.giverNpcId,FIELD_NPCS[t.id].id);assert.equal(q.giverMapId,t.id);assert(!old.questList.includes(q.id));}
   const h=freshHero();assert(!acceptRegionQuest(h,east.questList[0]));
-  travel(h,old.id);assert(acceptRegionQuest(h,old.questList[0]));assert(!acceptRegionQuest(h,east.questList[0]));
+  assert.equal(travel(h,old.id).ok,false);assert.equal(acceptRegionQuest(h,old.questList[0]),false);assert(!acceptRegionQuest(h,east.questList[0]));
   travel(h,t.id);assert(acceptRegionQuest(h,east.questList[0]));h.fieldProgress[t.id]=2;
   assert.equal(regionQuestProgress(h,east.questList[0]).current,2);
   assert.equal(regionQuestProgress(h,old.questList[0]).current,0);
@@ -126,7 +128,8 @@ await test('East quest identities and kill counters cannot complete Padang quest
 await test('camp reuses stock, Buy, Sell and audio fallback without duplicating inventory',()=>{
   assert.deepEqual(FIELD_NPCS[t.id].services,['buy','sell','teleport','quest']);
   assert.equal(FIELD_NPCS[t.id].name,'Penjaga Pos Timur');assert.equal(FIELD_NPCS[t.id].x,t.camp.x);
-  assert.deepEqual(fieldShopStock(t.id),fieldShopStock(old.id));
+  assert(fieldShopStock(t.id).some(item=>item.templateId==='health-potion-1'));
+  assert(fieldShopStock(t.id).some(item=>item.templateId==='field-verdant-plains-sword'));
   const h=freshHero();h.gold=3000;travel(h,t.id);
   assert(buyFieldShopItem(h,t.id,'health-potion-1').ok);assert(h.gold<3000);
   const item=h.inventory.find(i=>i.templateId==='health-potion-1')!;assert(sellInventoryItem(h,item.id,1).ok);

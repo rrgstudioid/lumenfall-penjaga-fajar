@@ -1,0 +1,27 @@
+[
+  {
+    "file": "banner.glb",
+    "triangles": 448,
+    "bytes": 612296
+  },
+  {
+    "file": "fir.glb",
+    "triangles": 1456,
+    "bytes": 1125228
+  },
+  {
+    "file": "pier.glb",
+    "triangles": 1500,
+    "bytes": 501900
+  },
+  {
+    "file": "shrub.glb",
+    "triangles": 450,
+    "bytes": 584172
+  },
+  {
+    "file": "tree.glb",
+    "triangles": 2460,
+    "bytes": 1073124
+  }
+]

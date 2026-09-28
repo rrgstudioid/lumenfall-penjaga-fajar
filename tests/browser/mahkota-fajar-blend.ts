@@ -28,7 +28,6 @@ const cameras: Record<string, { position: [number, number, number]; look: [numbe
 
 class BlenderCandidateGame extends Game {
   override get fieldTerrain() { return undefined; }
-  override get isSandsLocation() { return false; }
   override get nearSanctuary() { return false; }
   override restoreSavedPosition() { this.hero.x = 0; this.hero.z = 90; }
   override buildTerrain() {}

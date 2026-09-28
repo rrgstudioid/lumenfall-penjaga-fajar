@@ -9,9 +9,10 @@ await test('all Chapter 1 maps travel by level without former quest or boss unlo
   for(const cityId of ['arunika','jayantara'])assert.equal(travel(hero,cityId).ok,true);
 });
 
-await test('each field has three local difficulty quests with level-scaled requirements and camp givers',()=>{
+await test('quest-enabled fields retain difficulty quests; hunting-only fields have no quest or giver',()=>{
   const hero=freshHero(); hero.level=1; const entries=getAllQuestJournalEntries(hero);
   for(const field of Object.values(FIELDS)){
+    if(!field.questList.length){assert.deepEqual(field.questList,[]);assert.equal(FIELD_NPCS[field.id],undefined);assert.equal(entries.filter(entry=>entry.targetMapId===field.id&&entry.category==='side').length,0);continue;}
     assert.deepEqual(field.questList,[`field-${field.id}-easy`,`field-${field.id}-veteran`,`field-${field.id}-elite`]);
     const fieldEntries=entries.filter(entry=>entry.giverNpcId===FIELD_NPCS[field.id].id);
     assert.equal(fieldEntries.length,3);
@@ -24,13 +25,13 @@ await test('each field has three local difficulty quests with level-scaled requi
 });
 
 await test('field quests can only be accepted from the camp in their own field',()=>{
-  const hero=freshHero(); hero.level=50; hero.inCity=true; hero.currentField='verdant-plains';
-  assert.equal(acceptRegionQuest(hero,'field-verdant-plains-easy'),false); assert.deepEqual(hero.activeQuests,[]);
+  const hero=freshHero(); hero.level=50; hero.inCity=true; hero.currentField='east-gate-arunika';
+  assert.equal(acceptRegionQuest(hero,'field-east-gate-arunika-easy'),false); assert.deepEqual(hero.activeQuests,[]);
   hero.inCity=false; hero.currentField='ironveil-mines';
-  assert.equal(acceptRegionQuest(hero,'field-verdant-plains-easy'),false); assert.deepEqual(hero.activeQuests,[]);
-  hero.currentField='verdant-plains';
-  assert.equal(acceptRegionQuest(hero,'field-verdant-plains-easy'),true); assert.deepEqual(hero.activeQuests,['field-verdant-plains-easy']);
-  assert.equal(acceptRegionQuest(hero,'field-verdant-plains-easy'),true); assert.deepEqual(hero.activeQuests,['field-verdant-plains-easy']);
+  assert.equal(acceptRegionQuest(hero,'field-east-gate-arunika-easy'),false); assert.deepEqual(hero.activeQuests,[]);
+  hero.currentField='east-gate-arunika';
+  assert.equal(acceptRegionQuest(hero,'field-east-gate-arunika-easy'),true); assert.deepEqual(hero.activeQuests,['field-east-gate-arunika-easy']);
+  assert.equal(acceptRegionQuest(hero,'field-east-gate-arunika-easy'),true); assert.deepEqual(hero.activeQuests,['field-east-gate-arunika-easy']);
 });
 
 await test('field quest journal progress increases after every monster kill',()=>{

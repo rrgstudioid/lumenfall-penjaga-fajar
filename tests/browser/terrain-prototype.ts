@@ -9,7 +9,6 @@ const hero=rules.freshHero('slot-1','adventurer','Penjelajah Prototype');hero.in
 let view='player';
 class PrototypeGame extends Game{
  override get fieldTerrain(){return undefined;}
- override get isSandsLocation(){return false;}
  override get nearSanctuary(){return false;}
  override restoreSavedPosition(){Object.assign(this.hero,terrain.m.spawn);}
  override buildTerrain(){}

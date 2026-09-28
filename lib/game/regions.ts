@@ -1,8 +1,8 @@
+import { PLAINS_ID, PLAINS_ENTRY, PLAINS_EXIT } from './verdant-plains-layout.ts';
 import type { Hero } from './rules.ts';
 import { getVisibleJobArchitecture, showJobQuest } from './job-presentation.ts';
 import { STAMINA_ENABLED } from './gameplay-config.ts';
 import { VERDANT_TERRAIN, EAST_GATE_TERRAIN } from './field-terrain.ts';
-import { sandsWorldPoint } from './sands-coordinates.ts';
 
 export const WORLD_CONFIG = { levelCap: 50, chapterCap: 1, inventoryCapacity: 60, storageCapacity: 120, cityScale: 1.5 };
 export type MonsterVariant = 'normal' | 'elite' | 'boss';
@@ -14,7 +14,7 @@ export const MONSTER_VARIANTS: Record<MonsterVariant, { hpMultiplier:number; dam
 export type MonsterDefinition = { id: string; name: string; level: number; rank: MonsterVariant; variant: MonsterVariant; exp: number; maxHP:number; attack:number; defense:number; magicDefense:number; attackSpeed:number; movementSpeed:number; attackRange:number; dropRate:number; lootTable:string[]; respawnTime:number; visualScale:number; nameColor:string; statusLabel:string; respawn:number };
 export type NpcDefinition = { id: string; name: string; type: string; service: string; services: string[]; description: string; interactionRange: number; shopInventory: string[]; x: number; z: number; fieldId?: string };
 export type CityDefinition = { id: string; displayName: string; chapter: number; minLevel: number; recommendedLevel: string; npcList: NpcDefinition[]; connectedFields: string[]; unlockQuest: string | null; musicId: string; ambientId: string };
-export type FieldDefinition = { id: string; cityId: string; displayName: string; codename: string; chapter: number; minLevel: number; recommendedLevel: string; maxLevel: number; subAreas: string[]; normalMonsters: MonsterDefinition[]; eliteMonsters: MonsterDefinition[]; fieldBoss: MonsterDefinition; dropTable: string[]; materialTable: { id: string; chance: number }[]; unlockQuest: string | null; previousField: string | null; nextMap: string | null; musicId: string; ambientId: string; isUnlocked: boolean; color: string; questList: string[]; entry: {x:number;z:number}; exit: {x:number;z:number}; contentFamilyId?:string; cityDirection?:'north'|'east'; regionType?:'field' };
+export type FieldDefinition = { id: string; cityId: string; displayName: string; codename: string; chapter: number; minLevel: number; recommendedLevel: string; maxLevel: number; subAreas: string[]; normalMonsters: MonsterDefinition[]; eliteMonsters: MonsterDefinition[]; fieldBoss: MonsterDefinition | null; dropTable: string[]; materialTable: { id: string; chance: number }[]; unlockQuest: string | null; previousField: string | null; nextMap: string | null; musicId: string; ambientId: string; isUnlocked: boolean; color: string; questList: string[]; entry: {x:number;z:number}; exit: {x:number;z:number}; contentFamilyId?:string; cityDirection?:'north'|'east'; regionType?:'field' };
 export type RegionQuestStatus = 'locked'|'active'|'ready_to_complete'|'completed'|'cooldown'|'available';
 export type QuestReward = { xp: number; gold: number; items: Array<{ templateId: string; quantity: number }> };
 export type QuestJournalEntry = {
@@ -82,17 +82,44 @@ const seeds: Array<[string,string,string,number,number,string[],string[],number[
  ['sunken-ruins','Reruntuhan Tenggelam','Sunken Ruins',32,42,['Halaman Candi Terendam','Ruang Penjaga','Gudang Harta Banjir'],['Drowned Warrior','Drowned Soldier','Leech Wraith','Ruin Guardian','Sunken Sentinel','Leviathan'],[32,33,37,40,42,44],['vibranium'],'#316c7a',[1700,1896,2300,2700,3600,14595]],
  ['meteorfall-citadel','Benteng Hujan Meteor','Meteorfall Citadel',42,50,['Gerbang Bintang Jatuh','Padang Meteor','Inti Benteng Meteorfall'],['Meteor Wisp','Meteor Hound','Astral Golem','Void Knight','Meteor Titan','Meteorfall Overlord'],[42,43,46,48,49,50],['vibranium','meteorite-core'],'#584465',[2500,2820,3200,3700,4700,17680]],
 ];
-export const FIELDS: Record<string,FieldDefinition> = Object.fromEntries(seeds.map(([id,displayName,codename,minLevel,maxLevel,subAreas,names,levels,materials,color,expValues],index) => {
+const fieldDefinitions: Record<string,FieldDefinition> = Object.fromEntries(seeds.map(([id,displayName,codename,minLevel,maxLevel,subAreas,names,levels,materials,color,expValues],index) => {
  const monsters=names.map((name,i):MonsterDefinition => { const variant:MonsterVariant=i===5?'boss':i===4?'elite':'normal'; const tuning=MONSTER_VARIANTS[variant]; const level=levels[i]; return {id:`${id}-${i}`,name,level,rank:variant,variant,exp:expValues[i],maxHP:Math.round((30+level*16)*tuning.hpMultiplier),attack:Math.round((8+level*2.2)*tuning.damageMultiplier),defense:Math.round((4+level*1.1)*tuning.defenseMultiplier),magicDefense:Math.round((3+level)*tuning.defenseMultiplier),attackSpeed:variant==='boss'?1.2:variant==='elite'?1.45:1.8,movementSpeed:variant==='boss'?1.3:variant==='elite'?1.7:2.1,attackRange:variant==='boss'?5.6:1.8,dropRate:variant==='boss'?.95:variant==='elite'?.7:.35,lootTable:['health-potion-1',...materials],respawnTime:tuning.respawnTime,visualScale:tuning.visualScale,nameColor:tuning.nameColor,statusLabel:tuning.statusLabel,respawn:tuning.respawnTime}; });
  return [id,{id,displayName,codename,cityId:index<3?'arunika':'jayantara',chapter:1,minLevel,maxLevel,recommendedLevel:`${minLevel}–${maxLevel}`,subAreas,normalMonsters:monsters.slice(0,4),eliteMonsters:[monsters[4]],fieldBoss:monsters[5],dropTable:['health-potion-1','forest-vest','adventurer-pet-egg'],materialTable:materials.map((id,i)=>({id,chance:i>0&&['titanium','vibranium','meteorite-core'].includes(id)?0.15:0.65})),unlockQuest:null,previousField:index?seeds[index-1][0]:null,nextMap:seeds[index+1]?.[0]??null,musicId:`field-${id}`,ambientId:`ambient-${id}`,isUnlocked:index===0,color,questList:[`field-${id}-easy`,`field-${id}-veteran`,`field-${id}-elite`],entry:{x:0,z:30},exit:{x:0,z:34}}];
 }));
 
-FIELDS['verdant-plains'].entry = {...VERDANT_TERRAIN.entry};
-FIELDS['verdant-plains'].exit = {...VERDANT_TERRAIN.exit};
+// Separate species/save identities; reuse established rank scaling and starter loot.
+const plainsMonster = (slug:string,name:string,level:number,variant:MonsterVariant,exp:number):MonsterDefinition => {
+ const tuning=MONSTER_VARIANTS[variant];
+ return {id:`${PLAINS_ID}-${slug}`,name,level,rank:variant,variant,exp,
+  maxHP:Math.round((30+level*16)*tuning.hpMultiplier),attack:Math.round((8+level*2.2)*tuning.damageMultiplier),
+  defense:Math.round((4+level*1.1)*tuning.defenseMultiplier),magicDefense:Math.round((3+level)*tuning.defenseMultiplier),
+  attackSpeed:variant==='boss'?1.2:variant==='elite'?1.45:1.8,movementSpeed:variant==='boss'?1.3:variant==='elite'?1.7:2.1,
+  attackRange:variant==='boss'?5.6:1.8,dropRate:variant==='boss'?.95:variant==='elite'?.7:.35,
+  lootTable:['health-potion-1','iron','lumut-fiber'],respawnTime:tuning.respawnTime,respawn:tuning.respawnTime,
+  visualScale:tuning.visualScale,nameColor:tuning.nameColor,statusLabel:tuning.statusLabel};
+};
+fieldDefinitions[PLAINS_ID] = {id:PLAINS_ID,cityId:'averion',displayName:'Verdant Plains',codename:'Padang Arunika',chapter:1,minLevel:1,recommendedLevel:'1–8',maxLevel:8,
+ subAreas:['Arunika Rest','Padang Pemula','Dataran Tengah','Tepi Sungai','Dataran Utara','Pesisir Selatan','Clearing Treant'],
+ normalMonsters:[
+  plainsMonster('small-slime','Small Slime',1,'normal',10),
+  plainsMonster('meadow-slime','Meadow Slime',2,'normal',28),
+  plainsMonster('wild-boar','Wild Boar',3,'normal',52),
+  plainsMonster('forest-piya','Forest Piya',4,'normal',82),
+  plainsMonster('stoneback-beetle','Stoneback Beetle',5,'normal',112),
+  plainsMonster('rootling','Rootling',6,'normal',147),
+  plainsMonster('thorn-wolf','Thorn Wolf',7,'normal',185),
+ ],eliteMonsters:[plainsMonster('giant-rootling','Giant Rootling',7,'elite',370),plainsMonster('alpha-boar','Alpha Boar',8,'elite',452)],
+ fieldBoss:plainsMonster('ancient-treant','Ancient Treant',8,'boss',1075),
+ dropTable:[...fieldDefinitions['verdant-plains'].dropTable],materialTable:fieldDefinitions['verdant-plains'].materialTable.map(item=>({...item})),
+ unlockQuest:null,previousField:null,nextMap:null,musicId:'field-verdant-plains',ambientId:'ambient-verdant-plains',isUnlocked:true,color:'#b8d4df',questList:[],entry:{...PLAINS_ENTRY},exit:{...PLAINS_EXIT},regionType:'field'};
+CITIES.averion.connectedFields.push(PLAINS_ID);
+
+fieldDefinitions['verdant-plains'].entry = {...VERDANT_TERRAIN.entry};
+fieldDefinitions['verdant-plains'].exit = {...VERDANT_TERRAIN.exit};
 
 // A new region identity, but the SAME authoritative monster objects and loot tier.
-FIELDS['east-gate-arunika'] = {
- ...FIELDS['verdant-plains'], id:'east-gate-arunika',displayName:'East Gate Arunika',codename:'Sunrise Frontier',
+fieldDefinitions['east-gate-arunika'] = {
+ ...fieldDefinitions['verdant-plains'], id:'east-gate-arunika',displayName:'East Gate Arunika',codename:'Sunrise Frontier',
  contentFamilyId:'verdant-plains',cityDirection:'east',regionType:'field',
  subAreas:['Gerbang Timur','Dusun Purnama','Lembah Cahaya'],previousField:null,nextMap:'ironveil-mines',
  musicId:'field-east-gate-arunika',ambientId:'ambient-east-gate-arunika',color:'#83a95c',
@@ -100,45 +127,31 @@ FIELDS['east-gate-arunika'] = {
  entry:{...EAST_GATE_TERRAIN.entry},exit:{...EAST_GATE_TERRAIN.exit},
 };
 CITIES.arunika.connectedFields.push('east-gate-arunika');
-// Optional imported showcase field. It reuses the existing Verdant Plains
-// gameplay definitions while keeping its map identity, spawns, and bounds
-// isolated from the authored regions above.
-FIELDS['sands-location'] = {
- ...FIELDS['verdant-plains'],
- id:'sands-location',
- cityId:'arunika',
- displayName:'Sands Location',
- codename:'Sands Location',
- contentFamilyId:'verdant-plains',
- subAreas:['Pantai Pasir','Kuil Tenggelam','Dataran Oasis'],
- previousField:null,
- nextMap:null,
- musicId:'field-sands-location',
- ambientId:'ambient-sands-location',
- color:'#c8ad73',
- questList:['field-sands-location-easy','field-sands-location-veteran','field-sands-location-elite'],
- // Clear ground in front of the imported entrance, not the chest at z=30.
- entry:sandsWorldPoint(0,35),
- // Put the return gate at the opposite end of the long imported scene so it
- // cannot sit between the follow camera and the player on arrival.
- exit:sandsWorldPoint(0,-36),
- isUnlocked:true,
-};
-CITIES.arunika.connectedFields.push('sands-location');
+// The retired map is no longer a travel destination. Its shared content remains
+// authoritative for East Gate and existing equipment/save identities.
+export const STARTER_FIELD_CONTENT = fieldDefinitions['verdant-plains'];
+export const FIELDS: Record<string, FieldDefinition> = Object.fromEntries([
+ [PLAINS_ID, fieldDefinitions[PLAINS_ID]],
+ ...Object.entries(fieldDefinitions).filter(([id])=>id!==PLAINS_ID&&id!=='verdant-plains'),
+]);
+for(const city of Object.values(CITIES))city.connectedFields=city.connectedFields.map(id=>id==='verdant-plains'?PLAINS_ID:id);
+for(const field of Object.values(FIELDS))if(field.previousField==='verdant-plains')field.previousField=PLAINS_ID;
+
 export const startingFieldIds = () => Object.values(FIELDS).filter(field=>field.isUnlocked&&field.chapter<=WORLD_CONFIG.chapterCap).map(field=>field.id);
-export const fieldContent = (fieldId:string) => {const field=FIELDS[fieldId]??FIELDS['verdant-plains'];return FIELDS[field.contentFamilyId??field.id];};
+export function fieldContent(fieldId:string):FieldDefinition {
+ const field=FIELDS[fieldId];
+ if(fieldId==='verdant-plains'||field?.contentFamilyId==='verdant-plains')return STARTER_FIELD_CONTENT;
+ return field ? FIELDS[field.contentFamilyId??field.id] : FIELDS[PLAINS_ID];
+}
 
 export const FIELD_NPCS: Record<string, NpcDefinition> = {
- 'verdant-plains': {id:'field-npc-verdant',name:'Penjaga Pos Arunika',type:'merchant',service:'field-camp',services:['buy','sell','teleport','quest'],interactionRange:2.5,shopInventory:[],description:'Quest field, teleport, dan toko kebutuhan farming Padang Arunika.',x:-26,z:28,fieldId:'verdant-plains'},
  'ironveil-mines': {id:'field-npc-ironveil',name:'Mandor Tambang',type:'merchant',service:'field-camp',services:['buy','sell','teleport','quest'],interactionRange:2.5,shopInventory:[],description:'Quest field, teleport, dan toko kebutuhan farming Tambang Selubung Besi.',x:-26,z:28,fieldId:'ironveil-mines'},
  'whispering-wilds': {id:'field-npc-whispering',name:'Pawang Rimba',type:'merchant',service:'field-camp',services:['buy','sell','teleport','quest'],interactionRange:2.5,shopInventory:[],description:'Quest field, teleport, dan toko kebutuhan farming Rimba Bisik.',x:-26,z:28,fieldId:'whispering-wilds'},
  'frostfire-highlands': {id:'field-npc-frostfire',name:'Penjaga Bara-Beku',type:'merchant',service:'field-camp',services:['buy','sell','teleport','quest'],interactionRange:2.5,shopInventory:[],description:'Quest field, teleport, dan toko kebutuhan farming Dataran Bara-Beku.',x:-26,z:28,fieldId:'frostfire-highlands'},
  'sunken-ruins': {id:'field-npc-sunken',name:'Penjaga Reruntuhan',type:'merchant',service:'field-camp',services:['buy','sell','teleport','quest'],interactionRange:2.5,shopInventory:[],description:'Quest field, teleport, dan toko kebutuhan farming Reruntuhan Tenggelam.',x:-26,z:28,fieldId:'sunken-ruins'},
  'meteorfall-citadel': {id:'field-npc-meteor',name:'Penjaga Benteng Meteor',type:'merchant',service:'field-camp',services:['buy','sell','teleport','quest'],interactionRange:2.5,shopInventory:[],description:'Quest field, teleport, dan toko kebutuhan farming Benteng Hujan Meteor.',x:-26,z:28,fieldId:'meteorfall-citadel'},
- 'sands-location': {id:'field-npc-sands',name:'Penjaga Oasis',type:'merchant',service:'field-camp',services:['buy','sell','teleport','quest'],interactionRange:2.5,shopInventory:[],description:'Perbekalan, perjalanan, dan misi di Sands Location.',...sandsWorldPoint(-7,26),fieldId:'sands-location'},
 };
 
-Object.assign(FIELD_NPCS['verdant-plains'], VERDANT_TERRAIN.camp);
 FIELD_NPCS['east-gate-arunika']={id:'field-npc-east-gate',name:'Penjaga Pos Timur',type:'merchant',service:'field-camp',services:['buy','sell','teleport','quest'],interactionRange:2.5,shopInventory:[],description:'Perbekalan, perjalanan, dan misi perbatasan East Gate Arunika.',x:-38,z:28,fieldId:'east-gate-arunika'};
 Object.assign(FIELD_NPCS['east-gate-arunika'],EAST_GATE_TERRAIN.camp);
 export function monsterXP(monster:MonsterDefinition, playerLevel:number) { return Math.max(1, Math.floor(monster.exp * Math.max(0.05, 1 - Math.max(0, playerLevel-monster.level-5)*0.08))); }
@@ -196,6 +209,7 @@ type FieldQuestDifficulty='easy'|'veteran'|'elite';
 function fieldQuestDifficulty(id:string):FieldQuestDifficulty { return id.endsWith('-veteran')?'veteran':id.endsWith('-elite')?'elite':'easy'; }
 export function fieldForQuest(id:string) { return Object.values(FIELDS).find(field=>field.questList.includes(id)); }
 export function migrateFieldQuestId(id:string) {
+ if(id==='story-verdant-plains')return 'field-verdant-plains-easy';
  for(const field of Object.values(FIELDS)) if(id===`story-${field.id}`) return field.questList[0];
  return id;
 }
@@ -225,7 +239,7 @@ export function getQuestRequirements(quest:QuestJournalEntry,hero:Hero) {
 }
 export function getQuestRegistry():QuestJournalEntry[] {
  const registry:QuestJournalEntry[]=[
-  {id:'main-verdant-bisikan',title:'Bisikan di Lembah',chapter:1,category:'main',giverNpcId:'aruna-0',giverNpcName:'Adipati Aruna',giverNpcRole:'Main Story',giverMapId:'arunika',giverMapName:CITIES.arunika.displayName,recommendedLevel:1,requiredLevel:1,requiredQuestIds:[],requiredMapId:null,requiredJob:null,targetMapId:'verdant-plains',targetMapName:FIELDS['verdant-plains'].displayName,description:'Bebaskan lembah dari makhluk yang menyerap cahaya.',objectives:[{type:'kill',targetId:'verdant-plains-normal',targetName:'Lumut Liar',required:6}],rewards:{xp:80,gold:80,items:[]},repeatable:false,cooldownHours:0,status:'available',progress:[]},
+  {id:'main-verdant-bisikan',title:'Bisikan di Lembah',chapter:1,category:'main',giverNpcId:'aruna-0',giverNpcName:'Adipati Aruna',giverNpcRole:'Main Story',giverMapId:'arunika',giverMapName:CITIES.arunika.displayName,recommendedLevel:1,requiredLevel:1,requiredQuestIds:[],requiredMapId:null,requiredJob:null,targetMapId:PLAINS_ID,targetMapName:FIELDS[PLAINS_ID].displayName,description:'Bebaskan lembah dari makhluk yang menyerap cahaya.',objectives:[{type:'kill',targetId:'verdant-plains-normal',targetName:'Lumut Liar',required:6}],rewards:{xp:80,gold:80,items:[]},repeatable:false,cooldownHours:0,status:'available',progress:[]},
   {id:'class-core',title:'Class Quest: Core Job',chapter:1,category:'class',giverNpcId:'aruna-2',giverNpcName:'Mahaguru Aksara',giverNpcRole:'Job NPC',giverMapId:'arunika',giverMapName:CITIES.arunika.displayName,recommendedLevel:10,requiredLevel:10,requiredQuestIds:[],requiredMapId:null,requiredJob:null,targetMapId:'arunika',targetMapName:CITIES.arunika.displayName,description:'Pilih dan tetapkan Core Job penjaga.',objectives:[{type:'job',targetId:'core-job',targetName:'Core Job',required:1}],rewards:{xp:0,gold:0,items:[]},repeatable:false,cooldownHours:0,status:'locked',progress:[]},
   {id:'class-specialization',title:'Specialization Quest',chapter:1,category:'class',giverNpcId:'jaya-1',giverNpcName:'Mahaguru Silsilah',giverNpcRole:'Job NPC',giverMapId:'jayantara',giverMapName:CITIES.jayantara.displayName,recommendedLevel:25,requiredLevel:25,requiredQuestIds:[],requiredMapId:'jayantara',requiredJob:'core',targetMapId:'jayantara',targetMapName:CITIES.jayantara.displayName,description:'Pilih Special Job dan bentuk identitas utama karakter.',objectives:[{type:'job',targetId:'specialization',targetName:'Special Job',required:1}],rewards:{xp:0,gold:0,items:[]},repeatable:false,cooldownHours:0,status:'locked',progress:[]},
   {id:'class-mastery',title:'Mastery Quest',chapter:1,category:'class',giverNpcId:'jaya-1',giverNpcName:'Mahaguru Silsilah',giverNpcRole:'Job NPC',giverMapId:'jayantara',giverMapName:CITIES.jayantara.displayName,recommendedLevel:40,requiredLevel:40,requiredQuestIds:[],requiredMapId:'jayantara',requiredJob:'specialization',targetMapId:'jayantara',targetMapName:CITIES.jayantara.displayName,description:'Buka pilihan Mastery untuk memodifikasi skill.',objectives:[{type:'job',targetId:'mastery',targetName:'Mastery',required:1}],rewards:{xp:0,gold:0,items:[]},repeatable:false,cooldownHours:0,status:'locked',progress:[]},

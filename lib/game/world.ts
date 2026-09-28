@@ -1,3 +1,6 @@
+import { PLAINS_ID, PLAINS_ENTRY, PLAINS_EXIT, plainsGroundHeight, plainsWalkable } from './verdant-plains-layout';
+import { PLAINS_QUALITY, PLAINS_QUALITY_KEY, type PlainsQuality } from './verdant-plains-quality';
+import { PLAINS_DAYLIGHT } from './verdant-plains-sky';
 import { UIInputBlockers, isEditableTarget } from './ui-input';
 import { CHAT_MESSAGE_LIMIT } from './chat';
 import * as T from 'three';
@@ -5,7 +8,6 @@ import { getVisibleJobArchitecture } from './job-presentation';
 import {usesHardTargeting,targetIdentity,validTarget,targetRequirement,needsSelectedTarget,targetDistance,ActionLock,type TargetIdentity,type TargetFailure} from './targeting';
 import {TargetPresentation,type TargetView} from './target-presentation';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
-import { cloneImportedMap, ImportedMapGround, SANDS_MAP_ANCHOR, SANDS_MAP_SCALE } from './imported-map';
 import { isResourceEnabled } from './gameplay-config';
 import { FIELD_TERRAINS, terrainHeight, nearestTerrainPoint, moveOnTerrain, terrainRoute, terrainRiverZ, terrainRiver, terrainPonds, insideBoundary, type GroundPoint } from './field-terrain';
 import { buildFieldTerrain } from './field-terrain-renderer';
@@ -108,8 +110,6 @@ import { BLADE_FOCUS_FLOW_DURATION, bladeMasterDualWieldActive } from './blade-m
 import { BladeMasterImpactSession } from './blade-master-impact';
 import { resolveWeaponAttackContext } from './dual-wield';
 
-const sandsLocationLoader = new GLTFLoader();
-let sandsLocationSource: Promise<T.Group> | undefined;
 const goldCoinLoader = new GLTFLoader();
 let goldCoinSource: Promise<T.Group> | undefined;
 function loadGoldCoin() {
@@ -121,16 +121,6 @@ function loadGoldCoin() {
       throw error;
     });
   return goldCoinSource;
-}
-function loadSandsLocation() {
-  sandsLocationSource ??= sandsLocationLoader.loadAsync('/assets/maps/sands-location.glb')
-    .then(asset => asset.scene)
-    .catch(error => {
-      // Allow a later region visit to retry if the asset was unavailable.
-      sandsLocationSource = undefined;
-      throw error;
-    });
-  return sandsLocationSource;
 }
 import {
   assignPrimaryHotbarSlot as assignHotbarSlot,
@@ -286,25 +276,33 @@ export class Game {
   }
   portalLabels: Array<{element:HTMLDivElement;x:number;z:number;name:string;labelHeight?:number}> = [];
   terrainSurface: T.Mesh | null = null;
+  plains: Awaited<ReturnType<typeof import('./verdant-plains-map').buildVerdantPlains>> | null = null;
+  private plainsShadowState = new WeakMap<T.Mesh,boolean>();
+  private setPlainsCharacterShadows(active:boolean) {
+    this.actor.traverse(object=>{if(object instanceof T.Mesh){
+      if(active){if(!this.plainsShadowState.has(object))this.plainsShadowState.set(object,object.castShadow);object.castShadow=false;}
+      else {const previous=this.plainsShadowState.get(object);if(previous!==undefined){object.castShadow=previous;this.plainsShadowState.delete(object);}}
+    }});
+  }
+  get isPlains() {return !this.hero.inCity&&this.hero.currentField===PLAINS_ID;}
   arunikaMaterials: ArunikaMaterials | null = null;
-  sandsGround: ImportedMapGround | null = null;
   averion: Awaited<ReturnType<typeof import('./averion-map').buildStage03>> | null = null;
   private averionUseSpawn = false;
   private averionCameraDistance = 9;
   get isAverion() { return this.hero.inCity && this.hero.currentCity === 'averion'; }
-  get isSandsLocation() { return !this.hero.inCity && this.hero.currentField === 'sands-location'; }
   get fieldTerrain() { return this.hero.inCity ? undefined : FIELD_TERRAINS[this.hero.currentField]; }
-  get nearSanctuary() {if(this.isAverion)return false;const p=this.fieldTerrain?.sanctuary??{x:0,z:0};return Math.hypot(this.hero.x-p.x,this.hero.z-p.z)<5.3;}
+  get nearSanctuary() {if(this.isAverion||this.isPlains)return false;const p=this.fieldTerrain?.sanctuary??{x:0,z:0};return Math.hypot(this.hero.x-p.x,this.hero.z-p.z)<5.3;}
   groundHeight(x:number,z:number) {
+    if(this.isPlains)return plainsGroundHeight(x,z);
     if(this.isAverion)return this.averion?.groundHeight(x,z)??this.actor.position.y;
-    if(this.isSandsLocation)return this.sandsGround?.heightAt(x,z)??0;
     const t=this.fieldTerrain;return t?terrainHeight(t,x,z):0;
   }
   groundDistance(a:T.Vector3,b:T.Vector3) {
     // Preserve the old flat-ground combat ranges when actors stand on different elevations.
-    return this.fieldTerrain||this.isSandsLocation||this.isAverion?Math.hypot(a.x-b.x,a.z-b.z):a.distanceTo(b);
+    return this.fieldTerrain||this.isAverion||this.isPlains?Math.hypot(a.x-b.x,a.z-b.z):a.distanceTo(b);
   }
   placeActor() {
+    if(this.isPlains){this.actor.visible=!!this.plains;if(!this.plains)return;if(!this.plains.navigation.valid(this.hero))Object.assign(this.hero,PLAINS_ENTRY);}
     if(this.isAverion) {
       this.actor.visible=!!this.averion;
       if(!this.averion)return;
@@ -312,16 +310,19 @@ export class Game {
     } else this.actor.visible=true;
     const t=this.fieldTerrain;
     if(t)Object.assign(this.hero,nearestTerrainPoint(t,{x:this.hero.x,z:this.hero.z}));
-    if(this.isSandsLocation&&this.sandsGround)Object.assign(this.hero,this.sandsGround.nearestPoint(this.hero,FIELDS['sands-location'].entry));
     this.actor.position.set(this.hero.x,this.groundHeight(this.hero.x,this.hero.z),this.hero.z);
   }
   moveEnemy(e:Enemy,dx:number,dz:number) {
     const t=this.fieldTerrain;
-    if(this.isSandsLocation&&!this.sandsGround)return;
     const radius=e.boss?1.8:.55;
+    if(this.isPlains){
+      if(!this.plains)return;
+      const p=this.plains.navigation.move(e.group.position,dx,dz,radius);
+      if(!isFieldSafe(PLAINS_ID,p.x,p.z,1))e.group.position.set(p.x,this.groundHeight(p.x,p.z),p.z);
+      return;
+    }
     const p=moveWithTreeCollisions(e.group.position,dx,dz,this.treeColliders,(from,mx,mz)=>{
       if(t)return moveOnTerrain(t,from,mx,mz,radius,true);
-      if(this.isSandsLocation&&this.sandsGround)return this.sandsGround.move(from,mx,mz);
       return {x:from.x+mx,z:from.z+mz};
     },(x,z)=>this.groundHeight(x,z),radius);
     e.group.position.set(p.x,this.groundHeight(p.x,p.z),p.z);
@@ -358,7 +359,6 @@ export class Game {
   cooldown = 0;
   scene = new T.Scene();
   worldLightRig = new T.Group();
-  sandsLightRig = new T.Group();
   freeCamera = new T.OrthographicCamera(-25, 25, 20, -20, 0.1, 160);
   followCamera = new T.PerspectiveCamera(FOLLOW_CAMERA.fov, 1, 0.1, 160);
   camera: T.OrthographicCamera | T.PerspectiveCamera = this.freeCamera;
@@ -673,7 +673,6 @@ export class Game {
     this.scene.background = new T.Color('#e7edd4');
     this.scene.fog = null;
     this.scene.add(this.worldLightRig);
-    this.scene.add(this.sandsLightRig);
     this.worldLightRig.add(new T.HemisphereLight('#f2f8d6', '#3f5d45', 2.2));
     const sun = new T.DirectionalLight('#fff0bd', 2.6);
     sun.position.set(-20, 40, 15);
@@ -691,15 +690,6 @@ export class Game {
     sun.shadow.normalBias = 0.045;
     sun.shadow.bias = -0.0001;
     this.worldLightRig.add(sun);
-    // Sands Location gets its own neutral rig. It changes only illumination;
-    // the supplied GLB materials, textures, terrain, and normals stay intact.
-    const sandsHemisphere=new T.HemisphereLight('#fff6d8','#8d6b4a',1.8);
-    const sandsSun=new T.DirectionalLight('#ffe9ac',2.1);
-    sandsSun.position.set(-18,36,12);
-    sandsSun.castShadow=false;
-    this.sandsLightRig.add(sandsHemisphere,sandsSun);
-    this.sandsLightRig.visible=false;
-
     this.buildTerrain();
     this.buildShrine();
     this.buildHero();
@@ -1433,14 +1423,14 @@ export class Game {
     this.groundGold = [];
   }
   spawnBoss(notify = true) {
-    if (this.hero.inCity) return;
+    if (this.hero.inCity||!FIELDS[this.hero.currentField]?.fieldBoss) return;
     const existing = this.enemies.find(enemy => enemy.boss);
     if (existing) { this.bossSpawned = true; return; }
     this.bossSpawned = true;
     const spawn=fieldSpawns(FIELDS[this.hero.currentField]).find(s=>s.id===100)!;
     this.makeEnemy(spawn.id, spawn.x, spawn.z, true, spawn.definition);
     if (notify)
-      this.message(`${FIELDS[this.hero.currentField].fieldBoss.name} terbangun. Cari arena di utara.`);
+      this.message(`${FIELDS[this.hero.currentField].fieldBoss?.name} terbangun. Cari arena di utara.`);
   }
   snapshot(): Snapshot {
     const derived = derivedStats(this.hero);
@@ -1517,7 +1507,7 @@ export class Game {
       })),
       bossActive: this.enemies.some(e => e.boss && e.hp > 0),
       bossRespawn: Math.ceil(this.enemies.find(e => e.boss)?.respawn ?? 0),
-      bossName: FIELDS[this.hero.currentField]?.fieldBoss.name ?? 'Field Boss',
+      bossName: FIELDS[this.hero.currentField]?.fieldBoss?.name ?? '',
       combo: this.combo,
       mana: this.hero.mana,
       maxMana: derived.maxMana,
@@ -1534,6 +1524,9 @@ export class Game {
   }
   buildRegionDecor() {
     const buildToken=++this.regionBuildToken;
+    this.setPlainsCharacterShadows(false);
+    if(this.plains){this.plains.dispose();this.plains=null;}
+    this.renderer.shadowMap.enabled=true;this.renderer.setPixelRatio(Math.min(devicePixelRatio,1.25));
     if(this.averion){this.averion.root.removeFromParent();this.averion.dispose();this.averion=null;}
     this.regionLoads = [];
     this.regionLoadError = null;
@@ -1547,12 +1540,12 @@ export class Game {
     this.scene.remove(this.regionDecor);
     this.regionDecor.traverse(object => { if(object instanceof T.Mesh){object.geometry.dispose(); const materials=Array.isArray(object.material)?object.material:[object.material]; materials.forEach(material=>material.dispose());} });
     this.regionDecor = new T.Group(); this.scene.add(this.regionDecor);
-    this.followCamera.far=this.freeCamera.far=this.isAverion?650:160;
+    this.followCamera.far=this.freeCamera.far=this.isPlains?1400:this.isAverion?650:160;
     this.followCamera.updateProjectionMatrix();this.freeCamera.updateProjectionMatrix();
     this.worldLightRig.traverse(o=>{
-      if(o instanceof T.HemisphereLight){o.intensity=this.isAverion?1.2:2.2;o.color.set(this.isAverion?'#eef5ff':'#f2f8d6');o.groundColor.set(this.isAverion?'#687b55':'#3f5d45');}
+      if(o instanceof T.HemisphereLight){o.intensity=this.isPlains?PLAINS_DAYLIGHT.ambientIntensity:this.isAverion?1.2:2.2;o.color.set(this.isPlains?PLAINS_DAYLIGHT.ambientSky:this.isAverion?'#eef5ff':'#f2f8d6');o.groundColor.set(this.isPlains?PLAINS_DAYLIGHT.ambientGround:this.isAverion?'#687b55':'#3f5d45');}
       if(o instanceof T.DirectionalLight){
-        o.intensity=this.isAverion?2:2.6;o.position.set(-20,40,15);o.target.position.set(0,0,0);o.target.updateMatrixWorld();
+        o.intensity=this.isPlains?PLAINS_DAYLIGHT.sunIntensity:this.isAverion?2:2.6;o.color.set(this.isPlains?PLAINS_DAYLIGHT.sunColor:'#fff0bd');o.position.set(-20,40,15);o.target.position.set(0,0,0);o.target.updateMatrixWorld();
         const size=this.isAverion?2048:1024;
         if(o.shadow.mapSize.x!==size){o.shadow.map?.dispose();o.shadow.map=null;o.shadow.mapSize.set(size,size);}
         const extent=this.isAverion?35:42;
@@ -1564,18 +1557,28 @@ export class Game {
     const field = FIELDS[this.hero.currentField];
     const color = this.hero.inCity ? this.hero.currentCity==='arunika'?'#dfe9bb':'#d8d9d0' : field.color;
     this.scene.background = new T.Color(color); this.scene.fog = null;
-    const isSandsLocation=this.isSandsLocation;
-    this.worldLightRig.visible=!isSandsLocation;
-    this.sandsLightRig.visible=isSandsLocation;
-    this.renderer.toneMappingExposure = isSandsLocation ? 1.35 : 1.1;
+    this.worldLightRig.visible=true;
+    this.renderer.toneMappingExposure = 1.1;
     const scale=regionScale(this.hero.inCity);
     this.terrain.scale.set(scale,1,scale);
     this.terrain.visible=!this.fieldTerrain;
     this.terrainSurface=null;
-    this.sandsGround=null;
     const sanctuary=this.fieldTerrain?.sanctuary??{x:0,z:0};
     this.shrine.position.set(sanctuary.x,this.groundHeight(sanctuary.x,sanctuary.z),sanctuary.z);
     this.shrine.visible=true;
+    if(this.isPlains) {
+      this.terrain.visible=false;this.shrine.visible=false;this.actor.visible=false;
+      this.scene.background=new T.Color(PLAINS_DAYLIGHT.horizon);this.scene.fog=new T.Fog(PLAINS_DAYLIGHT.horizon,290,1000);
+      this.regionLoads.push(import('./verdant-plains-map').then(module=>module.buildVerdantPlains()).then(map=>{
+        if(this.disposed||buildToken!==this.regionBuildToken){map.dispose();return;}
+        this.plains=map;this.regionDecor.add(map.root);this.setPlainsQuality(map.quality,false);
+        const element=document.createElement('div');element.className='npc-label';
+        const badge=document.createElement('div');badge.className='npc-service-badge';badge.textContent='Averion · Click to travel';element.appendChild(badge);this.labelHost.appendChild(element);
+        this.portalLabels.push({...PLAINS_EXIT,element,name:'Averion',labelHeight:6});
+        this.placeActor();this.cameraFocus.copy(this.actor.position);map.update(this.camera,this.hero,0);this.drawMap();
+      }).catch(error=>{if(!this.disposed&&buildToken===this.regionBuildToken)this.regionLoadError=error;throw error;}));
+      return;
+    }
     if(this.isAverion) {
       this.terrain.visible=false;this.shrine.visible=false;this.actor.visible=false;
       this.scene.background=new T.Color('#b9d5e3');this.scene.fog=new T.Fog('#b9d5e3',350,650);
@@ -1587,13 +1590,6 @@ export class Game {
         this.followView.distance=this.followView.targetDistance=9;
         this.placeActor();this.cameraFocus.copy(this.actor.position);this.drawMap();
       }).catch(error=>{if(!this.disposed&&buildToken===this.regionBuildToken)this.regionLoadError=error;throw error;}));
-      return;
-    }
-    if(isSandsLocation) {
-      this.terrain.visible=false;
-      this.shrine.visible=false;
-      this.scene.background=new T.Color('#e7d9a8');this.scene.fog=null;
-      this.buildSandsLocation(buildToken);
       return;
     }
     if(this.fieldTerrain) {
@@ -1679,64 +1675,6 @@ export class Game {
     const portal=this.mesh(new T.TorusGeometry(2,.25,6,16),this.mat('#dfc26d',{emissive:'#ac752f',emissiveIntensity:.7}),this.regionDecor,0,2,34*(this.hero.inCity?CITY_SCALE:1));
     portal.userData.portal=true;
     this.buildTreeDecor(buildToken);
-  }
-  buildSandsLocation(buildToken:number) {
-    // A transparent surface keeps pointer targeting and combat working while
-    // the imported static scene streams in. Movement is bounded separately.
-    const ground=this.mesh(new T.PlaneGeometry(28,80),new T.MeshBasicMaterial({transparent:true,opacity:0,depthWrite:false}),this.regionDecor,0,0.01,0);
-    ground.rotation.x=-Math.PI/2;ground.castShadow=false;ground.receiveShadow=false;
-    this.terrainSurface=ground;
-    const camp=FIELD_NPCS['sands-location'];
-    const person=new T.Group();this.regionDecor.add(person);person.position.set(camp.x,0,camp.z);person.userData.npcId=camp.id;
-    this.mesh(new T.CylinderGeometry(.35,.45,1.2,6),this.mat('#c29a58'),person,0,.65,0);
-    this.mesh(new T.SphereGeometry(.3,8,6),this.mat('#cda07a'),person,0,1.5,0);
-    const marker=this.mesh(new T.OctahedronGeometry(.25),this.mat('#ffe39a',{emissive:'#c47d26',emissiveIntensity:.8}),person,0,2.5,0);
-    marker.userData.npcId=camp.id;
-    this.addNpcLabel(camp);
-    const portal={...FIELDS['sands-location'].exit,destination:'arunika',name:CITIES.arunika.displayName,labelHeight:5};
-    const ring=this.mesh(new T.TorusGeometry(1.35,.16,6,24),this.mat('#dfc26d',{emissive:'#ac752f',emissiveIntensity:.8}),this.regionDecor,portal.x,1.55,portal.z);
-    ring.userData.destination=portal.destination;
-    const trigger=this.mesh(new T.BoxGeometry(2.7,3.2,.7),new T.MeshBasicMaterial({transparent:true,opacity:0,depthWrite:false}),this.regionDecor,portal.x,1.7,portal.z);
-    trigger.userData.destination=portal.destination;
-    const element=document.createElement('div');element.className='npc-label';
-    const badge=document.createElement('div');badge.className='npc-service-badge';badge.textContent=`${portal.name} · Click to travel`;element.appendChild(badge);this.labelHost.appendChild(element);
-    this.portalLabels.push({x:portal.x,z:portal.z,name:portal.name,element,labelHeight:portal.labelHeight});
-    this.regionLoads.push(loadSandsLocation().then(source=>{
-      if(this.disposed||buildToken!==this.regionBuildToken||!this.isSandsLocation) return;
-      const map=cloneImportedMap(source);
-      // Keep the supplied scene hierarchy, transforms, materials, textures,
-      // normals, and terrain exactly as loaded. Only clone disposable GPU
-      // containers so changing region cannot destroy the cached source.
-      map.name='SandsLocationStaticMap';
-      map.scale.set(SANDS_MAP_SCALE,1,SANDS_MAP_SCALE);
-      map.position.set(
-        SANDS_MAP_ANCHOR.x * (1 - SANDS_MAP_SCALE),
-        0,
-        SANDS_MAP_ANCHOR.z * (1 - SANDS_MAP_SCALE),
-      );
-      this.regionDecor.add(map);
-      // The island mesh is scenery, not a walkable road. The supplied object
-      // mesh also contains the bridge deck, so it must join terrain collision
-      // or the player falls through the bridge to the terrain below.
-      this.sandsGround=new ImportedMapGround(map,['map_2_terrain1','map_2_object1']);
-      this.regionDecor.remove(ground);ground.geometry.dispose();(ground.material as T.Material).dispose();
-      this.terrainSurface=this.sandsGround.surfaces[0]??null;
-      this.buildTreeDecor(buildToken);
-      this.placeActor();this.cameraFocus.copy(this.actor.position);
-      for(const enemy of this.enemies) {
-        const p=this.sandsGround.nearestPoint(enemy.group.position,FIELDS['sands-location'].entry);
-        enemy.group.position.set(p.x,this.groundHeight(p.x,p.z),p.z);
-        enemy.home.copy(enemy.group.position);
-      }
-      person.position.y=this.groundHeight(camp.x,camp.z);
-      const portalHeight=this.groundHeight(portal.x,portal.z);
-      ring.position.y=portalHeight+1.55;trigger.position.y=portalHeight+1.7;
-    }).catch(error=>{
-      if(!this.disposed&&buildToken===this.regionBuildToken) {
-        this.regionLoadError = error;
-        console.warn('Sands Location gagal dimuat',error);
-      }
-    }));
   }
   buildTreeDecor(buildToken:number) {
     const regionId=this.hero.inCity?this.hero.currentCity:this.hero.currentField;
@@ -1975,6 +1913,7 @@ export class Game {
     if(this.isAverion)return;
     const valid = (position: { x: number; z: number }) => {
       if (!Number.isFinite(position.x) || !Number.isFinite(position.z)) return false;
+      if(this.isPlains)return plainsWalkable(position);
       const extent = regionHalfExtent(this.hero.inCity);
       if (Math.abs(position.x) > extent - 1 || Math.abs(position.z) > extent - 1) return false;
       if (!this.hero.inCity && this.fieldTerrain) {
@@ -1995,7 +1934,7 @@ export class Game {
     }
     const fallback = this.hero.inCity
       ? { x: 0, z: 8 }
-      : (FIELDS[this.hero.currentField]?.entry ?? FIELDS['verdant-plains'].entry);
+      : (FIELDS[this.hero.currentField]?.entry ?? FIELDS[PLAINS_ID].entry);
     this.hero.x = fallback.x;
     this.hero.z = fallback.z;
     this.hero.lastSafePosition = { x: fallback.x, z: fallback.z };
@@ -2059,7 +1998,7 @@ export class Game {
     else this.keys.delete(key);
   }
   save() {
-    if (!this.started || this.dead || this.transitioning || this.regionLoadError || (this.isAverion&&!this.averion)) return;
+    if (!this.started || this.dead || this.transitioning || this.regionLoadError || ((this.isAverion&&!this.averion)||(this.isPlains&&!this.plains))) return;
     this.hero.stamina = this.stamina;
     this.hero.lastPlayedAt = Date.now();
     this.hero.lastSafePosition = { x: this.hero.x, z: this.hero.z };
@@ -2075,7 +2014,7 @@ export class Game {
     this.hero.hp = maxHP(this.hero);
     this.hero.x = 0;
     this.hero.z = this.hero.inCity ? 7 : 26;
-    if(this.fieldTerrain)Object.assign(this.hero,FIELDS[this.hero.currentField].entry);
+    if(this.fieldTerrain||this.isPlains)Object.assign(this.hero,FIELDS[this.hero.currentField].entry);
     this.placeActor();
     this.cameraFocus.copy(this.actor.position);
     this.dead = false;
@@ -2089,12 +2028,13 @@ export class Game {
       e.group.position.copy(e.home);
       e.windup = 0;
       e.cooldown = 2;
+      if(this.isPlains&&e.hp<=0){e.group.visible=false;continue;}
       e.hp = e.max;
       e.group.visible = true;
       e.respawn = 0;
     }
     this.save();
-    this.message('Kamu kembali di Kuil Fajar. Progresmu tetap tersimpan.');
+    this.message(this.isPlains?'Kamu kembali di Arunika Rest. Progresmu tetap tersimpan.':'Kamu kembali di Kuil Fajar. Progresmu tetap tersimpan.');
   }
   chooseCoreJob(coreJob: CoreJobId) {
     if (!this.atJobTrainer('core')) return false;
@@ -3125,9 +3065,7 @@ export class Game {
     else if (autoAim || !this.pointerActive) this.targetNearest();
     else {
       this.raycaster.setFromCamera(this.pointer, this.camera);
-      const hit=this.isSandsLocation&&this.sandsGround
-        ?this.raycaster.intersectObjects(this.sandsGround.surfaces,false)[0]?.point
-        :this.terrainSurface?this.raycaster.intersectObject(this.terrainSurface)[0]?.point:this.raycaster.ray.intersectPlane(this.ground,this.aim);
+      const hit=this.isPlains&&this.plains ? this.raycaster.intersectObject(this.plains.root,true).find(h=>h.object.visible)?.point : this.terrainSurface?this.raycaster.intersectObject(this.terrainSurface)[0]?.point:this.raycaster.ray.intersectPlane(this.ground,this.aim);
       if (hit) {
         this.aim.copy(hit);
         const d = this.aim.clone().sub(this.actor.position).setY(0);
@@ -3168,7 +3106,7 @@ export class Game {
       if (e.hp <= 0) continue;
       if(hard){const damage=resolveBasicDamage(e);if(damage===null)continue;this.hurtEnemy(e,Math.round(damage),this.hero.skillArchitectureVersion===3?0:.8,'physical');continue;}
       const v = e.group.position.clone().sub(this.actor.position);
-      if(this.fieldTerrain||this.isSandsLocation)v.y=0;
+      if(this.fieldTerrain||this.isPlains)v.y=0;
       const d = v.length();
       if (
         d < (isBow?Math.max(11,profile.range):(e.boss ? 4.3 : profile.range)) &&
@@ -3219,11 +3157,11 @@ export class Game {
     }
     e.flash = 0.14;
     const v = e.group.position.clone().sub(this.actor.position);
-    if(this.fieldTerrain||this.isSandsLocation)v.y=0;
+    if(this.fieldTerrain||this.isPlains)v.y=0;
     v.normalize();
     const knockDistance=e.boss?knock*.15:knock;
     this.moveEnemy(e,v.x*knockDistance,v.z*knockDistance);
-    if(!this.fieldTerrain&&!this.isSandsLocation) {
+    if(!this.fieldTerrain&&!this.isPlains) {
       const extent=regionHalfExtent(false);
       e.group.position.x=T.MathUtils.clamp(e.group.position.x,-extent,extent);
       e.group.position.z=T.MathUtils.clamp(e.group.position.z,-extent,extent);
@@ -3337,7 +3275,7 @@ export class Game {
     ).normalize();
   }
   move(dx: number, dz: number) {
-    if(this.transitioning||this.regionLoadError||(this.isAverion&&!this.averion))return;
+    if(this.transitioning||this.regionLoadError||((this.isAverion&&!this.averion)||(this.isPlains&&!this.plains)))return;
     if(isStunned(this.hero,this.combatTime))return;
     const p=moveWithTreeCollisions(this.hero,dx,dz,this.treeColliders,(from,mx,mz)=>this.moveHeroOnGround(from,mx,mz),(x,z)=>this.groundHeight(x,z));
     this.hero.x=p.x;this.hero.z=p.z;
@@ -3362,12 +3300,10 @@ export class Game {
     return this.groundDistance(this.actor.position, target.group.position) <= desiredRange + 1e-4;
   }
   moveHeroOnGround(from:GroundPoint,dx:number,dz:number):GroundPoint {
+    if(this.isPlains)return this.plains?this.plains.move(from,dx,dz):{...from};
     if(this.isAverion)return this.averion?this.averion.move(from,dx,dz):{...from};
     if(this.fieldTerrain) {
       return moveOnTerrain(this.fieldTerrain,from,dx,dz);
-    }
-    if(this.isSandsLocation) {
-      return this.sandsGround?this.sandsGround.move(from,dx,dz):{...from};
     }
     const extent = regionHalfExtent(this.hero.inCity);
     const terrainScale = regionScale(this.hero.inCity);
@@ -3389,7 +3325,7 @@ export class Game {
   }
   tick = (time: number) => {
     if (this.disposed || !this.started) { this.frame = 0; return; }
-    if(this.transitioning||this.regionLoadError||(this.isAverion&&!this.averion)) {
+    if(this.transitioning||this.regionLoadError||((this.isAverion&&!this.averion)||(this.isPlains&&!this.plains))) {
       this.lastTime=time;this.frame=requestAnimationFrame(this.tick);return;
     }
     const dt = Math.min((time - (this.lastTime || time)) / 1000, 0.04);
@@ -3515,7 +3451,7 @@ export class Game {
     }
     this.cameraFocus.lerp(this.actor.position, 1 - Math.exp(-dt * 6));
     const targetGroundY = this.groundHeight(this.actor.position.x, this.actor.position.z);
-    this.actor.position.y = T.MathUtils.lerp(this.actor.position.y, targetGroundY, 0.18);
+    this.actor.position.y = this.isPlains?targetGroundY:T.MathUtils.lerp(this.actor.position.y, targetGroundY, 0.18);
     this.updateCamera(dt);
     if(this.isAverion&&this.averion) {
       if(this.cameraMode==='follow') {
@@ -3527,6 +3463,12 @@ export class Game {
       }
       this.averion.updateLOD(this.camera);
       this.worldLightRig.traverse(o=>{if(o instanceof T.DirectionalLight){o.position.copy(this.actor.position).add(new T.Vector3(-25,45,20));o.target.position.copy(this.actor.position);o.target.updateMatrixWorld();}});
+    }
+    if(this.isPlains&&this.plains){
+      this.setPlainsCharacterShadows(true);
+      this.camera.position.y=Math.max(this.camera.position.y,this.groundHeight(this.camera.position.x,this.camera.position.z)+1.2);
+      this.plains.update(this.camera,this.hero,time/1000);
+      this.worldLightRig.traverse(o=>{if(o instanceof T.DirectionalLight){o.position.set(this.actor.position.x+PLAINS_DAYLIGHT.sun[0]*80,this.actor.position.y+PLAINS_DAYLIGHT.sun[1]*80,this.actor.position.z+PLAINS_DAYLIGHT.sun[2]*80);o.target.position.copy(this.actor.position);o.target.updateMatrixWorld();}});
     }
     this.camera.updateMatrixWorld();
     updateCharacterBillboards(this.aura, this.camera);
@@ -3556,7 +3498,6 @@ export class Game {
         this.cameraFocus.z + Math.cos(view.yaw) * horizontal,
       );
       if(this.fieldTerrain&&insideBoundary(this.fieldTerrain,this.camera.position))this.camera.position.y=Math.max(this.camera.position.y,this.groundHeight(this.camera.position.x,this.camera.position.z)+1.2);
-      if(this.isSandsLocation&&this.sandsGround){const height=this.sandsGround.heightAt(this.camera.position.x,this.camera.position.z);if(height!==undefined)this.camera.position.y=Math.max(this.camera.position.y,height+1.2);}
       this.camera.lookAt(this.cameraFocus.x, targetY, this.cameraFocus.z);
       this.impactShakeRemaining = Math.max(0, this.impactShakeRemaining - dt);
       const shake = followImpactShake(this.impactShakeRemaining);
@@ -3580,11 +3521,19 @@ export class Game {
       z + Math.cos(view.state.yaw) * horizontalDistance,
     );
     if(this.fieldTerrain&&insideBoundary(this.fieldTerrain,this.camera.position))this.camera.position.y=Math.max(this.camera.position.y,this.groundHeight(this.camera.position.x,this.camera.position.z)+1.2);
-    if(this.isSandsLocation&&this.sandsGround){const height=this.sandsGround.heightAt(this.camera.position.x,this.camera.position.z);if(height!==undefined)this.camera.position.y=Math.max(this.camera.position.y,height+1.2);}
     this.camera.lookAt(x, targetY, z);
     this.updateCameraProjection();
   }
   updateEnemy(e: Enemy, dt: number) {
+    if(this.isPlains&&e.hp>0){
+      const nearby=this.groundDistance(e.group.position,this.actor.position)<(e.boss?160:110);
+      e.group.visible=nearby;
+      // Only sleep healthy, idle actors at home. Death timers, damage-over-time,
+      // control effects and returning combatants still use the existing update.
+      if(!nearby&&e.hp===e.max&&this.groundDistance(e.group.position,e.home)<1&&
+        e.windup<=0&&e.flash<=0&&e.poison<=0&&e.stun<=0&&e.slow<=0&&e.root<=0&&e.defenseDown<=0&&
+        !Object.keys(e.statusEffects??{}).length&&!Object.keys(e.sourceOwnedStatuses??{}).length)return;
+    }
     if (e.hp <= 0) {
       if(this.currentTarget?.instanceId===e.group.uuid)this.clearCurrentTarget();
       e.respawn = Math.max(0,(e.respawnDeadline-Date.now())/1000);
@@ -3873,10 +3822,11 @@ export class Game {
     ctx.fillRect(0, 0, size, size);
 
 
-    const mapScale = this.isAverion ? 250/106 : this.fieldTerrain?.id === 'verdant-plains' ? 2 : regionScale(this.hero.inCity);
+    const mapScale = this.isPlains ? 1000/106 : this.isAverion ? 250/106 : this.fieldTerrain?.id === 'verdant-plains' ? 2 : regionScale(this.hero.inCity);
     const p = (v: number) => size / 2 + (v * size) / (106 * mapScale);
 
-    if(this.isAverion&&this.averion) {
+    if(this.isPlains&&this.plains) {this.plains.drawMinimap(ctx,size);}
+    else if(this.isAverion&&this.averion) {
       ctx.fillStyle='#c6b997';ctx.beginPath();ctx.arc(p(0),p(-1.565295),size*104/250,0,Math.PI*2);ctx.fill();
       ctx.fillStyle='#697d8b';
       for(const r of this.averion.manifest.records.filter(r=>r.id.startsWith('LF2_')&&r.id.endsWith('_stone')))ctx.fillRect(p(r.min[0]),p(-r.max[1]),(r.max[0]-r.min[0])*size/250,(r.max[1]-r.min[1])*size/250);
@@ -3916,6 +3866,7 @@ export class Game {
     }
     for (const e of this.enemies) {
       if (e.hp <= 0) continue;
+      if(this.isPlains&&!e.boss&&this.groundDistance(e.group.position,this.actor.position)>110)continue;
       const enemyPoint = { x: p(e.group.position.x), y: p(e.group.position.z) };
       ctx.fillStyle = e.boss ? '#dda4e9' : '#d6a871';
       ctx.beginPath();
@@ -4014,6 +3965,14 @@ export class Game {
     this.camera.bottom = -size;
     this.camera.updateProjectionMatrix();
   }
+  setPlainsQuality(quality:PlainsQuality,persist=true) {
+    if(!this.plains||!Object.hasOwn(PLAINS_QUALITY,quality))return;
+    this.plains.setQuality(quality);const profile=PLAINS_QUALITY[quality];
+    this.renderer.setPixelRatio(Math.min(devicePixelRatio,profile.dpr));this.renderer.shadowMap.enabled=profile.shadow>0;
+    this.worldLightRig.traverse(o=>{if(o instanceof T.DirectionalLight){o.shadow.map?.dispose();o.shadow.map=null;o.shadow.mapSize.setScalar(profile.shadow||1024);Object.assign(o.shadow.camera,{left:-42,right:42,top:42,bottom:-42,near:.1,far:140});o.shadow.camera.updateProjectionMatrix();}});
+    if(persist)try{localStorage.setItem(PLAINS_QUALITY_KEY,quality);}catch{}
+    this.resize();
+  }
   resize = () => {
     const w = this.host.clientWidth, h = this.host.clientHeight;
     if (!w || !h) return;
@@ -4081,8 +4040,9 @@ export class Game {
       let object:T.Object3D|null=hit.object;
       while(object&&object!==this.regionDecor) {
         if(typeof object.userData.npcId==='string') {this.openNpc(object.userData.npcId);return true;}
-        if((this.fieldTerrain||this.isSandsLocation)&&typeof object.userData.destination==='string') {
-          if(Math.hypot(this.hero.x-object.position.x,this.hero.z-object.position.z)>4.5)this.message('Dekati gerbang untuk berpindah wilayah.');
+        if((this.fieldTerrain||this.isPlains)&&typeof object.userData.destination==='string') {
+          const destinationPosition=this.isPlains?new T.Vector3(PLAINS_EXIT.x,0,PLAINS_EXIT.z):object.getWorldPosition(new T.Vector3());
+          if(Math.hypot(this.hero.x-destinationPosition.x,this.hero.z-destinationPosition.z)>4.5)this.message('Dekati gerbang untuk berpindah wilayah.');
           else this.changeRegion(object.userData.destination);
           return true;
         }
@@ -4215,6 +4175,7 @@ export class Game {
     this.clearGroundLoot();
     this.targetPresentation?.dispose();this.targetPresentation=undefined;this.targetEntities?.clear();
     this.disposed = true;
+    if(this.plains){this.plains.dispose();this.plains=null;}
     setArunikaShrineMaterials(this.shrine,null);
     this.arunikaMaterials?.dispose();this.arunikaMaterials=null;
     this.treeColliders=[];

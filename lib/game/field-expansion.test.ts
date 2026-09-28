@@ -1,3 +1,4 @@
+import { STARTER_FIELD_CONTENT } from './regions.ts';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
@@ -9,13 +10,15 @@ import { MONSTER_LOOT_PROFILES, EQUIPMENT_DROP_RARITIES, RUNE_DROP_RARITIES, BOS
 import { ITEM_CATALOG } from './items.ts';
 import { freshHero, grantMonsterLoot, parseSave, collectPendingLoot } from './rules.ts';
 
-await test('all registered fields retain one boss and have 42 safe, unique, stable spawns',()=>{
+await test('legacy fields retain 42 spawns; the large Plains uses its own tested population',()=>{
   assert.ok(Math.abs((regionHalfExtent(false)/45)**2-2)<1e-12);
   assert.equal(regionHalfExtent(true),67.5);
   assert.equal(FIELD_LAYOUT.normalCount+FIELD_LAYOUT.eliteCount+FIELD_LAYOUT.bossCount,14*3);
   for(const field of Object.values(FIELDS)){
     const spawns=fieldSpawns(field);
     assert.deepEqual(spawns,fieldSpawns(field));
+    if(field.id==='verdant-plains-v2'){assert.equal(spawns.length,497);continue;}
+    if(!field.fieldBoss){assert.equal(spawns.length,0);assert.deepEqual(field.normalMonsters,[]);assert.deepEqual(field.eliteMonsters,[]);continue;}
     assert.equal(spawns.length,42);
     assert.equal(new Set(spawns.map(s=>s.id)).size,42);
     assert.equal(new Set(spawns.map(s=>`${s.x},${s.z}`)).size,42);
@@ -26,13 +29,14 @@ await test('all registered fields retain one boss and have 42 safe, unique, stab
     const terrainExtent=terrain?Math.max(...terrain.boundary.flatMap(p=>[Math.abs(p.x),Math.abs(p.z)]))+1:regionHalfExtent(false);
     for(const s of spawns){assert.ok(Math.abs(s.x)<terrainExtent&&Math.abs(s.z)<terrainExtent);assert.ok(!isFieldSafe(field.id,s.x,s.z));if(terrain)assert.ok(terrainWalkable(terrain,s,.55,true));else assert.ok(!isFieldWater(s.x,s.z));}
     for(const species of field.normalMonsters)assert.equal(spawns.filter(s=>s.definition.id===species.id).length,9);
-    if(!FIELD_TERRAINS[field.id]&&field.id!=='sands-location')assert.ok(spawns.some(s=>s.x>45)&&spawns.some(s=>s.x<-45)&&spawns.some(s=>s.z>45)&&spawns.some(s=>s.z<-45));
+    if(!FIELD_TERRAINS[field.id])assert.ok(spawns.some(s=>s.x>45)&&spawns.some(s=>s.x<-45)&&spawns.some(s=>s.z>45)&&spawns.some(s=>s.z<-45));
   }
 });
 
 await test('36 named species have distinct valid low-poly geometry, one body draw call, and readable label anchors',()=>{
   const hashes=new Set<string>();
   for(const field of Object.values(FIELDS))for(const monster of [...field.normalMonsters,...field.eliteMonsters,field.fieldBoss]){
+    if(!monster)continue;
     assert.ok(MONSTER_MODELS[monster.id],monster.name);
     const mesh=createMonsterBody(monster),position=mesh.geometry.getAttribute('position');
     assert.equal(mesh.children.length,0);
@@ -40,19 +44,19 @@ await test('36 named species have distinct valid low-poly geometry, one body dra
     assert.equal(position.count,mesh.geometry.getAttribute('color').count);
     assert.ok(Array.from(position.array).every(Number.isFinite));
     assert.ok(mesh.userData.labelHeight>mesh.geometry.boundingBox!.max.y);
-    hashes.add(createHash('sha256').update(Buffer.from(position.array.buffer)).digest('hex'));
+    if(field.id!=='verdant-plains-v2')hashes.add(createHash('sha256').update(Buffer.from(position.array.buffer)).digest('hex'));
     mesh.geometry.dispose();mesh.material.dispose();
   }
   assert.equal(hashes.size,36);
 });
 
 await test('respawn uses independent instance deadlines and migrates old species timers without hiding every copy',()=>{
-  const field=FIELDS['verdant-plains'],id=field.normalMonsters[0].id,deadline=Date.now()+25000;
+  const field=STARTER_FIELD_CONTENT,id=field.normalMonsters[0].id,deadline=Date.now()+25000;
   const state={[id]:deadline,[monsterRespawnKey(id,4)]:deadline+9000};
   assert.equal(restoreRespawnDeadline(state,id,0),deadline);
   assert.equal(restoreRespawnDeadline(state,id,4),deadline+9000);
   assert.equal(restoreRespawnDeadline(state,id,8),0);
-  const hero=freshHero();hero.inCity=false;hero.x=58;hero.z=-56;hero.monsterRespawnState=state;
+  const hero=freshHero();hero.inCity=false;hero.currentField='east-gate-arunika';hero.x=58;hero.z=-56;hero.monsterRespawnState=state;
   const loaded=parseSave(JSON.stringify(hero))!;
   assert.ok(terrainWalkable(FIELD_TERRAINS[loaded.currentField],loaded));assert.deepEqual(loaded.monsterRespawnState,state);
   assert.equal(loaded.level,hero.level);assert.equal(loaded.gold,hero.gold);assert.deepEqual(loaded.equipment,hero.equipment);
@@ -60,6 +64,7 @@ await test('respawn uses independent instance deadlines and migrates old species
 
 await test('every loot family, item, and rarity has a nonempty independent weighted interval in every field',()=>{
   for(const field of Object.values(FIELDS))for(const variant of ['normal','elite','boss'] as const){
+    if(!field.fieldBoss)continue;
     const profile=MONSTER_LOOT_PROFILES[variant];
     assert.equal(profile.reduce((n,p)=>n+p.weight,0),100);
     assert.equal(EQUIPMENT_DROP_RARITIES[variant].reduce((n,p)=>n+p.weight,0),100);
@@ -77,9 +82,10 @@ await test('every loot family, item, and rarity has a nonempty independent weigh
 });
 
 await test('normal, elite, and boss chance checks actually run and drop bonus is capped',()=>{
-  const field=FIELDS['verdant-plains'];
+  const field=STARTER_FIELD_CONTENT;
+  assert.ok(field.fieldBoss);
   for(const monster of [field.normalMonsters[0],field.eliteMonsters[0],field.fieldBoss]){
-    const hero=freshHero(),before=JSON.stringify(hero);
+    const hero=freshHero();hero.currentField='east-gate-arunika';const before=JSON.stringify(hero);
     assert.equal(grantMonsterLoot(hero,monster,()=>.99999),null);assert.equal(JSON.stringify(hero),before);
     const drop=grantMonsterLoot(hero,monster,()=>0)!;
     assert.ok(drop);assert.equal(drop.source.sourceId,monster.id);assert.ok(drop.source.label.includes(monster.name));
@@ -93,6 +99,7 @@ await test('normal, elite, and boss chance checks actually run and drop bonus is
 
 await test('all ten rune themes, six unique boss runes, optimizer tiers and gear branches are reachable',()=>{
   for(const field of Object.values(FIELDS))for(const variant of ['normal','elite','boss'] as const){
+    if(!field.fieldBoss)continue;
     const profile=MONSTER_LOOT_PROFILES[variant];let offset=0;
     for(const family of profile){
       const categoryRoll=(offset+family.weight/2)/100;offset+=family.weight;
@@ -113,7 +120,8 @@ await test('all ten rune themes, six unique boss runes, optimizer tiers and gear
 await test('new monster loot is preserved in overflow and survives save/load without duplication',()=>{
   const hero=freshHero();hero.inventoryCapacity=hero.inventory.length;
   // Force boss rune branch and a unique, nonstacking item.
-  const draws=[0,.90,0,.5];const drop=grantMonsterLoot(hero,FIELDS[hero.currentField].fieldBoss,()=>draws.shift()??.5)!;
+  const monster=FIELDS[hero.currentField].fieldBoss;assert.ok(monster);
+  const draws=[0,.90,0,.5];const drop=grantMonsterLoot(hero,monster,()=>draws.shift()??.5)!;
   assert.ok(drop);assert.equal(hero.pendingLoot.length,1);
   const loaded=parseSave(JSON.stringify(hero))!;
   assert.equal(loaded.pendingLoot[0].id,drop.id);loaded.inventoryCapacity=100;

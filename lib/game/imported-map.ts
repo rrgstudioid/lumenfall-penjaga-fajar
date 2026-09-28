@@ -1,6 +1,5 @@
 import * as T from 'three';
 
-export { SANDS_MAP_SCALE, SANDS_MAP_ANCHOR, sandsWorldPoint } from './sands-coordinates.ts';
 
 /** Clone disposable containers, retaining the GLTF primitive's material shape. */
 export function cloneImportedMap(source: T.Group) {

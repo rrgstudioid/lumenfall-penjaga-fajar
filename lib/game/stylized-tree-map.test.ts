@@ -77,8 +77,8 @@ await test('the shared world builder applies bounded sizes and correct elevation
     const groundHeight = (x: number, z: number) => 9 + x * .06 - z * .025;
     for (const { id, inCity } of regions) {
       const group = await buildStylizedTreeDecor(id, inCity, groundHeight, FIELD_TERRAINS[id]);
-      const maxHeight = id === 'sands-location' ? 5.5 : inCity ? 6 : 8;
-      const radius = id === 'sands-location' ? 3.3 : inCity ? 3.6 : 4.2;
+      const maxHeight = inCity ? 6 : 8;
+      const radius = inCity ? 3.6 : 4.2;
       assert.ok(group.children.length > 0, `${id}: trees were not lost`);
       const colliders = group.children.map(tree => tree.userData.trunkCollider as TreeCollider);
       const accessPoints = inCity

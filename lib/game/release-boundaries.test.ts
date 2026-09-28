@@ -1,13 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { SANDS_MAP_ANCHOR, SANDS_MAP_SCALE, sandsWorldPoint } from './sands-coordinates.ts';
 
-await test('server-safe coordinate extraction preserves original Sands coordinates', () => {
-  assert.equal(SANDS_MAP_SCALE, 1.5);
-  assert.deepEqual(SANDS_MAP_ANCHOR, { x: 0, z: 35 });
-  assert.deepEqual(sandsWorldPoint(0, 35), { x: 0, z: 35 });
-  assert.deepEqual(sandsWorldPoint(10, 15), { x: 15, z: 5 });
+await test('region data stays independent of Three.js imports', () => {
   for (const file of ['regions.ts', 'field-layout.ts']) {
     assert(!readFileSync(new URL(file, import.meta.url),'utf8').includes("from './imported-map.ts'"));
   }

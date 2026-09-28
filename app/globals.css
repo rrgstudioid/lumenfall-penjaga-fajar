@@ -1550,6 +1550,10 @@ kbd {
       #14352b30
     );
 }
+.game-shell.in-world[data-map-id='verdant-plains-v2'] .vignette {
+  /* Let the daylight sky and meadow render without the legacy green overlay. */
+  display: none;
+}
 .world-labels {
   position: absolute;
   inset: 0;

@@ -1,0 +1,132 @@
+{
+  "mapId": "verdant-plains-v2",
+  "limitBytes": 20971520,
+  "bytesExcludingThisReport": 10310201,
+  "assets": [
+    {
+      "file": "banner.glb",
+      "bytes": 612296,
+      "sha256": "df5faffb3bbff9ee4ebcb8b24028cb89c7f99e7ef1cc4c3e80880f028cd67302"
+    },
+    {
+      "file": "boulder-color.webp",
+      "bytes": 312826,
+      "sha256": "670a3c504f010722d15eb3daddabebd025873feeffc0af9655388e3de9e293c6"
+    },
+    {
+      "file": "boulder-height.webp",
+      "bytes": 239946,
+      "sha256": "479c85f93d97fc8fe21cbddb74e95ea60ffcc309a4c47f7ee09f9bd3f009c459"
+    },
+    {
+      "file": "dirt.webp",
+      "bytes": 146440,
+      "sha256": "9cffcc7d5a026a2561a2cebebe353f5d409ed113a8aa6c6a8554e6aead7609fe"
+    },
+    {
+      "file": "fir-far.png",
+      "bytes": 101853,
+      "sha256": "2c53bb9830029f475eb4e93294ee8ddea45d492e0bf35eed04bfa8b1ce5ee1ad"
+    },
+    {
+      "file": "fir.glb",
+      "bytes": 1125228,
+      "sha256": "49e8a32e49bf0f5cbd178d2a58b184e64ca5c2482e3378c8ee560ae68013f9ad"
+    },
+    {
+      "file": "grass.webp",
+      "bytes": 239840,
+      "sha256": "a3a4cdd4d150ebdf73c3759677c34d930590153d5bfcfae77cc3cf7484941710"
+    },
+    {
+      "file": "impostors.json",
+      "bytes": 235,
+      "sha256": "83dc3f835747867b9cdbcdd4bd72e8bdc7b9949ce46d52c8a5b064b94e423f0c"
+    },
+    {
+      "file": "model-report.json",
+      "bytes": 385,
+      "sha256": "7029562132941894ce15cfb5ed36ebaa036f3ce8c7ea0ab16297d5c6a8382228"
+    },
+    {
+      "file": "pier.glb",
+      "bytes": 501900,
+      "sha256": "25c4e27a661fafe7669679ea0d82291986d516320fd773a8c21b7de13bf88ae3"
+    },
+    {
+      "file": "polish-provenance.json",
+      "bytes": 1977,
+      "sha256": "0ae408696d70e8f9688d6737485a4a408a32ff6f629134dd4691385779381767"
+    },
+    {
+      "file": "provenance.json",
+      "bytes": 2176,
+      "sha256": "14eacfb98dc6f8e2ddb1affeed0754900c8d71ff3db0904fd06e3e093c5e5042"
+    },
+    {
+      "file": "rock.webp",
+      "bytes": 261514,
+      "sha256": "478bb330bc1591b3bf6d178529510837aec368d830ac92ea0194cea1529719b2"
+    },
+    {
+      "file": "sand.webp",
+      "bytes": 284442,
+      "sha256": "b4b60002ec87e7dc918b0a835c31185de829f1e510ad26525035c3176111bb6e"
+    },
+    {
+      "file": "shrub-far.png",
+      "bytes": 137683,
+      "sha256": "a2c7ff62f1cd316d70097a47b8e3fd7d16eb765ed07def2f37173d6d8c38c596"
+    },
+    {
+      "file": "shrub.glb",
+      "bytes": 584172,
+      "sha256": "c3dd3a6aeb110163b078555b89bbfd6c0d76f615ed59c484bbc25bc38b609cc3"
+    },
+    {
+      "file": "sky-clouds.webp",
+      "bytes": 3743356,
+      "sha256": "3e6683ffd98b0cf4c16b798f3ac242dbe8869d790acf70f85f9dda5e716531e2"
+    },
+    {
+      "file": "sky-provenance.json",
+      "bytes": 1209,
+      "sha256": "e33c3ad3c2b4cd0dd70e7cb52d73ac723f1ce8b570aaad49d361297842f70256"
+    },
+    {
+      "file": "tree-bake-report.json",
+      "bytes": 376,
+      "sha256": "4ae8445322d4bed11fa0f2962ac6fe3701549b4024aae88276df39a0f3c3b46a"
+    },
+    {
+      "file": "tree-far.png",
+      "bytes": 108777,
+      "sha256": "4cfd751fb2419f462c0b17103beae78dfc01826062ff80c069cac99a3f923ddf"
+    },
+    {
+      "file": "tree.glb",
+      "bytes": 1073124,
+      "sha256": "d5a6cd97d09b2455a0c7bdd73501305fa558d367c419c371065e3d99ae015a5e"
+    },
+    {
+      "file": "water-color.webp",
+      "bytes": 13360,
+      "sha256": "192da05acc02ffc793b7c33d07aa0b985344510589f6b07399c5ed7691c9bfaf"
+    },
+    {
+      "file": "water-normal.webp",
+      "bytes": 63346,
+      "sha256": "8f533236c849344e0ec9fc56d57e3aa222a643fdc9173c004f895cb1b539d24b"
+    },
+    {
+      "file": "water-ocean-normal.webp",
+      "bytes": 386796,
+      "sha256": "6f83e4b44a08debd89062d288618afcd4289fa995b9e33bff149c2e67ce049f3"
+    },
+    {
+      "file": "wood.webp",
+      "bytes": 366944,
+      "sha256": "1d92f7d370ec4ba4c65a511120ed7d74b88f9d2bab6813104e83df5e5c6dafb6"
+    }
+  ]
+}

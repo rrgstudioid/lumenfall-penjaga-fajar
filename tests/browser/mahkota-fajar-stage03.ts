@@ -47,9 +47,6 @@ async function launch() {
       override get fieldTerrain() {
         return undefined;
       }
-      override get isSandsLocation() {
-        return false;
-      }
       override get nearSanctuary() {
         return false;
       }

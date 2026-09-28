@@ -63,10 +63,11 @@ await test('all field, monster, shop, crafting and quest references remain valid
       ...field.materialTable.map((item) => item.id),
       ...field.normalMonsters.flatMap((monster) => monster.lootTable),
       ...field.eliteMonsters.flatMap((monster) => monster.lootTable),
-      ...field.fieldBoss.lootTable,
+      ...(field.fieldBoss?.lootTable??[]),
     ];
     for (const id of ids) assert.ok(ITEM_CATALOG[id], id);
-    assert.ok(field.materialTable[0]);
+    if(field.fieldBoss)assert.ok(field.materialTable[0]);
+    else assert.deepEqual(field.materialTable,[]);
     assert.ok(
       fieldShopStock(field.id).every(
         (item) => !retiredIds.includes(item.templateId),
@@ -102,6 +103,7 @@ await test('normal, elite, boss and stale loot tables no longer produce retired 
       field.eliteMonsters[0],
       field.fieldBoss,
     ]) {
+      if(!monster)continue;
       for (const roll of [
         0, 0.1, 0.2, 0.3, 0.4, 0.45, 0.48, 0.494, 0.52, 0.56, 0.61, 0.66, 0.71,
         0.8, 0.95, 0.99,

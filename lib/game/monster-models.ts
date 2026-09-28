@@ -47,6 +47,18 @@ export const MONSTER_MODELS: Record<string,MonsterModelRecipe> = {
 };
 
 // All body parts are merged into one vertex-coloured draw call, without external models/textures.
+Object.assign(MONSTER_MODELS, {
+  'verdant-plains-v2-small-slime': MONSTER_MODELS['verdant-plains-0'],
+  'verdant-plains-v2-meadow-slime': {...MONSTER_MODELS['verdant-plains-0'],color:'#70ad81'},
+  'verdant-plains-v2-wild-boar': MONSTER_MODELS['verdant-plains-1'],
+  'verdant-plains-v2-forest-piya': MONSTER_MODELS['verdant-plains-2'],
+  'verdant-plains-v2-stoneback-beetle': MONSTER_MODELS['verdant-plains-3'],
+  'verdant-plains-v2-rootling': MONSTER_MODELS['verdant-plains-4'],
+  'verdant-plains-v2-thorn-wolf': MONSTER_MODELS['whispering-wilds-1'],
+  'verdant-plains-v2-giant-rootling': MONSTER_MODELS['verdant-plains-4'],
+  'verdant-plains-v2-alpha-boar': MONSTER_MODELS['verdant-plains-1'],
+  'verdant-plains-v2-ancient-treant': MONSTER_MODELS['verdant-plains-5'],
+});
 export function createMonsterBody(definition: Pick<MonsterDefinition,'id'|'variant'|'visualScale'>):T.Mesh<T.BufferGeometry,T.MeshStandardMaterial> {
   const r=MONSTER_MODELS[definition.id] ?? MONSTER_MODELS['verdant-plains-0'];
   const parts:T.BufferGeometry[]=[];

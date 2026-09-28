@@ -1,0 +1,18 @@
+[
+  {
+    "id": "fir",
+    "name": "Verdant Cemara",
+    "triangles": 1456,
+    "atlas": 1024,
+    "bake": "Cycles EMIT: master color \u00d7 local AO",
+    "bytes": 1125228
+  },
+  {
+    "id": "tree",
+    "name": "Verdant Beringin",
+    "triangles": 2460,
+    "atlas": 1024,
+    "bake": "Cycles EMIT: master color \u00d7 local AO",
+    "bytes": 1073124
+  }
+]
