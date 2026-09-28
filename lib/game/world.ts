@@ -1336,6 +1336,7 @@ export class Game {
       this.scene.remove(nearestGold.group);
       nearestGold.label.remove();
       this.groundGold = this.groundGold.filter(drop => drop !== nearestGold);
+      this.message(`Gold diambil: ${nearestGold.amount} Gold Coins`);
       this.save();
       this.emit();
       return true;
@@ -1358,6 +1359,7 @@ export class Game {
       }
     });
     this.groundLoot = this.groundLoot.filter(loot => loot !== nearestItem);
+    this.message(`Item diambil: ${nearestItem.item.name}${nearestItem.item.quantity > 1 ? ` x${nearestItem.item.quantity}` : ''}`, nearestItem.item);
     this.save();
     this.emit();
     return true;
