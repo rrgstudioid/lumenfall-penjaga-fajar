@@ -184,7 +184,6 @@ export function GameDragDropProvider({
           game.hero,
           current.source,
           destination.target,
-          game.hotbarEditMode,
         );
         message = validation.reason;
         applied =
@@ -196,7 +195,7 @@ export function GameDragDropProvider({
       current.element.removeAttribute('data-dragging');
       document.body.removeAttribute('data-game-dragging');
       document.body.removeAttribute('data-game-drag-pending');
-      game?.setHotbarInteraction(false);
+      game?.setHotbarInteraction(false, 'item-drag');
       try {
         if (
           current.capture &&
@@ -228,7 +227,7 @@ export function GameDragDropProvider({
         event.button !== 0 ||
         !event.isPrimary ||
         !game?.started ||
-        (source.dragType === 'hotbar-binding' && !game.hotbarEditMode) ||
+        document.body.hasAttribute('data-hud-dragging') ||
         game.dead ||
         session.current ||
         document.querySelector('[role="alertdialog"]')
@@ -281,7 +280,7 @@ export function GameDragDropProvider({
         current.active = true;
         current.element.setAttribute('data-dragging', 'true');
         document.body.setAttribute('data-game-dragging', 'true');
-        game?.setHotbarInteraction(true);
+        game?.setHotbarInteraction(true, 'item-drag');
         try {
           current.element.setPointerCapture(event.pointerId);
           current.capture = true;
@@ -302,7 +301,6 @@ export function GameDragDropProvider({
           game.hero,
           session.current.source,
           destination.target,
-          game.hotbarEditMode,
         );
         clearHighlight();
         targetElement.current = destination.element;

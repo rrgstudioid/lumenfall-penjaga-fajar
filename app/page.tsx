@@ -1,7 +1,6 @@
 ﻿'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { isResourceEnabled } from '@/lib/game/gameplay-config';
 import { getVisibleJobArchitecture, presentJobText } from '@/lib/game/job-presentation';
 import { JobArchitecturePreview } from '@/components/game/job-architecture-preview';
 import { V3JobTrainer } from '@/components/game/v3-job-trainer';
@@ -9,6 +8,9 @@ import { JobPresentationContext, JobText } from '@/components/game/job-presentat
 import { createPortal } from 'react-dom';
 import './character-panels.css';
 import './primary-hotbar.css';
+import './gameplay-hud.css';
+import { GameplayHUD } from '@/components/game/hud/gameplay-hud';
+import { HUD_RESET_EVENT } from '@/lib/game/hud-layout';
 import type { HotbarSlot } from '@/lib/game/hotbar';
 import './drag-drop.css';
 import './interface-scale.css';
@@ -20,28 +22,21 @@ import { RuneForgePanel } from '@/components/game/rune-forge-panel';
 import { RuneDetails } from '@/components/game/rune-details';
 import { ForgePanel } from '@/components/game/forge-panel';
 import { InterfaceSettings, InterfaceSettingsRuntime } from '@/components/game/interface-settings';
-import { GameDragDropProvider, HotbarLayer } from '@/components/game/drag-drop-provider';
+import { GameDragDropProvider } from '@/components/game/drag-drop-provider';
 import { InventoryGrid } from '@/components/game/inventory-grid';
 import { InventoryCombatPowerPreview } from '@/components/game/combat-power-preview';
 import {
-  PrimaryHotbar,
   PrimaryHotbarEditor,
 } from '@/components/game/primary-hotbar';
 import {
-  Sun,
-  Sword,
   Sparkles,
   FlaskConical as _FlaskConical,
   Coins,
   Backpack,
-  ScrollText,
-  Settings2,
   Volume2,
   VolumeX,
-  Compass,
   ArrowUpRight,
   ChevronRight,
-  Leaf,
   Heart,
   Trash2,
   LockKeyhole,
@@ -56,17 +51,13 @@ import {
   ArrowUpDown,
   Maximize2,
   Minimize2,
-  Camera,
-  Orbit,
 } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { Slider } from '@/components/ui/slider';
 import { DEFAULT_AUDIO_SETTINGS, loadAudioSettings, saveAudioSettings } from '@/lib/game/bgm';
 import { Dialog, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import {
-  derivedStats,
   itemStats,
-  characterLabel,
   freshHero,
   emptyEquipment,
   RUNE_OPTIMIZER_CRAFT_RECIPES,
@@ -79,9 +70,7 @@ import {
   DEFAULT_APPEARANCE,
   normalizeCharacterName,
   validateCharacterName,
-  maxHP,
   SPECIALIZATIONS,
-  xpNeeded,
   type CharacterSlot,
   type CharacterAppearance,
   type CoreJobId,
@@ -100,10 +89,8 @@ import { CharacterOverview, StatBlockList } from '@/components/game/character-ov
 import {
   DraggableAlertDialogContent,
   DraggableDialogContent,
-  DraggableOverlay,
 } from '@/components/game/draggable-window';
 import { JobSkill } from '@/components/game/job-skill';
-import { SkillIcon } from '@/components/game/skill-icon';
 import { ItemIcon } from '@/components/game/entry-icon';
 import { ItemHover } from '@/components/game/item-hover';
 import {
@@ -180,7 +167,7 @@ const panelTitles: Record<string, string> = {
   quest: 'Jurnal petualangan',
   map: 'Peta dunia & teleportasi',
   help: 'Bekal seorang penjaga',
-  hotbar: 'Atur PrimaryHotbar',
+  hotbar: 'Pilih Skill / Item',
   class: 'Jalur job Nusantara',
 };
 type PauseMenuView = 'main' | 'options' | 'audio' | 'graphics' | 'hotkey';
@@ -432,7 +419,8 @@ export default function Home() {
   );
   useEffect(() => {
     const key = (event: KeyboardEvent) => {
-      if (document.body.hasAttribute('data-game-drag-pending')) return;
+      if (event.defaultPrevented || document.body.hasAttribute('data-game-drag-pending') || document.body.hasAttribute('data-hud-dragging')) return;
+      if (!panel && !activeNpcMenu && game.current?.uiInputBlockers.has('chat')) return;
       // Close the currently visible gameplay panel with Escape. Confirmation
       // dialogs keep priority so Escape can cancel only that confirmation.
       if (event.key === 'Escape' && !event.repeat && !event.ctrlKey && !event.metaKey && !event.altKey) {
@@ -492,8 +480,6 @@ export default function Home() {
 
 
   const hero = state.hero,
-    hp = maxHP(hero),
-    derived = derivedStats(hero),
     selectedCharacter =
       roster.find((slot) => slot.id === selectedSlot)?.hero ?? null,
     active =
@@ -693,233 +679,15 @@ export default function Home() {
       <div ref={host} className="world" data-world-surface />
       <div className="vignette" />
       <div ref={labels} className="world-labels" aria-hidden="true" />
-      <header className="topbar">
-        <div className="brand">
-          <Sun size={31} strokeWidth={1.2} />
-          <div>
-            LUMENFALL<small>PENJAGA FAJAR</small>
-          </div>
-        </div>
-        <div className="location">
-          <span className="eyebrow">THE FIRST LIGHT</span>
-          <h1>{state.inCity ? state.cityName : state.fieldName}</h1>
-          <p>
-            <span /> {state.inCity ? 'Kota aman' : state.cityName} <b>·</b> Lv.{' '}
-            {state.recommendedLevel}
-          </p>
-        </div>
-        <div className="top-tools">
-          <span className="solo">
-            <i /> SOLO ADVENTURE
-          </span>
-          <button
-            className="icon-button"
-            aria-label={muted ? 'Aktifkan suara' : 'Matikan suara'}
-            onClick={toggleSound}
-          >
-            {muted ? <VolumeX size={18} /> : <Volume2 size={18} />}
-          </button>
-          <button
-            className="icon-button"
-            aria-label="Pengaturan dan jeda"
-            onClick={() => open('pause')}
-          >
-            <Settings2 size={18} />
-          </button>
-          <button
-            className="icon-button"
-            aria-label={isFullscreen ? 'Keluar dari fullscreen' : 'Aktifkan fullscreen'}
-            title={isFullscreen ? 'Keluar dari fullscreen' : 'Fullscreen'}
-            onClick={toggleFullscreen}
-          >
-            {isFullscreen ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
-          </button>
-          <button
-            className="icon-button camera-mode-button"
-            aria-label={`Kamera ${state.cameraMode === 'free' ? 'Free' : 'Follow'} aktif. Ganti ke ${state.cameraMode === 'free' ? 'Follow' : 'Free'} Camera`}
-            aria-pressed={state.cameraMode === 'follow'}
-            title={state.cameraMode === 'free' ? 'Free Camera · klik untuk Follow Camera' : 'Follow Camera · klik untuk Free Camera'}
-            disabled={!ready}
-            onClick={() => game.current?.setCameraMode(game.current.cameraMode === 'free' ? 'follow' : 'free')}
-          >
-            {state.cameraMode === 'free' ? <Orbit size={18} /> : <Camera size={18} />}
-            <span>{state.cameraMode === 'free' ? 'Free' : 'Follow'}</span>
-          </button>
-        </div>
-      </header>
-      <DraggableOverlay
-        windowId="hud-character"
-        className="player-card glass"
-        aria-label="Status karakter"
-      >
-        <button
-          className="portrait"
-          aria-label="Lihat karakter"
-          onClick={() => open('character')}
-        >
-          <Sword size={28} />
-          <span>{hero.level}</span>
-        </button>
-        <div className="player-stats">
-          <div className="player-name" data-window-drag-handle>
-            {hero.characterName}{' '}
-            <small>{characterLabel(hero).toUpperCase()}</small>
-          </div>
-          <div className="bar-label">
-            <Heart size={10} />
-            <span>
-              {Math.ceil(hero.hp)} <b>/ {hp}</b>
-            </span>
-          </div>
-          <Progress
-            className="hp-bar"
-            value={(hero.hp / hp) * 100}
-            aria-label="HP karakter"
-          />
-          <div className="resource-line">
-            <Progress
-              className="resource-bar"
-              value={(state.mana / state.maxMana) * 100}
-              aria-label={state.manaName}
-            />
-            <span>
-              {state.manaName} {Math.floor(state.mana)}/{state.maxMana}
-            </span>
-          </div>
-          {isResourceEnabled(hero, 'stamina') && <div className="stamina-line">
-            <Progress
-              className="stamina-bar"
-              value={(state.stamina / derived.staminaMax) * 100}
-              aria-label="Stamina"
-            />
-          </div>}
-          {Object.keys(hero.statusEffects).length > 0 && (
-            <div className="status-icons" aria-label="Status effect aktif">
-              {Object.keys(hero.statusEffects).map((status) => (
-                  <span key={status} title={status === 'stealth' ? 'Stealth combat state — bukan jaminan tidak terdeteksi musuh.' : status} className={status === 'stealth' ? 'stealth-status-label' : undefined}>
-                  {status === 'stealth' ? `STEALTH · ${Math.max(0,hero.statusEffects[status]).toFixed(1)}s` : status.slice(0, 3).toUpperCase()}
-                </span>
-              ))}
-            </div>
-          )}
-        </div>
-      </DraggableOverlay>
-      {(state.combatFeedback?.indicators.length ?? 0) > 0 && (
-        <div className="combat-feedback-strip" aria-label="Combat states">
-          {state.combatFeedback?.indicators.map((indicator) => (
-            <div
-              className={`combat-feedback-indicator tone-${indicator.tone ?? 'offensive'}`}
-              key={indicator.id}
-              title={`${indicator.label}${indicator.remaining !== undefined ? ` · ${indicator.remaining.toFixed(1)}s` : ''}`}
-            >
-              {indicator.iconSkillId && <SkillIcon id={indicator.iconSkillId} size={20} />}
-              <span className="combat-feedback-copy">
-                <b>{indicator.label}</b>
-                {indicator.stacks !== undefined && <small>{indicator.stacks} / {indicator.maxStacks ?? 3}</small>}
-                {indicator.remaining !== undefined && <small>{indicator.remaining.toFixed(1)}s</small>}
-              </span>
-            </div>
-          ))}
-        </div>
-      )}
+      <GameplayHUD state={state} game={engine} mapRef={map} visible={flow === 'world'} active={active} panel={panel} modalOpen={Boolean(panel || activeNpcMenu)} fullscreen={isFullscreen} quest={activeJournalQuest} onOpen={open} onSound={toggleSound} onFullscreen={toggleFullscreen} onEditHotbar={index => {
+        setHotbarEditSlot(index);
+        open('hotbar');
+      }} />
       {state.combatFeedback?.event && (
         <output className={`combat-feedback-event event-${state.combatFeedback.event.tone}`}>
           {state.combatFeedback.event.label}
         </output>
       )}
-      <DraggableOverlay
-        windowId="hud-quest"
-        className="quest-card"
-        aria-label="Jurnal misi ringkas"
-      >
-        <div className="eyebrow" data-window-drag-handle>
-          <span className="tiny-diamond" /> JURNAL MISI{' '}
-          <span className="quest-index">01</span>
-        </div>
-        {activeJournalQuest ? (
-          <>
-            <div className="class-quest-mini">
-              <ScrollText size={12} />{' '}
-              {questStatusLabel(activeJournalQuest.status)}
-            </div>
-            <h2>{activeJournalQuest.title}</h2>
-            <p>{activeJournalQuest.description}</p>
-            <div className="quest-counter">
-              <span>
-                {activeJournalQuest.objectives
-                  .map((objective) => objective.targetName)
-                  .join(' · ')}
-              </span>
-              <strong>
-                {activeJournalQuest.progress
-                  .map(
-                    (progress) => `${progress.current} / ${progress.required}`,
-                  )
-                  .join(' · ')}
-              </strong>
-            </div>
-          </>
-        ) : (
-          <>
-            <h2>Belum ada quest aktif.</h2>
-            <p>
-              Buka Jurnal Misi atau temui NPC quest untuk melihat misi yang
-              tersedia.
-            </p>
-          </>
-        )}
-        <Progress
-          className="quest-progress"
-          value={
-            activeJournalQuest?.progress.length
-              ? Math.min(
-                  (activeJournalQuest.progress[0].current /
-                    activeJournalQuest.progress[0].required) *
-                    100,
-                  100,
-                )
-              : 0
-          }
-          aria-label="Progres misi"
-        />
-        <div className="reward">
-          <span>
-            <Sparkles size={12} /> {activeJournalQuest?.rewards.xp ?? 0} EXP
-          </span>
-          <span>
-            <Coins size={12} /> {activeJournalQuest?.rewards.gold ?? 0} GOLD
-          </span>
-        </div>
-        <div className="class-quest-mini">
-          <Crown size={12} /> {state.classQuest}
-        </div>
-        <button className="text-button" onClick={() => open('quest')}>
-          Buka jurnal <ChevronRight size={13} />
-        </button>
-      </DraggableOverlay>
-      <aside className="map-panel">
-        <button
-          className="minimap"
-          onClick={() => open('map')}
-          aria-label="Buka peta"
-        >
-          <canvas ref={map} width={240} height={240} />
-          <span className="north">N</span>
-          <span className="map-compass">
-            <Compass size={17} />
-          </span>
-          <kbd>M</kbd>
-        </button>
-        <div className="weather">
-          <Sun size={13} />
-          <span>Pagi yang tenang</span>
-        </div>
-        <div className="gold-counter">
-          <Coins size={15} />
-          {hero.gold.toLocaleString('id-ID')}
-          <small>GOLD</small>
-        </div>
-      </aside>
       {boss && state.started && (
         <div className="boss-bar">
               <span>FIELD BOSS · LV. {boss.level}</span>
@@ -974,52 +742,7 @@ export default function Home() {
           <Sparkles size={17} />
         </button>
       )}
-      <footer className="game-footer">
-        <div className="journey-note">
-          <Leaf size={20} strokeWidth={1} />
-          <div>
-            Dunia menanti langkahmu.<small>{state.inCity ? state.cityName : state.fieldName} · CHAPTER ONE</small>
-          </div>
-        </div>
-        {flow === 'world' && <HotbarLayer><PrimaryHotbar
-          state={state}
-          game={engine}
-          active={active}
-          bindingEnabled={state.started && !state.dead && !activeNpcMenu && (panel === 'bag' || panel === 'jobSkill')}
-          onEdit={(index) => {
-            engine?.setHotbarEditMode(true);
-            setHotbarEditSlot(index);
-            open('hotbar');
-          }}
-        />
-        {(['q','e'] as const).map(quickId=><PrimaryHotbar
-          key={quickId}
-          quickId={quickId}
-          state={state}
-          game={engine}
-          active={active}
-          bindingEnabled={state.started && !state.dead && !activeNpcMenu && (panel === 'bag' || panel === 'jobSkill')}
-          onEdit={(index)=>{engine?.setHotbarEditMode(true);setHotbarEditSlot(index);open('hotbar');}}
-        />)}
-        </HotbarLayer>}
-        <div className="experience">
-          <span>LV. {hero.level}</span>
-          <Progress
-            value={
-              hero.level === 50 ? 100 : (hero.xp / xpNeeded(hero.level)) * 100
-            }
-            aria-label="Pengalaman level"
-          />
-          <small>
-            {hero.level === 50
-              ? 'LEVEL MAKSIMAL'
-              : `${hero.xp} / ${xpNeeded(hero.level)} EXP`}
-          </small>
-          <span className="save-state">
-            {state.saved ? 'TERSIMPAN LOKAL' : 'PENYIMPANAN TIDAK TERSEDIA'}
-          </span>
-        </div>
-      </footer>
+
       {active && (
         <div className="touch-movement" aria-label="Kontrol gerak sentuh">
           {['w', 'a', 's', 'd'].map((key, index) => (
@@ -1849,6 +1572,8 @@ export default function Home() {
               game={engine}
               index={hotbarEditSlot}
               onIndexChange={setHotbarEditSlot}
+              onAssigned={() => setPanel('')}
+              onResetLayout={() => window.dispatchEvent(new Event(HUD_RESET_EVENT))}
             />
           )}
           {panel === 'class' && (
@@ -2794,7 +2519,8 @@ export default function Home() {
                   ['F', 'Guard / block · timing dapat menjadi parry'],
                   ['Gerak', 'Karakter selalu berlari dengan kecepatan sedang; Shift tidak diperlukan'],
                   ['1–0 / Q / E', 'PrimaryHotbar / QuickHotbar Q dan E'],
-                  ['Tombol Edit Mode', 'Aktif/nonaktif Edit Mode ketiga hotbar'],
+                  ['Klik + / drag skill', 'Pasang skill langsung; drag antar-slot untuk menukar'],
+                  ['Klik kanan slot', 'Hapus shortcut dari hotbar'],
                   [
                     'I / C / J / K / M / H',
                     'Inventori / karakter / Jurnal Misi / Job Skill / peta / panduan',

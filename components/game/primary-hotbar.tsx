@@ -118,6 +118,7 @@ export function PrimaryHotbar({
   bindingEnabled = false,
   onEdit,
   quickId,
+  embedded = false,
 }: {
   state: Snapshot;
   game: Game | null;
@@ -125,6 +126,7 @@ export function PrimaryHotbar({
   bindingEnabled?: boolean;
   onEdit: (index: HotbarSlot) => void;
   quickId?: QuickHotbarId;
+  embedded?: boolean;
 }) {
   const { begin: beginEntryDrag, isDragging } = useGameDrag();
   const panel = useRef<HTMLElement>(null),
@@ -143,18 +145,20 @@ export function PrimaryHotbar({
   } | null>(null);
   const [localScale, setLocalScale] = useState(HOTBAR_DEFAULT_SCALE);
   const [dragKind, setDragKind] = useState<Drag['kind'] | null>(null);
-  const editMode = state.hotbarEditMode === true;
   const interactive = active || bindingEnabled;
   // Synchronize external state after mount; reading it during SSR would break hydration.
   /* oxlint-disable react/react-compiler */
   useEffect(() => {
+    if (embedded) return;
     const reset = () => {
       setSavedLayout(null);
       setLocalScale(HOTBAR_DEFAULT_SCALE);
     };
     try {
       const saved = readUILayout(window.localStorage)[layoutId];
-      setSavedLayout(saved ? { x: saved.x, y: saved.y, scale: saved.scale } : null);
+      setSavedLayout(
+        saved ? { x: saved.x, y: saved.y, scale: saved.scale } : null,
+      );
       setLocalScale(
         Math.min(
           HOTBAR_MAX_SCALE,
@@ -167,9 +171,10 @@ export function PrimaryHotbar({
     }
     window.addEventListener(UI_LAYOUT_RESET_EVENT, reset);
     return () => window.removeEventListener(UI_LAYOUT_RESET_EVENT, reset);
-  }, [layoutId]);
+  }, [layoutId, embedded]);
   /* oxlint-enable react/react-compiler */
   useEffect(() => {
+    if (embedded) return;
     const resize = () => {
       if (!panel.current) return;
       const rect = panel.current.getBoundingClientRect();
@@ -210,8 +215,16 @@ export function PrimaryHotbar({
       window.removeEventListener(INTERFACE_SCALE_EVENT, resize);
       observer.disconnect();
     };
-  }, [legacyLayout, quickId, savedLayout, state.hero.primaryHotbarLayout, localScale]);
+  }, [
+    legacyLayout,
+    quickId,
+    savedLayout,
+    state.hero.primaryHotbarLayout,
+    localScale,
+    embedded,
+  ]);
   useEffect(() => {
+    if (embedded) return;
     const cancel = () => {
       if (drag.current && panel.current) {
         setPosition(
@@ -234,7 +247,7 @@ export function PrimaryHotbar({
         cancel();
       }
     };
-    if (!editMode || !interactive) cancel();
+    if (!interactive) cancel();
     window.addEventListener('blur', cancel);
     window.addEventListener('keydown', key, true);
     window.addEventListener('resize', cancel);
@@ -246,15 +259,15 @@ export function PrimaryHotbar({
       window.removeEventListener(INTERFACE_SCALE_EVENT, cancel);
       game?.setHotbarInteraction(false);
     };
-  }, [game, editMode, interactive]);
+  }, [game, interactive, embedded]);
   const begin = (event: ReactPointerEvent<HTMLElement>, kind: Drag['kind']) => {
-    if (event.button !== 0 || !editMode || !interactive || !panel.current)
-      return;
+    if (event.button !== 0 || !interactive || !panel.current) return;
     event.stopPropagation();
     const rect = panel.current.getBoundingClientRect();
-    const edge = kind === 'resize'
-      ? (event.currentTarget.dataset.windowResizeEdge as Drag['edge'])
-      : undefined;
+    const edge =
+      kind === 'resize'
+        ? (event.currentTarget.dataset.windowResizeEdge as Drag['edge'])
+        : undefined;
     if (kind === 'resize' && !edge) return;
     drag.current = {
       kind,
@@ -301,7 +314,9 @@ export function PrimaryHotbar({
     const horizontal = edge === 'left' || edge === 'right';
     const delta = horizontal ? dx : dy;
     const signedDelta = edge === 'left' || edge === 'top' ? -delta : delta;
-    const baseSize = horizontal ? current.originRect.width : current.originRect.height;
+    const baseSize = horizontal
+      ? current.originRect.width
+      : current.originRect.height;
     let nextScale = current.originScale * (1 + signedDelta / baseSize);
     const available = horizontal
       ? edge === 'right'
@@ -314,15 +329,24 @@ export function PrimaryHotbar({
       nextScale,
       current.originScale * Math.max(0.25, available / baseSize),
     );
-    nextScale = Math.min(HOTBAR_MAX_SCALE, Math.max(HOTBAR_MIN_SCALE, nextScale));
+    nextScale = Math.min(
+      HOTBAR_MAX_SCALE,
+      Math.max(HOTBAR_MIN_SCALE, nextScale),
+    );
     const visualRatio = nextScale / current.originScale;
     const nextWidth = current.originRect.width * visualRatio;
     const nextHeight = current.originRect.height * visualRatio;
     current.scale = nextScale;
     current.position = clampPrimaryHotbarLayout(
       {
-        x: edge === 'left' ? current.originRect.right - nextWidth : current.origin.x,
-        y: edge === 'top' ? current.originRect.bottom - nextHeight : current.origin.y,
+        x:
+          edge === 'left'
+            ? current.originRect.right - nextWidth
+            : current.origin.x,
+        y:
+          edge === 'top'
+            ? current.originRect.bottom - nextHeight
+            : current.origin.y,
       },
       { width: window.innerWidth, height: window.innerHeight },
       { width: nextWidth, height: nextHeight },
@@ -360,16 +384,16 @@ export function PrimaryHotbar({
           quickId ? `QuickHotbar${quickId.toUpperCase()}` : 'PrimaryHotbar'
         }
         data-hotbar-id={quickId ?? 'primary'}
-        className={`primary-hotbar-panel ${quickId ? `quick-hotbar-panel quick-hotbar-${quickId}` : ''} ${editMode ? 'is-editing' : ''} ${dragKind === 'panel' ? 'is-moving' : ''} ${dragKind === 'resize' ? 'is-resizing' : ''}`}
+        className={`primary-hotbar-panel ${embedded ? 'hud-embedded-hotbar' : ''} ${quickId ? `quick-hotbar-panel quick-hotbar-${quickId}` : ''} ${dragKind === 'panel' ? 'is-moving' : ''} ${dragKind === 'resize' ? 'is-resizing' : ''}`}
         style={
           {
             ...(position
               ? {
-                left: position.x,
-                top: position.y,
-                bottom: 'auto',
-                transform: 'none',
-              }
+                  left: position.x,
+                  top: position.y,
+                  bottom: 'auto',
+                  transform: 'none',
+                }
               : {}),
             '--hotbar-local-scale': localScale,
             '--primary-hotbar-scale': localScale,
@@ -381,69 +405,78 @@ export function PrimaryHotbar({
         onPointerCancel={(event) => end(event, true)}
         onLostPointerCapture={(event) => end(event, true)}
       >
-        {(['top', 'bottom', 'left', 'right'] as const).map((edge) => (
-          <button
-            key={edge}
-            type="button"
-            className={`primary-hotbar-resize-handle is-${edge}`}
-            data-window-resize-handle
-            data-window-resize-edge={edge}
-            aria-label={`Ubah ukuran hotbar dari sisi ${edge}`}
-            disabled={!interactive || !editMode}
-            onPointerDown={(event) => begin(event, 'resize')}
-          >
-            {edge === 'left' || edge === 'right' ? (
-              <GripVertical size={11} />
-            ) : (
-              <GripHorizontal size={11} />
+        {!embedded &&
+          (['top', 'bottom', 'left', 'right'] as const).map((edge) => (
+            <button
+              key={edge}
+              type="button"
+              className={`primary-hotbar-resize-handle is-${edge}`}
+              data-window-resize-handle
+              data-window-resize-edge={edge}
+              aria-label={`Ubah ukuran hotbar dari sisi ${edge}`}
+              disabled={!interactive}
+              onPointerDown={(event) => begin(event, 'resize')}
+            >
+              {edge === 'left' || edge === 'right' ? (
+                <GripVertical size={11} />
+              ) : (
+                <GripHorizontal size={11} />
+              )}
+            </button>
+          ))}
+        {embedded && quickId && (
+          <>
+            <svg
+              className="hud-quick-ornament"
+              viewBox="0 0 116 156"
+              aria-hidden="true"
+            >
+              <path d="M4 145V19L14 8H43L58 1L73 8H102L112 19V145L99 153H17Z M9 137V24L20 14H40M76 14H96L107 24V137 M10 140Q-2 136 -8 153Q0 145 13 150Q30 162 45 150 M106 140Q118 136 124 153Q116 145 103 150Q86 162 71 150 M24 5Q4 -4 1 20M92 5Q112 -4 115 20" />
+              <path
+                d="M58 145L63 151L58 157L53 151Z M1 72L6 78L1 84L-4 78Z M115 72L120 78L115 84L110 78Z"
+                className="hud-ornament-gem"
+              />
+            </svg>
+            <header className="hud-quick-key">{quickId.toUpperCase()}</header>
+          </>
+        )}
+        {!embedded && (
+          <header className="primary-hotbar-header">
+            <button
+              type="button"
+              className="primary-drag-handle"
+              data-drag-handle
+              aria-label={`${quickId ? quickId.toUpperCase() : 'Primary'} — geser panel`}
+              disabled={!interactive}
+              onPointerDown={(event) => begin(event, 'panel')}
+            >
+              <GripHorizontal size={16} />
+              <span>{quickId ? quickId.toUpperCase() : 'PRIMARY HOTBAR'}</span>
+              <Move size={13} />
+            </button>
+            {!quickId && (
+              <>
+                <span className="primary-combo">
+                  {state.combo ? `Combo ×${state.combo}` : '1 — 0'}
+                </span>
+              </>
             )}
-          </button>
-        ))}
-        <header className="primary-hotbar-header">
-          <button
-            type="button"
-            className="primary-drag-handle"
-            data-drag-handle
-            aria-label={`${quickId ? quickId.toUpperCase() : 'Primary'} — geser panel`}
-            disabled={!interactive || !editMode}
-            onPointerDown={(event) => begin(event, 'panel')}
-          >
-            <GripHorizontal size={16} />
-            <span>{quickId ? quickId.toUpperCase() : 'PRIMARY HOTBAR'}</span>
-            <Move size={13} />
-          </button>
-          {!quickId && (
-            <>
-              <span className="primary-combo">
-                {state.combo ? `Combo ×${state.combo}` : '1 — 0'}
-              </span>
-              <button
-                type="button"
-                className="primary-edit-toggle"
-                aria-label="Edit Mode hotbar"
-                aria-pressed={editMode}
-                disabled={!interactive}
-                onClick={() => game?.setHotbarEditMode(!editMode)}
-              >
-                Edit {editMode ? 'ON' : 'OFF'}
-              </button>
-            </>
-          )}
-          <button
-            type="button"
-            className="primary-settings"
-            aria-label={
-              quickId
-                ? `Atur QuickHotbar${quickId.toUpperCase()}`
-                : 'Atur PrimaryHotbar'
-            }
-            title="Isi slot / Reset Layout"
-            disabled={!state.started || state.dead}
-            onClick={() => onEdit(quickId ?? 0)}
-          >
-            <Settings2 size={17} />
-          </button>
-        </header>
+            <button
+              type="button"
+              className="primary-settings"
+              aria-label={
+                quickId
+                  ? `Atur QuickHotbar${quickId.toUpperCase()}`
+                  : 'Atur PrimaryHotbar'
+              }
+              title="Isi slot / Reset Layout"
+              disabled={!state.started || state.dead}
+              onClick={() => onEdit(quickId ?? 0)}
+            >
+              <Settings2 size={17} />
+            </button>
+          </header>
+        )}
         <div className="primary-hotbar-scroll">
           <div className="primary-hotbar-slots">
             {(quickId
@@ -468,7 +501,7 @@ export function PrimaryHotbar({
                         data-drop-type="hotbar"
                         data-drop-slot={index}
                         data-drag-source={
-                          id && editMode ? 'hotbar-binding' : undefined
+                          id && interactive ? 'hotbar-binding' : undefined
                         }
                         data-hotbar-category={quickId ? 'quick' : undefined}
                         data-window-no-drag
@@ -487,7 +520,6 @@ export function PrimaryHotbar({
                         disabled={!active && !bindingEnabled}
                         onPointerDown={(event) =>
                           id &&
-                          editMode &&
                           (active || bindingEnabled) &&
                           beginEntryDrag(event, {
                             dragType: 'hotbar-binding',
@@ -497,11 +529,7 @@ export function PrimaryHotbar({
                         }
                         onClick={() => {
                           if (!interactive) return;
-                          // Empty-slot “+” is a drop target only for now; it
-                          // must not open the slot editor.
-                          if (editMode) {
-                            if (entry) onEdit(index);
-                          }
+                          if (!entry) onEdit(index);
                           else if (active) {
                             if (isQuickHotbarId(index))
                               game?.activateQuickHotbarSlot(index);
@@ -510,7 +538,11 @@ export function PrimaryHotbar({
                         }}
                         onContextMenu={(event) => {
                           event.preventDefault();
-                          if (editMode && entry) onEdit(index);
+                          if (interactive && entry) {
+                            if (isQuickHotbarId(index))
+                              game?.removeQuickHotbarSlot(index);
+                            else game?.removePrimaryHotbarSlot(index);
+                          }
                         }}
                       />
                     }
@@ -563,11 +595,15 @@ export function PrimaryHotbar({
                   <TooltipContent className="primary-tooltip">
                     <HotbarIcon entry={entry} />
                     <strong>
-                      <JobText>{entry?.name ?? `Slot ${keyLabel(index)} kosong`}</JobText>
+                      <JobText>
+                        {entry?.name ?? `Slot ${keyLabel(index)} kosong`}
+                      </JobText>
                     </strong>
                     <p>
-                      <JobText>{entry?.description ??
-                        'Klik tombol Edit Mode di hotbar, lalu klik atau drag skill/item untuk mengisi slot.'}</JobText>
+                      <JobText>
+                        {entry?.description ??
+                          'Klik + untuk memilih skill/item, atau drag langsung ke slot.'}
+                      </JobText>
                     </p>
                     {skill && (
                       <p>
@@ -583,8 +619,9 @@ export function PrimaryHotbar({
                     )}
                     {reason && <p className="primary-reason">{reason}</p>}
                     <small>
-                      Edit Mode: drag klik kiri untuk memindahkan · Lepas ke
-                      latar kosong untuk menghapus shortcut · Esc untuk batal
+                      Drag untuk menukar slot · Klik kanan untuk menghapus ·
+                      Lepas ke latar kosong untuk menghapus shortcut · Esc untuk
+                      batal
                     </small>
                   </TooltipContent>
                 </Tooltip>
@@ -602,16 +639,17 @@ export function PrimaryHotbarEditor({
   game,
   index,
   onIndexChange,
+  onResetLayout,
+  onAssigned,
 }: {
   hero: Hero;
   game: Game | null;
   index: HotbarSlot;
   onIndexChange: (index: HotbarSlot) => void;
+  onResetLayout?: () => void;
+  onAssigned?: () => void;
 }) {
-  const [selected, setSelected] = useState('');
   const entries = getPrimaryHotbarEntries(hero);
-  const entry = entries.find((entry) => entry.id === selected) ?? null;
-  const reason = primaryHotbarAssignmentReason(hero, entry);
   const current = resolvePrimaryHotbarEntry(
     hero,
     hotbarAssignment(hero, index),
@@ -629,15 +667,18 @@ export function PrimaryHotbarEditor({
           >
             <SelectTrigger id="primary-target-slot" aria-label="Slot tujuan">
               <SelectValue>
-                Slot {keyLabel(index)} · <JobText>{current?.name ?? 'Kosong'}</JobText>
+                Slot {keyLabel(index)} ·{' '}
+                <JobText>{current?.name ?? 'Kosong'}</JobText>
               </SelectValue>
             </SelectTrigger>
             <SelectContent>
               {hotbarSlots.map((i) => (
                 <SelectItem key={i} value={String(i)}>
                   Slot {keyLabel(i)} ·{' '}
-                  <JobText>{resolvePrimaryHotbarEntry(hero, hotbarAssignment(hero, i))
-                    ?.name ?? 'Kosong'}</JobText>
+                  <JobText>
+                    {resolvePrimaryHotbarEntry(hero, hotbarAssignment(hero, i))
+                      ?.name ?? 'Kosong'}
+                  </JobText>
                 </SelectItem>
               ))}
             </SelectContent>
@@ -645,8 +686,12 @@ export function PrimaryHotbarEditor({
         </label>
         <button
           className="secondary-button"
-          disabled={!game?.hotbarEditMode}
+          disabled={!game?.started || game.dead}
           onClick={() => {
+            if (onResetLayout) {
+              onResetLayout();
+              return;
+            }
             game?.resetHotbarLayouts();
             resetUILayoutEntries(
               ['primary-hotbar', 'quick-hotbar-q', 'quick-hotbar-e'],
@@ -659,24 +704,39 @@ export function PrimaryHotbarEditor({
         </button>
       </div>
       <p>
-        Slot {keyLabel(index)}: <strong><JobText>{current?.name ?? 'Kosong'}</JobText></strong>.
-        Pilih skill atau item di bawah. Assignment hanya referensi, bukan
-        salinan item.
+        Slot {keyLabel(index)}:{' '}
+        <strong>
+          <JobText>{current?.name ?? 'Kosong'}</JobText>
+        </strong>
+        . Klik skill atau item untuk langsung memasangnya.
       </p>
       <div className="primary-entry-list">
         {entries.map((entry) => {
-          const unavailable = primaryHotbarAssignmentReason(hero, entry);
+          const unavailable = primaryHotbarAssignmentReason(
+            hero,
+            entry,
+            !isQuickHotbarId(index),
+          );
           return (
             <button
               type="button"
-              className={selected === entry.id ? 'selected' : ''}
-              aria-pressed={selected === entry.id}
+              className={current?.id === entry.id ? 'selected' : ''}
+              aria-pressed={current?.id === entry.id}
+              data-picker-entry={entry.id}
               key={entry.id}
-              onClick={() => setSelected(entry.id)}
+              disabled={!!unavailable || !game?.started || game.dead}
+              onClick={() => {
+                const assigned = isQuickHotbarId(index)
+                  ? game?.assignQuickHotbarSlot(index, entry.id)
+                  : game?.assignPrimaryHotbarSlot(index, entry.id);
+                if (assigned) onAssigned?.();
+              }}
             >
               <HotbarIcon entry={entry} />
               <span>
-                <strong><JobText>{entry.name}</JobText></strong>
+                <strong>
+                  <JobText>{entry.name}</JobText>
+                </strong>
                 <small>
                   {entry.kind === 'skill'
                     ? `Active · Lv.${hero.skillLevels[entry.id] ?? 0}`
@@ -691,29 +751,12 @@ export function PrimaryHotbarEditor({
           );
         })}
       </div>
-      {entry && (
-        <div className="primary-entry-detail">
-          <strong><JobText>{entry.name}</JobText></strong>
-          <p><JobText>{entry.description}</JobText></p>
-          {reason && <p className="primary-reason">{reason}</p>}
-        </div>
-      )}
       <div className="primary-editor-actions">
         <button
-          className="primary-button"
-          disabled={!entry || !!reason || !game?.hotbarEditMode}
-          onClick={() =>
-            entry &&
-            (isQuickHotbarId(index)
-              ? game?.assignQuickHotbarSlot(index, entry.id)
-              : game?.assignPrimaryHotbarSlot(index, entry.id))
-          }
-        >
-          Pasang ke Slot {keyLabel(index)}
-        </button>
-        <button
           className="secondary-button"
-          disabled={!hotbarAssignment(hero, index) || !game?.hotbarEditMode}
+          disabled={
+            !hotbarAssignment(hero, index) || !game?.started || game.dead
+          }
           onClick={() =>
             isQuickHotbarId(index)
               ? game?.removeQuickHotbarSlot(index)
@@ -735,7 +778,9 @@ export function PrimaryHotbarEditor({
           <ul>
             {hero.primaryHotbarOverflow.map((id) => (
               <li key={id}>
-                <JobText>{resolvePrimaryHotbarEntry(hero, id)?.name ?? id}</JobText>
+                <JobText>
+                  {resolvePrimaryHotbarEntry(hero, id)?.name ?? id}
+                </JobText>
               </li>
             ))}
           </ul>

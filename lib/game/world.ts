@@ -1,3 +1,5 @@
+import { UIInputBlockers, isEditableTarget } from './ui-input';
+import { CHAT_MESSAGE_LIMIT } from './chat';
 import * as T from 'three';
 import { getVisibleJobArchitecture } from './job-presentation';
 import {usesHardTargeting,targetIdentity,validTarget,targetRequirement,needsSelectedTarget,targetDistance,ActionLock,type TargetIdentity,type TargetFailure} from './targeting';
@@ -166,7 +168,6 @@ export type Snapshot = {
   combatFeedback?: CombatFeedbackSnapshot;
   cameraMode: CameraMode;
   forgeNpcId?: string | null;
-  hotbarEditMode?: boolean;
   audioSettings: AudioSettings;
   bgmStatus: BgmStatus;
   hotbarRuntime: { attackRemaining: number; itemCooldowns: Record<string,number>; lastUsedIndex: number; useSequence: number };
@@ -410,6 +411,8 @@ export class Game {
   enemyLabels = new Map<number, HTMLDivElement>();
   npcLabels: Array<{npc:NpcDefinition;element:HTMLDivElement;nameElement:HTMLDivElement}> = [];
   playerStatusLabel: HTMLDivElement | null = null;
+  playerSpeechLabel: HTMLDivElement | null = null;
+  playerSpeechUntil = 0;
   playerBarValues = { hp: -1, mana: -1, stamina: -1 };
   invincible = 0;
   rmbHeld = false;
@@ -615,8 +618,8 @@ export class Game {
   }
   wasRecentlyParried(windowMs:number) { return this.defenseEvents.recent('parried',windowMs,this.combatTime*1000); }
   consumeRecentDefenseEvent(result:DefenseResult,windowMs:number) { return this.defenseEvents.consume(result,windowMs,this.combatTime*1000); }
+  readonly uiInputBlockers = new UIInputBlockers();
   hotbarInteracting = false;
-  hotbarEditMode = false;
   lastHotbarSlot = -1;
   hotbarUseSequence = 0;
   blocking = false;
@@ -773,6 +776,52 @@ export class Game {
 
     this.labelHost.appendChild(label);
     this.playerStatusLabel = label;
+  }
+
+  /** Local presentation only: no network delivery or character-save mutation. */
+  showPlayerChat(text: string) {
+    const content = text.trim().slice(0, CHAT_MESSAGE_LIMIT);
+    if (!content || this.disposed || !this.started || this.dead || this.transitioning)
+      return false;
+    if (!this.playerSpeechLabel) {
+      this.playerSpeechLabel = document.createElement('div');
+      this.playerSpeechLabel.className = 'player-speech-bubble';
+      this.playerSpeechLabel.setAttribute('aria-label', `Pesan ${this.hero.characterName}`);
+      this.labelHost.appendChild(this.playerSpeechLabel);
+    }
+    this.playerSpeechLabel.textContent = content;
+    this.playerSpeechUntil = performance.now() + 6000;
+    this.updatePlayerSpeech();
+    return true;
+  }
+
+  private clearPlayerSpeech() {
+    this.playerSpeechLabel?.remove();
+    this.playerSpeechLabel = null;
+    this.playerSpeechUntil = 0;
+  }
+
+  private updatePlayerSpeech() {
+    const label = this.playerSpeechLabel;
+    if (!label) return;
+    if (
+      performance.now() >= this.playerSpeechUntil ||
+      !this.started || this.dead || this.transitioning
+    ) {
+      this.clearPlayerSpeech();
+      return;
+    }
+    const height = Number(this.actor.userData.heightMeters) || 2.4;
+    const point = this.actor.position.clone()
+      .add(new T.Vector3(0, height + 0.3, 0))
+      .project(this.camera);
+    const visible = Number.isFinite(point.x) && Number.isFinite(point.y) &&
+      point.z >= -1 && point.z <= 1 && Math.abs(point.x) <= 1 && Math.abs(point.y) <= 1;
+    label.hidden = !visible;
+    if (visible) {
+      label.style.left = `${(point.x * 0.5 + 0.5) * 100}%`;
+      label.style.top = `${(-point.y * 0.5 + 0.5) * 100}%`;
+    }
   }
 
   rand() {
@@ -1428,7 +1477,6 @@ export class Game {
       forgeNpcId: this.forgeNpcId && !forgeAccessReason(this.hero, this.forgeNpcId) ? this.forgeNpcId : null,
       audioSettings: { ...this.bgm.settings },
       bgmStatus: this.bgm.status,
-      hotbarEditMode: this.hotbarEditMode,
       hotbarRuntime: {
         attackRemaining: this.attackTimer,
         itemCooldowns: Object.fromEntries(Object.entries(this.hero.itemCooldowns).map(([id,until])=>[id,Math.max(0,(until-Date.now())/1000)])),
@@ -1802,7 +1850,7 @@ export class Game {
     if(requiredService&&(!this.activeNpcMenu||!services.includes(requiredService))){this.message('Klik NPC dengan layanan yang sesuai terlebih dahulu.');return false;}
     let result={ok:false,reason:'Layanan tidak tersedia.'};
     if(action==='heal'){healAtCity(this.hero);if(isResourceEnabled(this.hero, 'stamina'))this.stamina=derivedStats(this.hero).staminaMax;result={ok:true,reason:isResourceEnabled(this.hero, 'stamina')?'HP, Mana, stamina, dan status dipulihkan.':'HP, Mana, dan status dipulihkan.'};}
-    if(action==='tutorial'){this.hero.activeBuffs.damageReduction=300;result={ok:true,reason:'Berkah Pijar aktif selama 5 menit. WASD bergerak dengan lari otomatis berkecepatan sedang, klik kiri menyerang, klik kanan-drag kamera, F guard, 1–0 PrimaryHotbar (awal: skill di 1–4). C Character Overview, J Jurnal Misi, K Job Skill. Klik tombol Edit Mode di hotbar untuk mengatur shortcut.'};}
+    if(action==='tutorial'){this.hero.activeBuffs.damageReduction=300;result={ok:true,reason:'Berkah Pijar aktif selama 5 menit. WASD bergerak dengan lari otomatis berkecepatan sedang, klik kiri menyerang, klik kanan-drag kamera, F guard, 1–0 PrimaryHotbar (awal: skill di 1–4). C Character Overview, J Jurnal Misi, K Job Skill. Klik + atau drag skill/item ke hotbar untuk mengatur shortcut.'};}
     if(action==='deposit'||action==='withdraw')result=transferStorage(this.hero,id,action==='withdraw',quantity);
     if(action.startsWith('buy-'))result=buyShopItem(this.hero,id,action.slice(4));
     if(action==='accept'){
@@ -2006,6 +2054,7 @@ export class Game {
     setManualGuard(this.hero,false);
   }
   setMove(key: string, active: boolean) {
+    if (active && this.hotbarInteracting) return;
     if (active) this.keys.add(key);
     else this.keys.delete(key);
   }
@@ -2192,7 +2241,7 @@ export class Game {
   }
   commitUIDrop(source: DragSource, target: DropTarget) {
     if (!this.started || this.dead) return false;
-    const result = commitDrop(this.hero, source, target, this.hotbarEditMode);
+    const result = commitDrop(this.hero, source, target);
     if (result.ok) {
       this.hero = result.hero;
       if (target.type === 'equipment') this.rebuildHeroAppearance();
@@ -2209,56 +2258,59 @@ export class Game {
     this.save();this.emit();
   }
   assignPrimaryHotbarSlot(slotIndex:number,entryId:string) {
-    if(!this.hotbarEditMode)return false;
+    if(!this.started||this.dead)return false;
     const result=assignHotbarSlot(this.hero,slotIndex,entryId);
     if(result.ok){this.hero=result.hero;this.savePrimaryHotbar();}
     if(!result.ok)this.message(result.reason);return result.ok;
   }
   swapPrimaryHotbarSlots(source:number,target:number) {
-    if(!this.hotbarEditMode)return;
+    if(!this.started||this.dead)return;
     this.hero=swapHotbarSlots(this.hero,source,target);this.savePrimaryHotbar();
   }
   removePrimaryHotbarSlot(index:number) {
-    if(!this.hotbarEditMode)return;
+    if(!this.started||this.dead)return;
     this.hero=removeHotbarSlot(this.hero,index);this.savePrimaryHotbar();
   }
   savePrimaryHotbarLayout(layout:HotbarLayout) {
-    if(!this.hotbarEditMode)return;
+    if(!this.started||this.dead)return;
     if(layout&&(!Number.isFinite(layout.x)||!Number.isFinite(layout.y)))return;
     this.hero={...this.hero,primaryHotbarLayout:layout?{x:Math.max(0,layout.x),y:Math.max(0,layout.y)}:null};
     this.savePrimaryHotbar();
   }
-  setHotbarEditMode(active:boolean) {
-    if(!this.started||this.dead)return;
-    this.hotbarEditMode=active;
-    this.clearInput();this.emit();
-  }
   assignQuickHotbarSlot(id:QuickHotbarId,entryId:string) {
-    if(!this.hotbarEditMode)return false;
+    if(!this.started||this.dead)return false;
     const result=assignQuickSlot(this.hero,id,entryId);
     if(result.ok){this.hero=result.hero;this.savePrimaryHotbar();}
     if(!result.ok)this.message(result.reason);return result.ok;
   }
   removeQuickHotbarSlot(id:QuickHotbarId) {
-    if(!this.hotbarEditMode)return;
+    if(!this.started||this.dead)return;
     this.hero=removeQuickSlot(this.hero,id);this.savePrimaryHotbar();
   }
   moveQuickHotbarEntry(source:QuickHotbarId,target:QuickHotbarId) {
-    if(!this.hotbarEditMode)return;
+    if(!this.started||this.dead)return;
     this.hero=moveQuickEntry(this.hero,source,target);this.savePrimaryHotbar();
   }
   saveQuickHotbarLayout(id:QuickHotbarId,position:HotbarLayout) {
-    if(!this.hotbarEditMode || (position && (!Number.isFinite(position.x)||!Number.isFinite(position.y))))return;
+    if(!this.started || this.dead || (position && (!Number.isFinite(position.x)||!Number.isFinite(position.y))))return;
     this.hero={...this.hero,quickHotbars:{...this.hero.quickHotbars,[id]:{...this.hero.quickHotbars[id],position}}};
     this.savePrimaryHotbar();
   }
   resetHotbarLayouts() {
-    if(!this.hotbarEditMode)return;
+    if(!this.started||this.dead)return;
     this.hero=resetLayouts(this.hero);this.save();this.emit();
   }
-  setHotbarInteraction(active:boolean) {
-    this.hotbarInteracting=active;
-    this.clearInput();
+  setUIInputBlocked(owner: string, active: boolean) {
+    this.uiInputBlockers.set(owner, active);
+    this.hotbarInteracting = this.uiInputBlockers.blocked;
+    if (active) {
+      this.clearInput();
+      this.rmbHeld = false;
+      this.cameraZoom.rmbFramingActive = false;
+    }
+  }
+  setHotbarInteraction(active:boolean, owner = 'legacy-hotbar') {
+    this.setUIInputBlocked(owner, active);
   }
   usePrimaryHotbarSlot(index:number) {
     return this.useHotbarSlot(index);
@@ -2266,9 +2318,9 @@ export class Game {
   useQuickHotbarSlot(id:QuickHotbarId) { return this.useHotbarSlot(id); }
   activateQuickHotbarSlot(id:QuickHotbarId) { return this.useQuickHotbarSlot(id); }
   useHotbarSlot(slot:HotbarSlot) {
-    if(!isHotbarSlot(slot)||!this.started||this.paused||this.dead||this.hotbarEditMode||this.hotbarInteracting||document.querySelector('[role="dialog"],[role="alertdialog"]'))return false;
+    if(!isHotbarSlot(slot)||!this.started||this.paused||this.dead||this.hotbarInteracting||document.querySelector('[role="dialog"],[role="alertdialog"]'))return false;
     const id=hotbarAssignment(this.hero,slot);
-    if(!id){this.message('Slot hotbar kosong. Klik tombol Edit Mode di hotbar untuk mengisinya.');return false;}
+    if(!id){this.message('Slot hotbar kosong. Klik + atau drag skill/item ke slot untuk mengisinya.');return false;}
     const entry=resolvePrimaryHotbarEntry(this.hero,id);
     const reason=primaryHotbarAssignmentReason(this.hero,entry);
     if(reason||!entry){this.message(reason??'Assignment tidak tersedia.');return false;}
@@ -3710,6 +3762,7 @@ export class Game {
     });
   }
   updateFloating(dt: number) {
+    this.updatePlayerSpeech();
     const playerLabel = this.playerStatusLabel;
     // Keep the character resource bars attached to the player in every region,
     // including cities. They are UI-only and do not depend on monster combat.
@@ -3972,12 +4025,8 @@ export class Game {
   keydown = (e: KeyboardEvent) => {
     if(this.transitioning||this.regionLoadError)return;
     if (!this.started || e.defaultPrevented || this.hotbarInteracting) return;
-    if (
-      (e.target as HTMLElement)?.closest(
-        'input,textarea,select,[contenteditable="true"],[role="dialog"],[role="alertdialog"]',
-      )
-    )
-      return;
+    if (isEditableTarget(e.target) ||
+        (e.target instanceof Element && e.target.closest('[role="dialog"],[role="alertdialog"]'))) return;
     const k = e.key.toLowerCase();
     if(e.ctrlKey||e.metaKey||e.altKey)return;
     if(document.querySelector('[role="dialog"],[role="alertdialog"]'))return;
@@ -3993,6 +4042,8 @@ export class Game {
       this.pickupGroundLoot();
       return;
     }
+    // A key held before a UI focus change must be pressed again after release.
+    if (e.repeat && !this.keys.has(k)) return;
     this.keys.add(k);
     if (k === 'f') {this.blocking = true;setManualGuard(this.hero,true);}
     if (e.repeat) return;
@@ -4077,6 +4128,7 @@ export class Game {
     this.dragging = false;
   };
   pointermove = (e: PointerEvent) => {
+    if (this.hotbarInteracting) return;
     const r = this.renderer.domElement.getBoundingClientRect();
     this.pointer.set(
       ((e.clientX - r.left) / r.width) * 2 - 1,
@@ -4084,6 +4136,7 @@ export class Game {
     );
     this.pointerActive = true;
     if (e.buttons & 2) {
+      if (!this.rmbHeld) return;
       const deltaX = e.clientX - this.pointerStart;
       const deltaY = e.clientY - this.pointerStartY;
       if (!this.dragging && Math.hypot(deltaX, deltaY) < 4) return;
@@ -4157,6 +4210,7 @@ export class Game {
   };
   dispose() {
     if (this.disposed) return;
+    this.clearPlayerSpeech();
     this.clearSkillRuntime();
     this.clearGroundLoot();
     this.targetPresentation?.dispose();this.targetPresentation=undefined;this.targetEntities?.clear();

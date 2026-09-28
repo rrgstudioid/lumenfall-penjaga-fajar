@@ -175,7 +175,7 @@ function Harness() {
   }, [host, panel]);
   const hero = host.hero;
   const state: Snapshot = {
-    cameraMode: 'follow', hotbarEditMode: host.hotbarEditMode,
+    cameraMode: 'follow',
     hero,
     started: true,
     paused: !!panel,

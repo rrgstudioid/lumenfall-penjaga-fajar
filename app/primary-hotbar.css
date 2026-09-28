@@ -51,10 +51,6 @@
     0 14px 45px #0009,
     0 0 0 2px #ecc48070;
 }
-.primary-hotbar-panel.is-editing {
-  outline: 1px dashed #e8bd6499;
-  outline-offset: 3px;
-}
 .primary-hotbar-resize-handle {
   position: absolute;
   z-index: 4;
@@ -72,7 +68,6 @@
   cursor: default;
   touch-action: none;
 }
-.primary-hotbar-panel.is-editing .primary-hotbar-resize-handle,
 .primary-hotbar-panel:hover .primary-hotbar-resize-handle,
 .primary-hotbar-panel.is-resizing .primary-hotbar-resize-handle {
   opacity: 0.9;
@@ -127,20 +122,6 @@
   background: #dec59b0b;
   border: 1px solid #b6a18535;
   border-radius: 6px;
-}
-.primary-edit-toggle {
-  border: 1px solid #ad8c4d70;
-  border-radius: 6px;
-  color: #ddc9a5;
-  background: #dec59b0b;
-  font-size: 12px;
-  white-space: nowrap;
-  padding: 5px 7px;
-}
-.primary-edit-toggle[aria-pressed='true'] {
-  background: #b391354a;
-  border-color: #e8bd64;
-  color: #ffe0a0;
 }
 .primary-hotbar-scroll {
   overflow-x: auto;
@@ -315,6 +296,36 @@
   gap: 16px;
   font-size: 14px;
   color: #d7c7b2;
+}
+.game-dialog:has(.primary-editor) {
+  width: min(580px, calc(100vw - 32px));
+  background: linear-gradient(135deg, #102b22f7, #0b1d17fa);
+  border: 1px solid #b79b5b;
+  box-shadow:
+    0 12px 48px #0007,
+    inset 0 0 0 4px #d2b56d0a;
+}
+.game-dialog:has(.primary-editor) > .eyebrow,
+.game-dialog:has(.primary-editor) > .dialog-subtitle {
+  display: none;
+}
+.primary-editor-heading .secondary-button {
+  width: auto;
+  min-height: 32px;
+  padding: 6px 9px;
+  font-size: 12px;
+}
+.primary-editor .primary-entry-list {
+  max-height: 280px;
+}
+.primary-editor .primary-entry-list > button {
+  padding: 9px;
+  border-radius: 4px;
+  min-height: 62px;
+}
+.primary-entry-list > button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 .primary-editor p {
   margin: 0;

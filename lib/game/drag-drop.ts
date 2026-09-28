@@ -87,14 +87,14 @@ export function canDrop(
   hero: Hero,
   source: DragSource,
   target: DropTarget,
-  hotbarEditMode = true,
+  bindingAllowed = true,
 ): DropValidation {
   const invalid = (reason: string): DropValidation => ({ ok: false, reason });
   if (
-    !hotbarEditMode &&
+    !bindingAllowed &&
     (target.type === 'hotbar' || source.dragType === 'hotbar-binding')
   )
-    return invalid('Klik tombol Edit Mode di hotbar untuk mengubah isinya.');
+    return invalid('Hotbar belum dapat diubah saat ini.');
   const stale = dragSourceReason(hero, source);
   if (stale) return invalid(stale);
   if (target.type === 'equipment') {
@@ -183,9 +183,9 @@ export function commitDrop(
   hero: Hero,
   source: DragSource,
   target: DropTarget,
-  hotbarEditMode = true,
+  bindingAllowed = true,
 ): DropValidation & { hero: Hero } {
-  const validation = canDrop(hero, source, target, hotbarEditMode);
+  const validation = canDrop(hero, source, target, bindingAllowed);
   if (!validation.ok) return { ...validation, hero };
   if (target.type === 'equipment' && source.dragType === 'item') {
     const next = { ...hero, inventory: [...hero.inventory], equipment: { ...hero.equipment }, petRecords: { ...hero.petRecords } };

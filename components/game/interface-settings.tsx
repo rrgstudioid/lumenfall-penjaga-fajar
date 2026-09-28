@@ -34,20 +34,8 @@ export function InterfaceSettingsRuntime() {
       }
     };
     window.addEventListener('storage', storage);
-    const player = document.querySelector('.player-card');
-    const placeTracker = () => {
-      if (player) document.documentElement.style.setProperty('--ui-player-bottom', `${player.getBoundingClientRect().bottom}px`);
-    };
-    const observer = new ResizeObserver(placeTracker);
-    if (player) observer.observe(player);
-    placeTracker();
-    window.addEventListener(INTERFACE_SCALE_EVENT, placeTracker);
-    window.addEventListener('resize', placeTracker);
     return () => {
       window.removeEventListener('storage', storage);
-      window.removeEventListener(INTERFACE_SCALE_EVENT, placeTracker);
-      window.removeEventListener('resize', placeTracker);
-      observer.disconnect();
     };
   }, []);
   return null;

@@ -71,7 +71,7 @@ await test('invalid quick entries, passive, locked skills and incompatible displ
   assert.equal(result.ok, false);
   assert.equal(result.hero, bound);
 });
-await test('Edit Mode gates both primary and quick mutations, not normal inventory rearrangement', () => {
+await test('an explicit unavailable binding boundary rejects hotbar mutations without affecting inventory rearrangement', () => {
   const hero = freshHero();
   for (const slot of [0, 'q', 'e'] as const) {
     assert.equal(
