@@ -81,7 +81,7 @@ export function composeWeaponModeHits(action: ResolvedSkillAction, context: Weap
   const totalCoefficient = action.hitSequence.reduce((sum, hit) => sum + hit.physicalCoefficient, 0);
   const weightSum = action.hitSequence.reduce((sum, hit) => sum + (hit.sharedContributionWeight ?? 0), 0);
   if (sequence && (Math.abs(weightSum - 1) > 1e-6 || action.hitSequence.some(hit =>
-    !['MAIN', 'OFF'].includes(hit.weaponHand ?? '') || !Number.isFinite(hit.sharedContributionWeight) || hit.sharedContributionWeight! < 0))) {
+      !(context.mode === 'DUAL_SEQUENCE' ? ['MAIN', 'OFF', 'BOTH'] : ['MAIN', 'OFF']).includes(hit.weaponHand ?? '') || !Number.isFinite(hit.sharedContributionWeight) || hit.sharedContributionWeight! < 0))) {
     action.weaponAllowed = false;
     return action;
   }

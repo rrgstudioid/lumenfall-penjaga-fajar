@@ -15,7 +15,7 @@ export const isDaggerItem = (item: DaggerIdentity | null | undefined) => Boolean
   item.equipmentType === 'dagger' || item.equipmentType === 'off_hand_dagger' ||
   ['dagger', 'dualDagger', 'offHandDagger'].includes(item.itemType)
 ));
-export const isOneHandDagger = (item: ItemData | null | undefined): item is ItemData => Boolean(
+export const isOneHandDagger = (item: ItemData | null | undefined): item is ItemData & { equipmentType: 'dagger'; handedness: 'one_hand' } => Boolean(
   item && item.id && item.category === 'weapon' && item.equipmentType === 'dagger' &&
   item.handedness === 'one_hand' && !item.twoHanded && !item.stackable && item.quantity === 1,
 );

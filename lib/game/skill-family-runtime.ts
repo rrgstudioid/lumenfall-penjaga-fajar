@@ -3,6 +3,8 @@ import { WARRIOR_V3_SKILL_MAP } from './warrior-v3.ts';
 import { BERSERKER_V3_SKILL_MAP } from './berserker-v3.ts';
 import { BLADE_MASTER_V3_SKILL_MAP } from './blade-master-v3.ts';
 import { THIEF_V3_SKILL_MAP } from './thief-v3.ts';
+import { ROGUE_V3_SKILL_MAP } from './rogue-v3.ts';
+import { ASSASIN_V3_SKILL_MAP } from './assasin-v3.ts';
 import { familyBinding, familyCooldownRemaining, isActiveFamilyMember, isFamilyBinding, reconcileSkillFamilies, resolveFamilyCooldownKey, resolveFamilySkillReference } from './skill-family.ts';
 import { getSkillFamilyNodeState, type SkillDefinitionV3, type SkillProgressionContextV3 } from './skill-progression-v3.ts';
 import type { Hero } from './rules.ts';
@@ -13,6 +15,8 @@ export const skillFamilyDefinitions: Record<string, SkillDefinitionV3> = {
   ...ADVENTURER_V3_SKILL_MAP, ...WARRIOR_V3_SKILL_MAP,
   ...BERSERKER_V3_SKILL_MAP, ...BLADE_MASTER_V3_SKILL_MAP,
   ...THIEF_V3_SKILL_MAP,
+  ...ROGUE_V3_SKILL_MAP,
+  ...ASSASIN_V3_SKILL_MAP,
 };
 
 export function heroFamilyContext(hero: Hero): SkillProgressionContextV3 | null {

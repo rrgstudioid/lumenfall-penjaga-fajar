@@ -1,22 +1,27 @@
 import type { Hero } from './rules.ts';
 import { JOB_V2_REGISTRY } from './job-registry-v2.ts';
 import { CORE_JOBS, SPECIALIZATIONS, legacyCoreJob } from './skills.ts';
+import { THIEF_JOB_IDENTITY, thiefJobCapabilities } from './thief-job-capabilities.ts';
 
-type PresentationHero = Pick<Hero, 'coreJob' | 'specialization'> & Partial<Pick<Hero, 'progressionArchitecture' | 'level' | 'skillArchitectureVersion'>>;
+type PresentationHero = Pick<Hero, 'coreJob' | 'specialization'> & Partial<Pick<Hero, 'progressionArchitecture' | 'level' | 'skillArchitectureVersion' | 'skillProgressionV3'>>;
 const isV2Presentation = (hero: PresentationHero) => hero.progressionArchitecture === 'v2_test';
 export const V3_SPECIALIZATION_PRESENTATION = [
   {
     id: 'berserker' as const,
+    coreJob: 'warrior' as const,
     name: 'Berserker',
     role: 'Two-Hand Sword / AoE / Mobbing',
     description: 'Heavy Two-Hand Sword specialist for controlling enemy packs.',
   },
   {
     id: 'blade_master' as const,
+    coreJob: 'warrior' as const,
     name: 'Blade Master',
     role: 'Dual Wield / Single Target / Precision',
     description: 'Precise dual-sword specialist focused on mobility and single targets.',
   },
+  { id: 'rogue' as const, coreJob: 'thief' as const, ...THIEF_JOB_IDENTITY.rogue },
+  { id: 'assasin' as const, coreJob: 'thief' as const, ...THIEF_JOB_IDENTITY.assasin },
 ] as const;
 export type V3SpecializationId = (typeof V3_SPECIALIZATION_PRESENTATION)[number]['id'];
 export const v3SpecializationName = (id: string | null | undefined) =>
@@ -34,12 +39,11 @@ export function getVisibleJobArchitecture(hero: PresentationHero) {
   const v2 = isV2Presentation(hero);
   const v3 = hero.skillArchitectureVersion === 3;
   const core = v2 ? branches.find(j => j.id === hero.coreJob) : undefined;
-  const v3SpecializationChoices = hero.skillArchitectureVersion === 3 && hero.coreJob === 'warrior'
-    ? V3_SPECIALIZATION_PRESENTATION.map((choice) => ({
+  const v3SpecializationChoices = hero.skillArchitectureVersion === 3 && (hero.coreJob === 'warrior' || hero.coreJob === 'thief')
+    ? V3_SPECIALIZATION_PRESENTATION.filter(choice => choice.coreJob === hero.coreJob).map((choice) => ({
         ...choice,
-        coreJob: 'warrior' as const,
         selected: hero.specialization === choice.id,
-        available: !hero.specialization && (hero.level ?? 1) >= 60,
+        available: !hero.specialization && (hero.level ?? 1) >= 60 && (hero.coreJob !== 'thief' || thiefJobCapabilities(hero).canUseCoreThiefSkills),
         status: hero.specialization === choice.id
           ? 'Selected · V3'
           : hero.specialization
@@ -54,7 +58,7 @@ export function getVisibleJobArchitecture(hero: PresentationHero) {
     v2,
     v3,
     legacyProgression: !v2 && !v3,
-    currentName: v3 && hero.coreJob === 'thief' ? 'Thief' : v2 ? core?.name ?? 'Adventurer' : v3 && currentV3Name ? currentV3Name : hero.specialization ? SPECIALIZATIONS[hero.specialization].name : hero.coreJob ? legacyCoreJob(hero.coreJob)?.name ?? 'Adventurer' : 'Adventurer',
+    currentName: v3 && currentV3Name ? currentV3Name : v3 && hero.coreJob === 'thief' ? 'Thief' : v2 ? core?.name ?? 'Adventurer' : hero.specialization ? SPECIALIZATIONS[hero.specialization].name : hero.coreJob ? legacyCoreJob(hero.coreJob)?.name ?? 'Adventurer' : 'Adventurer',
     coreChoices: v2 ? [] : Object.values(CORE_JOBS),
     v2CoreChoices: v2 && !hero.coreJob ? branches.map(job => ({
       ...job,
@@ -65,7 +69,7 @@ export function getVisibleJobArchitecture(hero: PresentationHero) {
     v3SpecializationChoices,
     futureSpecializations: core ? branches.find(j => j.id === core.id)!.children : [],
     branches,
-    hint: v3 ? (hero.coreJob === 'thief' ? 'Core Thief V3 · Skill Families · Specialization belum tersedia' : currentV3Name ? `${currentV3Name} V3 · Adventurer dan Warrior tetap tersedia` : hero.coreJob ? 'Warrior V3 · Berserker / Blade Master terbuka Lv. 60' : 'Adventurer V3 · Warrior / Thief terbuka Lv. 15') : v2 ? (core ? `${core.name} · development only · Specialization locked` : 'Adventurer · Job V2 development only') : null,
+    hint: v3 ? (hero.coreJob === 'thief' ? currentV3Name ? `${currentV3Name} V3 · Adventurer dan family Thief tetap tersedia` : 'Core Thief V3 · Rogue / Assasin terbuka Lv. 60' : currentV3Name ? `${currentV3Name} V3 · Adventurer dan Warrior tetap tersedia` : hero.coreJob ? 'Warrior V3 · Berserker / Blade Master terbuka Lv. 60' : 'Adventurer V3 · Warrior / Thief terbuka Lv. 15') : v2 ? (core ? `${core.name} · development only · Specialization locked` : 'Adventurer · Job V2 development only') : null,
   };
 }
 export const showJobQuest = (hero: PresentationHero, quest: { category: string }) =>

@@ -112,7 +112,7 @@ export function getJobProgression(hero: Hero) {
   if (architecture.v3) return [
     { id: 'adventurer' as JobStageId, name: 'Adventurer', level: 1, done: true },
     { id: 'core' as JobStageId, name: hero.coreJob === 'thief' ? 'Thief' : 'Warrior', level: 15, done: !!hero.coreJob },
-    { id: 'specialization' as JobStageId, name: hero.coreJob === 'thief' ? 'Future · belum tersedia' : v3SpecializationName(hero.specialization) ?? 'Berserker / Blade Master', level: 60, done: !!hero.specialization },
+    { id: 'specialization' as JobStageId, name: v3SpecializationName(hero.specialization) ?? (hero.coreJob === 'thief' ? 'Rogue / Assasin' : 'Berserker / Blade Master'), level: 60, done: !!hero.specialization },
   ].map((entry, index) => ({ ...entry,
     status: entry.done ? (index === (hero.specialization ? 2 : hero.coreJob ? 1 : 0) ? 'Current' : 'Completed') : 'Locked',
     requirements: entry.done ? [] : [`Level ${entry.level}`, 'Pilih job melalui trainer'],

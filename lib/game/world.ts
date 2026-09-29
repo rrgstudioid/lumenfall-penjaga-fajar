@@ -5,6 +5,10 @@ import { UIInputBlockers, isEditableTarget } from './ui-input';
 import { CHAT_MESSAGE_LIMIT } from './chat';
 import * as T from 'three';
 import type { RogueAmbushState } from './rogue-ambush.ts';
+import { AssasinPoisonState } from './assasin-poison.ts';
+import { AssasinCombatState } from './assasin-combat.ts';
+import { venomMasteryRank, VENOM_PROFILES } from './assasin-v3.ts';
+import { thiefJobCapabilities, thiefSkillJobAllowed } from './thief-job-capabilities.ts';
 import { chooseV3Thief, skillWeaponAllowed } from './rules.ts';
 import { applyThiefWeakpoint, ownWeakpointCrit, reconcileThiefBuffs } from './thief-runtime.ts';
 import { resolveThiefCanonicalRank, THIEF_V3_SKILL_MAP } from './thief-v3.ts';
@@ -47,6 +51,8 @@ import {
   deleteCharacter,
   discardItem as discardInventoryItem,
   derivedStats,
+  calculateBaseStats,
+  calculateEquipmentStats,
   combatModifiersFor,combatSupportFor,modifierContextFor,
   enhancementPreview,
   enhanceItem,
@@ -381,6 +387,21 @@ export class Game {
   arm = new T.Group();
   aura = new T.Group();
   enemies: Enemy[] = [];
+  // Separate target-owned clock/store: caster death and job change do not cleanse
+  // toxins already applied. No Hero/save field and no legacy poison timer reuse.
+  private poisonTime = 0;
+  readonly assasinPoison = new AssasinPoisonState<Enemy>((target, tick) => {
+    if (tick.rawDamage <= 0 || !this.enemies.includes(target) || target.hp <= 0) return;
+    this.hurtEnemy(target, tick.rawDamage, 0, 'physical', { ...tick.snapshot, magicPenetration: 0 }, tick.snapshot.level, 'poison_dot');
+  }, () => this.rand());
+  private poisonExecutions = new WeakMap<ResolvedSkillAction, NonNullable<ReturnType<AssasinPoisonState<Enemy>['beginExecution']>>>();
+  readonly assasinCombat = new AssasinCombatState<Enemy>(this.assasinPoison, (target,tick) => {
+    if (tick.rawDamage>0 && this.enemies.includes(target) && target.hp>0)
+      this.hurtEnemy(target,tick.rawDamage,0,'physical',{...tick.snapshot,magicPenetration:0},tick.snapshot.level,'poison_dot');
+  },()=>this.rand());
+  private assasinExecutions = new WeakMap<ResolvedSkillAction,ReturnType<AssasinCombatState<Enemy>['beginExecution']>>();
+  private assasinDaggers: Array<{ mesh:T.Mesh<T.OctahedronGeometry,T.MeshBasicMaterial>; origin:T.Vector3; target:TargetIdentity; age:number; delay:number; duration:number }> = [];
+  private specializationRuntimeIdentity?: string;
   groundLoot: GroundLoot[] = [];
   groundGold: GroundGold[] = [];
   particles: Particle[] = [];
@@ -526,6 +547,8 @@ export class Game {
     const e=this.getCurrentTarget();
     if(!e)return null;
     return {id:e.id,instanceId:e.group.uuid,name:e.definition?.name??'Lumut Liar',level:e.definition?.level,hp:e.hp,maxHP:e.max,
+      poison: this.assasinPoison.presentation(e, this.hero.characterId ?? this.hero.slotId, this.poisonTime) ?? undefined,
+      eclipse: this.assasinCombat.presentation(e, this.hero.characterId ?? this.hero.slotId, this.poisonTime) ?? undefined,
       armorBreakRemaining:Number(getStatus(e,'armor_break')??0),
       marked:!!personalMark(e,this.markSource())||hasStatus(e,'mark'),
       markRemaining:personalMark(e,this.markSource())?.remaining??(typeof getStatus(e,'mark')==='number'?Number(getStatus(e,'mark')):undefined)};
@@ -570,11 +593,40 @@ export class Game {
   transientCombat = new TransientCombatState();
   private ambushExecutions = new WeakMap<ResolvedSkillAction, ReturnType<RogueAmbushState['begin']>>();
   private rogueSmoke?: T.Mesh<T.SphereGeometry, T.MeshBasicMaterial>;
+  private vanishMaterials = new Map<T.Mesh, { original: T.Material | T.Material[]; faded: T.Material | T.Material[]; castShadow: boolean }>();
+  private clearVanishPresentation() {
+    for (const [mesh, state] of this.vanishMaterials) {
+      if (mesh.material === state.faded) mesh.material = state.original;
+      mesh.castShadow = state.castShadow;
+      for (const material of Array.isArray(state.faded) ? state.faded : [state.faded]) material.dispose();
+    }
+    this.vanishMaterials.clear();
+  }
+  private updateVanishPresentation(active: boolean) {
+    if (!active) { this.clearVanishPresentation(); return; }
+    // Private material copies: never change cached model/equipment materials.
+    // This is concealment presentation, not immunity or a global target-lock reset.
+    this.actor.traverse(object => {
+      if (!(object instanceof T.Mesh) || object === this.rogueSmoke || this.vanishMaterials.has(object)) return;
+      const original = object.material;
+      const fade = (material: T.Material) => {
+        const copy = material.clone();
+        copy.transparent = true; copy.opacity *= .16; copy.depthWrite = false;
+        return copy;
+      };
+      const faded = Array.isArray(original) ? original.map(fade) : fade(original);
+      this.vanishMaterials.set(object, { original, faded, castShadow: object.castShadow });
+      object.material = faded; object.castShadow = false;
+    });
+  }
   private clearRogueConcealmentPresentation() {
+    this.clearVanishPresentation();
     if (this.rogueSmoke) { this.rogueSmoke.removeFromParent(); this.rogueSmoke.geometry.dispose(); this.rogueSmoke.material.dispose(); this.rogueSmoke = undefined; }
   }
   private updateRogueConcealmentPresentation() {
-    const concealed = this.transientCombat.rogueAmbush.concealed(this.hero, this.combatTime);
+    const vanish = this.assasinCombat.concealed(this.hero, this.combatTime);
+    this.updateVanishPresentation(!!vanish);
+    const concealed = this.transientCombat.rogueAmbush.concealed(this.hero, this.combatTime) || vanish;
     if (!concealed) {
       this.clearRogueConcealmentPresentation();
       return;
@@ -599,6 +651,9 @@ export class Game {
   markSource() {return {sourceActorId:this.hero.characterId??this.hero.slotId,sourceGeneration:this.regionBuildToken};}
   syncCombatModifiers() {
     this.transientCombat??=new TransientCombatState();
+    const identity=JSON.stringify([this.hero.characterId ?? this.hero.slotId,this.hero.coreJob,this.hero.specialization,this.hero.skillProgressionV3?.chosenCoreJob,this.hero.skillProgressionV3?.chosenSpecialization]);
+    if (this.specializationRuntimeIdentity !== undefined && this.specializationRuntimeIdentity !== identity) this.clearSkillRuntime();
+    this.specializationRuntimeIdentity=identity;
     this.transientCombat.rogueAmbush.update(this.hero, this.combatTime);
     const support=combatSupportFor(this.hero),style=modifierContextFor(this.hero,derivedStats(this.hero)).weaponStyle;
     this.transientCombat.update(this.combatTime,style,support);
@@ -612,6 +667,8 @@ export class Game {
     if (ambush) indicators.push({ id: 'rogue-ambush', label: 'Ambush', remaining: ambush.remaining, tone: 'ready' });
     const smoke = this.transientCombat.rogueAmbush.concealed(this.hero, this.combatTime);
     if (smoke) indicators.push({ id: 'rogue-smoke-veil', label: 'Smoke Veil', remaining: smoke.expiresAt - this.combatTime, tone: 'defensive' });
+    const vanish=this.assasinCombat.concealed(this.hero,this.combatTime);
+    if (vanish) indicators.push({id:'assasin-vanish',label:'Vanish',remaining:vanish.remaining,tone:'defensive'});
     if(isStealthed(this.hero))indicators.push({id:'stealth',label:'STEALTH',remaining:Number(getStatus(this.hero,'stealth')),tone:'defensive'});
     const buffs: Array<[string,string,string,'defensive'|'offensive'|'ready']> = [
       ['v2-warrior-guard-stance','Guard Stance','v2-warrior-guard-stance','defensive'],
@@ -678,10 +735,15 @@ export class Game {
     this.syncCombatModifiers();
     this.hero.hp=Math.min(this.hero.hp,derivedStats(this.hero).maxHP);
     this.skillHits.update(dt);
+    this.updateAssasinProjectiles(dt);
     this.updateThiefMovement(dt);
     this.updateRogueConcealmentPresentation();
   }
   clearSkillRuntime() {
+    this.assasinCombat?.clearSelf();
+    this.assasinExecutions=new WeakMap();
+    this.clearAssasinProjectiles();
+    this.poisonExecutions = new WeakMap(); // Cancel casts, NOT already-applied target Poison.
     this.ambushExecutions = new WeakMap();
     this.transientCombat?.rogueAmbush.clear();
     this.updateRogueConcealmentPresentation();
@@ -1781,6 +1843,7 @@ export class Game {
     const destinationLabel = CITIES[id]?.displayName ?? FIELDS[id]?.displayName ?? 'Area baru';
     this.averionUseSpawn=id==='averion';
     this.clearSkillRuntime();
+    this.assasinPoison.clear(); this.assasinCombat.clear(); // Old target instances leave the loaded world.
     this.closeNpcMenu();
     this.transitioning=true;this.clearInput();
     this.onMapTransition?.({ id, loading: true, label: destinationLabel });
@@ -1945,6 +2008,7 @@ export class Game {
   selectCharacter(slotId: string, _job: JobId = 'adventurer', gender: 'male'|'female' = 'male') {
     if (this.started) return;
     this.clearSkillRuntime();
+    this.assasinPoison.clear(); this.assasinCombat.clear();
     this.closeNpcMenu();
     this.slotId = slotId;
     this.hero = loadCharacter(slotId);
@@ -2049,6 +2113,7 @@ export class Game {
   returnToMainMenu() {
     if (!this.started) return;
     this.clearSkillRuntime();
+    this.assasinPoison.clear(); this.assasinCombat.clear();
     this.save();
     this.closeNpcMenu();
     this.closeForge();
@@ -2146,6 +2211,7 @@ export class Game {
   chooseSpecialization(specialization: SpecializationId) {
     if (!this.atJobTrainer('special')) return false;
     if (chooseSpecialization(this.hero, specialization)) {
+      if (specialization === 'rogue' || specialization === 'assasin') this.clearSkillRuntime();
       this.skillCooldowns = retainFamilyCooldowns(this.skillCooldowns);
       this.rebuildHeroAppearance();
       this.save();
@@ -2500,7 +2566,33 @@ export class Game {
     this.actor.rotation.y=rotation;
     this.placeActor();
   }
-  canCastSkill(skillId:string) {return canCastSkillRules(this.hero,skillId,this.skillCooldowns,this.equippedWeaponType(),undefined,{ambush:this.transientCombat.rogueAmbush,now:this.combatTime});}
+  private assasinCastRequirement = (skill:SkillDefinition) => this.assasinCombat.requirement(this.hero,skill.assasin ?? {},this.getCurrentTarget() ?? undefined,this.poisonTime);
+  private queueAssasinProjectile(target:TargetIdentity,origin:T.Vector3,delay:number,duration:number,off:boolean) {
+    const mesh=new T.Mesh(new T.OctahedronGeometry(1,0),new T.MeshBasicMaterial({color:'#b1c791'}));
+    mesh.scale.set(.055,.32,.035);
+    const launch=origin.clone().add(new T.Vector3(off ? -.2 : .2,1.1,0));
+    mesh.position.copy(launch); mesh.visible=false; this.scene.add(mesh);
+    this.assasinDaggers.push({mesh,origin:launch,target,age:0,delay,duration});
+  }
+  private clearAssasinProjectiles() {
+    for (const p of this.assasinDaggers ?? []) { p.mesh.removeFromParent(); p.mesh.geometry.dispose(); p.mesh.material.dispose(); }
+    this.assasinDaggers=[];
+  }
+  private updateAssasinProjectiles(dt:number) {
+    this.assasinDaggers=this.assasinDaggers.filter(p=>{
+      p.age+=dt;
+      const target=this.getCastTarget(p.target);
+      if (!target || p.age>=p.delay+p.duration || !thiefJobCapabilities(this.hero).canUseAssasinSkills) {
+        p.mesh.removeFromParent(); p.mesh.geometry.dispose(); p.mesh.material.dispose(); return false;
+      }
+      if (p.age<p.delay) return true;
+      const destination=target.group.position.clone().add(new T.Vector3(0,1,0));
+      p.mesh.visible=true; p.mesh.position.lerpVectors(p.origin,destination,(p.age-p.delay)/p.duration);
+      p.mesh.quaternion.setFromUnitVectors(new T.Vector3(0,1,0),destination.sub(p.origin).normalize());
+      return true;
+    });
+  }
+  canCastSkill(skillId:string) {return canCastSkillRules(this.hero,skillId,this.skillCooldowns,this.equippedWeaponType(),undefined,{ambush:this.transientCombat.rogueAmbush,now:this.combatTime,assasinRequirement:this.assasinCastRequirement});}
   getSkillManaCost(skillId:string) {
     skillId = heroFamilySkillReference(this.hero, skillId) ?? '';
     const skill=activeSkills(this.hero).find(candidate=>candidate.id===skillId);
@@ -2544,7 +2636,7 @@ export class Game {
       });
     }
     // Structural validation first; mana is paid against the final contextual action below.
-    const validation=canCastSkillRules(this.hero,skill.id,this.skillCooldowns,this.equippedWeaponType(),0,{ambush:this.transientCombat.rogueAmbush,now:this.combatTime});
+    const validation=canCastSkillRules(this.hero,skill.id,this.skillCooldowns,this.equippedWeaponType(),0,{ambush:this.transientCombat.rogueAmbush,now:this.combatTime,assasinRequirement:this.assasinCastRequirement});
     if(!validation.ok){
       if(!validation.reason.includes('masih cooldown'))this.message(validation.reason);
       return false;
@@ -2552,7 +2644,7 @@ export class Game {
     this.syncCombatModifiers();
     if (skill.id === 'v3-blade-master-tempo-drive' && this.transientCombat.tempoCount(this.combatTime) === 0) return this.failTarget('TEMPO_REQUIRED');
     const tempoReduction=this.transientCombat.bladeTempoDrive?.manaReductionPercent ?? 0;
-    const stats=derivedStats(this.hero), preview=resolveHeroSkill(this.hero,skill,level,stats,undefined,[],undefined,tempoReduction, skill.tags?.includes('v3-thief') || skill.id === 'v3-berserker-earth-splitter' ? () => 0 : Math.random);
+    const stats=derivedStats(this.hero), preview=resolveHeroSkill(this.hero,skill,level,stats,undefined,[],undefined,tempoReduction, skill.assasin || skill.tags?.includes('v3-thief') || skill.tags?.includes('v3-rogue') || skill.id === 'v3-berserker-earth-splitter' ? () => 0 : Math.random);
     this.traceV3Damage(skill.id, 'skill_resolved', {
       weaponAllowed: preview.weaponAllowed,
       resolvedHitCount: preview.hitSequence.length,
@@ -2570,6 +2662,11 @@ export class Game {
     // frontal/area/self behavior and never auto-approach anything.
     const selection=requiresSelectedTarget?this.resolveCurrentTarget(Infinity):{};
     if(selection.reason)return this.failTarget(selection.reason);
+    if (skill.assasin && selection.target && this.groundDistance(this.actor.position,selection.target.group.position)>preview.range) return this.failTarget('TARGET_OUT_OF_RANGE');
+    const rogueInput = skill.rogueMovement === 'INPUT_REPOSITION' ? this.moveVector() : undefined;
+    if (rogueInput && rogueInput.lengthSq() < 1e-8) { this.message('Pilih arah gerak untuk Slipstep.'); return false; }
+    if (skill.tags?.includes('v3-rogue') && !skill.nonDamaging && selection.target && this.groundDistance(this.actor.position, selection.target.group.position) > preview.range)
+      return this.failTarget('TARGET_OUT_OF_RANGE');
     if (skill.tags?.includes('v3-thief') && selection.target && this.groundDistance(this.actor.position, selection.target.group.position) > preview.range)
       return this.failTarget('TARGET_OUT_OF_RANGE');
     if (isIronCharge) this.traceDevelopment('target_snapshot', {
@@ -2578,7 +2675,7 @@ export class Game {
       actorPosition: { x: this.actor.position.x, z: this.actor.position.z },
       targetPosition: selection.target ? { x: selection.target.group.position.x, z: selection.target.group.position.z } : null,
     });
-    if (requiresSelectedTarget && selection.target && preview.effect !== 'dash_damage') {
+    if (requiresSelectedTarget && selection.target && preview.effect !== 'dash_damage' && !skill.tags?.includes('v3-rogue') && !skill.assasin) {
       const reached = this.autoApproachTarget(selection.target, preview.range);
       if (!reached) return this.failTarget('TARGET_OUT_OF_RANGE');
     }
@@ -2597,11 +2694,12 @@ export class Game {
     }
     const support=combatSupportFor(this.hero);
     const windows=this.transientCombat.windowModifiers(preview,support,this.combatTime);
-    const action=resolveHeroSkill(this.hero,skill,level,stats,counter,windows,this.skillImpactContext(selection.target),tempoReduction, skill.tags?.includes('v3-thief') || skill.id === 'v3-berserker-earth-splitter' ? () => this.rand() : Math.random);
+    const action=resolveHeroSkill(this.hero,skill,level,stats,counter,windows,this.skillImpactContext(selection.target),tempoReduction, skill.assasin || skill.tags?.includes('v3-thief') || skill.tags?.includes('v3-rogue') || skill.id === 'v3-berserker-earth-splitter' ? () => this.rand() : Math.random);
     if (action.rogueAmbush?.generator?.source === 'SMOKE_VEIL' && (!action.nonDamaging || !(action.duration > 0) || !Number.isFinite(action.duration))) {
       this.message('Durasi concealment Smoke Veil belum dikonfigurasi.'); return false;
     }
     if(!this.consumeMana(action.manaCost)){this.message('Mana tidak cukup.');return false;}
+    if (!action.nonDamaging) this.assasinCombat.breakConcealment('attack');
     if (action.rogueAmbush) this.ambushExecutions.set(action, this.transientCombat.rogueAmbush.begin(this.hero, action, this.combatTime));
     this.lastActionFailure=null;
     if (!action.nonDamaging && action.hitSequence.some(hit => skillHitDamage(hit, stats) > 0)) this.transientCombat.rogueAmbush.breakConcealment('ATTACK');
@@ -2610,14 +2708,14 @@ export class Game {
     if(selection.target)action.targetIdentity=targetIdentity(selection.target,this.regionBuildToken);
     const movement=action.directionalMovement?directionalVector(action.directionalMovement.direction,this.direction,this.moveVector()):undefined;
     const facing=selection.target??(action.targetType==='frontal_arc'?this.getCurrentTarget():undefined);
-    if(facing)this.faceTarget(facing);
+    if(facing && skill.rogueMovement !== 'INPUT_REPOSITION' && !skill.assasin?.backward)this.faceTarget(facing);
     this.actionLock??=new ActionLock();this.actionLock.start(this.combatTime,action.actionLockDuration??0,action.movementAllowedDuringLock);
     if(counter.result!=='none')this.defenseEvents.consume(counter.result,skill.counterPolicy!.windowMs,this.combatTime*1000);
     const consumedWindows=this.transientCombat.commitWindows(action,support,this.combatTime);
     const mastery = this.hero.masteryChoices[skill.id];
     const cooldown = action.cooldown;
     this.skillCooldowns[heroSkillCooldownKey(this.hero, skill.id)] = cooldown;
-    this.applySkill(skill, level, mastery, action, stats,consumedWindows);
+    this.applySkill(skill, level, mastery, action, stats,consumedWindows,false,rogueInput);
     this.traceV3Damage(skill.id, 'cast_accepted', {
       targetId: selection.target?.id ?? null,
       manaAfter: this.hero.mana,
@@ -2640,13 +2738,78 @@ export class Game {
   equippedWeaponType() {
     return equippedWeaponType(this.hero);
   }
-  applySkill(definition: SkillDefinition, level: number, mastery?: MasteryChoice, action?: ResolvedSkillAction, stats=derivedStats(this.hero),consumedWindows:readonly string[]=[], movementComplete = false) {
+  applySkill(definition: SkillDefinition, level: number, mastery?: MasteryChoice, action?: ResolvedSkillAction, stats=derivedStats(this.hero),consumedWindows:readonly string[]=[], movementComplete = false, rogueInput?: T.Vector3) {
     const skill=action??resolveHeroSkill(this.hero,definition,level,stats);
+    if (this.hero.skillArchitectureVersion===3 && !thiefSkillJobAllowed(this.hero,definition.specialization ?? definition.job)) return;
+    const launchOrigin=this.actor.position.clone();
+    const castOwner=this.hero.characterId ?? this.hero.slotId;
+    let assasinExecution=this.assasinExecutions.get(skill);
+    if (skill.assasin && !assasinExecution) {
+      assasinExecution=this.assasinCombat.beginExecution(this.hero,skill.id,skill.assasin,level,()=>{
+        const currentStats=derivedStats(this.hero),base=calculateBaseStats(this.hero),gear=calculateEquipmentStats(this.hero);
+        return {profile:VENOM_PROFILES[venomMasteryRank(this.hero)-1],snapshot:{physicalAttack:currentStats.physicalAttack,effectiveDex:base.dex+(gear.dex ?? 0),
+          level:this.hero.level,physicalPenetration:currentStats.physicalPenetration,bossDamage:currentStats.bossDamage,eliteDamage:currentStats.eliteDamage}};
+      });
+      this.assasinExecutions.set(skill,assasinExecution);
+      if (skill.assasin.vanish) {
+        this.assasinCombat.conceal(this.hero,this.combatTime,skill.duration);
+        this.characterModel.animator.play('magic_cast',.3); return;
+      }
+      const target=this.getCastTarget(skill.targetIdentity);
+      if (skill.weaponMode?.startsWith('THROWN') && target && skill.targetIdentity) {
+        const travel=Math.max(.08,this.groundDistance(launchOrigin,target.group.position)/24);
+        for (const hit of skill.hitSequence) {
+          const delay=hit.delay;
+          hit.delay+=travel;
+          this.queueAssasinProjectile(skill.targetIdentity,launchOrigin,delay,travel,hit.weaponHand==='OFF');
+        }
+      }
+      if (skill.assasin.backward) {
+        const backwards=this.direction.clone().negate();
+        this.startThiefMovement(backwards,skill.movementDistance ?? 0,
+          ()=>!this.dead && !this.disposed && this.started && (this.hero.characterId ?? this.hero.slotId)===castOwner && thiefJobCapabilities(this.hero).canUseAssasinSkills,
+          ()=>{});
+      }
+    }
+    let poisonExecution = this.poisonExecutions.get(skill);
+    if (skill.assasinPoison && !poisonExecution) {
+      const session = this.assasinPoison.beginExecution(this.hero, skill.skillId, skill.assasinPoison, level, {
+        physicalAttack: stats.physicalAttack, effectiveDex: calculateBaseStats(this.hero).dex + (calculateEquipmentStats(this.hero).dex ?? 0),
+        level: this.hero.level, physicalPenetration: stats.physicalPenetration, bossDamage: stats.bossDamage, eliteDamage: stats.eliteDamage,
+      });
+      if (!session) return;
+      this.poisonExecutions.set(skill, session); poisonExecution = session;
+    }
     let ambushExecution = this.ambushExecutions.get(skill);
     if (skill.rogueAmbush && !ambushExecution) {
       if (!this.transientCombat.rogueAmbush.requirement(this.hero, skill, this.combatTime).ok) return;
       ambushExecution = this.transientCombat.rogueAmbush.begin(this.hero, skill, this.combatTime);
       this.ambushExecutions.set(skill, ambushExecution);
+    }
+    const rogue = skill.tags.includes('v3-rogue');
+    if (rogue && skill.rogueMovement && !movementComplete) {
+      const target = this.getCastTarget(skill.targetIdentity);
+      if (!target) return;
+      const start = { x: this.actor.position.x, z: this.actor.position.z };
+      const actorId = this.hero.characterId, region = this.regionBuildToken;
+      const reposition = skill.rogueMovement === 'INPUT_REPOSITION';
+      const direction = reposition ? rogueInput : target.group.position.clone().sub(this.actor.position).setY(0).normalize();
+      if (!direction || direction.lengthSq() < 1e-8) return;
+      const distance = reposition ? skill.movementDistance ?? 0 : Math.min(skill.movementDistance ?? 5, Math.max(0, this.groundDistance(this.actor.position, target.group.position) - 1.2));
+      this.startThiefMovement(direction, distance,
+        () => this.started && !this.dead && !this.disposed && this.hero.characterId === actorId && region === this.regionBuildToken &&
+          thiefJobCapabilities(this.hero).canUseRogueSkills && this.getCastTarget(skill.targetIdentity) === target && skillWeaponAllowed(this.hero, definition),
+        () => {
+          if (reposition) { this.completeRogueReposition(skill, start); this.emit(); }
+          else { this.actionLock.start(this.combatTime, skill.actionLockDuration ?? .3, false); this.applySkill(definition, level, mastery, skill, stats, consumedWindows, true); }
+        });
+      return;
+    }
+    if (rogue && skill.nonDamaging) {
+      // Smoke Veil uses only the actor-owned concealment primitive, never saved activeBuffs.
+      this.characterModel.animator.play('magic_cast', .3);
+      this.message(`${skill.name} digunakan.`);
+      return;
     }
     const thief = resolveThiefCanonicalRank(skill.skillId, level);
     if (thief?.mechanics.movement?.approach && !movementComplete) {
@@ -2692,7 +2855,7 @@ export class Game {
     if(skill.progressionMode==='rank_values'&&skill.targetType==='self')for(const status of skill.statuses)applyStatus(this.hero,status.id,status.duration);
     const cast = ['heal', 'buff', 'barrier', 'parry', 'elemental', 'chain', 'illusion'].includes(skill.effect) || ['holy', 'nova', 'meteor', 'thunder', 'barrier'].includes(skill.visualEffect) || ['wizard', 'acolyte'].includes(skill.job);
     const ranged = ['bow', 'bow_trap'].includes(this.equippedWeaponType());
-    this.characterModel.animator.play(skill.effect === 'dash_damage' ? 'dash' : cast ? 'magic_cast' : ranged ? 'ranged_attack' : 'basic_attack', Math.max(.35, Math.min(.8, skill.castingTime || .5)));
+    this.characterModel.animator.play(skill.weaponMode?.startsWith('THROWN') ? 'ranged_attack' : skill.effect === 'dash_damage' ? 'dash' : cast ? 'magic_cast' : ranged ? 'ranged_attack' : 'basic_attack', Math.max(.35, Math.min(.8, skill.castingTime || .5)));
     const target = this.getCastTarget(skill.targetIdentity);
     let chargeTravelDistance = 0;
     let bladeRushPassDirection: T.Vector3 | undefined;
@@ -2839,8 +3002,10 @@ export class Game {
           targetAlive: enemy.hp > 0,
           targetStillRegistered: this.enemies.includes(enemy),
           targetIdentityValid: this.getCastTarget(castTargetIdentity) === enemy,
-          attackerCanAct: !thief || !isStunned(this.hero, this.combatTime),
-          impactRangeValid: thief ? this.hasClearDashImpact(enemy.group.position, thief.mechanics.movement?.approach ? 3.5 : skill.range) && skillWeaponAllowed(this.hero, definition) : !skill.dash || this.hasClearDashImpact(enemy.group.position, dashImpactRange),
+          attackerCanAct: !(thief || rogue || skill.assasin) || !isStunned(this.hero, this.combatTime),
+          lineageJobValid: !(thief || rogue || skill.assasin) || (this.hero.characterId ?? this.hero.slotId)===castOwner && thiefSkillJobAllowed(this.hero,definition.specialization ?? definition.job) && isSkillUnlocked(this.hero,definition),
+          impactRangeValid: skill.assasin ? this.groundDistance(launchOrigin,enemy.group.position)<=skill.range && skillWeaponAllowed(this.hero,definition) : rogue ? this.hasClearDashImpact(enemy.group.position, skill.rogueMovement === 'APPROACH' ? 3.5 : skill.range) && skillWeaponAllowed(this.hero, definition)
+            : thief ? this.hasClearDashImpact(enemy.group.position, thief.mechanics.movement?.approach ? 3.5 : skill.range) && skillWeaponAllowed(this.hero, definition) : !skill.dash || this.hasClearDashImpact(enemy.group.position, dashImpactRange),
         };
         const valid = Object.values(checks).every(Boolean);
         if (isIronCharge && !valid && !impactInvalidReported) {
@@ -2906,6 +3071,7 @@ export class Game {
         this.effect(enemy.group.position, cue, snapshotHit.delay >= 0.4 ? 18 : 10);
       }
       hit = ambushExecution?.resolveHit(hit,impactContext,this.hero,this.combatTime) ?? hit;
+      if (skill.assasin?.execution) hit={...hit,damageMultiplier:hit.damageMultiplier*this.assasinCombat.executionMultiplier(this.hero,enemy,this.poisonTime)};
       let amount = skillHitDamage(hit,stats);
       this.traceV3Damage(skill.skillId, 'damage_resolver', {
         targetId: enemy.id,
@@ -2955,6 +3121,12 @@ export class Game {
         // hurtEnemy returns a value for dummies, but ordinary enemies expose
         // successful damage through actual HP mutation, not its return value.
         ambushExecution?.commitDamage(this.hero,this.combatTime,dummyImpact ? appliedDamage ?? 0 : Math.max(0,beforeHP-enemy.hp));
+        // Only after avoidance, crit, mitigation and actual HP mutation. Each
+        // unique hit may grant at most once under the execution's configured cap.
+        poisonExecution?.commitDamage(this.hero, enemy, `${enemy.group.uuid}:${enemy.spawnGeneration ?? 0}`, impactIndex,
+          dummyImpact ? appliedDamage ?? 0 : Math.max(0, beforeHP - enemy.hp), this.poisonTime);
+        assasinExecution?.commitDamage(this.hero,enemy,`${enemy.group.uuid}:${enemy.spawnGeneration ?? 0}`,impactIndex,
+          dummyImpact ? appliedDamage ?? 0 : Math.max(0,beforeHP-enemy.hp),this.poisonTime);
         landedHits++;
         if (thief && enemy.hp > 0) applyThiefWeakpoint(enemy, this.hero.characterId ?? this.hero.slotId, skill.skillId, level, this.combatTime);
         const firstSuccessfulImpact = !successful;
@@ -3276,7 +3448,7 @@ export class Game {
         if (d.length() > 0.1) this.direction.copy(d.normalize());
       }
     }
-    this.transientCombat.rogueAmbush.breakConcealment('ATTACK');this.updateRogueConcealmentPresentation();
+    this.transientCombat.rogueAmbush.breakConcealment('ATTACK');this.assasinCombat.breakConcealment('attack');this.updateRogueConcealmentPresentation();
     breakStealth(this.hero,'basic_attack');this.updateStealthPresentation();
     this.actor.rotation.y = Math.atan2(-this.direction.x, -this.direction.z);
     this.combo = this.comboWindow > 0 ? (this.combo % 3) + 1 : 1;
@@ -3340,7 +3512,7 @@ export class Game {
     this.save();
     this.emit();
   }
-  hurtEnemy(e: Enemy, damage: number, knock: number, damageType: 'physical' | 'magic' = 'physical', snapshot?:DerivedStats, attackerLevel=this.hero.level) {
+  hurtEnemy(e: Enemy, damage: number, knock: number, damageType: 'physical' | 'magic' = 'physical', snapshot?:Pick<DerivedStats, 'bossDamage' | 'eliteDamage' | 'physicalPenetration' | 'magicPenetration'>, attackerLevel=this.hero.level, damageKind: 'direct' | 'poison_dot' = 'direct') {
     if (e.hp <= 0) return 0;
     const playerStats=snapshot??derivedStats(this.hero);
     if(e.boss)damage*=1+playerStats.bossDamage/100;
@@ -3357,7 +3529,8 @@ export class Game {
       return finalDamage;
     }
     e.hp = Math.max(0, e.hp - finalDamage);
-    if(finalDamage>0){breakStealth(this.hero,'damage_dealt');this.updateStealthPresentation();}
+    if (e.hp === 0) { this.assasinPoison.clearTarget(e); this.assasinCombat.clearTarget(e); }
+    if(finalDamage>0 && damageKind === 'direct'){breakStealth(this.hero,'damage_dealt');this.updateStealthPresentation();}
     if(this.currentTarget?.instanceId===e.group.uuid)this.updateTargetPresentation();
     if (this.cameraMode === 'follow' && finalDamage > 0 && knock > 0) {
       this.impactShakeRemaining = FOLLOW_CAMERA.shakeDuration;
@@ -3453,7 +3626,7 @@ export class Game {
     this.hero.barrier -= absorbed;
     damage -= absorbed;
     this.hero.hp = Math.max(0, this.hero.hp - damage);
-    if (damageKind === 'direct') { this.transientCombat.rogueAmbush.breakConcealment('DIRECT_DAMAGE', damage); this.updateRogueConcealmentPresentation(); }
+    if (damageKind === 'direct') { this.transientCombat.rogueAmbush.breakConcealment('DIRECT_DAMAGE', damage); this.assasinCombat.breakConcealment('direct',damage); this.updateRogueConcealmentPresentation(); }
     if(damage>0){breakStealth(this.hero,'received_damage');this.updateStealthPresentation();}
     if(this.hero.hp>0&&displacement){const factor=receivedMultiplier(modifiers,context,'knockbackMultiplier');this.move(displacement.x*factor,displacement.z*factor);}
     if (damage > 0) this.characterModel.animator.play('hit', .24);
@@ -3546,6 +3719,13 @@ export class Game {
     let moving = false;
     let running = false;
     let animationMoveSpeed=0;
+    if (!this.paused) {
+      // Poison keeps its cadence while the caster is dead. It neither calls
+      // player hit/crit/on-hit hooks nor advances other classes' combat actions.
+      this.poisonTime += dt;
+      for (const enemy of this.enemies) { this.assasinPoison.advanceTarget(enemy, this.poisonTime); this.assasinCombat.advanceTarget(enemy,this.poisonTime); }
+      if (this.currentTarget) this.updateTargetPresentation();
+    }
     if (this.started && !this.paused && !this.dead) {
       this.stepSkillRuntime(dt);
       this.cooldown = Math.max(0, this.cooldown - dt);
@@ -3741,9 +3921,11 @@ export class Game {
       // control effects and returning combatants still use the existing update.
       if(!nearby&&e.hp===e.max&&this.groundDistance(e.group.position,e.home)<1&&
         e.windup<=0&&e.flash<=0&&e.poison<=0&&e.stun<=0&&e.slow<=0&&e.root<=0&&e.defenseDown<=0&&
-        !Object.keys(e.statusEffects??{}).length&&!Object.keys(e.sourceOwnedStatuses??{}).length)return;
+        !Object.keys(e.statusEffects??{}).length&&!Object.keys(e.sourceOwnedStatuses??{}).length&&!this.assasinPoison.hasPending(e)&&!this.assasinCombat.hasPending(e))return;
     }
     if (e.hp <= 0) {
+      this.assasinPoison.clearTarget(e);
+      this.assasinCombat.clearTarget(e);
       if(this.currentTarget?.instanceId===e.group.uuid)this.clearCurrentTarget();
       e.respawn = Math.max(0,(e.respawnDeadline-Date.now())/1000);
       if (e.respawn <= 0) {
@@ -3798,6 +3980,8 @@ export class Game {
       }
     }
     if (e.hp <= 0) return;
+    const poisonSlow = this.assasinPoison.getStrongestTargetPoisonSlow(e, this.poisonTime) / 100;
+    const movementFactor = 1 - Math.max(e.slow > 0 ? e.slowPotency ?? .58 : 0, poisonSlow);
     if (e.stun > 0 || e.root > 0) {
       (e.ring.material as T.MeshBasicMaterial).opacity = 0.28;
       return;
@@ -3828,13 +4012,13 @@ export class Game {
     ) {
       if (dist > (e.boss ? 3.7 : 1.4)) {
         v.normalize();
-        if(this.fieldTerrain)this.followTerrain(e,this.actor.position,e.movementSpeed*(e.slow>0?1-(e.slowPotency??.58):1),dt);
-        else {const step=dt*e.movementSpeed*(e.slow>0?1-(e.slowPotency??.58):1);this.moveEnemy(e,v.x*step,v.z*step);}
+        if(this.fieldTerrain)this.followTerrain(e,this.actor.position,e.movementSpeed*movementFactor,dt);
+        else {const step=dt*e.movementSpeed*movementFactor;this.moveEnemy(e,v.x*step,v.z*step);}
         e.group.rotation.y = Math.atan2(-v.x, -v.z);
       } else if (e.cooldown <= 0) e.windup = e.boss ? 1.1 : e.definition?.attackSpeed ?? 0.65;
     } else if (this.groundDistance(e.group.position,e.home) > 1) {
-      if(this.fieldTerrain)this.followTerrain(e,e.home,1.6,dt);
-      else {const homeDirection=e.home.clone().sub(e.group.position).setY(0).normalize();this.moveEnemy(e,homeDirection.x*dt*1.6,homeDirection.z*dt*1.6);}
+      if(this.fieldTerrain)this.followTerrain(e,e.home,1.6*(1-poisonSlow),dt);
+      else {const homeDirection=e.home.clone().sub(e.group.position).setY(0).normalize();this.moveEnemy(e,homeDirection.x*dt*1.6*(1-poisonSlow),homeDirection.z*dt*1.6*(1-poisonSlow));}
     }
     body.position.y =
       Math.abs(Math.sin(this.elapsed * (e.boss ? 2 : 4) + e.id)) *
@@ -4381,6 +4565,7 @@ export class Game {
     if (this.disposed) return;
     this.clearPlayerSpeech();
     this.clearSkillRuntime();
+    this.assasinPoison.clear(); this.assasinCombat.clear();
     this.clearGroundLoot();
     this.targetPresentation?.dispose();this.targetPresentation=undefined;this.targetEntities?.clear();
     this.disposed = true;

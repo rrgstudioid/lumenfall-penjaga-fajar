@@ -1,6 +1,9 @@
 'use client';
 import { useState, type CSSProperties } from 'react';
-import { heroFamilyNodeStates, heroFamilySkillActive } from '@/lib/game/skill-family-runtime';
+import { heroFamilyNodeStates, heroFamilySkillActive, skillFamilyDefinitions as v3Definitions } from '@/lib/game/skill-family-runtime';
+import { skillFamilyOverview, skillNodePresentation, canonicalSkillName } from '@/lib/game/skill-family-presentation';
+import { SkillFamilyBrowser } from './skill-family-browser';
+import { LineageMechanics } from './lineage-mechanics';
 import { resolvePrimaryHotbarEntry } from '@/lib/game/hotbar';
 import {
   Crown,
@@ -17,8 +20,6 @@ import {
   characterLabel,
   combatProfile,
   skillCosts,
-  skillDamagePreview,
-  skillHealingPreview,
   resolveHeroSkill,
   type Hero,
   type MasteryChoice,
@@ -42,15 +43,9 @@ import { SkillIcon } from './skill-icon';
 import { DraggableAlertDialogContent } from './draggable-window';
 import { getVisibleJobArchitecture } from '@/lib/game/job-presentation';
 import { rankSource } from '@/lib/game/rank-ownership';
-import { ADVENTURER_V3_SKILL_MAP } from '@/lib/game/adventurer-v3';
-import { WARRIOR_V3_SKILL_MAP } from '@/lib/game/warrior-v3';
-import { BERSERKER_V3_SKILL_MAP } from '@/lib/game/berserker-v3';
-import { BLADE_MASTER_V3_SKILL_MAP } from '@/lib/game/blade-master-v3';
-import { THIEF_V3_SKILL_MAP } from '@/lib/game/thief-v3';
 import { availableSkillPointsV3, skillCostThroughRank } from '@/lib/game/skill-progression-v3';
 import { weaponRequirementLabel } from '@/lib/game/weapon-style';
 import { resolveSkillPresentation, type SkillPresentationModel } from '@/lib/game/skill-presentation-v3';
-const v3Definitions = { ...ADVENTURER_V3_SKILL_MAP, ...WARRIOR_V3_SKILL_MAP, ...BERSERKER_V3_SKILL_MAP, ...BLADE_MASTER_V3_SKILL_MAP, ...THIEF_V3_SKILL_MAP };
 import {
   AlertDialog,
   AlertDialogAction,
@@ -98,21 +93,31 @@ export function JobSkill({
   );
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [resetOpen, setResetOpen] = useState(false);
+  const [familyId, setFamilyId] = useState<string | null>(null);
+  const [branchChoice, setBranchChoice] = useState<{ id: string; actorId: string } | null>(null);
+  const thiefLineage = hero.skillArchitectureVersion === 3 && hero.coreJob === 'thief';
   const grantedLabels = ALL_SKILLS.flatMap(skill => {
     const granted = rankSource(hero, 'active', skill.id).granted;
     return granted ? [`${skill.name} Rank ${granted}`] : [];
   });
-  const path = getJobProgression(hero),
+  const path = getJobProgression(hero).filter(entry => !thiefLineage || entry.id === 'core' || (entry.id === 'specialization' && !!hero.specialization)),
     currentStage = path.find((entry) => entry.id === stage) ?? path[0];
   const nodes = getJobSkillNodes(hero, currentStage.id);
   const allNodes = [...nodes.active, ...nodes.passive];
+  const families = thiefLineage && currentStage.id === 'core' ? skillFamilyOverview(hero, nodes.active) : [];
+  const family = families.find(entry => entry.id === familyId) ?? families[0];
+  const visibleNodes = family ? family.stages.flat() : allNodes;
   const selected =
-    allNodes.find((skill) => skill.id === selectedId) ?? allNodes[0];
+    visibleNodes.find((skill) => skill.id === selectedId) ?? visibleNodes.find(skill => skill.id === family?.active?.id) ?? visibleNodes[0];
+  const selectedView = selected ? skillNodePresentation(hero, selected.id) : null;
+  const pendingBranch = branchChoice ? skillNodePresentation(hero, branchChoice.id) : null;
+  const branchAlternatives = pendingBranch ? Object.values(v3Definitions).filter(d => d.id !== pendingBranch.definition.id &&
+    d.familyId === pendingBranch.definition.familyId && d.branchGroupId === pendingBranch.definition.branchGroupId) : [];
   const selectedActive =
     selected && 'slot' in selected ? (selected as SkillDefinition) : null;
   const selectedPassive =
     selected && !('slot' in selected) ? (selected as PassiveDefinition) : null;
-  const resolvedSelected = selectedActive
+  const resolvedSelected = selectedActive && !v3Definitions[selectedActive.id]
     ? resolveHeroSkill(
         hero,
         selectedActive,
@@ -159,6 +164,7 @@ export function JobSkill({
     const state = getSkillStatus(skill.id, hero),
       can = canLearnSkill(skill.id, hero);
     const familyStates = heroFamilyNodeStates(hero, skill.id);
+    const view = skillNodePresentation(hero, skill.id);
     const familyLabel = familyStates.includes('REPLACED') ? 'Sudah berevolusi'
       : familyStates.includes('BRANCH_EXCLUDED') ? 'Cabang lain dipilih'
       : familyStates.includes('ACTIVE') ? 'Family aktif' : null;
@@ -172,17 +178,17 @@ export function JobSkill({
           isActive && !isV3Mastery && rank > 0 && heroFamilySkillActive(hero, skill.id)
             ? begin(event, { dragType: 'skill', refId: skill.id }) : undefined
         }
-        className={`js-node node-${state} ${selected?.id === skill.id ? 'selected' : ''}`}
+        className={`js-node node-${state} ${view?.active ? 'family-active' : ''} ${view?.replaced ? 'family-replaced' : ''} ${view?.excluded ? 'family-excluded' : ''} ${selected?.id === skill.id ? 'selected' : ''}`}
         onClick={() => setSelectedId(skill.id)}
         title={
           isDragging
             ? undefined
-            : `${skill.description} · ${can.reason || 'Dapat dipelajari'} · Klik untuk detail; drag active skill yang sudah dipelajari ke PrimaryHotbar.`
+            : `${skill.description} · ${view?.reason || can.reason || 'Dapat dipelajari'} · Klik untuk detail.`
         }
         aria-pressed={selected?.id === skill.id}
       >
         <span className="js-node-type">
-          {v3Definitions[skill.id]?.skillType === 'PASSIVE' ? 'PASSIVE' : stage === 'mastery' || isV3Mastery
+          {v3Definitions[skill.id]?.skillType === 'ULTIMATE' ? 'ULTIMATE' : v3Definitions[skill.id]?.skillType === 'PASSIVE' ? 'PASSIVE' : stage === 'mastery' || isV3Mastery
             ? 'MASTERY'
             : isActive
               ? skill.tree?.architecture === 'v2'
@@ -195,12 +201,12 @@ export function JobSkill({
           {state === 'locked' && <LockKeyhole className="js-lock" size={12} />}
         </span>
         <strong>{skill.name}</strong>
-        {familyLabel && <small>{familyLabel}</small>}
+        {view ? <small className="js-node-state">{view.labels.join(' · ')}</small> : familyLabel && <small>{familyLabel}</small>}
         {isActive && !isV3Mastery && (
-          <small>Mana Cost: {skillCosts(hero, skill).manaCost} MP</small>
+          <small>Mana: {view ? skill.rankValues?.[Math.max(0, rank - 1)]?.manaCost ?? skill.manaCost : skillCosts(hero, skill).manaCost} MP</small>
         )}
         <span className="js-node-rank">
-          Lv. {rank} / {skill.maxLevel}
+          Rank {rank} / {skill.maxLevel}
           <span>
             {state === 'maxed' ? (
               <Check size={14} />
@@ -210,7 +216,7 @@ export function JobSkill({
           </span>
         </span>
         <small>
-          {state === 'locked'
+          {view ? view.reason || (rank < skill.maxLevel ? `${view.cost} SP → R${rank + 1}` : 'Rank maksimum') : state === 'locked'
             ? `Locked · Lv. ${skill.unlockLevel}`
             : state === 'available'
               ? 'Available'
@@ -223,7 +229,7 @@ export function JobSkill({
   }
   return (
     <div
-      className="job-skill"
+      className={`job-skill ${thiefLineage ? 'js-thief-lineage' : ''}`}
       style={{ '--job-color': combatProfile(hero).color } as CSSProperties}
     >
       <div className="js-header">
@@ -234,7 +240,7 @@ export function JobSkill({
         <p>Rangkai kekuatanmu. Tentukan cara bertarungmu.</p>
         <div className="js-header-actions">
           <b className="co-points" title={`${availableSP} tersedia dari ${totalEarnedSP} SP total. Sudah terpakai ${spentSP}.`}>
-            {availableSP} / {totalEarnedSP} SP
+            Available SP: {availableSP} <small>/ {totalEarnedSP}</small>
           </b>
           <AlertDialog open={resetOpen} onOpenChange={setResetOpen}>
             <AlertDialogTrigger className="js-reset" data-reset-skills disabled={hero.gold < 500}>
@@ -255,6 +261,29 @@ export function JobSkill({
               </AlertDialogFooter>
             </DraggableAlertDialogContent>
           </AlertDialog>
+          <AlertDialog open={!!branchChoice} onOpenChange={open => { if (!open) setBranchChoice(null); }}>
+            <DraggableAlertDialogContent windowId="family-branch-confirm">
+              <AlertDialogHeader>
+                <AlertDialogTitle>Pilih {pendingBranch?.definition.name}?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Cabang ini menggantikan {canonicalSkillName(pendingBranch?.definition.familyPredecessorId ?? '')} sebagai anggota family aktif.
+                  {' '}{branchAlternatives.map(d => d.name).join(' / ')} tidak dapat dipilih sampai Skill Reset.
+                  {' '}Biaya: {pendingBranch?.cost ?? 0} SP. Rank ancestry tetap tersimpan.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Batal</AlertDialogCancel>
+                <AlertDialogAction disabled={!game?.started || !pendingBranch?.branchPurchase || !pendingBranch.purchase.ok || branchChoice?.actorId !== (hero.characterId ?? hero.slotId)}
+                  onClick={() => {
+                    if (branchChoice && branchChoice.actorId === (hero.characterId ?? hero.slotId)) {
+                      const latest = skillNodePresentation(hero, branchChoice.id);
+                      if (latest?.branchPurchase && latest.purchase.ok) game?.learnSkill(branchChoice.id);
+                    }
+                    setBranchChoice(null);
+                  }}>Konfirmasi · {pendingBranch?.cost ?? 0} SP</AlertDialogAction>
+              </AlertDialogFooter>
+            </DraggableAlertDialogContent>
+          </AlertDialog>
         </div>
       </div>
       <div className="js-layout">
@@ -262,7 +291,7 @@ export function JobSkill({
           {path.map((entry, index) => (
             <button
               key={entry.id}
-              className={stage === entry.id ? 'selected' : ''}
+              className={currentStage.id === entry.id ? 'selected' : ''}
               onClick={() => {
                 setStage(entry.id);
                 setSelectedId(null);
@@ -273,9 +302,9 @@ export function JobSkill({
                 {String(index + 1).padStart(2, '0')}
               </span>
               <span>
-                <b>{entry.name}</b>
+                <b>{thiefLineage && entry.id === 'core' ? 'CORE THIEF' : entry.name}</b>
                 <small>
-                  Lv. {entry.level} · {entry.status}
+                  {thiefLineage && entry.id === 'specialization' ? 'SPECIALIZATION · ' : ''}Lv. {entry.level} · {entry.status}
                 </small>
               </span>
               {entry.status === 'Locked' ? (
@@ -290,8 +319,11 @@ export function JobSkill({
           <div className="js-sidebar-note">
             ACTIVE LOADOUT
             <br />
-            {activeSkills(hero).filter(skill => !v3Definitions[skill.id]?.familyId || (skill.usableFromHotbar && heroFamilySkillActive(hero, skill.id))).map((skill) => (
+            {activeSkills(hero).filter(skill => hero.skillArchitectureVersion !== 3 ? true :
+              (hero.skillLevels[skill.id] ?? 0) > 0 && skill.usableFromHotbar !== false &&
+              !['PASSIVE', 'MASTERY'].includes(v3Definitions[skill.id]?.skillType ?? '') && heroFamilySkillActive(hero, skill.id)).map((skill) => (
               <span key={skill.id}>
+                <SkillIcon id={skill.id} size={18} />
                 <kbd title="Tombol PrimaryHotbar; — berarti belum dipasang">
                   {assignedKey(skill.id)}
                 </kbd>
@@ -306,12 +338,12 @@ export function JobSkill({
               <span className="co-kicker">
                 {stage === 'mastery'
                   ? 'SHAPE YOUR SKILLS'
-                  : 'SKILL CONSTELLATION'}
+                  : family ? 'CORE THIEF · SKILL FAMILIES' : 'SKILL CONSTELLATION'}
               </span>
               <h2>{currentStage.name}</h2>
             </div>
             <small>
-              {learned}/{allNodes.length} learned
+              {family ? `${families.length} families · ` : ''}{learned}/{allNodes.length} learned
             </small>
           </div>
           {archived && stage !== 'mastery' && (
@@ -326,7 +358,11 @@ export function JobSkill({
               empat skill yang sudah ada dengan Power, Control, atau Utility.
             </p>
           )}
-          {!!nodes.active.length && (
+          {thiefLineage && currentStage.id === 'specialization' && <LineageMechanics specialization={hero.specialization} />}
+          {family && <SkillFamilyBrowser families={families} selected={family} renderNode={node} onSelect={entry => {
+            setFamilyId(entry.id); setSelectedId(entry.active?.id ?? entry.rootId ?? null);
+          }} />}
+          {!family && !!nodes.active.length && (
             <div className="js-constellation">
               <div className="js-root">
                 <Crown size={24} />
@@ -367,6 +403,7 @@ export function JobSkill({
             <span>✦ Available</span>
             <span>● Learned</span>
             <span>✓ Maxed</span>
+            {family && <><span>◆ Active</span><span>↗ Replaced</span><span>⊘ Branch Excluded</span></>}
           </div>
           <p className="js-hint">
             Klik kartu untuk detail. Drag active skill yang sudah dipelajari ke
@@ -377,7 +414,7 @@ export function JobSkill({
           {selected ? (
             <>
               <span className={`co-status status-${status}`}>
-                {status === 'available'
+                {selectedView ? selectedView.labels.join(' · ') : status === 'available'
                   ? 'Available'
                   : status === 'learned'
                     ? 'Learned'
@@ -391,9 +428,9 @@ export function JobSkill({
               <h3>{selected.name}</h3>
               <p>{selected.description}</p>
               <div className="js-skill-level">
-                <span>{v3Definition?.skillType === 'PASSIVE' ? 'Passive Skill' : selectedIsMastery ? 'Mastery' : selectedActive ? 'Active Skill' : 'Passive Skill'}</span>
+                <span>{v3Definition?.skillType === 'ULTIMATE' ? 'Ultimate' : v3Definition?.skillType === 'PASSIVE' ? 'Passive Skill' : selectedIsMastery ? 'Mastery' : selectedActive ? 'Active Skill' : 'Passive Skill'}</span>
                 <b>
-                  Lv. {level} <small>/ {selected.maxLevel}</small>
+                  Rank {level} <small>/ {selected.maxLevel}</small>
                 </b>
               </div>
               {!v3Definition && <dl>
@@ -438,12 +475,14 @@ export function JobSkill({
                 <div className="js-presentation" data-skill-presentation="v3">
                   <PresentationSection title="REQUIREMENTS" rows={presentation.requirements} />
                   <PresentationSection title={presentation.isDamage ? 'DAMAGE SCALING' : 'EFFECT'} rows={presentation.damage} />
-                  <PresentationSection title="PASSIVE EFFECT" rows={presentation.effects} />
+                  <PresentationSection title={selectedIsMastery ? 'PASSIVE EFFECTS' : 'EFFECTS'} rows={presentation.effects} />
                   <PresentationSection title="SPECIAL MECHANIC" rows={presentation.specialMechanics} />
                   <PresentationSection title="AREA / TARGETING" rows={presentation.area} />
                   <PresentationSection title="RESOURCE" rows={presentation.resource} />
                   <PresentationSection title="NEXT RANK" rows={presentation.nextRank} />
-                  {!presentation.nextRank.length && <span className="js-max-rank">MAX RANK</span>}
+                  {level >= selected.maxLevel && <span className="js-max-rank">MAX RANK</span>}
+                  {(selectedActive?.rogueAmbush?.requiresAmbush || selectedActive?.assasin?.execution) && game?.started && level > 0 && !game.canCastSkill(selected.id).ok &&
+                    <p className="js-reason" role="status">Cast unavailable: {game.canCastSkill(selected.id).reason}</p>}
                 </div>
               )}
               {selectedActive && !selectedIsMastery && !v3Definition && (
@@ -521,41 +560,6 @@ export function JobSkill({
                       </dd>
                     </div>
                   </dl>
-                  <div className="js-effect-preview">
-                    <small>BASE EFFECT PREVIEW · SEBELUM DEFENSE TARGET</small>
-                    <strong>
-                      {selectedActive.effect === 'heal'
-                        ? `${skillHealingPreview(hero, selectedActive, Math.max(1, level))} HP`
-                        : ['buff', 'parry', 'stealth', 'barrier'].includes(
-                              selectedActive.effect,
-                            )
-                          ? `${resolvedSelected?.duration}s ${selectedActive.effect}`
-                          : `${Math.round(skillDamagePreview(hero, selectedActive, Math.max(1, level)))} damage`}
-                    </strong>
-                    {level < selectedActive.maxLevel &&
-                      [
-                        'damage',
-                        'aoe_damage',
-                        'elemental',
-                        'ultimate',
-                        'dash_damage',
-                        'rapid_damage',
-                        'chain',
-                        'execute',
-                        'poison',
-                      ].includes(selectedActive.effect) && (
-                        <small>
-                          Next level:{' '}
-                          {Math.round(
-                            skillDamagePreview(
-                              hero,
-                              selectedActive,
-                              Math.max(1, level + 1),
-                            ),
-                          )}
-                        </small>
-                      )}
-                  </div>
                 </>
               )}
               {selectedPassive && (
@@ -611,11 +615,11 @@ export function JobSkill({
                   <button
                     className="js-learn"
                     disabled={!game?.started || !validation.ok}
-                    onClick={() =>
-                      selectedActive
-                        ? game?.learnSkill(selected.id)
-                        : game?.learnPassive(selected.id)
-                    }
+                    onClick={() => {
+                      if (selectedView?.branchPurchase) setBranchChoice({ id: selected.id, actorId: hero.characterId ?? hero.slotId });
+                      else if (selectedActive) game?.learnSkill(selected.id);
+                      else game?.learnPassive(selected.id);
+                    }}
                   >
                     {status === 'maxed' ? (
                       <Check size={16} />
@@ -625,12 +629,12 @@ export function JobSkill({
                     {status === 'maxed'
                       ? 'Maxed'
                       : level > 0
-                        ? 'Naikkan Level'
-                        : 'Pelajari'}
+                        ? `Rank ${level} → ${level + 1}`
+                        : selectedView?.branchPurchase ? 'Pilih Cabang…' : 'Pelajari R1'}
                     {status !== 'maxed' && <span>{nextRankCost} SP</span>}
                   </button>
                   {!validation.ok && (
-                    <p className="js-reason">{validation.reason}</p>
+                    <p className="js-reason">{selectedView?.reason || validation.reason}</p>
                   )}
                 </>
               )}

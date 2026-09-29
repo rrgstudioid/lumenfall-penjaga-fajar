@@ -1,4 +1,6 @@
 import type { DamageType } from './combat-mechanics.ts';
+import type { AssasinPoisonConfig } from './assasin-poison.ts';
+import type { AssasinSkillConfig } from './assasin-v3.ts';
 import type {TreeScope,TreeInvestmentRequirement} from './rank-ownership.ts';
 import type {CombatModifier} from './combat-modifiers.ts';
 import type {CombatSupport} from './combat-transient.ts';
@@ -14,6 +16,8 @@ export type CoreJobId = 'warrior' | 'rogue' | 'hunter' | 'wizard' | 'acolyte';
 /** Legacy registry keys stay unchanged; runtime/definitions can also name canonical V2 cores. */
 export type RuntimeCoreJobId = CoreJobId | CoreJobV2Id;
 export type SpecializationId =
+  | 'assasin'
+  | 'rogue'
   | 'berserker'
   | 'blade_master'
   | 'gatotkaca'
@@ -123,6 +127,10 @@ export type StatusEffectId =
   | 'holy';
 
 export type SkillDefinition = SkillFamilyMetadata & {
+  assasin?: AssasinSkillConfig;
+  /** Opt-in Phase 8 data only; direct impacts and normal Poison remain separate. */
+  assasinPoison?: AssasinPoisonConfig;
+  rogueMovement?: 'APPROACH' | 'INPUT_REPOSITION';
   /** Explicit Rogue-only opt-in; inherited skills do not acquire this mechanic. */
   rogueAmbush?: RogueAmbushConfig;
   /** Optional replaceable presentation cue, never the authority for hit timing. */
@@ -203,7 +211,7 @@ export type SkillDefinition = SkillFamilyMetadata & {
   actionType?: SkillActionType;
   usableFromHotbar?: boolean;
   hotbarCategory?: 'primary';
-  skillType?: 'active';
+  skillType?: 'active' | 'passive';
 };
 
 type JobDefinition = {
@@ -226,7 +234,7 @@ type JobDefinition = {
   description: string;
 };
 type SpecializationDefinition = JobDefinition & {
-  coreJob: CoreJobId;
+  coreJob: RuntimeCoreJobId;
   passiveId: string;
 };
 
@@ -329,6 +337,16 @@ export const SPECIALIZATIONS: Record<
   SpecializationId,
   SpecializationDefinition
 > = {
+  assasin: {
+    ...CORE_JOBS.rogue, name: 'Assasin', role: 'Stealth Poison Kiter / Continuous DoT DPS', coreJob: 'thief', weapon: 'dagger',
+    specializations: ['assasin'], passiveName: 'Venom Mastery', passiveId: 'v3-assasin-venom-mastery',
+    description: 'Poison DoT, Slow, thrown Daggers, kiting, dan low-HP execution.',
+  },
+  rogue: {
+    ...CORE_JOBS.rogue, name: 'Rogue', role: 'High-Burst Backline Diver', coreJob: 'thief', weapon: 'dual_dagger',
+    specializations: ['rogue'], passiveName: 'Dual Dagger Mastery', passiveId: 'v3-rogue-dual-dagger-mastery',
+    description: 'Single-target positional burst, Ambush, dan short concealment.',
+  },
   gatotkaca: {
     ...CORE_JOBS.warrior,
     id: 'warrior',
@@ -531,7 +549,7 @@ export type PassiveDefinition = SkillFamilyMetadata & {
   unlockLevel: number;
 };
 
-export const PASSIVES: Record<SpecializationId, PassiveDefinition> = {
+export const PASSIVES: Record<Exclude<SpecializationId, 'rogue' | 'assasin'>, PassiveDefinition> = {
   gatotkaca: {
     id: 'iron-muscle',
     name: 'Otot Baja',
@@ -1331,10 +1349,11 @@ export const ALL_PASSIVES: PassiveDefinition[] = [
   { id: 'adventurer-resolve', name: 'Tekad Petualang', description: 'Setiap level memberi +10 HP dan +1 Defense.', specialization: null, job: 'adventurer', tier: 'adventurer', maxLevel: 3, unlockLevel: 1 },
   ...Object.values(CORE_JOBS).map(job => ({ id: `${job.id}-foundation`, name: job.passiveName, description: `Latihan dasar ${job.name} memperkuat atribut utama job.`, specialization: null, job: job.id, tier: 'core' as const, maxLevel: 3, unlockLevel: 10 })),
   ...Object.values(PASSIVES).map(passive => ({ ...passive, job: SPECIALIZATIONS[passive.specialization!].coreJob, tier: 'specialization' as const })),
-  ...Object.entries(SPECIALIZATIONS).map(([id, job]) => ({ id: `${id}-capstone`, name: `Warisan ${job.name}`, description: `Puncak latihan ${job.name}: memperkuat passive utama. Memerlukan Mastery dan passive utama level 3.`, specialization: id as SpecializationId, job: job.coreJob, tier: 'capstone' as const, maxLevel: 1, unlockLevel: 50, prerequisiteSkillIds: [PASSIVES[id as SpecializationId].id] })),
+  ...Object.entries(SPECIALIZATIONS).filter(([id]) => id !== 'rogue' && id !== 'assasin').map(([id, job]) => ({ id: `${id}-capstone`, name: `Warisan ${job.name}`, description: `Puncak latihan ${job.name}: memperkuat passive utama. Memerlukan Mastery dan passive utama level 3.`, specialization: id as SpecializationId, job: job.coreJob, tier: 'capstone' as const, maxLevel: 1, unlockLevel: 50, prerequisiteSkillIds: [PASSIVES[id as keyof typeof PASSIVES].id] })),
 ];
 for (const [id] of Object.entries(SPECIALIZATIONS)) {
-  const passiveId = PASSIVES[id as SpecializationId]?.id;
+  if (id === 'rogue' || id === 'assasin') continue;
+  const passiveId = PASSIVES[id as keyof typeof PASSIVES]?.id;
   const passiveEffect = passiveId ? PASSIVE_EFFECTS[passiveId] : undefined;
   PASSIVE_EFFECTS[`${id}-capstone`] = Object.fromEntries(
     Object.entries(passiveEffect ?? {}).map(([stat, value]) => [stat, value! * 2]),
