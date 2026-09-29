@@ -1,6 +1,8 @@
 import { PLAINS_ID, PLAINS_ENTRY, restorePlainsPosition } from './verdant-plains-layout.ts';
 import { isResourceEnabled, staminaDerivedValue } from './gameplay-config.ts';
 import { RogueAmbushState } from './rogue-ambush.ts';
+import { thiefJobCapabilities, thiefSkillJobAllowed, THIEF_JOB_IDENTITY } from './thief-job-capabilities.ts';
+import { ASSASIN_V3_RUNTIME_SKILLS, venomMasteryRank, VENOM_THROWN_ACCURACY } from './assasin-v3.ts';
 import { getVisibleJobArchitecture } from './job-presentation.ts';
 import {progressionRules,LEGACY_CONTENT_CAP,type ProgressionArchitecture} from './progression.ts';
 import {rankSource,normalizedRankOwnership,buyRank,grantRank,paidTreeInvestment,type RankOwnership} from './rank-ownership.ts';
@@ -10,6 +12,8 @@ import type {CombatSupport} from './combat-transient.ts';
 import { resolveSkillAction, skillHitDamage, resolvedDamageParts } from './skill-action.ts';
 import { ADVENTURER_V3_RUNTIME_SKILLS, ADVENTURER_V3_SKILL_MAP, adventurerV3StartingState } from './adventurer-v3.ts';
 import { THIEF_V3_SKILL_MAP } from './thief-v3.ts';
+import { ROGUE_V3_RUNTIME_SKILLS, rogueMasteryModifiers } from './rogue-v3.ts';
+import { canApplyAssasinPoison, validPoisonProfile } from './assasin-poison.ts';
 import { THIEF_V3_RUNTIME_SKILLS, thiefPassiveModifiers, thiefManaReduction, reconcileThiefBuffs } from './thief-runtime.ts';
 import { WARRIOR_V3_RUNTIME_SKILLS, WARRIOR_V3_SKILL_MAP, warriorV3StateAfterCoreChange } from './warrior-v3.ts';
 import { BERSERKER_V3_RUNTIME_SKILLS, BERSERKER_V3_SKILL_MAP, BERSERKER_MASTERY_MANA_SKILLS, BERSERKER_TRANCE_DAMAGE_SKILLS, BERSERKER_TRANCE_AOE_SKILLS, berserkerV3StateAfterSpecialization } from './berserker-v3.ts';
@@ -167,6 +171,7 @@ export const JOB_MANA_FACTORS: Record<string, number> = Object.freeze({
   rogue: 1.1,
   spectre: 1.15,
   assassin: 1.1,
+  assasin: 1.1,
   reaper: 1.15,
   acolyte: 1.25,
   luminary: 1.45,
@@ -413,6 +418,15 @@ const oldJob = (job: JobId): CombatProfile | null =>
   job in LEGACY_JOBS ? LEGACY_JOBS[job as LegacyJobId] : null;
 
 export function combatProfile(hero: Hero): CombatProfile {
+  if (hero.skillArchitectureVersion === 3 && hero.coreJob === 'thief' && hero.specialization === 'assasin') {
+    const identity = THIEF_JOB_IDENTITY.assasin;
+    return { ...combatProfile({ ...hero, specialization: null }), label: identity.name, title: identity.role,
+      description: identity.description, weapon: 'dagger' };
+  }
+  if (hero.skillArchitectureVersion === 3 && hero.coreJob === 'thief' && hero.specialization === 'rogue') {
+    return { ...combatProfile({ ...hero, specialization: null }), label: 'Rogue', title: 'High-Burst Backline Diver',
+      description: 'Dual Dagger, positional burst, Ambush, dan short concealment.', weapon: 'dual_dagger' };
+  }
   if (hero.skillArchitectureVersion === 3 && hero.coreJob === 'thief' && !hero.specialization) {
     // Preserve the existing foundation's baseline numbers; identity is not a balance change.
     return { ...combatProfile({ ...hero, coreJob: null, job: 'adventurer' }), label: 'Thief', title: 'Precision Skirmisher', description: 'Dagger, mobilitas pendek, Weakpoint pribadi, dan Skill Families.', weapon: 'dagger' };
@@ -672,6 +686,8 @@ export function chooseV3Thief(hero: Hero): boolean {
   if (hero.skillArchitectureVersion !== 3 || hero.level < 15 || hero.coreJob || !hero.skillProgressionV3 || hasEquippedGear(hero)) return false;
   hero.skillProgressionV3 = { ...hero.skillProgressionV3, skillRanks: { ...hero.skillProgressionV3.grantedRanks }, chosenCoreJob: 'thief', chosenSpecialization: null, chosenAdvancedJob: null };
   hero.coreJob = 'thief'; hero.job = 'thief'; hero.jobTier = 'core'; hero.weaponType = 'dagger';
+  resetPlayerAllocationForCoreJob(hero);
+  hero.skillPoints = Math.max(0, hero.skillProgressionV3.totalEarnedSP - spentSkillPointsV3(hero.skillProgressionV3, skillFamilyDefinitions));
   hero.skillLevels = Object.fromEntries([...ADVENTURER_V3_RUNTIME_SKILLS, ...THIEF_V3_RUNTIME_SKILLS].map(skill => [skill.id, hero.skillProgressionV3!.skillRanks[skill.id] ?? 0]));
   reconcileHeroSkillFamilies(hero);
   hero.primaryHotbar = hero.primaryHotbar.map(() => null); hero.primaryHotbarOverflow = []; hero.quickHotbars = emptyQuickHotbars();
@@ -695,6 +711,29 @@ export function chooseV3Berserker(hero: Hero): boolean {
   hero.quickHotbars = emptyQuickHotbars();
   hero.specializationQuestClaimed = true;
   hero.jobHistory = { ...hero.jobHistory, specialization: { level: hero.level, chapter: 1, acquiredAt: Date.now() } };
+  return true;
+}
+
+/** Specialization is additive: preserve paid Core Thief ranks and family branches. */
+export function chooseV3Rogue(hero: Hero): boolean {
+  return chooseV3ThiefSpecialization(hero, 'rogue');
+}
+export function chooseV3Assasin(hero: Hero): boolean {
+  return chooseV3ThiefSpecialization(hero, 'assasin');
+}
+function chooseV3ThiefSpecialization(hero: Hero, specialization: 'rogue' | 'assasin'): boolean {
+  const state = hero.skillProgressionV3;
+  if (hero.skillArchitectureVersion !== 3 || hero.level < 60 || hero.coreJob !== 'thief' || hero.specialization ||
+      !state || state.chosenCoreJob !== 'thief' || state.chosenSpecialization || state.chosenAdvancedJob) return false;
+  hero.skillProgressionV3 = { ...state, chosenSpecialization: specialization };
+  hero.specialization = specialization; hero.job = 'thief'; hero.jobTier = 'specialization'; hero.weaponType = 'dagger';
+  for (const skill of specialization === 'rogue' ? ROGUE_V3_RUNTIME_SKILLS : ASSASIN_V3_RUNTIME_SKILLS) hero.skillLevels[skill.id] = state.skillRanks[skill.id] ?? 0;
+  hero.specializationQuestClaimed = true;
+  hero.jobHistory = { ...hero.jobHistory, specialization: { level: hero.level, chapter: 1, acquiredAt: Date.now() } };
+  reconcileHeroSkillFamilies(hero);
+  reconcileFamilyHotbarBindings(hero);
+  hero.skillPoints = Math.max(0, state.totalEarnedSP - spentSkillPointsV3(hero.skillProgressionV3, skillFamilyDefinitions));
+  hero.maxMana = derivedStats(hero).maxMana; hero.mana = Math.min(hero.mana, hero.maxMana);
   return true;
 }
 
@@ -944,7 +983,7 @@ export type DerivedStats = {
 export function learnedPassiveDefinitions(hero:Hero){
   return ALL_PASSIVES.filter(p=>heroFamilySkillActive(hero,p.id)&&skillArchitectureAllowed(hero,p)&&(!p.job||p.job==='adventurer'||p.job===hero.coreJob)&&(!p.specialization||p.specialization===hero.specialization)&&hero.level>=p.unlockLevel&&(hero.passiveLevels[p.id]??0)>0&&(p.tier!=='capstone'||hero.masteryQuestClaimed));
 }
-export function combatModifiersFor(hero:Hero):CombatModifier[]{reconcileThiefBuffs(hero);return [...learnedPassiveDefinitions(hero).flatMap(p=>p.rankModifiers?.[Math.min(p.maxLevel,hero.passiveLevels[p.id])-1]??p.modifiers??[]),...thiefPassiveModifiers(hero),...hostModifiers(hero)];}
+export function combatModifiersFor(hero:Hero):CombatModifier[]{reconcileThiefBuffs(hero);return [...learnedPassiveDefinitions(hero).flatMap(p=>p.rankModifiers?.[Math.min(p.maxLevel,hero.passiveLevels[p.id])-1]??p.modifiers??[]),...thiefPassiveModifiers(hero),...rogueMasteryModifiers(hero),...hostModifiers(hero)];}
 export function combatSupportFor(hero:Hero):CombatSupport {
   const sources=learnedPassiveDefinitions(hero).map(p=>p.rankCombatSupport?.[Math.min(p.maxLevel,hero.passiveLevels[p.id])-1]??p.combatSupport);
   return {stacks:sources.flatMap(s=>s?.stacks??[]),windows:sources.flatMap(s=>s?.windows??[])};
@@ -1031,7 +1070,7 @@ export function derivedStats(
     itemDropRate:Math.min(25,gear.itemDropRate??0),
     materialDropRate:Math.min(15,gear.materialDropRate??0),
   };
-  const modifiers=includeBuffs?combatModifiersFor(hero):[...learnedPassiveDefinitions(hero).flatMap(p=>p.modifiers??[]),...thiefPassiveModifiers(hero)];
+  const modifiers=includeBuffs?combatModifiersFor(hero):[...learnedPassiveDefinitions(hero).flatMap(p=>p.modifiers??[]),...thiefPassiveModifiers(hero),...rogueMasteryModifiers(hero)];
   return modifiers.length?applyStatModifiers(result,modifiers,modifierContextFor(hero,result)):result;
 }
 
@@ -1107,7 +1146,7 @@ export const forgeCost = (weapon: number) => 60 + weapon * 50;
 export const manaResourceName = () => 'Mana';
 export const activeSkills = (hero: Hero): SkillDefinition[] =>
   hero.skillArchitectureVersion === 3
-    ? [...ADVENTURER_V3_RUNTIME_SKILLS, ...(hero.coreJob === 'thief' ? THIEF_V3_RUNTIME_SKILLS : []), ...(hero.coreJob === 'warrior' ? WARRIOR_V3_RUNTIME_SKILLS : []), ...(hero.specialization === 'berserker' ? BERSERKER_V3_RUNTIME_SKILLS : []), ...(hero.specialization === 'blade_master' ? BLADE_MASTER_V3_RUNTIME_SKILLS : [])]
+    ? [...ADVENTURER_V3_RUNTIME_SKILLS, ...(thiefJobCapabilities(hero).canUseCoreThiefSkills ? THIEF_V3_RUNTIME_SKILLS : []), ...(thiefJobCapabilities(hero).canUseRogueSkills ? ROGUE_V3_RUNTIME_SKILLS : []), ...(thiefJobCapabilities(hero).canUseAssasinSkills ? ASSASIN_V3_RUNTIME_SKILLS : []), ...(hero.coreJob === 'warrior' ? WARRIOR_V3_RUNTIME_SKILLS : []), ...(hero.coreJob === 'warrior' && hero.specialization === 'berserker' ? BERSERKER_V3_RUNTIME_SKILLS : []), ...(hero.coreJob === 'warrior' && hero.specialization === 'blade_master' ? BLADE_MASTER_V3_RUNTIME_SKILLS : [])]
     : activeSkillsFor(hero.coreJob, hero.specialization, hero.progressionArchitecture === 'v2_test' ? 'v2_test' : 'legacy');
 /** Same weapon availability for live casting and read-only build evaluation. */
 export function equippedWeaponType(hero: Hero): WeaponType {
@@ -1132,22 +1171,38 @@ export function getSkillManaCost(hero:Hero, skillId:string) {
   if(!skill)return 0;
   return resolveHeroSkill(hero,skill).manaCost;
 }
-export function canCastSkill(hero:Hero,skillId:string,cooldowns:Record<string,number>={},weapon?:WeaponType,resolvedManaCost?:number, combat?: { ambush: RogueAmbushState; now: number }) {
+export function canCastSkill(hero:Hero,skillId:string,cooldowns:Record<string,number>={},weapon?:WeaponType,resolvedManaCost?:number, combat?: { ambush: RogueAmbushState; now: number; assasinRequirement?: (skill: SkillDefinition) => { ok: boolean; reason: string } }) {
   skillId = heroFamilySkillReference(hero, skillId) ?? '';
   const skill=activeSkills(hero).find(entry=>entry.id===skillId);
   if(!skill)return {ok:false,reason:'Skill tidak terdaftar.'};
+  if (skill.skillType === 'passive') return { ok: false, reason: 'Passive tidak dapat diaktifkan.' };
   if (heroFamilyContext(hero)?.skills[skill.id]?.familyRole === 'PASSIVE') return { ok: false, reason: 'Passive tidak dapat diaktifkan.' };
   if (!heroFamilySkillActive(hero, skill.id)) return { ok: false, reason: 'Skill telah digantikan oleh anggota family aktif.' };
   if(hero.hp<=0)return {ok:false,reason:'Karakter harus hidup untuk menggunakan skill.'};
   if(!isSkillUnlocked(hero,skill))return {ok:false,reason:`${skill.name} terbuka pada level ${skill.unlockLevel} dan harus dipelajari.`};
+  if (skill.assasin) {
+    if (!thiefJobCapabilities(hero).canUseAssasinSkills) return {ok:false,reason:'ASSASIN_REQUIRED'};
+    if (skill.assasin.normalPoison && venomMasteryRank(hero) < 1) return {ok:false,reason:'Requires Venom Mastery R1.'};
+    if (skill.assasin.execution) {
+      const requirement = combat?.assasinRequirement?.(skill) ?? {ok:false,reason:'Requires a target at ≤30% HP with your Poison.'};
+      if (!requirement.ok) return requirement;
+    }
+  }
   if (skill.rogueAmbush) {
     const requirement = (combat?.ambush ?? new RogueAmbushState()).requirement(hero, skill, combat?.now ?? 0);
     if (!requirement.ok) return requirement;
   }
+  if (skill.assasinPoison) {
+    if (!canApplyAssasinPoison(hero)) return { ok: false, reason: 'ASSASIN_REQUIRED' };
+    const config = skill.assasinPoison;
+    if (skill.nonDamaging || !validPoisonProfile(config.profilesByRank[skillLevel(hero, skill) - 1]) ||
+      !Number.isInteger(config.maxPoisonStacksGrantedPerExecution) || config.maxPoisonStacksGrantedPerExecution <= 0)
+      return { ok: false, reason: 'POISON_PROFILE_REQUIRED' };
+  }
   const remaining = heroSkillCooldownRemaining(hero, skillId, cooldowns);
   if(remaining>0)return {ok:false,reason:`${skill.name} masih cooldown ${Math.ceil(remaining)} dtk.`};
   if(hero.mana<(resolvedManaCost??getSkillManaCost(hero,skillId)))return {ok:false,reason:'Mana tidak cukup.'};
-  if((weapon!==undefined || THIEF_V3_SKILL_MAP[skill.id])&&!skillWeaponAllowed(hero,skill,weapon??equippedWeaponType(hero)))return {ok:false,reason:`${skill.name} membutuhkan senjata yang sesuai.`};
+  if((weapon!==undefined || THIEF_V3_SKILL_MAP[skill.id] || skill.assasin)&&!skillWeaponAllowed(hero,skill,weapon??equippedWeaponType(hero)))return {ok:false,reason:`${skill.name} membutuhkan senjata yang sesuai.`};
   return {ok:true,reason:''};
 }
 export function consumeMana(hero:Hero,amount:number) {
@@ -1209,7 +1264,7 @@ export function resolveHeroSkill(hero:Hero, skill:SkillDefinition, rank=hero.ski
         int: base.int + (gear.int ?? 0),
       };
       const warriorLineageV3Skill = hero.skillArchitectureVersion === 3 && skill.tags?.some((tag) =>
-        tag === 'v3-adventurer' || tag === 'v3-warrior' || tag === 'v3-berserker' || tag === 'v3-blade-master' || tag === 'v3-thief');
+        tag === 'v3-adventurer' || tag === 'v3-warrior' || tag === 'v3-berserker' || tag === 'v3-blade-master' || tag === 'v3-thief' || tag === 'v3-rogue' || tag === 'v3-assasin');
       return warriorLineageV3Skill
         ? { str: Math.max(0, effective.str - 15), vit: Math.max(0, effective.vit - 15), dex: Math.max(0, effective.dex - 15), int: Math.max(0, effective.int - 15) }
         : effective;
@@ -1227,6 +1282,11 @@ export function resolveHeroSkill(hero:Hero, skill:SkillDefinition, rank=hero.ski
         (!daggers.off && (mode === 'SINGLE_OFF' || mode === 'THROWN_OFF')))
       resolved.weaponAllowed = false;
     composeWeaponModeHits(resolved, daggerAttackContextForHero(hero, mode));
+  }
+  if (skill.assasin && skill.weaponMode?.startsWith('THROWN')) {
+    const rank = venomMasteryRank(hero);
+    const accuracy = rank > 0 ? VENOM_THROWN_ACCURACY[rank - 1] : 0;
+    for (const hit of resolved.hitSequence) hit.accuracy += accuracy;
   }
   if (hero.specialization === 'blade_master' && weaponStyle === 'dual_sword' && skill.tags?.includes('v3-warrior') && resolved.hitSequence.some((hit) => hit.physicalCoefficient > 0)) {
     composeSingleMainWeaponHits(
@@ -1319,7 +1379,7 @@ export function resetSkillFamilyBranch(hero: Hero, skillId: string) {
 
 export function resetSkillPoints(hero: Hero) {
   if (hero.skillArchitectureVersion === 3 && hero.skillProgressionV3) {
-    const returnedPoints = spentSkillPointsV3(hero.skillProgressionV3, { ...ADVENTURER_V3_SKILL_MAP, ...WARRIOR_V3_SKILL_MAP, ...BERSERKER_V3_SKILL_MAP, ...BLADE_MASTER_V3_SKILL_MAP, ...THIEF_V3_SKILL_MAP });
+    const returnedPoints = spentSkillPointsV3(hero.skillProgressionV3, skillFamilyDefinitions);
     if (!returnedPoints) return { ok: false, hero, returnedPoints, reason: 'Belum ada Skill Point yang digunakan.' };
     if (hero.gold < RESET_SKILLS_GOLD_COST) return { ok: false, hero, returnedPoints: 0, reason: 'GOLD tidak cukup.' };
     const state = refundAllSkillPointsForJobChange(hero.skillProgressionV3);
@@ -1399,11 +1459,12 @@ export function canLearnSkill(skillId: string, hero: Hero) {
     const definitions = skillFamilyDefinitions;
     const definition = definitions[skillId];
     if (!definition) return { ok: false, reason: 'Skill tidak terdaftar pada Adventurer V3.' };
+    if (!thiefSkillJobAllowed(hero, definition.jobId)) return {ok:false,reason:'Skill tidak sesuai current job.'};
     const state = hero.skillProgressionV3 ?? adventurerV3StartingState();
     const result = canPurchaseSkillRank({
       level: hero.level,
       state,
-      jobs: { adventurer: { id: 'adventurer', tier: 'adventurer', parent: null }, warrior: { id: 'warrior', tier: 'core', parent: 'adventurer' }, berserker: { id: 'berserker', tier: 'specialization', parent: 'warrior' }, blade_master: { id: 'blade_master', tier: 'specialization', parent: 'warrior' } },
+      jobs: { adventurer: { id: 'adventurer', tier: 'adventurer', parent: null }, warrior: { id: 'warrior', tier: 'core', parent: 'adventurer' }, berserker: { id: 'berserker', tier: 'specialization', parent: 'warrior' }, blade_master: { id: 'blade_master', tier: 'specialization', parent: 'warrior' }, thief: { id: 'thief', tier: 'core', parent: 'adventurer' }, rogue: { id: 'rogue', tier: 'specialization', parent: 'thief' }, assasin: { id: 'assasin', tier: 'specialization', parent: 'thief' } },
       skills: definitions,
     }, skillId);
     return {
@@ -1624,7 +1685,7 @@ export function resetJobToAdventurer(hero: Hero) {
       ADVENTURER_V3_RUNTIME_SKILLS.map((skill) => [skill.id, next.skillProgressionV3!.skillRanks[skill.id] ?? 0]),
     );
     next.passiveLevels = {};
-    next.skillPoints = 0;
+    next.skillPoints = Math.max(0, state.totalEarnedSP - spentSkillPointsV3(next.skillProgressionV3, skillFamilyDefinitions));
   } else {
     const skillLevels = { ...hero.skillLevels };
     const passiveLevels = { ...hero.passiveLevels };
@@ -2286,7 +2347,8 @@ export function chooseSpecialization(
   specialization: SpecializationId,
 ) {
   if(hero.progressionArchitecture==='v2_test')return false;
-  if (hero.skillArchitectureVersion === 3) return specialization === 'berserker' ? chooseV3Berserker(hero) : specialization === 'blade_master' ? chooseV3BladeMaster(hero) : false;
+  if (hero.skillArchitectureVersion === 3) return specialization === 'assasin' ? chooseV3Assasin(hero) : specialization === 'rogue' ? chooseV3Rogue(hero) : specialization === 'berserker' ? chooseV3Berserker(hero) : specialization === 'blade_master' ? chooseV3BladeMaster(hero) : false;
+  if (specialization === 'rogue' || specialization === 'assasin') return false;
   const spec = SPECIALIZATIONS[specialization];
   if (
     hero.level < 25 ||
@@ -2347,18 +2409,20 @@ export function chooseMastery(
 
 export function learnSkill(hero: Hero, skillId: string) {
   if (hero.skillArchitectureVersion === 3) {
+    if (!canLearnSkill(skillId, hero).ok) return false;
     const skill = activeSkills(hero).find((candidate) => candidate.id === skillId);
     const state = hero.skillProgressionV3 ?? adventurerV3StartingState();
     if (!skill && skillFamilyDefinitions[skillId]?.familyRole !== 'PASSIVE') return false;
     const result = purchaseSkillRankV3({
       level: hero.level,
       state,
-      jobs: { adventurer: { id: 'adventurer', tier: 'adventurer', parent: null }, warrior: { id: 'warrior', tier: 'core', parent: 'adventurer' }, berserker: { id: 'berserker', tier: 'specialization', parent: 'warrior' }, blade_master: { id: 'blade_master', tier: 'specialization', parent: 'warrior' } },
+      jobs: { adventurer: { id: 'adventurer', tier: 'adventurer', parent: null }, warrior: { id: 'warrior', tier: 'core', parent: 'adventurer' }, berserker: { id: 'berserker', tier: 'specialization', parent: 'warrior' }, blade_master: { id: 'blade_master', tier: 'specialization', parent: 'warrior' }, thief: { id: 'thief', tier: 'core', parent: 'adventurer' }, rogue: { id: 'rogue', tier: 'specialization', parent: 'thief' }, assasin: { id: 'assasin', tier: 'specialization', parent: 'thief' } },
       skills: skillFamilyDefinitions,
     }, skillId);
     if (!result.ok) return false;
     hero.skillProgressionV3 = state;
     hero.skillLevels = { ...hero.skillLevels, [skillId]: state.skillRanks[skillId] };
+    if (skill?.specialization === 'rogue' || skill?.specialization === 'assasin') hero.skillPoints = Math.max(0, state.totalEarnedSP - spentSkillPointsV3(state, skillFamilyDefinitions));
     if (skillFamilyDefinitions[skillId]?.familyId) {
       reconcileHeroSkillFamilies(hero);
       reconcileThiefBuffs(hero);
@@ -2683,6 +2747,19 @@ function normalizedHero(value: Record<string, unknown>, slotId = 'slot-1') {
   if (!oldSave && h.skillArchitectureVersion === 3 && h.skillProgressionV3?.chosenCoreJob === 'thief') {
     h.coreJob = 'thief'; h.job = 'thief'; h.jobTier = 'core'; h.specialization = null; h.weaponType = 'dagger';
     h.coreQuestClaimed = true;
+    if ((h.skillProgressionV3.chosenSpecialization === 'rogue' || h.skillProgressionV3.chosenSpecialization === 'assasin') && h.level >= 60) {
+      h.specialization = h.skillProgressionV3.chosenSpecialization; h.jobTier = 'specialization'; h.specializationQuestClaimed = true;
+    }
+    h.skillProgressionV3.chosenSpecialization = h.specialization;
+    h.skillProgressionV3.chosenAdvancedJob = null;
+    // Clean break for invalid sibling ownership. Removing paid ranks restores
+    // available SP through existing spent-SP accounting, never a bonus/refund twice.
+    for (const definition of Object.values(skillFamilyDefinitions)) {
+      if (['adventurer', 'thief', h.specialization].includes(definition.jobId)) continue;
+      delete h.skillProgressionV3.skillRanks[definition.id];
+      delete h.skillProgressionV3.grantedRanks[definition.id];
+      delete h.skillLevels[definition.id]; delete h.passiveLevels[definition.id];
+    }
   }
   h.equipment = reconcileDaggerEquipment(h, h.inventory, h.equipment);
   // Backfill the ownership marker for legacy saves whose equipment is stored
@@ -2698,6 +2775,13 @@ function normalizedHero(value: Record<string, unknown>, slotId = 'slot-1') {
   reconcileHeroSkillFamilies(h);
   const currentSkills = activeSkills(h);
   for (const skill of currentSkills) {
+    if (h.skillArchitectureVersion === 3 && h.coreJob === 'thief' && h.skillProgressionV3) {
+      // Saved mirrors cannot grant ranks absent from canonical paid progression.
+      const rank = integer(h.skillProgressionV3.skillRanks[skill.id], 0, skill.maxLevel, 0);
+      h.skillProgressionV3.skillRanks[skill.id] = rank;
+      h.skillLevels[skill.id] = rank;
+      continue;
+    }
     h.skillLevels[skill.id] = integer(
       h.skillLevels[skill.id],
       0,
@@ -2756,7 +2840,7 @@ function normalizedHero(value: Record<string, unknown>, slotId = 'slot-1') {
   if(h.progressionArchitecture==='v2_test')delete h.statusEffects.stealth;
   if(h.skillArchitectureVersion === 3 && h.skillProgressionV3) {
     const canonicalTotal = getTotalSkillPointsForLevel(h.level);
-    const spent = spentSkillPointsV3(h.skillProgressionV3, { ...ADVENTURER_V3_SKILL_MAP, ...WARRIOR_V3_SKILL_MAP, ...BERSERKER_V3_SKILL_MAP, ...BLADE_MASTER_V3_SKILL_MAP, ...THIEF_V3_SKILL_MAP });
+    const spent = spentSkillPointsV3(h.skillProgressionV3, skillFamilyDefinitions);
     h.skillProgressionV3 = {
       ...h.skillProgressionV3,
       totalEarnedSP: Math.max(h.skillProgressionV3.totalEarnedSP, canonicalTotal),
@@ -2910,7 +2994,7 @@ export function getLastPlayedCharacter(): Hero | null {
 
 export const characterLabel = displayLabel;
 export const passiveFor = (hero: Hero) =>
-  hero.specialization ? PASSIVES[hero.specialization] : null;
+  hero.specialization && hero.specialization !== 'rogue' && hero.specialization !== 'assasin' ? PASSIVES[hero.specialization] : null;
 export { ALL_SKILLS, CORE_JOBS, PASSIVES, SPECIALIZATIONS, skillsFor };
 export type {
   CoreJobId,

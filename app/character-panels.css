@@ -856,6 +856,55 @@
   color: #889d8d;
   font-size: 12px;
 }
+.js-family-overview {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(155px, 100%), 1fr));
+  gap: 8px;
+}
+.job-skill .js-family-card {
+  display: grid;
+  gap: 5px;
+  padding: 12px;
+  min-width: 0;
+  text-align: left;
+  border: 1px solid #70866c66;
+  border-radius: 7px;
+  color: #c8d5c4;
+  background: #16251e;
+  overflow-wrap: anywhere;
+}
+.job-skill .js-family-card.selected {
+  border-color: #e2c783;
+  background: #304035;
+  box-shadow: inset 3px 0 #e2c783;
+}
+.js-family-card small, .js-family-edge { color: #b4c4af; font-size: 12px; }
+.js-family-card > span { font-size: 13px; }
+.js-family-expanded { margin-top: 18px; padding: 14px 10px; border: 1px solid #70866c66; border-radius: 8px; min-width: 0; }
+.js-family-expanded h3 { color: #edd6a0; margin: 0; font-size: 18px; }
+.js-family-expanded h3 small { font-size: 12px; }
+.js-family-available { font-size: 13px; color: #cee0b2; overflow-wrap: anywhere; }
+.js-family-tier-nodes { display: flex; justify-content: center; gap: 12px; flex-wrap: wrap; }
+.js-family-branch { flex: 1 1 150px; max-width: 270px; min-width: 0; }
+.js-family-edge { display: block; text-align: center; padding: 8px 0; overflow-wrap: anywhere; }
+.js-family-connector { text-align: center; font-size: 24px; color: #cbb77d; }
+.is-branch-split { border-top: 1px solid #a6b18388; margin-top: 4px; }
+.is-branch-split .js-family-edge::before { content: ''; display: block; height: 12px; width: 1px; background: #a6b18388; margin: -8px auto 6px; }
+.job-skill .js-node.family-active { border: 2px solid #bbd990; box-shadow: inset 0 0 0 2px #bbd99022; }
+.job-skill .js-node.family-replaced { background: #1c2824; border-style: dashed; color: #b4c2b4; }
+.job-skill .js-node.family-excluded { background: #202525; border-style: dashed; color: #acb5b0; }
+.job-skill .js-node.family-excluded .skill-icon { opacity: .55; }
+.job-skill .js-node .js-node-state { font-weight: 700; color: #e3d3a6; }
+.js-thief-lineage .js-node > small { overflow-wrap: anywhere; line-height: 1.5; }
+.js-lineage-mechanic { padding: 14px; margin: 12px 0 18px; background: #192920; border: 1px solid #74876866; border-radius: 8px; color: #c5d2c0; font-size: 13px; line-height: 1.6; }
+.js-lineage-mechanic p { margin: 8px 0; }
+.js-lineage-mechanic summary { cursor: pointer; color: #ead69c; }
+.js-lineage-mechanic summary:focus-visible { outline: 2px solid #ead69c; outline-offset: 3px; }
+.js-mechanic-table { overflow-x: auto; }
+.js-mechanic-table table { width: 100%; border-collapse: collapse; text-align: left; }
+.js-mechanic-table th, .js-mechanic-table td { padding: 5px 8px; border-bottom: 1px solid #74876866; white-space: nowrap; }
+.js-thief-lineage .js-layout > *, .js-thief-lineage .js-detail { min-width: 0; }
+.js-thief-lineage .js-detail dd { overflow-wrap: anywhere; }
 .js-layout {
   display: grid;
   grid-template-columns: 190px minmax(300px, 1fr) 250px;

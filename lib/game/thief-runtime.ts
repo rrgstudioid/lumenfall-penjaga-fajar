@@ -1,4 +1,5 @@
 import type { Hero } from './rules.ts';
+import { thiefJobCapabilities } from './thief-job-capabilities.ts';
 import type { SkillDefinition, SkillHit } from './skills.ts';
 import type { CombatModifier } from './combat-modifiers.ts';
 import { getActiveSkillForFamily } from './skill-family.ts';
@@ -67,7 +68,7 @@ export const THIEF_V3_RUNTIME_SKILLS: readonly SkillDefinition[] = THIEF_V3_SKIL
 });
 
 export function activeThiefFamily(hero: Hero, familyId: string) {
-  if (hero.skillArchitectureVersion !== 3 || hero.coreJob !== 'thief' || !hero.skillProgressionV3) return null;
+  if (!thiefJobCapabilities(hero).canUseCoreThiefSkills || !hero.skillProgressionV3) return null;
   const definition = getActiveSkillForFamily({ state: hero.skillProgressionV3, level: hero.level, skills: THIEF_V3_SKILL_MAP }, familyId);
   return definition ? resolveThiefCanonicalRank(definition.id, hero.skillProgressionV3.skillRanks[definition.id]) : null;
 }

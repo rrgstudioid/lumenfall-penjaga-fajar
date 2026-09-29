@@ -10,6 +10,8 @@ export type TargetView = {
   armorBreakRemaining?: number;
   marked?: boolean;
   markRemaining?: number;
+  poison?: { label: string; stacks: number; ownStacks: number; sources: number; slowPercent: number };
+  eclipse?: { label: string; remaining: number };
 };
 /** One reusable ring/frame per world; no new input listeners or model materials. */
 export class TargetPresentation {
@@ -66,6 +68,11 @@ export class TargetPresentation {
     const statuses: string[] = [];
     if(view.marked)statuses.push('MARKED'+((view.markRemaining??0)>0?` · ${view.markRemaining!.toFixed(1)}s`:''));
     if ((view.armorBreakRemaining ?? 0) > 0) statuses.push(`ARMOR BREAK · ${view.armorBreakRemaining!.toFixed(1)}s`);
+    if (view.poison) statuses.push(view.poison.ownStacks > 0 ? `Your Poison ×${view.poison.ownStacks}` : 'Poison · other source');
+    if (view.eclipse) statuses.push(`${view.eclipse.label} · ${view.eclipse.remaining.toFixed(1)}s`);
+    this.status.title = view.poison
+      ? `Poison DoT · Your stacks: ${view.poison.ownStacks}/5 · Sources: ${view.poison.sources} · Movement Slow: ${view.poison.slowPercent}%`
+      : '';
     this.status.textContent = statuses.join('  ·  ');
     this.status.hidden = statuses.length === 0;
     this.frame.dataset.targetId = String(view.id);
