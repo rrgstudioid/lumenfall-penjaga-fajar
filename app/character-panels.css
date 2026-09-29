@@ -958,7 +958,7 @@
   margin: 15px 0 0;
   padding: 17px 8px;
 }
-.js-sidebar-note > span {
+.js-sidebar-note > span, .js-sidebar-note > .js-loadout-skill {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -966,6 +966,13 @@
   font-size: 12px;
   margin: 8px 0;
   color: #adba9f;
+}
+.js-sidebar-note > .js-loadout-skill {
+  width: 100%; text-align: left; padding: 5px 2px; background: transparent;
+  border: 0; border-radius: 4px; cursor: pointer;
+}
+.js-sidebar-note > .js-loadout-skill:hover, .js-sidebar-note > .js-loadout-skill:focus-visible {
+  background: #96a68024; color: #f0dfb1;
 }
 .js-sidebar-note kbd {
   font-family: inherit;

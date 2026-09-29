@@ -4,10 +4,18 @@ import {
   type EquipSlot,
   type ItemData,
 } from './items.ts';
-import { activeSkills, derivedStats, equipItem, type Hero } from './rules.ts';
+import { derivedStats, equipItem, type Hero } from './rules.ts';
 import { getCombatPower } from './combat-power.ts';
 import { reconcileDaggerEquipment, resolveDaggerEquipment } from './dagger.ts';
-import { getVisibleJobArchitecture, v3SpecializationName } from './job-presentation.ts';
+import { getVisibleJobArchitecture, getV3SkillLineage } from './job-presentation.ts';
+import { ADVENTURER_V3_RUNTIME_SKILLS } from './adventurer-v3.ts';
+import { WARRIOR_V3_RUNTIME_SKILLS } from './warrior-v3.ts';
+import { BERSERKER_V3_RUNTIME_SKILLS } from './berserker-v3.ts';
+import { BLADE_MASTER_V3_RUNTIME_SKILLS } from './blade-master-v3.ts';
+import { THIEF_V3_RUNTIME_SKILLS } from './thief-runtime.ts';
+import { ROGUE_V3_RUNTIME_SKILLS } from './rogue-v3.ts';
+import { ASSASIN_V3_RUNTIME_SKILLS } from './assasin-v3.ts';
+import { skillFamilyDefinitions } from './skill-family-runtime.ts';
 import {
   ALL_PASSIVES,
   ALL_SKILLS,
@@ -109,12 +117,7 @@ export type JobStageId =
   | 'capstone';
 export function getJobProgression(hero: Hero) {
   const architecture = getVisibleJobArchitecture(hero);
-  if (architecture.v3) return [
-    { id: 'adventurer' as JobStageId, name: 'Adventurer', level: 1, done: true },
-    { id: 'core' as JobStageId, name: hero.coreJob === 'thief' ? 'Thief' : 'Warrior', level: 15, done: !!hero.coreJob },
-    { id: 'specialization' as JobStageId, name: v3SpecializationName(hero.specialization) ?? (hero.coreJob === 'thief' ? 'Rogue / Assasin' : 'Berserker / Blade Master'), level: 60, done: !!hero.specialization },
-  ].map((entry, index) => ({ ...entry,
-    status: entry.done ? (index === (hero.specialization ? 2 : hero.coreJob ? 1 : 0) ? 'Current' : 'Completed') : 'Locked',
+  if (architecture.v3) return getV3SkillLineage(hero).map(entry => ({ ...entry,
     requirements: entry.done ? [] : [`Level ${entry.level}`, 'Pilih job melalui trainer'],
     quest: undefined, npc: undefined, history: hero.jobHistory?.[entry.id],
   }));
@@ -245,12 +248,12 @@ export function getJobProgression(hero: Hero) {
   });
 }
 export function getJobSkillNodes(hero: Hero, stage: JobStageId) {
-  if (hero.skillArchitectureVersion === 3) return {
-    active: activeSkills(hero).filter(skill => stage === 'adventurer' ? skill.job === 'adventurer'
-      : stage === 'core' ? skill.job === hero.coreJob && !skill.specialization
-      : stage === 'specialization' ? !!hero.specialization && skill.specialization === hero.specialization : false),
-    passive: [],
-  };
+  if (hero.skillArchitectureVersion === 3) {
+    const jobId = getV3SkillLineage(hero).find(entry => entry.id === stage)?.jobId;
+    // A tree includes unlearned, replaced and passive family nodes. Do not
+    // source it from the currently castable/equipped loadout.
+    return { active: jobId ? V3_PANEL_SKILLS.filter(skill => skillFamilyDefinitions[skill.id]?.jobId === jobId) : [], passive: [] };
+  }
   const active = ALL_SKILLS.filter((skill) =>
     stage === 'adventurer'
       ? skill.job === 'adventurer'
@@ -272,3 +275,7 @@ export function getJobSkillNodes(hero: Hero, stage: JobStageId) {
     passive: passive.filter((s) => skillArchitectureAllowed(hero, s)),
   };
 }
+
+const V3_PANEL_SKILLS = [...ADVENTURER_V3_RUNTIME_SKILLS, ...WARRIOR_V3_RUNTIME_SKILLS,
+  ...THIEF_V3_RUNTIME_SKILLS, ...BERSERKER_V3_RUNTIME_SKILLS, ...BLADE_MASTER_V3_RUNTIME_SKILLS,
+  ...ROGUE_V3_RUNTIME_SKILLS, ...ASSASIN_V3_RUNTIME_SKILLS];

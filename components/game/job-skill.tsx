@@ -41,7 +41,7 @@ import { StatBlockList } from './character-overview';
 import { useGameDrag } from './drag-drop-provider';
 import { SkillIcon } from './skill-icon';
 import { DraggableAlertDialogContent } from './draggable-window';
-import { getVisibleJobArchitecture } from '@/lib/game/job-presentation';
+import { getVisibleJobArchitecture, getV3SkillLineage } from '@/lib/game/job-presentation';
 import { rankSource } from '@/lib/game/rank-ownership';
 import { availableSkillPointsV3, skillCostThroughRank } from '@/lib/game/skill-progression-v3';
 import { weaponRequirementLabel } from '@/lib/game/weapon-style';
@@ -84,24 +84,28 @@ export function JobSkill({
   onMark: (npcId: string) => void;
 }) {
   const { begin, isDragging } = useGameDrag();
-  const [stage, setStage] = useState<JobStageId>(
-    (getVisibleJobArchitecture(hero).legacyProgression || hero.skillArchitectureVersion === 3) && hero.specialization
-      ? 'specialization'
-      : hero.coreJob
-        ? 'core'
-        : 'adventurer',
-  );
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const path = getJobProgression(hero);
+  const panelContext = JSON.stringify([hero.characterId ?? hero.slotId, hero.skillArchitectureVersion,
+    ...path.map(entry => [entry.id, entry.name, entry.done])]);
+  const [navigation, setNavigation] = useState<{ context: string; stage: JobStageId; skillId: string | null; familyId: string | null } | null>(null);
+  const currentNavigation = navigation?.context === panelContext ? navigation : null;
+  const stage = currentNavigation?.stage ?? path.find(entry => entry.status === 'Current')?.id ?? 'adventurer';
+  const selectedId = currentNavigation?.skillId ?? null;
+  const familyId = currentNavigation?.familyId ?? null;
+  const setStage = (nextStage: JobStageId) => setNavigation({ context: panelContext, stage: nextStage, skillId: null, familyId: null });
+  const setSelectedId = (skillId: string) => setNavigation({ context: panelContext, stage, skillId, familyId });
   const [resetOpen, setResetOpen] = useState(false);
-  const [familyId, setFamilyId] = useState<string | null>(null);
   const [branchChoice, setBranchChoice] = useState<{ id: string; actorId: string } | null>(null);
-  const thiefLineage = hero.skillArchitectureVersion === 3 && hero.coreJob === 'thief';
+  const v3Lineage = hero.skillArchitectureVersion === 3 ? getV3SkillLineage(hero) : [];
+  const thiefLineage = v3Lineage.some(entry => entry.jobId === 'thief');
+  const skillRank = (skill: SkillDefinition | PassiveDefinition) => hero.skillArchitectureVersion === 3 && v3Definitions[skill.id]
+    ? hero.skillProgressionV3?.skillRanks[skill.id] ?? 0
+    : 'slot' in skill ? hero.skillLevels[skill.id] ?? 0 : hero.passiveLevels[skill.id] ?? 0;
   const grantedLabels = ALL_SKILLS.flatMap(skill => {
     const granted = rankSource(hero, 'active', skill.id).granted;
     return granted ? [`${skill.name} Rank ${granted}`] : [];
   });
-  const path = getJobProgression(hero).filter(entry => !thiefLineage || entry.id === 'core' || (entry.id === 'specialization' && !!hero.specialization)),
-    currentStage = path.find((entry) => entry.id === stage) ?? path[0];
+  const currentStage = path.find((entry) => entry.id === stage) ?? path[0];
   const nodes = getJobSkillNodes(hero, currentStage.id);
   const allNodes = [...nodes.active, ...nodes.passive];
   const families = thiefLineage && currentStage.id === 'core' ? skillFamilyOverview(hero, nodes.active) : [];
@@ -128,11 +132,7 @@ export function JobSkill({
   const validation = selected
     ? canLearnSkill(selected.id, hero)
     : { ok: false, reason: 'Selesaikan job quest sebelumnya.' };
-  const level = selectedActive
-    ? (hero.skillLevels[selectedActive.id] ?? 0)
-    : selected
-      ? (hero.passiveLevels[selected.id] ?? 0)
-      : 0;
+  const level = selected ? skillRank(selected) : 0;
   const v3Definition = hero.skillArchitectureVersion === 3 && selected ? v3Definitions[selected.id] : undefined;
   const presentation = v3Definition && selectedActive
     ? resolveSkillPresentation(hero, v3Definition, selectedActive)
@@ -144,23 +144,26 @@ export function JobSkill({
   const totalEarnedSP = hero.skillArchitectureVersion === 3 && hero.skillProgressionV3
     ? hero.skillProgressionV3.totalEarnedSP : hero.skillPoints;
   const spentSP = Math.max(0, totalEarnedSP - availableSP);
-  const learned = allNodes.filter(
-    (skill) =>
-      (hero.skillLevels[skill.id] ?? hero.passiveLevels[skill.id] ?? 0) > 0,
-  ).length;
+  const learned = allNodes.filter(skill => skillRank(skill) > 0).length;
   const archived =
-    nodes.active.length > 0 &&
+    hero.skillArchitectureVersion !== 3 && nodes.active.length > 0 &&
     !activeSkills(hero).some((skill) => skill.id === nodes.active[0].id);
   const assignedKey = (skillId: string) => {
     const index = hero.primaryHotbar.findIndex(id => resolvePrimaryHotbarEntry(hero, id)?.id === skillId);
     return index < 0 ? '—' : String((index + 1) % 10);
   };
+  const loadout = activeSkills(hero).filter(skill => hero.skillArchitectureVersion !== 3 ||
+    skillRank(skill) > 0 && skill.usableFromHotbar !== false &&
+    !['PASSIVE', 'MASTERY'].includes(v3Definitions[skill.id]?.skillType ?? '') && heroFamilySkillActive(hero, skill.id));
+  const inspectLoadout = (skill: SkillDefinition) => {
+    const owner = path.find(entry => getJobSkillNodes(hero, entry.id).active.some(node => node.id === skill.id));
+    if (owner) setNavigation({ context: panelContext, stage: owner.id, skillId: skill.id,
+      familyId: v3Definitions[skill.id]?.familyId ?? null });
+  };
   function node(skill: SkillDefinition | PassiveDefinition) {
     const isActive = 'slot' in skill,
       isV3Mastery = v3Definitions[skill.id]?.skillType === 'MASTERY' || v3Definitions[skill.id]?.skillType === 'PASSIVE',
-      rank = isActive
-        ? (hero.skillLevels[skill.id] ?? 0)
-        : (hero.passiveLevels[skill.id] ?? 0);
+      rank = skillRank(skill);
     const state = getSkillStatus(skill.id, hero),
       can = canLearnSkill(skill.id, hero);
     const familyStates = heroFamilyNodeStates(hero, skill.id);
@@ -235,7 +238,7 @@ export function JobSkill({
       <div className="js-header">
         <span>
           <Crown size={20} />
-          {characterLabel(hero)}
+          {hero.skillArchitectureVersion === 3 ? path.find(entry => entry.status === 'Current')?.name ?? 'Adventurer' : characterLabel(hero)}
         </span>
         <p>Rangkai kekuatanmu. Tentukan cara bertarungmu.</p>
         <div className="js-header-actions">
@@ -294,15 +297,15 @@ export function JobSkill({
               className={currentStage.id === entry.id ? 'selected' : ''}
               onClick={() => {
                 setStage(entry.id);
-                setSelectedId(null);
               }}
-              aria-current={stage === entry.id ? 'step' : undefined}
+              aria-current={currentStage.id === entry.id ? 'step' : undefined}
+              data-job-stage={entry.id}
             >
               <span className="js-stage-number">
                 {String(index + 1).padStart(2, '0')}
               </span>
               <span>
-                <b>{thiefLineage && entry.id === 'core' ? 'CORE THIEF' : entry.name}</b>
+                <b>{entry.name}</b>
                 <small>
                   {thiefLineage && entry.id === 'specialization' ? 'SPECIALIZATION · ' : ''}Lv. {entry.level} · {entry.status}
                 </small>
@@ -319,16 +322,15 @@ export function JobSkill({
           <div className="js-sidebar-note">
             ACTIVE LOADOUT
             <br />
-            {activeSkills(hero).filter(skill => hero.skillArchitectureVersion !== 3 ? true :
-              (hero.skillLevels[skill.id] ?? 0) > 0 && skill.usableFromHotbar !== false &&
-              !['PASSIVE', 'MASTERY'].includes(v3Definitions[skill.id]?.skillType ?? '') && heroFamilySkillActive(hero, skill.id)).map((skill) => (
-              <span key={skill.id}>
+            {loadout.map((skill) => (
+              <button type="button" className="js-loadout-skill" key={skill.id} data-loadout-skill={skill.id}
+                onClick={() => inspectLoadout(skill)} aria-label={`Lihat ${skill.name}`}>
                 <SkillIcon id={skill.id} size={18} />
                 <kbd title="Tombol PrimaryHotbar; — berarti belum dipasang">
                   {assignedKey(skill.id)}
                 </kbd>
                 {skill.name}
-              </span>
+              </button>
             ))}
           </div>
         </nav>
@@ -341,6 +343,8 @@ export function JobSkill({
                   : family ? 'CORE THIEF · SKILL FAMILIES' : 'SKILL CONSTELLATION'}
               </span>
               <h2>{currentStage.name}</h2>
+              {v3Lineage.find(entry => entry.id === currentStage.id)?.description &&
+                <p className="js-hint">{v3Lineage.find(entry => entry.id === currentStage.id)!.description}</p>}
             </div>
             <small>
               {family ? `${families.length} families · ` : ''}{learned}/{allNodes.length} learned
@@ -358,9 +362,9 @@ export function JobSkill({
               empat skill yang sudah ada dengan Power, Control, atau Utility.
             </p>
           )}
-          {thiefLineage && currentStage.id === 'specialization' && <LineageMechanics specialization={hero.specialization} />}
+          {thiefLineage && currentStage.id === 'specialization' && currentStage.done && <LineageMechanics specialization={hero.specialization} />}
           {family && <SkillFamilyBrowser families={families} selected={family} renderNode={node} onSelect={entry => {
-            setFamilyId(entry.id); setSelectedId(entry.active?.id ?? entry.rootId ?? null);
+            setNavigation({ context: panelContext, stage: currentStage.id, familyId: entry.id, skillId: entry.active?.id ?? entry.rootId ?? null });
           }} />}
           {!family && !!nodes.active.length && (
             <div className="js-constellation">

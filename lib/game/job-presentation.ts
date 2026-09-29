@@ -26,6 +26,32 @@ export const V3_SPECIALIZATION_PRESENTATION = [
 export type V3SpecializationId = (typeof V3_SPECIALIZATION_PRESENTATION)[number]['id'];
 export const v3SpecializationName = (id: string | null | undefined) =>
   V3_SPECIALIZATION_PRESENTATION.find((entry) => entry.id === id)?.name;
+
+/** K-panel projection only. Chosen progression owns the path; previewing a
+ * future stage never grants skills or falls back to another core's registry. */
+export function getV3SkillLineage(hero: PresentationHero) {
+  const state = hero.skillProgressionV3;
+  const coreId = state ? state.chosenCoreJob : hero.coreJob;
+  const specializationId = state ? state.chosenSpecialization : hero.specialization;
+  const core = coreId === 'thief' ? THIEF_JOB_IDENTITY.thief
+    : coreId === 'warrior' ? { name: 'Warrior', description: 'Sword combat, pertahanan, dan fondasi Berserker / Blade Master.' } : null;
+  const choices = core ? V3_SPECIALIZATION_PRESENTATION.filter(choice => choice.coreJob === coreId) : [];
+  const specialization = choices.find(choice => choice.id === specializationId);
+  type Stage = { id: 'adventurer' | 'core' | 'specialization'; jobId: string | null; name: string;
+    description: string; level: number; done: boolean; status: 'Current' | 'Completed' | 'Locked' | 'Available' };
+  const stages: Stage[] = [{ id: 'adventurer', jobId: 'adventurer', name: 'Adventurer',
+    description: 'Fondasi awal petualangan: serangan dasar skill dan pemulihan.', level: 1, done: true,
+    status: core ? 'Completed' : 'Current' }];
+  if (!core) return stages;
+  stages.push({ id: 'core', jobId: coreId!, name: core.name, description: core.description,
+    level: 15, done: true, status: specialization ? 'Completed' : 'Current' });
+  stages.push({ id: 'specialization', jobId: specialization?.id ?? null,
+    name: specialization?.name ?? choices.map(choice => choice.name).join(' / '),
+    description: specialization?.description ?? 'Pilih specialization melalui Job Trainer setelah mencapai Lv. 60.',
+    level: 60, done: !!specialization,
+    status: specialization ? 'Current' : (hero.level ?? 1) >= 60 ? 'Available' : 'Locked' });
+  return stages;
+}
 /** Read-only presentation; never authorizes a job, modifies an item or migrates a save. */
 const branches = Object.values(JOB_V2_REGISTRY).filter(j => j.tier === 1).map(job => ({
     ...job,
