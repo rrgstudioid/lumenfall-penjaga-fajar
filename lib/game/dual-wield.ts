@@ -43,7 +43,8 @@ export function validateDualWieldEquip(
   return { ok: true as const, reason: null };
 }
 
-export type WeaponContributionMode = 'SINGLE_MAIN' | 'SINGLE_OFF' | 'DUAL_COMBINED' | 'DUAL_SEQUENCE';
+export type WeaponContributionMode = 'SINGLE_MAIN' | 'SINGLE_OFF' | 'DUAL_COMBINED' | 'DUAL_SEQUENCE'
+  | 'THROWN_MAIN' | 'THROWN_OFF' | 'THROWN_SEQUENCE';
 export type WeaponHand = 'MAIN' | 'OFF';
 export type WeaponHitDefinition = {
   weaponHand: WeaponHand;
@@ -69,8 +70,31 @@ export function resolveWeaponAttackContext(
 ): WeaponAttackContext {
   const mainHandWeaponAttack = weaponAttack(main);
   const offHandWeaponAttack = weaponAttack(off);
-  const totalWeaponAttack = mode === 'SINGLE_OFF' ? offHandWeaponAttack : mode === 'DUAL_COMBINED' ? mainHandWeaponAttack + offHandWeaponAttack : mode === 'SINGLE_MAIN' ? mainHandWeaponAttack : 0;
+  const totalWeaponAttack = mode === 'SINGLE_OFF' || mode === 'THROWN_OFF' ? offHandWeaponAttack : mode === 'DUAL_COMBINED' ? mainHandWeaponAttack + offHandWeaponAttack : mode === 'SINGLE_MAIN' || mode === 'THROWN_MAIN' ? mainHandWeaponAttack : 0;
   return { mode, sharedPhysicalCore, mainHandWeaponAttack, offHandWeaponAttack, totalWeaponAttack };
+}
+
+/** Shared execution foundation. Thrown modes address item layers only: no
+ * inventory mutation, item consumption, projectile spawning or extra impact. */
+export function composeWeaponModeHits(action: ResolvedSkillAction, context: WeaponAttackContext) {
+  const sequence = context.mode === 'DUAL_SEQUENCE' || context.mode === 'THROWN_SEQUENCE';
+  const totalCoefficient = action.hitSequence.reduce((sum, hit) => sum + hit.physicalCoefficient, 0);
+  const weightSum = action.hitSequence.reduce((sum, hit) => sum + (hit.sharedContributionWeight ?? 0), 0);
+  if (sequence && (Math.abs(weightSum - 1) > 1e-6 || action.hitSequence.some(hit =>
+    !['MAIN', 'OFF'].includes(hit.weaponHand ?? '') || !Number.isFinite(hit.sharedContributionWeight) || hit.sharedContributionWeight! < 0))) {
+    action.weaponAllowed = false;
+    return action;
+  }
+  action.hitSequence = action.hitSequence.map(hit => {
+    const hand = sequence ? hit.weaponHand! : context.mode === 'DUAL_COMBINED' ? 'BOTH'
+      : context.mode === 'SINGLE_OFF' || context.mode === 'THROWN_OFF' ? 'OFF' : 'MAIN';
+    const weapon = hand === 'BOTH' ? context.mainHandWeaponAttack + context.offHandWeaponAttack
+      : hand === 'OFF' ? context.offHandWeaponAttack : context.mainHandWeaponAttack;
+    const shared = sequence ? totalCoefficient * hit.sharedContributionWeight! : hit.physicalCoefficient;
+    return { ...hit, weaponHand: hand,
+      composedPhysicalPower: context.sharedPhysicalCore * shared + weapon * hit.physicalCoefficient * (hit.weaponContributionCoefficient ?? 1) };
+  });
+  return action;
 }
 
 /** Applies the canonical SINGLE_MAIN contract to an already-resolved action.

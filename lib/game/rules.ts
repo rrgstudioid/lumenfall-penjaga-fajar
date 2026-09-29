@@ -1,5 +1,6 @@
 import { PLAINS_ID, PLAINS_ENTRY, restorePlainsPosition } from './verdant-plains-layout.ts';
 import { isResourceEnabled, staminaDerivedValue } from './gameplay-config.ts';
+import { RogueAmbushState } from './rogue-ambush.ts';
 import { getVisibleJobArchitecture } from './job-presentation.ts';
 import {progressionRules,LEGACY_CONTENT_CAP,type ProgressionArchitecture} from './progression.ts';
 import {rankSource,normalizedRankOwnership,buyRank,grantRank,paidTreeInvestment,type RankOwnership} from './rank-ownership.ts';
@@ -8,12 +9,18 @@ import { getJobV2, type CoreJobV2Id } from './job-registry-v2.ts';
 import type {CombatSupport} from './combat-transient.ts';
 import { resolveSkillAction, skillHitDamage, resolvedDamageParts } from './skill-action.ts';
 import { ADVENTURER_V3_RUNTIME_SKILLS, ADVENTURER_V3_SKILL_MAP, adventurerV3StartingState } from './adventurer-v3.ts';
+import { THIEF_V3_SKILL_MAP } from './thief-v3.ts';
+import { THIEF_V3_RUNTIME_SKILLS, thiefPassiveModifiers, thiefManaReduction, reconcileThiefBuffs } from './thief-runtime.ts';
 import { WARRIOR_V3_RUNTIME_SKILLS, WARRIOR_V3_SKILL_MAP, warriorV3StateAfterCoreChange } from './warrior-v3.ts';
 import { BERSERKER_V3_RUNTIME_SKILLS, BERSERKER_V3_SKILL_MAP, BERSERKER_MASTERY_MANA_SKILLS, BERSERKER_TRANCE_DAMAGE_SKILLS, BERSERKER_TRANCE_AOE_SKILLS, berserkerV3StateAfterSpecialization } from './berserker-v3.ts';
 import { BLADE_MASTER_V3_RUNTIME_SKILLS, BLADE_MASTER_V3_SKILL_MAP, BLADE_MASTER_DUAL_MANA_SKILLS, BLADE_MASTER_MASTERY_MANA_SKILLS, BLADE_MASTER_MASTERY_MANA_REDUCTION_BY_RANK, bladeMasterV3StateAfterSpecialization, bladeMasterDualWieldActive, composeBladeWeaponHits } from './blade-master-v3.ts';
 import type { StunState } from './stun.ts';
-import { canPurchaseSkillRank, normalizeSkillProgressionV3, purchaseSkillRankV3, refundAllSkillPointsForJobChange, spentSkillPointsV3, type SkillProgressionV3State } from './skill-progression-v3.ts';
+import { canPurchaseSkillRank, normalizeSkillProgressionV3, purchaseSkillRankV3, refundAllSkillPointsForJobChange, resetFamilyBranch, spentSkillPointsV3, type SkillProgressionV3State } from './skill-progression-v3.ts';
+import { heroFamilyContext, heroFamilyHotbarBinding, heroFamilyNodeStates, heroFamilySkillActive, heroFamilySkillReference, heroSkillCooldownRemaining, reconcileHeroSkillFamilies, skillFamilyDefinitions } from './skill-family-runtime.ts';
+import { isFamilyBinding } from './skill-family.ts';
+import { reconcileFamilyHotbarBindings } from './hotbar.ts';
 import { meetsWeaponRequirement, resolveWeaponStyle } from './weapon-style.ts';
+import { isDaggerItem, resolveDaggerEquipment, reconcileDaggerEquipment, validateDaggerEquip } from './dagger.ts';
 import {
   ALL_SKILLS,
   ALL_PASSIVES,
@@ -73,7 +80,7 @@ import { FIELD_TERRAINS, nearestTerrainPoint } from './field-terrain.ts';
 import { monsterDropChance, rollMonsterItem } from './monster-loot.ts';
 import { PRIMARY_HOTBAR_SIZE, emptyQuickHotbars, loadPrimaryHotbar, validateQuickHotbarAssignments, remapPrimaryHotbarForJob, type PrimaryHotbarState } from './hotbar.ts';
 import { canonicalItemTemplateId, itemCooldownKey, getItemCooldownRemaining, potionRestoreAmount } from './items.ts';
-import { composeSingleMainWeaponHits, validateDualWieldEquip, type DualWieldEquipReason } from './dual-wield.ts';
+import { composeSingleMainWeaponHits, composeWeaponModeHits, resolveWeaponAttackContext, weaponAttack, validateDualWieldEquip, type DualWieldEquipReason, type WeaponContributionMode, type WeaponHand } from './dual-wield.ts';
 
 export const SAVE_KEY = 'lumenfall-saves-v3';
 export const LEGACY_SAVE_KEY = 'lumenfall-saves-v2';
@@ -406,6 +413,10 @@ const oldJob = (job: JobId): CombatProfile | null =>
   job in LEGACY_JOBS ? LEGACY_JOBS[job as LegacyJobId] : null;
 
 export function combatProfile(hero: Hero): CombatProfile {
+  if (hero.skillArchitectureVersion === 3 && hero.coreJob === 'thief' && !hero.specialization) {
+    // Preserve the existing foundation's baseline numbers; identity is not a balance change.
+    return { ...combatProfile({ ...hero, coreJob: null, job: 'adventurer' }), label: 'Thief', title: 'Precision Skirmisher', description: 'Dagger, mobilitas pendek, Weakpoint pribadi, dan Skill Families.', weapon: 'dagger' };
+  }
   if (hero.specialization) {
     if (hero.skillArchitectureVersion === 3 && hero.specialization === 'berserker') {
       const core = CORE_JOBS.warrior;
@@ -642,6 +653,7 @@ export function chooseV3Warrior(hero: Hero): boolean {
   if (hero.skillArchitectureVersion !== 3 || hero.level < 15 || hero.coreJob || !hero.skillProgressionV3) return false;
   if (hasEquippedGear(hero)) return false;
   hero.skillProgressionV3 = warriorV3StateAfterCoreChange(hero.skillProgressionV3);
+  reconcileHeroSkillFamilies(hero);
   hero.coreJob = 'warrior';
   hero.job = 'warrior';
   hero.jobTier = 'core';
@@ -656,10 +668,23 @@ export function chooseV3Warrior(hero: Hero): boolean {
 }
 
 /** Development-only V3 specialization transition; legacy V2 promotion is untouched. */
+export function chooseV3Thief(hero: Hero): boolean {
+  if (hero.skillArchitectureVersion !== 3 || hero.level < 15 || hero.coreJob || !hero.skillProgressionV3 || hasEquippedGear(hero)) return false;
+  hero.skillProgressionV3 = { ...hero.skillProgressionV3, skillRanks: { ...hero.skillProgressionV3.grantedRanks }, chosenCoreJob: 'thief', chosenSpecialization: null, chosenAdvancedJob: null };
+  hero.coreJob = 'thief'; hero.job = 'thief'; hero.jobTier = 'core'; hero.weaponType = 'dagger';
+  hero.skillLevels = Object.fromEntries([...ADVENTURER_V3_RUNTIME_SKILLS, ...THIEF_V3_RUNTIME_SKILLS].map(skill => [skill.id, hero.skillProgressionV3!.skillRanks[skill.id] ?? 0]));
+  reconcileHeroSkillFamilies(hero);
+  hero.primaryHotbar = hero.primaryHotbar.map(() => null); hero.primaryHotbarOverflow = []; hero.quickHotbars = emptyQuickHotbars();
+  hero.coreQuestClaimed = true;
+  hero.jobHistory = { ...hero.jobHistory, core: { level: hero.level, chapter: 1, acquiredAt: Date.now() } };
+  return true;
+}
+
 export function chooseV3Berserker(hero: Hero): boolean {
   if (hero.skillArchitectureVersion !== 3 || hero.level < 60 || hero.coreJob !== 'warrior' || hero.specialization || !hero.skillProgressionV3) return false;
   if (hasEquippedGear(hero)) return false;
   hero.skillProgressionV3 = berserkerV3StateAfterSpecialization(hero.skillProgressionV3);
+  reconcileHeroSkillFamilies(hero);
   hero.specialization = 'berserker';
   hero.job = 'warrior';
   hero.jobTier = 'specialization';
@@ -678,6 +703,7 @@ export function chooseV3BladeMaster(hero: Hero): boolean {
   if (hero.skillArchitectureVersion !== 3 || hero.level < 60 || hero.coreJob !== 'warrior' || hero.specialization || !hero.skillProgressionV3) return false;
   if (hasEquippedGear(hero)) return false;
   hero.skillProgressionV3 = bladeMasterV3StateAfterSpecialization(hero.skillProgressionV3);
+  reconcileHeroSkillFamilies(hero);
   hero.specialization = 'blade_master'; hero.job = 'warrior'; hero.jobTier = 'specialization'; hero.weaponType = 'dual_sword';
   hero.skillLevels = Object.fromEntries([...ADVENTURER_V3_RUNTIME_SKILLS, ...WARRIOR_V3_RUNTIME_SKILLS, ...BLADE_MASTER_V3_RUNTIME_SKILLS].map((skill) => [skill.id, hero.skillProgressionV3!.skillRanks[skill.id] ?? 0]));
   hero.primaryHotbar = hero.primaryHotbar.map(() => null); hero.primaryHotbarOverflow = []; hero.quickHotbars = emptyQuickHotbars();
@@ -851,24 +877,22 @@ export const calculateBaseStats = (hero: Hero, allocated: AllocatedStats = hero.
 
 export const calculateEquipmentStats = (hero: Hero) => {
   const result: StatBlock = {};
-  for (const itemId of new Set(Object.values(hero.equipment))) {
-    const item = itemById(hero.inventory, itemId);
-    if (item) sumStats(result, calculateItemEquipmentStats(item));
-  }
+  for (const item of getEquippedItems(hero)) sumStats(result, calculateItemEquipmentStats(item));
   if (hero.pet) sumStats(result, hero.pet.bonusStats);
   return result;
 };
 
 export const calculateRuneStats = (hero: Hero) => {
-  const result:StatBlock={};for(const itemId of new Set(Object.values(hero.equipment))){const item=itemById(hero.inventory,itemId);if(item)sumStats(result,calculateItemRuneStats(item));}return result;
+  const result:StatBlock={};for(const item of getEquippedItems(hero))sumStats(result,calculateItemRuneStats(item));return result;
 };
-export const getEquippedItems = (hero: Hero) => [...new Set(Object.values(hero.equipment))].map(id => itemById(hero.inventory, id)).filter((item): item is ItemData => Boolean(item));
+export const getEquippedItems = (hero: Hero) => [...new Set(Object.values(reconcileDaggerEquipment(hero,hero.inventory,hero.equipment)))].map(id => itemById(hero.inventory, id)).filter((item): item is ItemData => Boolean(item));
 export function calculateUniqueStats(hero: Hero): StatBlock {
   return getEquippedItems(hero).reduce((result, item) => sumStats(result, calculateEquipmentUniqueStats(item)), {} as StatBlock);
 }
 export function calculatePassiveEffects(hero: Hero): StatBlock {
   const result: StatBlock = {};
   for (const passive of ALL_PASSIVES) {
+    if (!heroFamilySkillActive(hero, passive.id)) continue;
     if(!skillArchitectureAllowed(hero,passive))continue;
     if (passive.job && passive.job !== 'adventurer' && passive.job !== hero.coreJob) continue;
     if (passive.specialization && passive.specialization !== hero.specialization) continue;
@@ -918,15 +942,15 @@ export type DerivedStats = {
   materialDropRate: number;
 };
 export function learnedPassiveDefinitions(hero:Hero){
-  return ALL_PASSIVES.filter(p=>skillArchitectureAllowed(hero,p)&&(!p.job||p.job==='adventurer'||p.job===hero.coreJob)&&(!p.specialization||p.specialization===hero.specialization)&&hero.level>=p.unlockLevel&&(hero.passiveLevels[p.id]??0)>0&&(p.tier!=='capstone'||hero.masteryQuestClaimed));
+  return ALL_PASSIVES.filter(p=>heroFamilySkillActive(hero,p.id)&&skillArchitectureAllowed(hero,p)&&(!p.job||p.job==='adventurer'||p.job===hero.coreJob)&&(!p.specialization||p.specialization===hero.specialization)&&hero.level>=p.unlockLevel&&(hero.passiveLevels[p.id]??0)>0&&(p.tier!=='capstone'||hero.masteryQuestClaimed));
 }
-export function combatModifiersFor(hero:Hero):CombatModifier[]{return [...learnedPassiveDefinitions(hero).flatMap(p=>p.rankModifiers?.[Math.min(p.maxLevel,hero.passiveLevels[p.id])-1]??p.modifiers??[]),...hostModifiers(hero)];}
+export function combatModifiersFor(hero:Hero):CombatModifier[]{reconcileThiefBuffs(hero);return [...learnedPassiveDefinitions(hero).flatMap(p=>p.rankModifiers?.[Math.min(p.maxLevel,hero.passiveLevels[p.id])-1]??p.modifiers??[]),...thiefPassiveModifiers(hero),...hostModifiers(hero)];}
 export function combatSupportFor(hero:Hero):CombatSupport {
   const sources=learnedPassiveDefinitions(hero).map(p=>p.rankCombatSupport?.[Math.min(p.maxLevel,hero.passiveLevels[p.id])-1]??p.combatSupport);
   return {stacks:sources.flatMap(s=>s?.stacks??[]),windows:sources.flatMap(s=>s?.windows??[])};
 }
 export function modifierContextFor(hero:Hero,stats:DerivedStats,counter?:CounterContext):ModifierContext {
-  return {hp:hero.hp,maxHP:stats.maxHP,weaponStyle:resolveWeaponStyle(itemById(hero.inventory,hero.equipment.mainHand),itemById(hero.inventory,hero.equipment.offHand)),counter,manualGuard:isManualGuarding(hero),activeModifierIds:hostModifiers(hero).map(m=>m.id)};
+  return {hp:hero.hp,maxHP:stats.maxHP,weaponStyle:resolveWeaponStyle(itemById(hero.inventory,hero.equipment.mainHand),itemById(hero.inventory,hero.equipment.offHand),hero),counter,manualGuard:isManualGuarding(hero),activeModifierIds:hostModifiers(hero).map(m=>m.id)};
 }
 
 export function derivedStats(
@@ -942,7 +966,7 @@ export function derivedStats(
   const int = base.int + (gear.int ?? 0);
   const vit = base.vit + (gear.vit ?? gear.sta ?? 0);
   const maxMana = resolveMaxMana(hero, allocated, gear);
-  const weaponStyle = resolveWeaponStyle(itemById(hero.inventory, hero.equipment.mainHand), itemById(hero.inventory, hero.equipment.offHand));
+  const weaponStyle = resolveWeaponStyle(itemById(hero.inventory, hero.equipment.mainHand), itemById(hero.inventory, hero.equipment.offHand), hero);
   const berserkerMasteryRank = hero.skillArchitectureVersion === 3 && hero.specialization === 'berserker' && weaponStyle === 'two_hand_sword'
     ? hero.skillProgressionV3?.skillRanks['v3-berserker-two-hand-mastery'] ?? 0
     : 0;
@@ -1007,7 +1031,7 @@ export function derivedStats(
     itemDropRate:Math.min(25,gear.itemDropRate??0),
     materialDropRate:Math.min(15,gear.materialDropRate??0),
   };
-  const modifiers=includeBuffs?combatModifiersFor(hero):learnedPassiveDefinitions(hero).flatMap(p=>p.modifiers??[]);
+  const modifiers=includeBuffs?combatModifiersFor(hero):[...learnedPassiveDefinitions(hero).flatMap(p=>p.modifiers??[]),...thiefPassiveModifiers(hero)];
   return modifiers.length?applyStatModifiers(result,modifiers,modifierContextFor(hero,result)):result;
 }
 
@@ -1044,26 +1068,52 @@ export function characterStatBreakdown(hero: Hero) {
 export const maxHP = (hero: Hero) => derivedStats(hero).maxHP;
 export const attackPower = (hero: Hero) => derivedStats(hero).attack;
 /** Central basic-attack physical power before combo/critical/defense handling. */
-export const basicAttackPower = (hero: Hero) => {
+export const basicAttackPower = (hero: Hero, hand?: WeaponHand) => {
   const stats = derivedStats(hero);
-  return stats.physicalAttack * BASIC_ATTACK_COEFFICIENT * actionDamageMultiplier(
+  const daggers = daggerEquipmentForHero(hero);
+  const activeHand = hand ?? (daggers.state === 'OFF_DAGGER' ? 'OFF' : 'MAIN');
+  const context = daggers.state !== 'NO_DAGGER' ? daggerAttackContextForHero(hero, activeHand === 'OFF' ? 'SINGLE_OFF' : 'SINGLE_MAIN') : null;
+  const physicalPower = context ? context.sharedPhysicalCore + context.totalWeaponAttack : stats.physicalAttack;
+  return physicalPower * BASIC_ATTACK_COEFFICIENT * actionDamageMultiplier(
     combatModifiersFor(hero),
     modifierContextFor(hero, stats),
     { tags: ['physical-damage', 'basic-attack'] },
   );
 };
 
+export const daggerEquipmentForHero = (hero: Hero) => resolveDaggerEquipment(hero,
+  itemById(hero.inventory, hero.equipment.mainHand), itemById(hero.inventory, hero.equipment.offHand));
+
+/** Keep the displayed PATK formula intact. Resolve shared stats once, with raw
+ * hand ATK stripped, then expose item-local weapon layers to the execution. */
+export function daggerAttackContextForHero(hero: Hero, mode: WeaponContributionMode = 'SINGLE_MAIN') {
+  const daggers = daggerEquipmentForHero(hero);
+  const gear = sumStats(calculateEquipmentStats(hero), calculatePassiveEffects(hero));
+  const mainAttack = weaponAttack(daggers.main), offAttack = weaponAttack(daggers.off);
+  const sharedStats = derivedStats(hero, hero.allocatedStats, { ...gear, attack: (gear.attack ?? 0) - mainAttack - offAttack });
+  const modifiers = combatModifiersFor(hero), combat = modifierContextFor(hero, sharedStats);
+  // Derive the existing PATK modifier slope without copying its formula or
+  // letting additive character bonuses enter each hand a second time.
+  const zero = applyStatModifiers({ ...sharedStats, physicalAttack: 0 }, modifiers, combat).physicalAttack;
+  const unit = applyStatModifiers({ ...sharedStats, physicalAttack: 1 }, modifiers, combat).physicalAttack;
+  const factor = (1 + ((gear.attackPercent ?? 0) + (gear.physicalDamage ?? 0)) / 100) * (unit - zero);
+  const raw = resolveWeaponAttackContext(daggers.main, daggers.off, mode, sharedStats.physicalAttack);
+  return { ...raw, mainHandWeaponAttack: raw.mainHandWeaponAttack * factor,
+    offHandWeaponAttack: raw.offHandWeaponAttack * factor, totalWeaponAttack: raw.totalWeaponAttack * factor };
+}
+
 export const xpNeeded = (level: number) => 90 + level * 40;
 export const forgeCost = (weapon: number) => 60 + weapon * 50;
 export const manaResourceName = () => 'Mana';
 export const activeSkills = (hero: Hero): SkillDefinition[] =>
   hero.skillArchitectureVersion === 3
-    ? [...ADVENTURER_V3_RUNTIME_SKILLS, ...(hero.coreJob === 'warrior' ? WARRIOR_V3_RUNTIME_SKILLS : []), ...(hero.specialization === 'berserker' ? BERSERKER_V3_RUNTIME_SKILLS : []), ...(hero.specialization === 'blade_master' ? BLADE_MASTER_V3_RUNTIME_SKILLS : [])]
+    ? [...ADVENTURER_V3_RUNTIME_SKILLS, ...(hero.coreJob === 'thief' ? THIEF_V3_RUNTIME_SKILLS : []), ...(hero.coreJob === 'warrior' ? WARRIOR_V3_RUNTIME_SKILLS : []), ...(hero.specialization === 'berserker' ? BERSERKER_V3_RUNTIME_SKILLS : []), ...(hero.specialization === 'blade_master' ? BLADE_MASTER_V3_RUNTIME_SKILLS : [])]
     : activeSkillsFor(hero.coreJob, hero.specialization, hero.progressionArchitecture === 'v2_test' ? 'v2_test' : 'legacy');
 /** Same weapon availability for live casting and read-only build evaluation. */
 export function equippedWeaponType(hero: Hero): WeaponType {
   const main = itemById(hero.inventory, hero.equipment.mainHand);
   const off = itemById(hero.inventory, hero.equipment.offHand);
+  if (isDaggerItem(main) || isDaggerItem(off)) return resolveWeaponStyle(main, off, hero);
   if (hero.specialization === 'garda') return main && off?.itemType === 'shield' ? 'sword_shield' : 'none';
   if (hero.specialization === 'anom') return main && off?.itemType === 'dagger' ? 'sword_dagger' : 'none';
   return main?.weaponType ?? 'none';
@@ -1073,22 +1123,31 @@ export const skillLevel = (hero: Hero, skill: SkillDefinition) =>
     ? hero.skillProgressionV3?.skillRanks[skill.id] ?? hero.skillLevels[skill.id] ?? 0
     : hero.skillLevels[skill.id] ?? 0;
 export const isSkillUnlocked = (hero: Hero, skill: SkillDefinition) =>
-  activeSkills(hero).some(entry => entry.id === skill.id) && hero.level >= skill.unlockLevel && skillLevel(hero, skill) > 0;
+  heroFamilySkillActive(hero, skill.id) && activeSkills(hero).some(entry => entry.id === skill.id) && hero.level >= skill.unlockLevel && skillLevel(hero, skill) > 0;
 
 export const calculateActiveSkills = activeSkills;
 export function getSkillManaCost(hero:Hero, skillId:string) {
+  skillId = heroFamilySkillReference(hero, skillId) ?? '';
   const skill=activeSkills(hero).find(entry=>entry.id===skillId);
   if(!skill)return 0;
   return resolveHeroSkill(hero,skill).manaCost;
 }
-export function canCastSkill(hero:Hero,skillId:string,cooldowns:Record<string,number>={},weapon?:WeaponType,resolvedManaCost?:number) {
+export function canCastSkill(hero:Hero,skillId:string,cooldowns:Record<string,number>={},weapon?:WeaponType,resolvedManaCost?:number, combat?: { ambush: RogueAmbushState; now: number }) {
+  skillId = heroFamilySkillReference(hero, skillId) ?? '';
   const skill=activeSkills(hero).find(entry=>entry.id===skillId);
   if(!skill)return {ok:false,reason:'Skill tidak terdaftar.'};
+  if (heroFamilyContext(hero)?.skills[skill.id]?.familyRole === 'PASSIVE') return { ok: false, reason: 'Passive tidak dapat diaktifkan.' };
+  if (!heroFamilySkillActive(hero, skill.id)) return { ok: false, reason: 'Skill telah digantikan oleh anggota family aktif.' };
   if(hero.hp<=0)return {ok:false,reason:'Karakter harus hidup untuk menggunakan skill.'};
   if(!isSkillUnlocked(hero,skill))return {ok:false,reason:`${skill.name} terbuka pada level ${skill.unlockLevel} dan harus dipelajari.`};
-  if((cooldowns[skillId]??0)>0)return {ok:false,reason:`${skill.name} masih cooldown ${Math.ceil(cooldowns[skillId])} dtk.`};
+  if (skill.rogueAmbush) {
+    const requirement = (combat?.ambush ?? new RogueAmbushState()).requirement(hero, skill, combat?.now ?? 0);
+    if (!requirement.ok) return requirement;
+  }
+  const remaining = heroSkillCooldownRemaining(hero, skillId, cooldowns);
+  if(remaining>0)return {ok:false,reason:`${skill.name} masih cooldown ${Math.ceil(remaining)} dtk.`};
   if(hero.mana<(resolvedManaCost??getSkillManaCost(hero,skillId)))return {ok:false,reason:'Mana tidak cukup.'};
-  if(weapon!==undefined&&!skillWeaponAllowed(hero,skill,weapon))return {ok:false,reason:`${skill.name} membutuhkan senjata yang sesuai.`};
+  if((weapon!==undefined || THIEF_V3_SKILL_MAP[skill.id])&&!skillWeaponAllowed(hero,skill,weapon??equippedWeaponType(hero)))return {ok:false,reason:`${skill.name} membutuhkan senjata yang sesuai.`};
   return {ok:true,reason:''};
 }
 export function consumeMana(hero:Hero,amount:number) {
@@ -1109,7 +1168,13 @@ export function skillCosts(hero: Hero, skill: SkillDefinition) {
   return {manaCost:action.manaCost,cooldown:action.cooldown};
 }
 export function skillWeaponAllowed(hero:Hero, skill:SkillDefinition, legacy=equippedWeaponType(hero)) {
-  return meetsWeaponRequirement(skill.weaponRequirement,itemById(hero.inventory,hero.equipment.mainHand),itemById(hero.inventory,hero.equipment.offHand),legacy);
+  const daggers = daggerEquipmentForHero(hero);
+  if (skill.weaponMode && (daggers.main || daggers.off)) {
+    if (['SINGLE_MAIN','THROWN_MAIN'].includes(skill.weaponMode) && !daggers.main) return false;
+    if (['SINGLE_OFF','THROWN_OFF'].includes(skill.weaponMode) && !daggers.off) return false;
+    if (['DUAL_SEQUENCE','DUAL_COMBINED','THROWN_SEQUENCE'].includes(skill.weaponMode) && daggers.state !== 'DUAL_DAGGER') return false;
+  }
+  return meetsWeaponRequirement(skill.weaponRequirement,itemById(hero.inventory,hero.equipment.mainHand),itemById(hero.inventory,hero.equipment.offHand),legacy,hero);
 }
 export function resolveHeroSkill(hero:Hero, skill:SkillDefinition, rank=hero.skillLevels[skill.id]??1, stats=derivedStats(hero),counter?:CounterContext,extraModifiers:CombatModifier[]=[],impact?:ImpactContext,bladeTempoManaReduction=0, rng: () => number = Math.random) {
   const base = calculateBaseStats(hero);
@@ -1118,14 +1183,14 @@ export function resolveHeroSkill(hero:Hero, skill:SkillDefinition, rank=hero.ski
   const masteryRank = hero.skillArchitectureVersion === 3 && hero.specialization === 'berserker' ? (hero.skillProgressionV3?.skillRanks['v3-berserker-two-hand-mastery'] ?? 0) : 0;
   const bladeSkill = hero.skillArchitectureVersion === 3 && hero.specialization === 'blade_master' && skill.tags?.includes('v3-blade-master');
   const bladeMasteryRank = bladeSkill ? (hero.skillProgressionV3?.skillRanks['v3-blade-master-twin-blade-mastery'] ?? 0) : 0;
-  const weaponStyle = resolveWeaponStyle(itemById(hero.inventory, hero.equipment.mainHand), itemById(hero.inventory, hero.equipment.offHand));
+  const weaponStyle = resolveWeaponStyle(itemById(hero.inventory, hero.equipment.mainHand), itemById(hero.inventory, hero.equipment.offHand), hero);
   const masteryActive = masteryRank > 0 && weaponStyle === 'two_hand_sword' && BERSERKER_MASTERY_MANA_SKILLS.has(skill.id);
   const tranceRank = hero.specialization === 'berserker' ? (hero.skillProgressionV3?.skillRanks['v3-berserker-trance'] ?? 0) : 0;
   const tranceActive = tranceRank > 0 && Number(hero.activeBuffs['v3-berserker-trance'] ?? 0) > 0;
   const dualSkill = BLADE_MASTER_DUAL_MANA_SKILLS.has(skill.id);
   const masteryManaSkill = BLADE_MASTER_MASTERY_MANA_SKILLS.has(skill.id);
   const bladeManaReduction = bladeMasteryRank > 0 && masteryManaSkill && weaponStyle === 'dual_sword' ? BLADE_MASTER_MASTERY_MANA_REDUCTION_BY_RANK[Math.min(BLADE_MASTER_MASTERY_MANA_REDUCTION_BY_RANK.length, bladeMasteryRank) - 1] : 0;
-  const reduction = Math.max(stats.manaCostReduction, masteryActive ? [0,2,4,6,8,10][Math.min(5, masteryRank)] : 0, bladeManaReduction, dualSkill && weaponStyle === 'dual_sword' ? bladeTempoManaReduction : 0);
+  const reduction = Math.max(stats.manaCostReduction, thiefManaReduction(hero, skill.id), masteryActive ? [0,2,4,6,8,10][Math.min(5, masteryRank)] : 0, bladeManaReduction, dualSkill && weaponStyle === 'dual_sword' ? bladeTempoManaReduction : 0);
   const skillStats = reduction !== stats.manaCostReduction ? { ...stats, manaCostReduction: reduction } : stats;
   const resolved = resolveSkillAction(skill, {
     v2:hero.progressionArchitecture==='v2_test',
@@ -1144,7 +1209,7 @@ export function resolveHeroSkill(hero:Hero, skill:SkillDefinition, rank=hero.ski
         int: base.int + (gear.int ?? 0),
       };
       const warriorLineageV3Skill = hero.skillArchitectureVersion === 3 && skill.tags?.some((tag) =>
-        tag === 'v3-adventurer' || tag === 'v3-warrior' || tag === 'v3-berserker' || tag === 'v3-blade-master');
+        tag === 'v3-adventurer' || tag === 'v3-warrior' || tag === 'v3-berserker' || tag === 'v3-blade-master' || tag === 'v3-thief');
       return warriorLineageV3Skill
         ? { str: Math.max(0, effective.str - 15), vit: Math.max(0, effective.vit - 15), dex: Math.max(0, effective.dex - 15), int: Math.max(0, effective.int - 15) }
         : effective;
@@ -1154,6 +1219,14 @@ export function resolveHeroSkill(hero:Hero, skill:SkillDefinition, rank=hero.ski
     const main = itemById(hero.inventory,hero.equipment.mainHand);
     const off = itemById(hero.inventory,hero.equipment.offHand);
     composeBladeWeaponHits(resolved,stats.physicalAttack,main,off,1+((gear.attackPercent??0)+(gear.physicalDamage??0))/100);
+  }
+  const daggers = daggerEquipmentForHero(hero);
+  if (daggers.state !== 'NO_DAGGER' && resolved.hitSequence.some(hit => hit.physicalCoefficient > 0)) {
+    const mode = skill.weaponMode ?? 'SINGLE_MAIN';
+    if ((!daggers.main && (mode === 'SINGLE_MAIN' || mode === 'THROWN_MAIN')) ||
+        (!daggers.off && (mode === 'SINGLE_OFF' || mode === 'THROWN_OFF')))
+      resolved.weaponAllowed = false;
+    composeWeaponModeHits(resolved, daggerAttackContextForHero(hero, mode));
   }
   if (hero.specialization === 'blade_master' && weaponStyle === 'dual_sword' && skill.tags?.includes('v3-warrior') && resolved.hitSequence.some((hit) => hit.physicalCoefficient > 0)) {
     composeSingleMainWeaponHits(
@@ -1202,16 +1275,62 @@ export function refundableSkillPoints(hero: Hero) {
   return ALL_SKILLS.reduce((total, skill) => total + rankSource(hero,'active',skill.id).paid, 0)
     + ALL_PASSIVES.reduce((total, passive) => total + rankSource(hero,'passive',passive.id).paid, 0);
 }
+function preserveFamilyResetBindings(previous: Hero, next: Hero) {
+  const keep = (id: string | null) => {
+    const binding = id ? heroFamilyHotbarBinding(previous, id) : null;
+    return binding && isFamilyBinding(binding) ? binding : null;
+  };
+  next.primaryHotbar = previous.primaryHotbar.map(keep);
+  next.primaryHotbarOverflow = previous.primaryHotbarOverflow.map(keep).filter((id): id is string => !!id);
+  next.quickHotbars = {
+    q: { ...next.quickHotbars.q, assignment: keep(previous.quickHotbars?.q.assignment ?? null) },
+    e: { ...next.quickHotbars.e, assignment: keep(previous.quickHotbars?.e.assignment ?? null) },
+  };
+  reconcileFamilyHotbarBindings(next);
+}
+
+/** Optional subtree respec uses the existing gold fee and rank accounting. */
+export function resetSkillFamilyBranch(hero: Hero, skillId: string) {
+  const context = heroFamilyContext(hero);
+  if (!context || hero.gold < RESET_SKILLS_GOLD_COST) return { ok: false, hero, returnedPoints: 0, reason: 'Skill family tidak tersedia atau GOLD tidak cukup.' };
+  const state = normalizeSkillProgressionV3(context.state);
+  const result = resetFamilyBranch({ ...context, state }, skillId);
+  if (!result.ok) return { ok: false, hero, returnedPoints: 0, reason: result.reason };
+  const updated: Hero = {
+    ...hero, gold: hero.gold - RESET_SKILLS_GOLD_COST, skillProgressionV3: state,
+    skillLevels: { ...hero.skillLevels }, passiveLevels: { ...hero.passiveLevels },
+    primaryHotbar: [...hero.primaryHotbar], primaryHotbarOverflow: [...hero.primaryHotbarOverflow],
+    quickHotbars: { q: { ...hero.quickHotbars.q }, e: { ...hero.quickHotbars.e } }, activeBuffs: {},
+  };
+  for (const id of Object.keys(context.state.skillRanks)) {
+    if (!state.skillRanks[id]) { updated.skillLevels[id] = 0; updated.passiveLevels[id] = 0; }
+  }
+  reconcileHeroSkillFamilies(updated);
+  reconcileFamilyHotbarBindings(updated);
+  updated.skillPoints = Math.max(0, state.totalEarnedSP - spentSkillPointsV3(state, context.skills));
+  delete updated.temporaryModifiers; delete updated.combatStateModifiers;
+  reconcileBladeMasterEquipment(updated);
+  const stats = derivedStats(updated);
+  updated.hp = Math.min(updated.hp, stats.maxHP);
+  updated.maxMana = stats.maxMana;
+  updated.mana = Math.min(updated.mana, stats.maxMana);
+  return { ok: true, hero: updated, returnedPoints: result.refundedSP, reason: `Reset family berhasil. ${result.refundedSP} SP dikembalikan.` };
+}
+
 export function resetSkillPoints(hero: Hero) {
   if (hero.skillArchitectureVersion === 3 && hero.skillProgressionV3) {
-    const returnedPoints = spentSkillPointsV3(hero.skillProgressionV3, { ...ADVENTURER_V3_SKILL_MAP, ...WARRIOR_V3_SKILL_MAP, ...BERSERKER_V3_SKILL_MAP, ...BLADE_MASTER_V3_SKILL_MAP });
+    const returnedPoints = spentSkillPointsV3(hero.skillProgressionV3, { ...ADVENTURER_V3_SKILL_MAP, ...WARRIOR_V3_SKILL_MAP, ...BERSERKER_V3_SKILL_MAP, ...BLADE_MASTER_V3_SKILL_MAP, ...THIEF_V3_SKILL_MAP });
     if (!returnedPoints) return { ok: false, hero, returnedPoints, reason: 'Belum ada Skill Point yang digunakan.' };
     if (hero.gold < RESET_SKILLS_GOLD_COST) return { ok: false, hero, returnedPoints: 0, reason: 'GOLD tidak cukup.' };
     const state = refundAllSkillPointsForJobChange(hero.skillProgressionV3);
     const updated = { ...hero, gold: hero.gold - RESET_SKILLS_GOLD_COST, skillProgressionV3: state,
+      passiveLevels: { ...hero.passiveLevels },
       skillLevels: Object.fromEntries(activeSkills(hero).map(skill => [skill.id, state.skillRanks[skill.id] ?? 0])),
       primaryHotbar: hero.primaryHotbar.map(() => null), primaryHotbarOverflow: [], quickHotbars: emptyQuickHotbars(), activeBuffs: {},
     };
+    preserveFamilyResetBindings(hero, updated);
+    reconcileHeroSkillFamilies(updated);
+    updated.skillPoints = Math.max(0, state.totalEarnedSP - spentSkillPointsV3(state, skillFamilyDefinitions));
     delete updated.temporaryModifiers; delete updated.combatStateModifiers;
     reconcileBladeMasterEquipment(updated);
     const stats = derivedStats(updated);
@@ -1277,7 +1396,7 @@ function resetPromotionSkills(hero: Hero, returnedPoints: number) {
 export type SkillStatus = 'locked' | 'available' | 'learned' | 'maxed';
 export function canLearnSkill(skillId: string, hero: Hero) {
   if (hero.skillArchitectureVersion === 3) {
-    const definitions = hero.coreJob === 'warrior' ? { ...ADVENTURER_V3_SKILL_MAP, ...WARRIOR_V3_SKILL_MAP, ...(hero.specialization === 'berserker' ? BERSERKER_V3_SKILL_MAP : {}), ...(hero.specialization === 'blade_master' ? BLADE_MASTER_V3_SKILL_MAP : {}) } : ADVENTURER_V3_SKILL_MAP;
+    const definitions = skillFamilyDefinitions;
     const definition = definitions[skillId];
     if (!definition) return { ok: false, reason: 'Skill tidak terdaftar pada Adventurer V3.' };
     const state = hero.skillProgressionV3 ?? adventurerV3StartingState();
@@ -1318,6 +1437,13 @@ export function canLearnSkill(skillId: string, hero: Hero) {
   return {ok:true,reason:''};
 }
 export function getSkillStatus(skillId: string, hero: Hero): SkillStatus {
+  const familyContext = heroFamilyContext(hero);
+  const familyDefinition = familyContext?.skills[skillId];
+  if (familyContext && familyDefinition?.familyId) {
+    const states = heroFamilyNodeStates(hero, skillId);
+    if (states.includes('LEARNED')) return (familyContext.state.skillRanks[skillId] ?? 0) >= familyDefinition.maxRank ? 'maxed' : 'learned';
+    return states.includes('AVAILABLE') ? 'available' : 'locked';
+  }
   if (hero.skillArchitectureVersion === 3) {
     const skill = activeSkills(hero).find((entry) => entry.id === skillId);
     if (!skill || hero.level < skill.unlockLevel) return 'locked';
@@ -1645,10 +1771,14 @@ const equipmentContains = (hero: Hero, itemId: string) =>
 export function equipItem(hero: Hero, itemId: string, targetSlot?: EquipSlot) {
   const item = itemById(hero.inventory, itemId);
   if (!item) return { ok: false, reason: 'Item tidak ditemukan.' };
+  if (isDaggerItem(item) && hero.inventory.filter(entry => entry.id === itemId).length !== 1)
+    return { ok: false, code: 'AMBIGUOUS_ITEM_INSTANCE', reason: 'Identitas instance Dagger tidak unik.' };
   const requestedSlot=targetSlot??item.equipSlot;
   if (requestedSlot === 'mainHand' || requestedSlot === 'offHand') {
     const currentMain = itemById(hero.inventory, hero.equipment.mainHand);
     const currentOff = itemById(hero.inventory, hero.equipment.offHand);
+    const daggerCheck = validateDaggerEquip(hero, currentMain, currentOff, item, requestedSlot);
+    if (!daggerCheck.ok) return daggerCheck;
     // Legacy/V2 keeps its existing dual-weapon compatibility. The new strict
     // capability gate applies only to the V3 equipment path.
     const earlyDualCheck = validateDualWieldEquip(hero.skillArchitectureVersion === 3 ? { ...hero, canDualWieldOneHandSwords: dualWieldCapabilityForHero(hero) } : { canDualWieldOneHandSwords: true }, currentMain, currentOff, item, requestedSlot);
@@ -1723,7 +1853,7 @@ export function equipItem(hero: Hero, itemId: string, targetSlot?: EquipSlot) {
       const offHand=itemById(hero.inventory,hero.equipment.offHand);
       if(!offHand||offHand.equipmentType!=='quiver'||item.equipmentType!=='bow')hero.equipment.offHand=null;
     }
-    if (item.mainHand && item.offHand) {
+    if (item.mainHand && item.offHand && !isDaggerItem(item)) {
       hero.equipment.mainHand = item.id;
       hero.equipment.offHand = item.id;
     } else {
@@ -2219,16 +2349,22 @@ export function learnSkill(hero: Hero, skillId: string) {
   if (hero.skillArchitectureVersion === 3) {
     const skill = activeSkills(hero).find((candidate) => candidate.id === skillId);
     const state = hero.skillProgressionV3 ?? adventurerV3StartingState();
-    if (!skill) return false;
+    if (!skill && skillFamilyDefinitions[skillId]?.familyRole !== 'PASSIVE') return false;
     const result = purchaseSkillRankV3({
       level: hero.level,
       state,
       jobs: { adventurer: { id: 'adventurer', tier: 'adventurer', parent: null }, warrior: { id: 'warrior', tier: 'core', parent: 'adventurer' }, berserker: { id: 'berserker', tier: 'specialization', parent: 'warrior' }, blade_master: { id: 'blade_master', tier: 'specialization', parent: 'warrior' } },
-      skills: hero.coreJob === 'warrior' ? { ...ADVENTURER_V3_SKILL_MAP, ...WARRIOR_V3_SKILL_MAP, ...(hero.specialization === 'berserker' ? BERSERKER_V3_SKILL_MAP : {}), ...(hero.specialization === 'blade_master' ? BLADE_MASTER_V3_SKILL_MAP : {}) } : ADVENTURER_V3_SKILL_MAP,
+      skills: skillFamilyDefinitions,
     }, skillId);
     if (!result.ok) return false;
     hero.skillProgressionV3 = state;
     hero.skillLevels = { ...hero.skillLevels, [skillId]: state.skillRanks[skillId] };
+    if (skillFamilyDefinitions[skillId]?.familyId) {
+      reconcileHeroSkillFamilies(hero);
+      reconcileThiefBuffs(hero);
+      reconcileFamilyHotbarBindings(hero);
+      hero.skillPoints = Math.max(0, state.totalEarnedSP - spentSkillPointsV3(state, skillFamilyDefinitions));
+    }
     return true;
   }
   const skill = activeSkills(hero).find(
@@ -2259,6 +2395,7 @@ export function unlockUniqueStats(hero: Hero, itemId: string) {
   return {ok:true,reason:'Unique Stats berhasil dibuka.'};
 }
 export function learnPassive(hero: Hero, passiveId?: string) {
+  if (passiveId && heroFamilyContext(hero)?.skills[passiveId]?.familyRole === 'PASSIVE') return learnSkill(hero, passiveId);
   const passive = passiveId ? ALL_PASSIVES.find(entry=>entry.id===passiveId) : passiveFor(hero);
   if (!passive || !canLearnSkill(passive.id,hero).ok)
     return false;
@@ -2543,6 +2680,11 @@ function normalizedHero(value: Record<string, unknown>, slotId = 'slot-1') {
   if (!oldSave) {
     h.masteryQuestClaimed = value.masteryQuestClaimed === true;
   }
+  if (!oldSave && h.skillArchitectureVersion === 3 && h.skillProgressionV3?.chosenCoreJob === 'thief') {
+    h.coreJob = 'thief'; h.job = 'thief'; h.jobTier = 'core'; h.specialization = null; h.weaponType = 'dagger';
+    h.coreQuestClaimed = true;
+  }
+  h.equipment = reconcileDaggerEquipment(h, h.inventory, h.equipment);
   // Backfill the ownership marker for legacy saves whose equipment is stored
   // as slot IDs alongside the inventory item instance.
   const equippedIds = new Set(
@@ -2553,6 +2695,7 @@ function normalizedHero(value: Record<string, unknown>, slotId = 'slot-1') {
     isEquipped: equippedIds.has(item.id),
   }));
   retireUnusedNormalItems(h);
+  reconcileHeroSkillFamilies(h);
   const currentSkills = activeSkills(h);
   for (const skill of currentSkills) {
     h.skillLevels[skill.id] = integer(
@@ -2611,7 +2754,14 @@ function normalizedHero(value: Record<string, unknown>, slotId = 'slot-1') {
   const terrain=!h.inCity?FIELD_TERRAINS[h.currentField]:undefined;
   if(terrain)Object.assign(h,nearestTerrainPoint(terrain,{x:h.x,z:h.z}));
   if(h.progressionArchitecture==='v2_test')delete h.statusEffects.stealth;
-  if(h.skillArchitectureVersion === 3) {
+  if(h.skillArchitectureVersion === 3 && h.skillProgressionV3) {
+    const canonicalTotal = getTotalSkillPointsForLevel(h.level);
+    const spent = spentSkillPointsV3(h.skillProgressionV3, { ...ADVENTURER_V3_SKILL_MAP, ...WARRIOR_V3_SKILL_MAP, ...BERSERKER_V3_SKILL_MAP, ...BLADE_MASTER_V3_SKILL_MAP, ...THIEF_V3_SKILL_MAP });
+    h.skillProgressionV3 = {
+      ...h.skillProgressionV3,
+      totalEarnedSP: Math.max(h.skillProgressionV3.totalEarnedSP, canonicalTotal),
+    };
+    h.skillPoints = Math.max(0, h.skillProgressionV3.totalEarnedSP - spent);
     h.activeBuffs = Object.fromEntries(Object.entries(h.activeBuffs).filter(([id]) => !id.startsWith('v3-')));
     delete h.statusEffects.stun;
     delete h.statusEffects.superArmor;
@@ -2711,7 +2861,13 @@ export function saveCharacter(hero: Hero, required = false) {
   }
   const collection = readCollection();
   collection.activeSlot = hero.slotId;
-  const saved={...hero,version:3 as const};
+  const saved={...hero,version:3 as const, equipment: reconcileDaggerEquipment(hero, hero.inventory, hero.equipment)};
+  if (hero.skillProgressionV3) {
+    saved.skillProgressionV3 = normalizeSkillProgressionV3(hero.skillProgressionV3);
+    saved.skillLevels = { ...hero.skillLevels };
+    saved.passiveLevels = { ...hero.passiveLevels };
+    reconcileHeroSkillFamilies(saved);
+  }
   if (hero.skillArchitectureVersion === 3) {
     saved.activeBuffs = Object.fromEntries(Object.entries(saved.activeBuffs).filter(([id]) => !id.startsWith('v3-')));
     saved.statusEffects = { ...saved.statusEffects };

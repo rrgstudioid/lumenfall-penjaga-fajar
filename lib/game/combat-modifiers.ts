@@ -96,7 +96,7 @@ export type ModifierContext = {
   maxHP: number;
   counter?: CounterContext;
 };
-export type ImpactContext = { source?: MarkSource; attackerStealthed?: boolean; position?: PositionContext; target?: StatusTarget; now?:number };
+export type ImpactContext = { source?: MarkSource; attackerStealthed?: boolean; position?: PositionContext; positionOverride?: PositionRelation; target?: StatusTarget; now?:number };
 const hasImpactCondition = (mod:CombatModifier) => !!(mod.condition?.markedBySelf!==undefined || mod.condition?.targetStatuses?.length || mod.condition?.targetStatusesFromSource?.length || mod.condition?.attackerStealthed!==undefined || mod.condition?.targetPosition);
 function impactMatches(mod:CombatModifier,ctx:ImpactContext) {
   const c=mod.condition;
@@ -104,7 +104,7 @@ function impactMatches(mod:CombatModifier,ctx:ImpactContext) {
     (!c?.targetStatusesFromSource?.length || !!ctx.target&&!!ctx.source?.sourceActorId&&ctx.now!==undefined&&c.targetStatusesFromSource.every(id=>hasActiveStatusFromSource(ctx.target!,id,ctx.source!.sourceActorId,ctx.now))) &&
     (c?.markedBySelf===undefined || !!ctx.target&&!!ctx.source&&markedBySelf(ctx.target,ctx.source)===c.markedBySelf) &&
     (c?.attackerStealthed===undefined || ctx.attackerStealthed===c.attackerStealthed) &&
-    (!c?.targetPosition || !!ctx.position&&relativePosition(ctx.position,c.positionAngles)===c.targetPosition);
+    (!c?.targetPosition || (ctx.positionOverride ?? (ctx.position ? relativePosition(ctx.position,c.positionAngles) : undefined))===c.targetPosition);
 }
 export function setManualGuard(host: ModifierHost, active: boolean) {
   if (active) host.manualGuardActive = true;

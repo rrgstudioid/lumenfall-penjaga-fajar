@@ -83,6 +83,7 @@ export function applySourceOwnedStatus(
   target: StatusTarget,
   id: string,
   application: Omit<SourceOwnedStatus, 'expiresAt'> & { duration: number },
+  policy: { refresh?: 'strongest' | 'replace'; compatibilityTimer?: boolean } = {},
 ) {
   if (!Number.isFinite(application.duration) || application.duration <= 0) return;
   const key = canonicalStatus(id);
@@ -92,9 +93,9 @@ export function applySourceOwnedStatus(
     entry.sourceActorId !== application.sourceActorId,
   );
   target.sourceOwnedStatuses ??= {};
-  target.sourceOwnedStatuses[key] = [...current, { ...application, strength: Math.max(existing?.strength ?? 0, application.strength), expiresAt }];
+  target.sourceOwnedStatuses[key] = [...current, { ...application, strength: policy.refresh === 'replace' ? application.strength : Math.max(existing?.strength ?? 0, application.strength), expiresAt }];
   // Keep the established compatibility timer in sync for existing mitigation/UI.
-  applyStatus(target, key, application.duration);
+  if (policy.compatibilityTimer !== false) applyStatus(target, key, application.duration);
 }
 
 export function clearExpiredSourceStatuses(target: StatusTarget, now: number) {

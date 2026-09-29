@@ -3,6 +3,7 @@ import type { SkillDefinition } from './skills.ts';
 import type { SkillDefinitionV3 } from './skill-progression-v3.ts';
 import { weaponRequirementLabel } from './weapon-style.ts';
 import { FURY_HARVEST_RECOVERY_PERCENT } from './berserker-v3.ts';
+import { resolveThiefCanonicalRank } from './thief-v3.ts';
 import { BLADE_MASTER_MASTERY_MANA_REDUCTION_BY_RANK, BLADE_MASTER_MASTERY_MANA_SKILLS, BLADE_MASTER_V3_SKILLS } from './blade-master-v3.ts';
 
 export type SkillPresentationRow = { label: string; value: string };
@@ -66,6 +67,21 @@ function runtimeRankValue(runtime: SkillDefinition, rank: number) {
 
 function rowsForEffects(definition: SkillDefinitionV3, runtime: SkillDefinition, rank: number) {
   const rows: SkillPresentationRow[] = [];
+  const thief = resolveThiefCanonicalRank(definition.id, rank);
+  if (thief) {
+    const v = thief.values;
+    const fields = [
+      ['Accuracy', v.accuracy, ''], ['Skill Accuracy', v.skillAccuracy, ''],
+      ['Core Thief Mana Reduction', v.coreThiefManaReductionPercent, '%'],
+      ['Attack Speed', v.attackSpeedPercent, '%'], ['Critical Rate', v.criticalRatePercentagePoints, ' pp'],
+      ['Evasion', v.evasion, ' pp'], ['Movement Speed', v.movementSpeedPercent, '%'],
+      ['Duration', v.durationSeconds, 's'], ['Your Weakpoint Critical Rate', v.weakpointCritPercentagePoints, ' pp'],
+      ['Your Weakpoint Final Damage Payoff', v.ownWeakpointFinalDamagePercent, '%'],
+      ['Flank Final Damage', v.flankFinalDamagePercent, '%'], ['Rear Final Damage', v.rearFinalDamagePercent, '%'],
+      ['Reposition Distance', v.repositionDistanceMeters, ' m'],
+    ] as const;
+    return fields.filter(([, value]) => value !== undefined).map(([label, value, unit]) => ({ label, value: `${value}${unit}` }));
+  }
   if (definition.id === 'v3-blade-master-twin-blade-mastery') {
     const accuracy = runtime.rankEffects?.[rankIndex(rank, runtime.maxLevel)]?.modifiers?.[0]?.stats?.flat?.accuracy ?? 0;
     const affected = BLADE_MASTER_V3_SKILLS
@@ -95,6 +111,17 @@ function rowsForEffects(definition: SkillDefinitionV3, runtime: SkillDefinition,
 
 function rowsForMechanics(definition: SkillDefinitionV3, runtime: SkillDefinition, rank: number) {
   const rows: SkillPresentationRow[] = [];
+  const thief = resolveThiefCanonicalRank(definition.id, rank);
+  if (thief) {
+    if (definition.familyRole === 'PASSIVE') return [{ label: 'Family Effects', value: 'Only the active member contributes; predecessors do not stack.' }];
+    const sequence = runtime.rankEffects?.[rank - 1]?.hitSequence;
+    if (sequence) rows.push({ label: 'Sequence', value: sequence.map(hit => hit.weaponHand === 'OFF' ? 'Off Hand' : 'Main Hand').join(' → ') });
+    if (thief.mechanics.weakpoint || thief.mechanics.weakpointPayoff) rows.push({ label: 'Weakpoint Ownership', value: 'This caster only; not Armor Break.' });
+    if (thief.mechanics.positional) rows.push({ label: 'Position', value: 'Target-facing Front / Flank / Rear; front still deals normal damage.' });
+    if (thief.mechanics.movement?.direction === 'PLAYER_INPUT_LEFT_RIGHT') rows.push({ label: 'Reposition', value: 'Left/right input after sequence; no input means no reposition.' });
+    rows.push({ label: 'Family', value: 'Evolution replaces the previous member; cooldown is shared.' });
+    return rows;
+  }
   const tags = definition.effects?.tags ?? [];
   if (runtime.hitSequence?.some((hit) => hit.weaponHand)) {
     const hands = runtime.hitSequence.map((hit) => hit.weaponHand === 'MAIN' ? 'Main Hand' : hit.weaponHand === 'OFF' ? 'Off Hand' : 'Both Swords');
@@ -156,7 +183,7 @@ export function resolveSkillPresentation(hero: Hero, definition: SkillDefinition
   const rank = Math.max(1, currentRank);
   const values = runtimeRankValue(runtime, rank);
   const action = resolveHeroSkill(hero, runtime, rank);
-  const isDamage = definition.skillType === 'ACTIVE_DAMAGE' || definition.skillType === 'ACTIVE_MOBILITY' || definition.skillType === 'ULTIMATE';
+  const isDamage = definition.skillType === 'ACTIVE_DAMAGE' || definition.skillType === 'ACTIVE_MOBILITY' || definition.skillType === 'ULTIMATE' || (runtime.tags?.includes('v3-thief') === true && !!definition.damageProfile);
   const status = currentRank >= definition.maxRank ? 'MAX RANK' : currentRank > 0 ? 'LEARNED' : hero.level >= (definition.unlockLevel ?? 0) ? 'AVAILABLE' : 'LOCKED';
   const isPassive = definition.skillType === 'PASSIVE' || definition.skillType === 'MASTERY';
   const requirements: SkillPresentationRow[] = [
@@ -164,7 +191,7 @@ export function resolveSkillPresentation(hero: Hero, definition: SkillDefinition
     { label: 'Job Requirement', value: definition.jobRequirement ?? jobLabels[definition.jobId] ?? titleCase(definition.jobId) },
     { label: 'Skill Point Cost', value: `${Array.isArray(definition.spCostPerRank) ? definition.spCostPerRank[rankIndex(rank, definition.maxRank)] : definition.spCostPerRank ?? 0} SP` },
     { label: 'Prerequisite', value: definition.prerequisiteSkills?.map((entry) => `${entry.skillId.replace(/^v3-/, '').replaceAll('-', ' ')} R${entry.requiredRank}`).join(' + ') || 'None' },
-    { label: 'Weapon', value: definition.weaponRequirement?.map((weapon) => weaponLabels[weapon] ?? weaponRequirementLabel(weapon as never)).join(' / ') || 'None' },
+    { label: 'Weapon', value: (definition.weaponRequirement ?? (runtime.tags?.includes('v3-thief') ? runtime.weaponRequirement : undefined))?.map((weapon) => weaponLabels[weapon] ?? weaponRequirementLabel(weapon as never)).join(' / ') || 'None' },
   ];
   const baseDamageRange = runtime.baseDamageMinByRank && runtime.baseDamageMaxByRank
     ? `${runtime.baseDamageMinByRank[rankIndex(rank, runtime.maxLevel)] ?? 0} – ${runtime.baseDamageMaxByRank[rankIndex(rank, runtime.maxLevel)] ?? 0}`

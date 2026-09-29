@@ -1,5 +1,6 @@
 import type { CoreJobId, RuntimeCoreJobId, SpecializationId, WeaponType } from './skills.ts';
 import { STAMINA_ENABLED } from './gameplay-config.ts';
+import { canonicalizeDaggerItem, isDaggerItem, isOneHandDagger, isThiefLineage } from './dagger.ts';
 
 export type ItemRarity = 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary' | 'mythic' | 'ancient' | 'normal' | 'unique' | 'legacy';
 export type EquipmentRarity = 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary' | 'mythic' | 'ancient';
@@ -167,6 +168,8 @@ export type ItemData = {
   handedness: Handedness;
   attackType: AttackType;
   allowedJobs: CoreJobId[];
+  allowedSlots?: EquipSlot[];
+  allowedJobFamily?: 'THIEF_LINEAGE';
   asset: EquipmentAsset | null;
   mainHand: boolean;
   offHand: boolean;
@@ -261,7 +264,7 @@ export const resolveEquipmentAsset = (item: Pick<ItemData, 'templateId' | 'itemT
 const base = (
   data: Partial<ItemData> &
     Pick<ItemData, 'templateId' | 'name' | 'category' | 'itemType'>,
-): Omit<ItemData, 'id' | 'quantity'> => ({
+): Omit<ItemData, 'id' | 'quantity'> => canonicalizeDaggerItem<Omit<ItemData, 'id' | 'quantity'>>({
   templateId: data.templateId,
   name: data.name,
   description: data.description ?? 'Perlengkapan perjalanan Lumenfall.',
@@ -600,20 +603,19 @@ export const ITEM_CATALOG: Record<string, Omit<ItemData, 'id' | 'quantity'>> = {
   }),
   'caroq-daggers': base({
     templateId: 'caroq-daggers',
-    name: 'Caroq Twin Blades',
+    name: 'Caroq Dagger',
     category: 'weapon',
-    itemType: 'dualDagger',
+    itemType: 'dagger',
     icon: '✣',
     rarity: 'unique',
     levelRequirement: 10,
-    weaponType: 'dual_dagger',
+    weaponType: 'dagger',
     mainHand: true,
-    offHand: true,
     equipSlot: 'mainHand',
     requiredCoreJob: 'rogue',
     requiredSpecialJob: 'caroq',
     baseStats: { attack: 17, dex: 4, critRate: 3, attackSpeed: 2 },
-    description: 'Dual Dagger berkecepatan tinggi.',
+    description: 'Satu Dagger untuk Main Hand atau Off Hand. Dual Daggers membutuhkan dua instance berbeda.',
   }),
   'anom-sword': base({
     templateId: 'anom-sword',
@@ -636,20 +638,20 @@ export const ITEM_CATALOG: Record<string, Omit<ItemData, 'id' | 'quantity'>> = {
     name: 'Veilless Shadow Dagger',
     category: 'weapon',
     itemType: 'dagger',
-    equipmentType: 'off_hand_dagger',
-    handedness: 'off_hand',
+    equipmentType: 'dagger',
+    handedness: 'one_hand',
     attackType: 'melee',
     allowedJobs: ['rogue'],
     icon: '⌁',
     rarity: 'rare',
     levelRequirement: 10,
-    weaponType: 'sword_dagger',
-    offHand: true,
-    equipSlot: 'offHand',
+    weaponType: 'dagger',
+    mainHand: true,
+    equipSlot: 'mainHand',
     requiredCoreJob: 'rogue',
     requiredSpecialJob: 'anom',
     baseStats: { attack: 11, dex: 3, critRate: 4 },
-    description: 'Off-hand dagger Anom.',
+    description: 'Dagger untuk Main Hand atau Off Hand Thief lineage.',
   }),
   'srikandi-bow': base({
     templateId: 'srikandi-bow',
@@ -876,7 +878,7 @@ const fieldWeaponSets: Record<string, {prefix:string;level:number}> = {
 for (const [field, set] of Object.entries(fieldWeaponSets)) {
   for (const weapon of [
     {id:'sword',label:'Sword',type:'sword_dagger' as WeaponType,equipmentType:'one_hand_sword' as EquipmentType,icon:'🗡️',jobs:['warrior','rogue'] as CoreJobId[]},
-    {id:'dagger',label:'Dagger',type:'sword_dagger' as WeaponType,equipmentType:'dagger' as EquipmentType,icon:'✦',jobs:['rogue'] as CoreJobId[]},
+    {id:'dagger',label:'Dagger',type:'dagger' as WeaponType,equipmentType:'dagger' as EquipmentType,icon:'✦',jobs:['rogue'] as CoreJobId[]},
     {id:'staff',label:'Staff',type:'staff' as WeaponType,equipmentType:'staff' as EquipmentType,icon:'🪄',jobs:['wizard','acolyte'] as CoreJobId[]},
     {id:'bow',label:'Bow',type:'bow' as WeaponType,equipmentType:'bow' as EquipmentType,icon:'🏹',jobs:['hunter'] as CoreJobId[]},
     {id:'mace',label:'Mace',type:'mace' as WeaponType,equipmentType:'mace' as EquipmentType,icon:'🔨',jobs:['warrior','acolyte'] as CoreJobId[]},
@@ -892,7 +894,7 @@ for (const [templateId, rarity] of Object.entries(FIXED_ITEM_RARITIES)) {
 
 const OFF_HAND_TEMPLATES: Array<Partial<ItemData> & Pick<ItemData,'templateId'|'name'|'category'|'itemType'>> = [
   {templateId:'ironveil-shield',name:'Ironveil Shield',category:'armor',itemType:'shield',equipmentType:'shield',icon:'🛡️',equipSlot:'offHand',offHand:true,handedness:'off_hand',attackType:'none',allowedJobs:['warrior'],baseStats:{defense:12,blockRate:5},rarity:'rare',levelRequirement:8},
-  {templateId:'whispering-offhand-dagger',name:'Wildside Dagger',category:'weapon',itemType:'offHandDagger',equipmentType:'off_hand_dagger',icon:'✧',equipSlot:'offHand',offHand:true,handedness:'off_hand',attackType:'melee',allowedJobs:['rogue'],baseStats:{attack:8,critRate:2},rarity:'rare',levelRequirement:16},
+  {templateId:'whispering-offhand-dagger',name:'Wildside Dagger',category:'weapon',itemType:'dagger',equipmentType:'dagger',icon:'✧',equipSlot:'mainHand',mainHand:true,handedness:'one_hand',attackType:'melee',allowedJobs:['rogue'],baseStats:{attack:8,critRate:2},rarity:'rare',levelRequirement:16},
   {templateId:'arcana-tome',name:'Arcane Script Tome',category:'accessory',itemType:'tome',equipmentType:'tome',icon:'📖',equipSlot:'offHand',offHand:true,handedness:'off_hand',attackType:'magic',allowedJobs:['wizard'],baseStats:{skillPower:4},rarity:'rare',levelRequirement:16},
   {templateId:'resi-orb',name:'Fivefold Arcana Orb',category:'accessory',itemType:'orb',equipmentType:'orb',icon:'🔮',equipSlot:'offHand',offHand:true,handedness:'off_hand',attackType:'magic',allowedJobs:['wizard'],baseStats:{magicAttack:5},rarity:'epic',levelRequirement:24},
   {templateId:'hunter-quiver',name:"Srikandi's Quiver",category:'accessory',itemType:'quiver',equipmentType:'quiver',icon:'➶',equipSlot:'offHand',offHand:true,handedness:'off_hand',attackType:'ranged',allowedJobs:['hunter'],baseStats:{rangedDamage:4},rarity:'rare',levelRequirement:8},
@@ -920,7 +922,7 @@ const ITEM_USAGE_NOTES: Record<string, string> = {
   'adventurer-pet-egg': 'Pasang pada slot Pet melalui Inventory atau slot Pet di Character (C) untuk mengaktifkan pet pendamping beserta bonus Movement Speed dan Evasion. Pet yang hanya disimpan di inventory tidak memberi bonus. Dapat berevolusi menggunakan 3 Arunika Moss Fiber per tahap melalui menu Pet, hingga level 10. Tidak menambah tombol skill aktif.',
 };
 const DESCRIPTION_SLOT_NAMES: Record<EquipSlot, string> = {
-  mainHand:'Main Weapon', offHand:'Off Hand', head:'Head', chest:'Body Armor',
+  mainHand:'Main Hand', offHand:'Off Hand', head:'Head', chest:'Body Armor',
   gloves:'Gloves', legs:'Legs', boots:'Boots', necklace:'Necklace',
   ring1:'Ring 1 / Ring 2', ring2:'Ring 1 / Ring 2',
   earring1:'Earring 1 / Earring 2', earring2:'Earring 1 / Earring 2', pet:'Pet',
@@ -933,10 +935,10 @@ export function equipmentUsageDescription(item: Omit<ItemData, 'id' | 'quantity'
   const stats = Object.entries({...item.baseStats, ...item.bonusStats})
     .map(([stat, value]) => `${usageStatLabel(stat as keyof StatBlock)} +${Number(value).toFixed(1)}`)
     .join(' · ');
-  const jobs = item.requiredSpecialJob ?? item.requiredCoreJob
+  const jobs = isDaggerItem(item) ? 'Thief / Rogue / Spectre / Assasin / Reaper' : item.requiredSpecialJob ?? item.requiredCoreJob
     ?? (item.allowedJobs?.length ? item.allowedJobs.join(' / ') : 'Semua job');
-  const type = item.equipmentType ?? item.weaponType ?? item.equipSlot ?? item.category;
-  const slot = item.equipSlot ? DESCRIPTION_SLOT_NAMES[item.equipSlot] : 'Equipment';
+  const type = isDaggerItem(item) ? 'Dagger' : item.equipmentType ?? item.weaponType ?? item.equipSlot ?? item.category;
+  const slot = isDaggerItem(item) ? 'Main Hand / Off Hand' : item.equipSlot ? DESCRIPTION_SLOT_NAMES[item.equipSlot] : 'Equipment';
   return [
     stats || 'Tanpa bonus stat',
     `Syarat: ${jobs}`,
@@ -1041,7 +1043,7 @@ export function createItem(
     uniqueEffect,
   });
   if (equipment) normalizedItem.description = equipmentUsageDescription(normalizedItem);
-  return normalizedItem;
+  return canonicalizeDaggerItem(normalizedItem);
 }
 
 function legacyCategory(raw: Record<string, unknown>): ItemCategory {
@@ -1063,7 +1065,7 @@ const LEGACY_ITEM_NAME_ALIASES: Record<string, string[]> = {
   'guntur-knuckle': ['Knuckle Guntur'],
   'garda-mace': ['Gada Penjaga Gerbang'],
   'garda-shield': ['Tameng Nusantara'],
-  'caroq-daggers': ['Sepasang Belati Caroq'],
+  'caroq-daggers': ['Sepasang Belati Caroq', 'Caroq Twin Blades'],
   'anom-sword': ['Pedang Tanda Senyap'],
   'anom-dagger': ['Dagger Bayang Tanpa Jejak'],
   'srikandi-bow': ['Busur Mata Srikandi'],
@@ -1168,7 +1170,7 @@ export function normalizeItem(raw: unknown): ItemData | null {
     : typeof value.stackable === 'boolean'
       ? value.stackable
       : template.stackable;
-  return migrateEquipmentOptions({
+  return canonicalizeDaggerItem(migrateEquipmentOptions({
     ...template,
     ...value,
     id: typeof value.id === 'string' ? value.id : template.id,
@@ -1225,7 +1227,7 @@ export function normalizeItem(raw: unknown): ItemData | null {
         ? value.isSellable
         : !(value.isQuestItem === true || value.isSoulbound === true),
     ...(template.potionType ? {name:template.name,description:template.description,itemType:template.itemType,potionType:template.potionType,tier:template.tier,restoreType:template.restoreType,restoreValue:template.restoreValue,buyValue:template.buyValue,sellValue:template.sellValue,stackable:true,usableFromHotbar:true,useCooldown:3} : {}),
-  });
+  }));
 }
 
 export const emptyEquipment = (): EquipmentLoadout => ({
@@ -1361,6 +1363,10 @@ export function canEquipItem(
   },
   targetSlot: EquipSlot | null = item.equipSlot,
 ) {
+  if (isDaggerItem(item)) {
+    if (!isThiefLineage(context)) return { ok: false, code: 'THIEF_LINEAGE_REQUIRED', reason: 'Dagger hanya untuk Thief lineage.' };
+    if (!isOneHandDagger(item)) return { ok: false, code: 'INVALID_DAGGER_INSTANCE', reason: 'Dagger harus satu instance senjata one-hand yang valid.' };
+  }
   if (!item.equipSlot)
     return { ok: false, reason: 'Item ini tidak dapat dipasang.' };
   const compatibleSlots: EquipSlot[] = ['one_hand_sword','dagger'].includes(item.equipmentType ?? '') && item.handedness === 'one_hand' && !item.twoHanded ? ['mainHand','offHand'] : item.equipmentType === 'ring' ? ['ring1','ring2'] : item.equipmentType === 'earring' ? ['earring1','earring2'] : [item.equipSlot];
@@ -1368,17 +1374,17 @@ export function canEquipItem(
     return { ok: false, reason: 'Equipment ini tidak dapat digunakan pada slot tersebut.' };
   if (context.level < item.levelRequirement)
     return { ok: false, reason: `Membutuhkan level ${item.levelRequirement}.` };
-  if (item.requiredCoreJob && item.requiredCoreJob !== context.coreJob)
+  if (!isDaggerItem(item) && item.requiredCoreJob && item.requiredCoreJob !== context.coreJob)
     return { ok: false, reason: `Khusus Core Job ${item.requiredCoreJob}.` };
   if (
-    item.requiredSpecialJob &&
+    !isDaggerItem(item) && item.requiredSpecialJob &&
     item.requiredSpecialJob !== context.specialization
   )
     return {
       ok: false,
       reason: `Khusus Special Job ${item.requiredSpecialJob}.`,
     };
-  if (item.allowedJobs.length && context.coreJob && !item.allowedJobs.some(id => id === context.coreJob))
+  if (!isDaggerItem(item) && item.allowedJobs.length && context.coreJob && !item.allowedJobs.some(id => id === context.coreJob))
     return { ok:false, reason:`Equipment ini hanya dapat digunakan oleh ${item.allowedJobs.join(', ')}.` };
   const allowed: Partial<Record<SpecializationId, WeaponType[]>> = {
     gatotkaca: ['knuckle'],
@@ -1393,7 +1399,7 @@ export function canEquipItem(
     bajra: ['holy_knuckle', 'mace'],
   };
   if (
-    context.specialization && item.requiredSpecialJob &&
+    !isDaggerItem(item) && context.specialization && item.requiredSpecialJob &&
     item.weaponType && !allowed[context.specialization]?.includes(item.weaponType)
   )
     return {
@@ -1412,7 +1418,7 @@ export function validateOffHandCompatibility(main: ItemData | null, offHand: Ite
   const sword=offHand.equipmentType==='one_hand_sword'&&offHand.handedness==='one_hand'&&!offHand.twoHanded;
   const dagger=offHand.equipmentType==='dagger'&&offHand.handedness==='one_hand'&&!offHand.twoHanded;
   if (offHand.equipSlot !== 'offHand'&&!sword&&!dagger) return {ok:false,reason:'Equipment ini tidak dapat digunakan pada slot tersebut.'};
-  if (!main) return {ok:false,reason:'Pasang Main Weapon yang kompatibel terlebih dahulu.'};
+  if (!main) return dagger ? {ok:true,reason:''} : {ok:false,reason:'Pasang Main Weapon yang kompatibel terlebih dahulu.'};
   if (main.id===offHand.id) return {ok:false,reason:'Main Hand dan Off Hand harus memakai instance item berbeda.'};
   const mainType=main.equipmentType??inferEquipmentType(main);const offType=offHand.equipmentType??inferEquipmentType(offHand);
   if (offType==='quiver') return mainType==='bow'?{ok:true,reason:''}:{ok:false,reason:'Quiver hanya dapat digunakan bersama Bow.'};
@@ -1420,7 +1426,6 @@ export function validateOffHandCompatibility(main: ItemData | null, offHand: Ite
   if(sword)return main.id!==offHand.id&&mainType==='one_hand_sword'&&main.handedness==='one_hand'?{ok:true,reason:''}:{ok:false,reason:'Dual Sword membutuhkan dua instance One-Hand Sword berbeda.'};
   if(dagger)return mainType==='dagger'&&main.handedness==='one_hand'?{ok:true,reason:''}:{ok:false,reason:'Dual Dagger membutuhkan dua One-Hand Dagger berbeda.'};
   if (offType==='shield')return main.handedness==='one_hand'?{ok:true,reason:''}:{ok:false,reason:'Shield hanya dapat digunakan bersama senjata one-hand.'};
-  if (offType==='off_hand_dagger')return ['one_hand_sword','dagger'].includes(mainType??'')?{ok:true,reason:''}:{ok:false,reason:'Off-Hand Dagger membutuhkan Sword atau Dagger yang mendukung dual wield.'};
   if (['tome','orb','talisman'].includes(offType??''))return mainType==='wand'?{ok:true,reason:''}:{ok:false,reason:'Tome, Orb, atau Talisman membutuhkan Wand yang kompatibel.'};
   return {ok:false,reason:'Off Hand tidak kompatibel dengan Main Weapon yang dipakai.'};
 }

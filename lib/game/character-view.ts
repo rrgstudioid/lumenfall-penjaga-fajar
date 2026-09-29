@@ -6,6 +6,7 @@ import {
 } from './items.ts';
 import { activeSkills, derivedStats, equipItem, type Hero } from './rules.ts';
 import { getCombatPower } from './combat-power.ts';
+import { reconcileDaggerEquipment, resolveDaggerEquipment } from './dagger.ts';
 import { getVisibleJobArchitecture, v3SpecializationName } from './job-presentation.ts';
 import {
   ALL_PASSIVES,
@@ -28,7 +29,7 @@ export const CHARACTER_SLOTS: Array<{
   { id: 'necklace', label: 'Necklace', side: 'left' },
   { id: 'earring1', label: 'Earring 1', side: 'left' },
   { id: 'earring2', label: 'Earring 2', side: 'left' },
-  { id: 'mainHand', label: 'Main Weapon', side: 'right' },
+  { id: 'mainHand', label: 'Main Hand', side: 'right' },
   { id: 'offHand', label: 'Off Hand', side: 'right' },
   { id: 'ring1', label: 'Ring 1', side: 'right' },
   { id: 'ring2', label: 'Ring 2', side: 'right' },
@@ -40,7 +41,7 @@ export const resolveEquipmentVisual = (item: ItemData) => ({
   rarity: item.rarity,
 });
 export const getCharacterEquipmentLayers = (hero: Hero) =>
-  Object.entries(hero.equipment).flatMap(([slot, id]) => {
+  Object.entries(reconcileDaggerEquipment(hero, hero.inventory, hero.equipment)).flatMap(([slot, id]) => {
     const item = itemById(hero.inventory, id);
     return item
       ? [
@@ -52,6 +53,8 @@ export const getCharacterEquipmentLayers = (hero: Hero) =>
         ]
       : [];
   });
+export const getDaggerEquipmentLabel = (hero: Hero) => resolveDaggerEquipment(hero,
+  itemById(hero.inventory, hero.equipment.mainHand), itemById(hero.inventory, hero.equipment.offHand)).label;
 export function previewEquipmentChange(
   hero: Hero,
   item: ItemData,
@@ -108,8 +111,8 @@ export function getJobProgression(hero: Hero) {
   const architecture = getVisibleJobArchitecture(hero);
   if (architecture.v3) return [
     { id: 'adventurer' as JobStageId, name: 'Adventurer', level: 1, done: true },
-    { id: 'core' as JobStageId, name: 'Warrior', level: 15, done: !!hero.coreJob },
-    { id: 'specialization' as JobStageId, name: v3SpecializationName(hero.specialization) ?? 'Berserker / Blade Master', level: 60, done: !!hero.specialization },
+    { id: 'core' as JobStageId, name: hero.coreJob === 'thief' ? 'Thief' : 'Warrior', level: 15, done: !!hero.coreJob },
+    { id: 'specialization' as JobStageId, name: hero.coreJob === 'thief' ? 'Future · belum tersedia' : v3SpecializationName(hero.specialization) ?? 'Berserker / Blade Master', level: 60, done: !!hero.specialization },
   ].map((entry, index) => ({ ...entry,
     status: entry.done ? (index === (hero.specialization ? 2 : hero.coreJob ? 1 : 0) ? 'Current' : 'Completed') : 'Locked',
     requirements: entry.done ? [] : [`Level ${entry.level}`, 'Pilih job melalui trainer'],
@@ -244,7 +247,7 @@ export function getJobProgression(hero: Hero) {
 export function getJobSkillNodes(hero: Hero, stage: JobStageId) {
   if (hero.skillArchitectureVersion === 3) return {
     active: activeSkills(hero).filter(skill => stage === 'adventurer' ? skill.job === 'adventurer'
-      : stage === 'core' ? skill.job === 'warrior' && !skill.specialization
+      : stage === 'core' ? skill.job === hero.coreJob && !skill.specialization
       : stage === 'specialization' ? !!hero.specialization && skill.specialization === hero.specialization : false),
     passive: [],
   };

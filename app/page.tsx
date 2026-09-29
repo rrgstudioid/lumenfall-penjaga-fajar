@@ -1,6 +1,7 @@
 ﻿'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { isDaggerItem } from '@/lib/game/dagger';
 import { getVisibleJobArchitecture, presentJobText } from '@/lib/game/job-presentation';
 import { JobArchitecturePreview } from '@/components/game/job-architecture-preview';
 import { V3JobTrainer } from '@/components/game/v3-job-trainer';
@@ -1587,6 +1588,7 @@ export default function Home() {
               <V3JobTrainer
                 hero={hero}
                 onChooseWarrior={() => game.current?.chooseCoreJob('warrior')}
+                onChooseThief={() => game.current?.chooseCoreJob('thief')}
                 onChooseSpecialization={(id) => game.current?.chooseSpecialization(id)}
                 onResetToAdventurer={() => game.current?.resetJobToAdventurer()}
               />
@@ -1787,7 +1789,13 @@ export default function Home() {
                             : Math.min(point.y + 10, window.innerHeight - 80),
                         }}
                       >
-                        {item.equipSlot && (
+                        {item.equipSlot && isDaggerItem(item) && (
+                          <>
+                            <button className="secondary-button" onClick={() => game.current?.equipItem(item.id, 'mainHand')}>Equip Main Hand</button>
+                            <button className="secondary-button" onClick={() => game.current?.equipItem(item.id, 'offHand')}>Equip Off Hand</button>
+                          </>
+                        )}
+                        {item.equipSlot && !isDaggerItem(item) && (
                           <button
                             className="secondary-button"
                             onClick={() => {
@@ -1816,7 +1824,10 @@ export default function Home() {
                         {Object.values(hero.equipment).includes(item.id) && (
                           <button
                             className="secondary-button"
-                            onClick={() => game.current?.unequipItem(item.equipSlot ?? 'mainHand')}
+                            onClick={() => {
+                              const slot = (Object.keys(hero.equipment) as Array<keyof typeof hero.equipment>).find(slot => hero.equipment[slot] === item.id);
+                              if (slot) game.current?.unequipItem(slot);
+                            }}
                           >
                             Unequip
                           </button>
@@ -1974,11 +1985,11 @@ export default function Home() {
                     </span>
                     <span>
                       Syarat:{' '}
-                      <JobText>{selectedItem.requiredSpecialJob ??
+                      <JobText>{isDaggerItem(selectedItem) ? 'Thief lineage' : selectedItem.requiredSpecialJob ??
                         selectedItem.requiredCoreJob ??
                         'Semua job'}</JobText>{' '}
                       ·{' '}
-                      {selectedItem.equipmentType ??
+                      {isDaggerItem(selectedItem) ? 'Dagger' : selectedItem.equipmentType ??
                         selectedItem.weaponType ??
                         selectedItem.equipSlot ??
                         selectedItem.category}
@@ -1992,7 +2003,13 @@ export default function Home() {
                     <span>Jual {selectedItem.sellValue} GOLD</span>
                   </div>}
                   <div className="item-actions">
-                    {selectedItem.equipSlot && (
+                    {selectedItem.equipSlot && isDaggerItem(selectedItem) && (
+                      <>
+                        <button className="secondary-button" onClick={() => game.current?.equipItem(selectedItem.id, 'mainHand')}>Equip Main Hand</button>
+                        <button className="secondary-button" onClick={() => game.current?.equipItem(selectedItem.id, 'offHand')}>Equip Off Hand</button>
+                      </>
+                    )}
+                    {selectedItem.equipSlot && !isDaggerItem(selectedItem) && (
                       <button
                         className="secondary-button"
                         onClick={() => {
@@ -2034,11 +2051,10 @@ export default function Home() {
                     ) && (
                       <button
                         className="secondary-button"
-                        onClick={() =>
-                          game.current?.unequipItem(
-                            selectedItem.equipSlot ?? 'mainHand',
-                          )
-                        }
+                        onClick={() => {
+                          const slot = (Object.keys(hero.equipment) as Array<keyof typeof hero.equipment>).find(slot => hero.equipment[slot] === selectedItem.id);
+                          if (slot) game.current?.unequipItem(slot);
+                        }}
                       >
                         Unequip
                       </button>

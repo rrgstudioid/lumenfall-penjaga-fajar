@@ -167,6 +167,32 @@ await test('job reset returns to Adventurer without losing earned level points o
   assert.equal(result.hero.skillProgressionV3?.chosenSpecialization, null);
 });
 
+await test('stale V3 save data backfills earned SP from the level curve instead of keeping a legacy low total', () => {
+  const hero = parseSave(JSON.stringify({
+    ...freshHero('slot-1', 'adventurer', 'Tester'),
+    skillArchitectureVersion: 3,
+    progressionArchitecture: 'v3_adventurer',
+    job: 'warrior',
+    coreJob: 'warrior',
+    jobTier: 'specialization',
+    specialization: 'blade_master',
+    level: 77,
+    skillProgressionV3: {
+      skillArchitectureVersion: 3,
+      totalEarnedSP: 114,
+      skillRanks: {},
+      grantedRanks: {},
+      chosenCoreJob: 'warrior',
+      chosenSpecialization: 'blade_master',
+      chosenAdvancedJob: null,
+    },
+  }));
+
+  assert.ok(hero);
+  assert.equal(hero?.skillProgressionV3?.totalEarnedSP, 263);
+  assert.equal(hero?.skillPoints, 263);
+});
+
 await test('job promotion refuses to proceed while gear is still equipped', () => {
   const hero = createV3AdventurerHero();
   hero.level = 15;
