@@ -15,7 +15,13 @@ export const isDaggerItem = (item: DaggerIdentity | null | undefined) => Boolean
   item.equipmentType === 'dagger' || item.equipmentType === 'off_hand_dagger' ||
   ['dagger', 'dualDagger', 'offHandDagger'].includes(item.itemType)
 ));
-export const isOneHandDagger = (item: ItemData | null | undefined): item is ItemData => Boolean(
+// Narrow to an actual dagger subtype. Claiming every ItemData here would make
+// the false branch exclude all other weapons (and narrow swords to never).
+export type OneHandDagger = ItemData & {
+  category: 'weapon'; equipmentType: 'dagger'; handedness: 'one_hand';
+  twoHanded: false; stackable: false; quantity: 1;
+};
+export const isOneHandDagger = (item: ItemData | null | undefined): item is OneHandDagger => Boolean(
   item && item.id && item.category === 'weapon' && item.equipmentType === 'dagger' &&
   item.handedness === 'one_hand' && !item.twoHanded && !item.stackable && item.quantity === 1,
 );

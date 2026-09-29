@@ -718,9 +718,18 @@ export function createV3JobDevelopmentHero(stage: V3JobDevelopmentStage): Hero {
   const hero = createV3AdventurerHero(`v3-job-${stage}`, `V3 ${stage}`);
   hero.level = stage === 'warrior-15' ? 15 : 60;
   if (hero.skillProgressionV3) hero.skillProgressionV3.totalEarnedSP = getTotalSkillPointsForLevel(hero.level);
+  // Use the same empty-equipment prerequisite as player promotions, then restore
+  // only the starting gear that remains legal for the requested development job.
+  const startingEquipment = { ...hero.equipment };
+  for (const slot of Object.keys(startingEquipment) as Array<keyof typeof startingEquipment>)
+    if (startingEquipment[slot]) unequipItem(hero, slot);
   if (!chooseV3Warrior(hero)) throw new Error(`Unable to create development stage ${stage}`);
   if (stage === 'berserker-60' && !chooseV3Berserker(hero)) throw new Error(`Unable to create development stage ${stage}`);
   if (stage === 'blade-master-60' && !chooseV3BladeMaster(hero)) throw new Error(`Unable to create development stage ${stage}`);
+  for (const slot of Object.keys(startingEquipment) as Array<keyof typeof startingEquipment>) {
+    const id = startingEquipment[slot];
+    if (id) equipItem(hero, id, slot);
+  }
   if (stage === 'blade-master-60') {
     hero.inventory.push(createItem('legacy-fajar-blade', {
       id: `${hero.slotId}-fajar-blade-offhand`,
@@ -2305,8 +2314,12 @@ export function chooseSpecialization(
   hero.mana = Math.min(hero.mana,derivedStats(hero).maxMana);
   hero.specializationQuestClaimed = true;
   hero.jobHistory = {...hero.jobHistory, specialization:{level:hero.level,chapter:1,acquiredAt:Date.now()}};
+  // Dagger equip permissions are lineage-wide after migration, so reward identity
+  // cannot depend on requiredSpecialJob. Preserve the original single-item grants.
+  const daggerReward = specialization === 'caroq' ? 'caroq-daggers'
+    : specialization === 'anom' ? 'anom-dagger' : null;
   for (const template of Object.values(ITEM_CATALOG).filter(
-    (item) => item.requiredSpecialJob === specialization,
+    (item) => item.requiredSpecialJob === specialization || item.templateId === daggerReward,
   )) {
     const weapon = createItem(template.templateId);
     const reward = addItemToInventory(

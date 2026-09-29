@@ -1,10 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { freshHero, gainXP, resetJobToAdventurer } from './rules.ts';
+import { createV3AdventurerHero, gainXP, resetJobToAdventurer, unequipItem } from './rules.ts';
 
 await test('job reset runtime preserves earned level progression and clears job selection', () => {
-  const hero = freshHero();
+  const hero = createV3AdventurerHero();
   gainXP(hero, 90000);
   hero.gold = 1500;
   hero.allocatedStats = { str: 7, vit: 5, dex: 3, int: 2 };
@@ -32,6 +32,8 @@ await test('job reset runtime preserves earned level progression and clears job 
     chosenAdvancedJob: null,
   };
 
+  for (const slot of Object.keys(hero.equipment) as Array<keyof typeof hero.equipment>)
+    if (hero.equipment[slot]) assert.equal(unequipItem(hero, slot).ok, true);
   const result = resetJobToAdventurer(hero);
   assert.equal(result.ok, true);
   assert.equal(result.hero.job, 'adventurer');

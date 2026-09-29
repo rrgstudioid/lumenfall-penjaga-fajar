@@ -29,10 +29,15 @@ function fixture(level = 0) {
   hero.equipment.mainHand = item.id;
   return { hero, item };
 }
-await test('every registered city has a nearby canonical Forge Master and rejects all other NPCs', () => {
+await test('populated cities have one Forge Master; environment-only cities cannot provide forge access', () => {
   for (const city of Object.values(CITIES)) {
     const hero = freshHero();
     hero.currentCity = city.id;
+    if (city.id === 'averion') {
+      assert.equal(city.npcList.length, 0);
+      assert(forgeAccessReason(hero, 'aruna-3'));
+      continue;
+    }
     const masters = city.npcList.filter((npc) => npc.service === 'forge');
     assert.equal(masters.length, 1);
     for (const npc of city.npcList) {
