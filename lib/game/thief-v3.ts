@@ -198,9 +198,9 @@ const families: FamilyInput[] = [
       ranks: { baseDamageMin: [45,52,60], baseDamageMax: [65,74,84], physicalCoefficient: [1.02,1.08,1.15], bonusStrCoefficient: [.07,.08,.09], bonusDexCoefficient: [.20,.23,.26], mana: [8,9,10], cooldownSeconds: [2.6,2.5,2.4] } },
     branches: [
       { slug: 'rapid-stab', name: 'Rapid Stab', gate: 42, description: 'Deliver one quick dagger strike with a short recovery.', branchIdentity: 'Higher frequency / lower commitment; one hit',
-        ranks: { baseDamageMin: [58,66,74], baseDamageMax: [80,89,98], physicalCoefficient: [1.08,1.15,1.22], bonusStrCoefficient: [.07,.08,.09], bonusDexCoefficient: [.28,.31,.34], mana: [10,11,12], cooldownSeconds: [2.2,2.1,2] } },
+        ranks: { baseDamageMin: [29,33,37], baseDamageMax: [40,45,49], physicalCoefficient: [.54,.575,.61], bonusStrCoefficient: [.035,.040,.045], bonusDexCoefficient: [.14,.155,.17], mana: [10,11,12], cooldownSeconds: [1,1,1] } },
       { slug: 'precision-stab', name: 'Precision Stab', gate: 42, description: 'Deliver a stronger, more accurate single dagger strike.', branchIdentity: 'Slower, stronger, more accurate single hit',
-        ranks: { baseDamageMin: [70,80,90], baseDamageMax: [95,108,120], physicalCoefficient: [1.25,1.32,1.40], bonusStrCoefficient: [.08,.09,.10], bonusDexCoefficient: [.30,.33,.36], skillAccuracy: [8,10,12], mana: [11,12,13], cooldownSeconds: [3.2,3.1,3] } },
+        ranks: { baseDamageMin: [105,120,135], baseDamageMax: [143,162,180], physicalCoefficient: [1.875,1.980,2.100], bonusStrCoefficient: [.120,.135,.150], bonusDexCoefficient: [.450,.495,.540], skillAccuracy: [8,10,12], mana: [11,12,13], cooldownSeconds: [5,5,5] } },
     ],
   },
   {
