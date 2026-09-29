@@ -1,5 +1,6 @@
 import { ALL_SKILLS, activeSkillsFor, skillsFor, type SkillDefinition } from './skills.ts';
 import { ADVENTURER_V3_RUNTIME_SKILLS } from './adventurer-v3.ts';
+import { THIEF_V3_RUNTIME_SKILLS } from './thief-runtime.ts';
 import { WARRIOR_V3_RUNTIME_SKILLS } from './warrior-v3.ts';
 import { BERSERKER_V3_RUNTIME_SKILLS } from './berserker-v3.ts';
 import { BLADE_MASTER_V3_RUNTIME_SKILLS } from './blade-master-v3.ts';
@@ -10,9 +11,12 @@ import {
   type ItemData,
 } from './items.ts';
 import type { Hero } from './rules.ts';
+import { heroFamilyHotbarBinding, heroFamilySkillActive, heroFamilySkillReference, heroFamilyContext } from './skill-family-runtime.ts';
+import { isFamilyBinding } from './skill-family.ts';
 
 export const PRIMARY_HOTBAR_SIZE = 10;
 const v3HotbarSkills = (hero: Hero) => [
+  ...(hero.coreJob === 'thief' ? THIEF_V3_RUNTIME_SKILLS : []),
   ...ADVENTURER_V3_RUNTIME_SKILLS,
   ...(hero.coreJob === 'warrior' ? WARRIOR_V3_RUNTIME_SKILLS : []),
   ...(hero.specialization === 'berserker' ? BERSERKER_V3_RUNTIME_SKILLS : []),
@@ -120,6 +124,7 @@ export function canonicalHotbarId(hero: Hero, value: unknown): string | null {
   const raw = entryId(value)?.replace(/^(skill|item|action):/, '');
   if (!raw) return null;
   if (raw === 'dodge') return null;
+  if (heroFamilyContext(hero)?.skills[raw]?.familyId) return heroFamilyHotbarBinding(hero, raw);
   return (
     (hero.inventory.find((item) => item.id === raw)
       ? canonicalItemTemplateId(
@@ -135,6 +140,8 @@ export function resolvePrimaryHotbarEntry(
   id: string | null,
 ): HotbarEntry | null {
   if (!id) return null;
+  id = heroFamilySkillReference(hero, id, true);
+  if (!id) return null;
   const action = actions.find((entry) => entry.id === id);
   if (action) return action;
   const skill = (hero.skillArchitectureVersion === 3 ? v3HotbarSkills(hero) : ALL_SKILLS).find((entry) => entry.id === id);
@@ -147,7 +154,7 @@ export function resolvePrimaryHotbarEntry(
       kind: 'skill',
       skill,
       usableFromHotbar:
-        skill.usableFromHotbar === true && skill.skillType === 'active',
+        skill.usableFromHotbar === true && skill.skillType === 'active' && heroFamilyContext(hero)?.skills[skill.id]?.familyRole !== 'PASSIVE',
     };
   const owned = hero.inventory.filter((item) => item.templateId === id);
   const item = owned[0] ?? ITEM_CATALOG[id];
@@ -177,6 +184,9 @@ export function primaryHotbarAssignmentReason(
   if (!canPlaceInPrimaryHotbar(entry))
     return 'Item atau passive ini tidak dapat digunakan dari PrimaryHotbar.';
   if (entry?.skill) {
+    const definition = heroFamilyContext(hero)?.skills[entry.id];
+    if (definition?.familyRole === 'PASSIVE' || !heroFamilySkillActive(hero, entry.id))
+      return 'Skill family ini sudah digantikan atau bukan ability aktif.';
     if (
       !(hero.skillArchitectureVersion === 3
         ? v3HotbarSkills(hero)
@@ -238,7 +248,7 @@ export function loadPrimaryHotbar(
     seen.add(id);
     if (
       index < PRIMARY_HOTBAR_SIZE &&
-      canPlaceInPrimaryHotbar(resolvePrimaryHotbarEntry(hero, id))
+      (canPlaceInPrimaryHotbar(resolvePrimaryHotbarEntry(hero, id)) || knownFamilyBinding(hero, id))
     )
       slots[index] = id;
     else archive(id);
@@ -297,6 +307,8 @@ export function assignPrimaryHotbarSlot(
   index: number,
   rawId: string,
 ) {
+  const familyReason = familyAssignmentReason(hero, rawId);
+  if (familyReason) return { ok: false, hero, reason: familyReason };
   const id = canonicalHotbarId(hero, rawId),
     entry = resolvePrimaryHotbarEntry(hero, id);
   const reason = primaryHotbarAssignmentReason(hero, entry);
@@ -339,6 +351,7 @@ export function remapPrimaryHotbarForJob(
 ): void {
   const next = skillsFor(hero.coreJob, hero.specialization);
   hero.primaryHotbar = hero.primaryHotbar.map((id) => {
+    if (id && (isFamilyBinding(id) || heroFamilyContext(hero)?.skills[id]?.familyId)) return heroFamilyHotbarBinding(hero, id);
     const prior = previousSkills.find((skill) => skill.id === id);
     return prior
       ? (next.find((skill) => skill.slot === prior.slot)?.id ?? id)
@@ -390,7 +403,7 @@ function setHotbarAssignment(
 }
 function findHotbarEntry(hero: Hero, id: string): HotbarSlot | null {
   return (
-    hotbarSlots.find((slot) => hotbarAssignment(hero, slot) === id) ?? null
+    hotbarSlots.find((slot) => canonicalHotbarId(hero, hotbarAssignment(hero, slot)) === id) ?? null
   );
 }
 export function swapHotbarEntries(
@@ -444,6 +457,8 @@ export function assignQuickHotbarSlot(
   hotbarId: QuickHotbarId,
   rawId: string,
 ) {
+  const familyReason = familyAssignmentReason(hero, rawId);
+  if (familyReason) return { ok: false, hero, reason: familyReason };
   const id = canonicalHotbarId(hero, rawId),
     entry = resolvePrimaryHotbarEntry(hero, id);
   const reason = primaryHotbarAssignmentReason(hero, entry, false);
@@ -499,8 +514,7 @@ function loadQuickHotbars(hero: Hero, raw: unknown): QuickHotbars {
     if (
       id &&
       !seen.has(id) &&
-      canPlaceInQuickHotbar(entry) &&
-      (!entry?.skill || !primaryHotbarAssignmentReason(hero, entry, false))
+      ((canPlaceInQuickHotbar(entry) && (!entry?.skill || !primaryHotbarAssignmentReason(hero, entry, false))) || knownFamilyBinding(hero, id))
     ) {
       result[key].assignment = id;
       seen.add(id);
@@ -541,18 +555,49 @@ export function quickHotbarKey(
 export function getPrimaryHotbarEntries(hero: Hero): HotbarEntry[] {
   const ids = [
     ...(hero.skillArchitectureVersion === 3
-      ? [...ADVENTURER_V3_RUNTIME_SKILLS, ...(hero.coreJob === 'warrior' ? WARRIOR_V3_RUNTIME_SKILLS : []), ...(hero.specialization === 'berserker' ? BERSERKER_V3_RUNTIME_SKILLS : []), ...(hero.specialization === 'blade_master' ? BLADE_MASTER_V3_RUNTIME_SKILLS : [])]
+      ? v3HotbarSkills(hero)
       : activeSkillsFor(hero.coreJob, hero.specialization, hero.progressionArchitecture === 'v2_test' ? 'v2_test' : 'legacy')).map((skill) => skill.id),
     ...actions.map((entry) => entry.id),
     ...hero.inventory.map((item) => item.templateId),
     ...hero.primaryHotbarOverflow,
   ];
-  return [...new Set(ids)]
+  return [...new Set(ids.filter(id => heroFamilySkillActive(hero, id)).map(id => canonicalHotbarId(hero, id)))]
     .map((id) => resolvePrimaryHotbarEntry(hero, id))
     .filter(
       (entry): entry is HotbarEntry =>
-        !!entry && canPlaceInPrimaryHotbar(entry),
+        !!entry && canPlaceInPrimaryHotbar(entry) && heroFamilyContext(hero)?.skills[entry.id]?.familyRole !== 'PASSIVE',
     );
+}
+
+function familyAssignmentReason(hero: Hero, raw: string): string | null {
+  const id = entryId(raw)?.replace(/^skill:/, '') ?? raw;
+  const context = heroFamilyContext(hero);
+  if (!context?.skills[id]?.familyId) return null;
+  return context.state.skillRanks[id] > 0 && heroFamilySkillActive(hero, id)
+    ? null : 'Skill belum dipelajari atau sudah digantikan oleh anggota family aktif.';
+}
+
+function knownFamilyBinding(hero: Hero, id: string): boolean {
+  const context = heroFamilyContext(hero);
+  return !!context && isFamilyBinding(id) && Object.values(context.skills).some(s => s.familyId === id.slice(7) && s.familyRole !== 'PASSIVE');
+}
+
+/** Preserve slot identity across evolution/respec, including a temporarily empty
+ * family after a full reset. An empty binding cannot activate or grant a skill. */
+export function reconcileFamilyHotbarBindings(hero: Hero): void {
+  const seen = new Set<string>();
+  const bind = (id: string | null) => {
+    if (!id) return null;
+    const binding = canonicalHotbarId(hero, id);
+    if (!binding || seen.has(binding)) return null;
+    seen.add(binding);
+    return binding;
+  };
+  hero.primaryHotbar = hero.primaryHotbar.map(bind);
+  for (const key of ['q', 'e'] as const) {
+    if (hero.quickHotbars?.[key]) hero.quickHotbars[key].assignment = bind(hero.quickHotbars[key].assignment);
+  }
+  hero.primaryHotbarOverflow = hero.primaryHotbarOverflow.map(bind).filter((id): id is string => !!id);
 }
 export function clampPrimaryHotbarLayout(
   position: HotbarLayout,

@@ -54,7 +54,7 @@ export function getVisibleJobArchitecture(hero: PresentationHero) {
     v2,
     v3,
     legacyProgression: !v2 && !v3,
-    currentName: v2 ? core?.name ?? 'Adventurer' : v3 && currentV3Name ? currentV3Name : hero.specialization ? SPECIALIZATIONS[hero.specialization].name : hero.coreJob ? legacyCoreJob(hero.coreJob)?.name ?? 'Adventurer' : 'Adventurer',
+    currentName: v3 && hero.coreJob === 'thief' ? 'Thief' : v2 ? core?.name ?? 'Adventurer' : v3 && currentV3Name ? currentV3Name : hero.specialization ? SPECIALIZATIONS[hero.specialization].name : hero.coreJob ? legacyCoreJob(hero.coreJob)?.name ?? 'Adventurer' : 'Adventurer',
     coreChoices: v2 ? [] : Object.values(CORE_JOBS),
     v2CoreChoices: v2 && !hero.coreJob ? branches.map(job => ({
       ...job,
@@ -65,7 +65,7 @@ export function getVisibleJobArchitecture(hero: PresentationHero) {
     v3SpecializationChoices,
     futureSpecializations: core ? branches.find(j => j.id === core.id)!.children : [],
     branches,
-    hint: v3 ? (currentV3Name ? `${currentV3Name} V3 · Adventurer dan Warrior tetap tersedia` : hero.coreJob ? 'Warrior V3 · Berserker / Blade Master terbuka Lv. 60' : 'Adventurer V3 · Warrior terbuka Lv. 15') : v2 ? (core ? `${core.name} · development only · Specialization locked` : 'Adventurer · Job V2 development only') : null,
+    hint: v3 ? (hero.coreJob === 'thief' ? 'Core Thief V3 · Skill Families · Specialization belum tersedia' : currentV3Name ? `${currentV3Name} V3 · Adventurer dan Warrior tetap tersedia` : hero.coreJob ? 'Warrior V3 · Berserker / Blade Master terbuka Lv. 60' : 'Adventurer V3 · Warrior / Thief terbuka Lv. 15') : v2 ? (core ? `${core.name} · development only · Specialization locked` : 'Adventurer · Job V2 development only') : null,
   };
 }
 export const showJobQuest = (hero: PresentationHero, quest: { category: string }) =>

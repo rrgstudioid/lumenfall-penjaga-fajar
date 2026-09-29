@@ -175,11 +175,18 @@ export function resolveSkillAction(
     (1 + safe(context.stats.skillDamage) / 100)) *
     rankPowerFactor;
   // A structured hit owns its coefficients: omitted fields are zero, never the full cast damage.
-  const hits = sequence?.length ? sequence : [{ delay: 0, ...values }];
+  let hits: SkillHit[] = skill.nonDamaging ? [] : sequence?.length ? sequence : [{ delay: 0, ...values }];
+  // New explicit weapon contracts distribute one declared skill-stat budget.
+  // Legacy/BM definitions without weaponMode retain their existing weights.
+  if (skill.weaponMode) {
+    const total = hits.reduce((sum, hit) => sum + safe(hit.physicalCoefficient), 0);
+    hits = hits.map(hit => ({ ...hit, sharedContributionWeight: hit.sharedContributionWeight ??
+      (total > 0 ? safe(hit.physicalCoefficient) / total : 1 / hits.length) }));
+  }
   const baseDamageRollMin = safe(skill.baseDamageMinByRank?.[rank - 1], 0);
   const baseDamageRollMax = safe(skill.baseDamageMaxByRank?.[rank - 1], 0);
   const skillPowerFactor = safe(skill.skillPowerFactor, 0);
-  const hasSkillBaseDamage = skillPowerFactor > 0 && baseDamageRollMin > 0 && baseDamageRollMax > 0;
+  const hasSkillBaseDamage = !skill.nonDamaging && skillPowerFactor > 0 && baseDamageRollMin > 0 && baseDamageRollMax > 0;
   const rng = context.rng ?? Math.random;
   const baseDamageRoll = hasSkillBaseDamage
     ? Math.min(baseDamageRollMax, Math.max(baseDamageRollMin, baseDamageRollMin + (baseDamageRollMax - baseDamageRollMin) * rng()))
@@ -255,8 +262,8 @@ export function resolveSkillAction(
     // Legacy casts impact immediately. Explicit sequences are anchored to cast start too.
     timing: {
       castStart: 0,
-      impact: hitSequence[0].delay,
-      castEnd: Math.max(values.castingTime, hitSequence.at(-1)!.delay),
+      impact: hitSequence[0]?.delay ?? 0,
+      castEnd: Math.max(values.castingTime, hitSequence.at(-1)?.delay ?? 0),
     },
   };
   const modified=applyActionModifiers(
@@ -269,7 +276,7 @@ export function resolveSkillAction(
     },
   );
   // Presentation uses the same modified application durations as execution.
-  modified.statuses=modified.hitSequence[0].statuses;
+  modified.statuses=modified.hitSequence[0]?.statuses ?? modified.statuses;
   return modified;
 }
 export function skillHitDamage(
@@ -372,6 +379,13 @@ export class SkillHitQueue {
   private time = 0;
   private generation = 0;
   private pending: { at: number; valid: () => boolean; run: () => void }[] = [];
+  /** Non-damaging follow-up, cancelled with the owning combat session. */
+  scheduleCallback(delay: number, valid: () => boolean, run: () => void) {
+    const generation = this.generation;
+    const entry = { at: this.time + Math.max(0, delay), valid: () => generation === this.generation && valid(), run };
+    if (delay <= 0) { if (entry.valid()) entry.run(); }
+    else { this.pending.push(entry); this.pending.sort((a, b) => a.at - b.at); }
+  }
   schedule(
     hits: readonly ResolvedSkillHit[],
     valid: () => boolean,

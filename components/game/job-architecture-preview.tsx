@@ -7,7 +7,7 @@ import { Popover } from '@base-ui/react/popover';
 export function JobArchitecturePreview({ hero, compact = false }: { hero: Hero; compact?: boolean }) {
   const view = getVisibleJobArchitecture(hero);
   if (view.v3) return <section aria-label="Job Identity V3" className="v3-job-identity" data-v3-job-identity>
-    <span><b>Core Job:</b> {hero.coreJob === 'warrior' ? 'Warrior' : 'Belum dipilih'}</span>
+    <span><b>Core Job:</b> {hero.coreJob === 'warrior' ? 'Warrior' : hero.coreJob === 'thief' ? 'Thief' : 'Belum dipilih'}</span>
     <span><b>Specialization:</b> {hero.specialization ? view.currentName : 'Belum dipilih'}</span>
   </section>;
   if (!view.v2) return null;

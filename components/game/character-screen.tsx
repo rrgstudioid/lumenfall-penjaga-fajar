@@ -47,6 +47,7 @@ import { ALL_PASSIVES, skillArchitectureAllowed } from '@/lib/game/skills';
 import { JobArchitecturePreview } from './job-architecture-preview';
 import {
   getEquipmentCandidatesForSlot,
+  getDaggerEquipmentLabel,
   previewEquipmentChange,
 } from '@/lib/game/character-view';
 import {
@@ -554,6 +555,7 @@ export function CharacterScreen({
                 {characterLabel(hero)}
               </p>
               <JobArchitecturePreview hero={hero} compact />
+              {getDaggerEquipmentLabel(hero) && <p>{getDaggerEquipmentLabel(hero)}</p>}
             </div>
           </div>
           <Tip

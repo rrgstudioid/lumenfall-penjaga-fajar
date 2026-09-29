@@ -1,5 +1,7 @@
 'use client';
 import { useState, type CSSProperties } from 'react';
+import { heroFamilyNodeStates, heroFamilySkillActive } from '@/lib/game/skill-family-runtime';
+import { resolvePrimaryHotbarEntry } from '@/lib/game/hotbar';
 import {
   Crown,
   LockKeyhole,
@@ -44,10 +46,11 @@ import { ADVENTURER_V3_SKILL_MAP } from '@/lib/game/adventurer-v3';
 import { WARRIOR_V3_SKILL_MAP } from '@/lib/game/warrior-v3';
 import { BERSERKER_V3_SKILL_MAP } from '@/lib/game/berserker-v3';
 import { BLADE_MASTER_V3_SKILL_MAP } from '@/lib/game/blade-master-v3';
+import { THIEF_V3_SKILL_MAP } from '@/lib/game/thief-v3';
 import { availableSkillPointsV3, skillCostThroughRank } from '@/lib/game/skill-progression-v3';
 import { weaponRequirementLabel } from '@/lib/game/weapon-style';
 import { resolveSkillPresentation, type SkillPresentationModel } from '@/lib/game/skill-presentation-v3';
-const v3Definitions = { ...ADVENTURER_V3_SKILL_MAP, ...WARRIOR_V3_SKILL_MAP, ...BERSERKER_V3_SKILL_MAP, ...BLADE_MASTER_V3_SKILL_MAP };
+const v3Definitions = { ...ADVENTURER_V3_SKILL_MAP, ...WARRIOR_V3_SKILL_MAP, ...BERSERKER_V3_SKILL_MAP, ...BLADE_MASTER_V3_SKILL_MAP, ...THIEF_V3_SKILL_MAP };
 import {
   AlertDialog,
   AlertDialogAction,
@@ -129,10 +132,13 @@ export function JobSkill({
   const presentation = v3Definition && selectedActive
     ? resolveSkillPresentation(hero, v3Definition, selectedActive)
     : null;
-  const selectedIsMastery = v3Definition?.skillType === 'MASTERY';
+  const selectedIsMastery = v3Definition?.skillType === 'MASTERY' || v3Definition?.skillType === 'PASSIVE';
   const nextRankCost = v3Definition ? skillCostThroughRank(v3Definition, level + 1) - skillCostThroughRank(v3Definition, level) : 1;
   const availableSP = hero.skillArchitectureVersion === 3 && hero.skillProgressionV3
     ? availableSkillPointsV3(hero.skillProgressionV3, v3Definitions) : hero.skillPoints;
+  const totalEarnedSP = hero.skillArchitectureVersion === 3 && hero.skillProgressionV3
+    ? hero.skillProgressionV3.totalEarnedSP : hero.skillPoints;
+  const spentSP = Math.max(0, totalEarnedSP - availableSP);
   const learned = allNodes.filter(
     (skill) =>
       (hero.skillLevels[skill.id] ?? hero.passiveLevels[skill.id] ?? 0) > 0,
@@ -141,17 +147,21 @@ export function JobSkill({
     nodes.active.length > 0 &&
     !activeSkills(hero).some((skill) => skill.id === nodes.active[0].id);
   const assignedKey = (skillId: string) => {
-    const index = hero.primaryHotbar.indexOf(skillId);
+    const index = hero.primaryHotbar.findIndex(id => resolvePrimaryHotbarEntry(hero, id)?.id === skillId);
     return index < 0 ? '—' : String((index + 1) % 10);
   };
   function node(skill: SkillDefinition | PassiveDefinition) {
     const isActive = 'slot' in skill,
-      isV3Mastery = v3Definitions[skill.id]?.skillType === 'MASTERY',
+      isV3Mastery = v3Definitions[skill.id]?.skillType === 'MASTERY' || v3Definitions[skill.id]?.skillType === 'PASSIVE',
       rank = isActive
         ? (hero.skillLevels[skill.id] ?? 0)
         : (hero.passiveLevels[skill.id] ?? 0);
     const state = getSkillStatus(skill.id, hero),
       can = canLearnSkill(skill.id, hero);
+    const familyStates = heroFamilyNodeStates(hero, skill.id);
+    const familyLabel = familyStates.includes('REPLACED') ? 'Sudah berevolusi'
+      : familyStates.includes('BRANCH_EXCLUDED') ? 'Cabang lain dipilih'
+      : familyStates.includes('ACTIVE') ? 'Family aktif' : null;
     return (
       <button
         key={skill.id}
@@ -159,7 +169,8 @@ export function JobSkill({
         data-window-no-drag
         data-skill-id={skill.id}
         onPointerDown={(event) =>
-          begin(event, { dragType: 'skill', refId: skill.id })
+          isActive && !isV3Mastery && rank > 0 && heroFamilySkillActive(hero, skill.id)
+            ? begin(event, { dragType: 'skill', refId: skill.id }) : undefined
         }
         className={`js-node node-${state} ${selected?.id === skill.id ? 'selected' : ''}`}
         onClick={() => setSelectedId(skill.id)}
@@ -171,7 +182,7 @@ export function JobSkill({
         aria-pressed={selected?.id === skill.id}
       >
         <span className="js-node-type">
-          {stage === 'mastery' || isV3Mastery
+          {v3Definitions[skill.id]?.skillType === 'PASSIVE' ? 'PASSIVE' : stage === 'mastery' || isV3Mastery
             ? 'MASTERY'
             : isActive
               ? skill.tree?.architecture === 'v2'
@@ -184,6 +195,7 @@ export function JobSkill({
           {state === 'locked' && <LockKeyhole className="js-lock" size={12} />}
         </span>
         <strong>{skill.name}</strong>
+        {familyLabel && <small>{familyLabel}</small>}
         {isActive && !isV3Mastery && (
           <small>Mana Cost: {skillCosts(hero, skill).manaCost} MP</small>
         )}
@@ -221,7 +233,9 @@ export function JobSkill({
         </span>
         <p>Rangkai kekuatanmu. Tentukan cara bertarungmu.</p>
         <div className="js-header-actions">
-          <b className="co-points">{availableSP} Skill Points</b>
+          <b className="co-points" title={`${availableSP} tersedia dari ${totalEarnedSP} SP total. Sudah terpakai ${spentSP}.`}>
+            {availableSP} / {totalEarnedSP} SP
+          </b>
           <AlertDialog open={resetOpen} onOpenChange={setResetOpen}>
             <AlertDialogTrigger className="js-reset" data-reset-skills disabled={hero.gold < 500}>
               RESET SKILL <small>500 Gold</small>
@@ -276,7 +290,7 @@ export function JobSkill({
           <div className="js-sidebar-note">
             ACTIVE LOADOUT
             <br />
-            {activeSkills(hero).map((skill) => (
+            {activeSkills(hero).filter(skill => !v3Definitions[skill.id]?.familyId || (skill.usableFromHotbar && heroFamilySkillActive(hero, skill.id))).map((skill) => (
               <span key={skill.id}>
                 <kbd title="Tombol PrimaryHotbar; — berarti belum dipasang">
                   {assignedKey(skill.id)}
@@ -377,7 +391,7 @@ export function JobSkill({
               <h3>{selected.name}</h3>
               <p>{selected.description}</p>
               <div className="js-skill-level">
-                <span>{selectedIsMastery ? 'Mastery' : selectedActive ? 'Active Skill' : 'Passive Skill'}</span>
+                <span>{v3Definition?.skillType === 'PASSIVE' ? 'Passive Skill' : selectedIsMastery ? 'Mastery' : selectedActive ? 'Active Skill' : 'Passive Skill'}</span>
                 <b>
                   Lv. {level} <small>/ {selected.maxLevel}</small>
                 </b>

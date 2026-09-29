@@ -72,7 +72,7 @@ export const PAPER_DOLL_SLOTS: Array<{
   y: number;
 }> = [
   { id: 'head', label: 'Head', x: 50, y: 8 },
-  { id: 'mainHand', label: 'Main Weapon', x: 11, y: 26 },
+  { id: 'mainHand', label: 'Main Hand', x: 11, y: 26 },
   { id: 'offHand', label: 'Off Hand', x: 11, y: 44 },
   { id: 'necklace', label: 'Necklace', x: 11, y: 62 },
   { id: 'ring1', label: 'Ring 1', x: 11, y: 80 },

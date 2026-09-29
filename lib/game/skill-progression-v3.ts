@@ -6,6 +6,8 @@
  * using its current registry until a later migration phase.
  */
 
+import type { WeaponContributionMode } from './dual-wield.ts';
+import { familyPurchaseBlock, getFamilyPath, normalizeSkillFamilyState, reconcileSkillFamilies, resolveSkillFamily, type SkillFamilyMetadata, type SkillFamilyState } from './skill-family.ts';
 export type SkillTierV3 = 'adventurer' | 'core' | 'specialization' | 'advanced';
 export type SkillTypeV3 =
   | 'ACTIVE_DAMAGE'
@@ -27,6 +29,7 @@ export type SkillStatScalingV3 = Partial<{
 }>;
 
 export type SkillDamageProfileV3 = {
+  weaponMode?: WeaponContributionMode;
   flatPower?: number;
   physicalCoefficient?: number;
   magicCoefficient?: number;
@@ -35,6 +38,9 @@ export type SkillDamageProfileV3 = {
     coefficient?: number;
     flatPower?: number;
     delay?: number;
+    weaponHand?: 'MAIN' | 'OFF' | 'BOTH';
+    sharedContributionWeight?: number;
+    weaponContributionCoefficient?: number;
   }>;
 };
 
@@ -101,7 +107,7 @@ export type JobInvestmentRequirementV3 = {
   minimumSP: number;
 };
 
-export type SkillDefinitionV3 = {
+export type SkillDefinitionV3 = SkillFamilyMetadata & {
   id: string;
   name: string;
   jobId: string;
@@ -135,6 +141,7 @@ export type SkillDefinitionV3 = {
 };
 
 export type SkillProgressionV3State = {
+  skillFamilies?: SkillFamilyState;
   skillArchitectureVersion: 3;
   totalEarnedSP: number;
   skillRanks: Record<string, number>;
@@ -161,7 +168,10 @@ export type SkillPurchaseReasonV3 =
   | 'WRONG_ANCESTRY'
   | 'MAX_RANK'
   | 'REQUIRES_JOB_INVESTMENT'
-  | 'INVALID_SKILL';
+  | 'INVALID_SKILL'
+  | 'INVALID_FAMILY'
+  | 'BRANCH_EXCLUDED'
+  | 'REPLACED';
 
 export type SkillPurchaseResultV3 = {
   ok: boolean;
@@ -220,6 +230,7 @@ export function normalizeSkillProgressionV3(
       : 0,
     skillRanks,
     grantedRanks,
+    ...(source.skillFamilies ? { skillFamilies: normalizeSkillFamilyState(source.skillFamilies) } : {}),
     chosenCoreJob: typeof source.chosenCoreJob === 'string' ? source.chosenCoreJob : null,
     chosenSpecialization: typeof source.chosenSpecialization === 'string' ? source.chosenSpecialization : null,
     chosenAdvancedJob: typeof source.chosenAdvancedJob === 'string' ? source.chosenAdvancedJob : null,
@@ -271,6 +282,7 @@ export function accessibleJobIdsV3(
 }
 
 function rankLevel(skill: SkillDefinitionV3, nextRank: number): number {
+  if (skill.familyId) return skill.rankLevelRequirements?.[nextRank - 1] ?? skill.unlockLevel ?? 1;
   void nextRank;
   return skill.rankLevelRequirements?.[0] ?? skill.unlockLevel ?? 1;
 }
@@ -300,6 +312,8 @@ export function canPurchaseSkillRank(
 ): SkillPurchaseResultV3 {
   const skill = context.skills[skillId];
   if (!skill) return { ok: false, reason: 'INVALID_SKILL' };
+  const familyBlock = familyPurchaseBlock(context, skillId);
+  if (familyBlock) return { ok: false, reason: familyBlock, requiredSkillId: skill.familyPredecessorId ?? skill.replacesSkillId, requiredRank: skill.familyPredecessorRank ?? 1 };
   if (!skillIsAccessible(skill, context.state)) {
     return {
       ok: false,
@@ -347,7 +361,62 @@ export function purchaseSkillRankV3(
   const result = canPurchaseSkillRank(context, skillId);
   if (!result.ok) return result;
   context.state.skillRanks[skillId] = (context.state.skillRanks[skillId] ?? 0) + 1;
+  if (context.skills[skillId].familyId) reconcileSkillFamilies(context);
   return result;
+}
+
+/** Selecting a branch is a purchase, never an in-combat toggle. */
+export function selectFamilyBranch(context: SkillProgressionContextV3, skillId: string): SkillPurchaseResultV3 {
+  const skill = context.skills[skillId];
+  if (skill?.familyStage !== 'BRANCH' || !skill.familyId) return { ok: false, reason: 'INVALID_FAMILY' };
+  if ((context.state.skillRanks[skillId] ?? 0) > 0) return { ok: false, reason: 'BRANCH_EXCLUDED' };
+  return purchaseSkillRankV3(context, skillId);
+}
+
+export function getAvailableFamilyBranches(context: SkillProgressionContextV3, familyId: string) {
+  return Object.values(context.skills).filter(s => s.familyId === familyId && s.familyStage === 'BRANCH')
+    .map(skill => ({ skill, purchase: canPurchaseSkillRank(context, skill.id) }))
+    .filter(option => option.purchase.ok);
+}
+
+/** Invoke only through the existing paid respec entry point. Earned SP is never
+ * incremented: removing purchased ranks refunds exactly their accounted cost. */
+export function resetFamilyBranch(context: SkillProgressionContextV3, skillId: string) {
+  const node = context.skills[skillId];
+  if (!node?.familyId || !(context.state.skillRanks[skillId] > 0)) return { ok: false, refundedSP: 0, reason: 'INVALID_FAMILY' };
+  const remove = new Set(Object.values(context.skills).filter(s => s.familyId === node.familyId && getFamilyPath(s.id, context.skills)?.some(p => p.id === skillId)).map(s => s.id));
+  let changed: boolean;
+  do {
+    changed = false;
+    for (const skill of Object.values(context.skills)) {
+      if (!remove.has(skill.id) && context.state.skillRanks[skill.id] > 0 && skill.prerequisiteSkills?.some(p => remove.has(p.skillId))) {
+        remove.add(skill.id); changed = true;
+      }
+    }
+  } while (changed);
+  if ([...remove].some(id => (context.state.grantedRanks[id] ?? 0) > 0)) return { ok: false, refundedSP: 0, reason: 'GRANTED_RANK_REQUIRED' };
+  const before = spentSkillPointsV3(context.state, context.skills);
+  for (const id of remove) delete context.state.skillRanks[id];
+  reconcileSkillFamilies(context);
+  return { ok: true, refundedSP: before - spentSkillPointsV3(context.state, context.skills), reason: 'OK' };
+}
+
+export type FamilyNodeUIState = 'LEARNED' | 'ACTIVE' | 'AVAILABLE' | 'LOCKED_BY_LEVEL' | 'LOCKED_BY_PREREQUISITE' | 'LOCKED_BY_JOB' | 'LOCKED_BY_SP' | 'BRANCH_SELECTED' | 'BRANCH_EXCLUDED' | 'REPLACED' | 'INVALID_FAMILY';
+export function getSkillFamilyNodeState(context: SkillProgressionContextV3, skillId: string): FamilyNodeUIState[] {
+  const node = context.skills[skillId];
+  if (!node?.familyId || !getFamilyPath(skillId, context.skills)) return ['INVALID_FAMILY'];
+  const family = resolveSkillFamily(context, node.familyId);
+  if (family.history.includes(skillId)) return [
+    'LEARNED', family.activeSkillId === skillId ? 'ACTIVE' : 'REPLACED',
+    ...(node.familyStage === 'BRANCH' ? ['BRANCH_SELECTED' as const] : []),
+  ];
+  const result = canPurchaseSkillRank(context, skillId);
+  if (result.ok) return ['AVAILABLE'];
+  if (result.reason === 'BRANCH_EXCLUDED') return ['BRANCH_EXCLUDED'];
+  if (result.reason === 'REQUIRES_LEVEL') return ['LOCKED_BY_LEVEL'];
+  if (result.reason === 'INSUFFICIENT_SP') return ['LOCKED_BY_SP'];
+  if (result.reason.startsWith('WRONG_')) return ['LOCKED_BY_JOB'];
+  return [result.reason === 'INVALID_FAMILY' ? 'INVALID_FAMILY' : 'LOCKED_BY_PREREQUISITE'];
 }
 
 export function refundAllSkillPointsForJobChange(
@@ -356,6 +425,7 @@ export function refundAllSkillPointsForJobChange(
   return {
     ...state,
     skillRanks: { ...state.grantedRanks },
+    skillFamilies: undefined,
   };
 }
 

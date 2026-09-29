@@ -2,6 +2,7 @@ import type { CombatModifier } from './combat-modifiers.ts';
 import type { ResolvedSkillAction } from './skill-action.ts';
 import type { WeaponType } from './skills.ts';
 import type { TreeScope } from './rank-ownership.ts';
+import { RogueAmbushState } from './rogue-ambush.ts';
 export type StackDefinition = {
   triggerTree?: TreeScope;
   id: string;
@@ -52,6 +53,7 @@ const scaleModifier = (mod: CombatModifier, n: number): CombatModifier => {
 };
 /** Bounded runtime state, no save data, resource bar or event bus. */
 export class TransientCombatState {
+  readonly rogueAmbush = new RogueAmbushState();
   stacks = new Map<string, CombatStack>();
   windows = new Map<string, { expiresAt: number }>();
   /** V3 Berserker transient states; never serialized into Hero saves. */
@@ -67,6 +69,7 @@ export class TransientCombatState {
     return ++this.nextId;
   }
   clear() {
+    this.rogueAmbush.clear();
     this.stacks.clear();
     this.windows.clear();
     this.breakerEntryExpiresAt = 0;

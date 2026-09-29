@@ -7,6 +7,9 @@ import { THIEF_V2_ACTIVE, THIEF_V2_PASSIVES } from './thief-v2.ts';
 import type { DirectionalMovement } from './directional-movement.ts';
 import type { CoreJobV2Id } from './job-registry-v2.ts';
 import type { StealthPolicy } from './stealth.ts';
+import type { WeaponContributionMode } from './dual-wield.ts';
+import type { SkillFamilyMetadata } from './skill-family.ts';
+import type { RogueAmbushConfig } from './rogue-ambush.ts';
 export type CoreJobId = 'warrior' | 'rogue' | 'hunter' | 'wizard' | 'acolyte';
 /** Legacy registry keys stay unchanged; runtime/definitions can also name canonical V2 cores. */
 export type RuntimeCoreJobId = CoreJobId | CoreJobV2Id;
@@ -119,7 +122,13 @@ export type StatusEffectId =
   | 'stun'
   | 'holy';
 
-export type SkillDefinition = {
+export type SkillDefinition = SkillFamilyMetadata & {
+  /** Explicit Rogue-only opt-in; inherited skills do not acquire this mechanic. */
+  rogueAmbush?: RogueAmbushConfig;
+  /** Optional replaceable presentation cue, never the authority for hit timing. */
+  motionArchetype?: string;
+  /** Opt-in utility/passive action: resources and effects only, no damage hits. */
+  nonDamaging?: boolean;
   directionalMovement?: DirectionalMovement;
   movementDistance?: number;
   personalMark?: boolean;
@@ -172,6 +181,8 @@ export type SkillDefinition = {
   damageType?: DamageType;
   hitSequence?: SkillHit[];
   statuses?: SkillStatusApplication[];
+  /** Explicit weapon execution; thrown modes never consume the equipped item. */
+  weaponMode?: WeaponContributionMode;
   knockbackStrength?: number;
   angle?: number;
   maxTargets?: number;
@@ -500,7 +511,7 @@ export const SPECIALIZATIONS: Record<
   },
 };
 
-export type PassiveDefinition = {
+export type PassiveDefinition = SkillFamilyMetadata & {
   branch?:string;
   rankModifiers?:CombatModifier[][];
   rankCombatSupport?:CombatSupport[];
