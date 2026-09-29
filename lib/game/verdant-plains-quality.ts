@@ -1,11 +1,20 @@
-// Uniform full-detail coverage: twice the previous near density across 108².
-// 16,000 / 48² * 2 * 108² = 162,000 Balanced tufts. No distance LOD.
-export const PLAINS_GRASS_SPAN = 108;
-export const PLAINS_QUALITY = {
-  light: { grass: 81000, dpr: 1, shadow: 0 },
-  balanced: { grass: 162000, dpr: 1.25, shadow: 1024 },
-  high: { grass: 324000, dpr: 1.5, shadow: 2048 },
+// One density profile across the entire field. No near/mid/far grass tiers.
+export const PLAINS_GRASS_FIELD = {
+  span: 1000,
+  tileSize: 62.5,
+  outerStart: 200,
+  outer: 250,
 } as const;
+export const PLAINS_QUALITY = {
+  light: { grassDensity: 45000 / (80 * 80), dpr: 1, shadow: 0 },
+  balanced: { grassDensity: 90000 / (80 * 80), dpr: 1.25, shadow: 1024 },
+  high: { grassDensity: 180000 / (80 * 80), dpr: 1.5, shadow: 2048 },
+} as const;
+export function plainsGrassTileCount(quality: PlainsQuality) {
+  return Math.ceil(
+    PLAINS_QUALITY[quality].grassDensity * PLAINS_GRASS_FIELD.tileSize ** 2,
+  );
+}
 export type PlainsQuality = keyof typeof PLAINS_QUALITY;
 export const PLAINS_QUALITY_KEY = 'lumenfall:verdant-quality:v1';
 export function loadPlainsQuality(): PlainsQuality {

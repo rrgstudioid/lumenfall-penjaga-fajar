@@ -1,0 +1,110 @@
+{
+  "name": "LUMENFALL_OakTree_Master",
+  "height": 21,
+  "canopyRadius": 11.75,
+  "trunkRadius": 0.575,
+  "rootRadius": 0.9,
+  "variants": 3,
+  "clusters": 120,
+  "lods": [
+    {
+      "variant": 0,
+      "lod": 0,
+      "triangles": 23560
+    },
+    {
+      "variant": 0,
+      "lod": 1,
+      "triangles": 10120
+    },
+    {
+      "variant": 0,
+      "lod": 2,
+      "triangles": 3280
+    },
+    {
+      "variant": 0,
+      "lod": 4,
+      "triangles": 1380
+    },
+    {
+      "variant": 0,
+      "lod": 5,
+      "triangles": 2140
+    },
+    {
+      "variant": 1,
+      "lod": 0,
+      "triangles": 23560
+    },
+    {
+      "variant": 1,
+      "lod": 1,
+      "triangles": 10120
+    },
+    {
+      "variant": 1,
+      "lod": 2,
+      "triangles": 3280
+    },
+    {
+      "variant": 1,
+      "lod": 4,
+      "triangles": 1379
+    },
+    {
+      "variant": 1,
+      "lod": 5,
+      "triangles": 2140
+    },
+    {
+      "variant": 2,
+      "lod": 0,
+      "triangles": 23560
+    },
+    {
+      "variant": 2,
+      "lod": 1,
+      "triangles": 10120
+    },
+    {
+      "variant": 2,
+      "lod": 2,
+      "triangles": 3280
+    },
+    {
+      "variant": 2,
+      "lod": 4,
+      "triangles": 1380
+    },
+    {
+      "variant": 2,
+      "lod": 5,
+      "triangles": 2140
+    }
+  ],
+  "impostor": {
+    "size": 30,
+    "centerY": 10.5,
+    "columns": 8,
+    "rows": 4,
+    "elevations": [
+      15,
+      40,
+      70
+    ]
+  },
+  "source": "C:\\Users\\GG\\Desktop\\Lumenfall\\Master_ Material_ Lumenfall\\Tree_bark\\tree_bark_03_2k.blend.zip",
+  "sourceEntry": "textures/tree_bark_03_diff_2k.jpg",
+  "masterResolution": 4096,
+  "maps": [
+    "bark.jpg",
+    "bark-normal.jpg",
+    "bark-mask.png",
+    "foliage.png",
+    "foliage-normal.png",
+    "foliage-mask.png",
+    "impostor.png",
+    "impostor-normal.png"
+  ]
+}

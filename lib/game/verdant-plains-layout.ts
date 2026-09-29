@@ -1,4 +1,5 @@
 /** Authoritative, deterministic layout. North is -Z; design coordinates are 0..1000. */
+import { PLAINS_OAKS } from './verdant-plains-oaks.ts';
 export type PlainsPoint = { x: number; z: number };
 export const PLAINS_ID = 'verdant-plains-v2';
 export const PLAINS_SIZE = 1000;
@@ -300,10 +301,10 @@ export function plainsWalkable(p: PlainsPoint, radius = 0.45) {
   );
 }
 export function restorePlainsPosition(p: PlainsPoint) {
-  return plainsWalkable(p) ? { x: p.x, z: p.z } : { ...PLAINS_ENTRY };
+  return new PlainsNavigation().restore(p);
 }
 export type PlainsProp = PlainsPoint & {
-  kind: 'fir' | 'tree' | 'rock' | 'shrub';
+  kind: 'fir' | 'tree' | 'oak' | 'rock' | 'shrub';
   scale: number;
   yaw: number;
   radius: number;
@@ -354,17 +355,9 @@ export function plainsProps() {
       });
     }
   }
-  // Keep roughly 42% of the authored trees, without reseeding or moving rocks/shrubs.
-  // Navigation consumes the same result so removed trees leave no invisible trunks.
-  props = props.filter(
-    (p) =>
-      (p.kind !== 'fir' && p.kind !== 'tree') ||
-      ((Math.imul(Math.round(p.x * 100), 73856093) ^
-        Math.imul(Math.round(p.z * 100), 19349663)) >>>
-        0) %
-        100 <
-        42,
-  );
+  // Consume the original RNG sequence before filtering: rocks/shrubs do not move.
+  props = props.filter((p) => p.kind === 'rock' || p.kind === 'shrub');
+  props.push(...PLAINS_OAKS.map((p) => ({ ...p, kind: 'oak' as const })));
   return props;
 }
 /** Props are indexed once; dash and ordinary movement share swept collision. */
@@ -395,6 +388,20 @@ export class PlainsNavigation {
   }
   private key(x: number, z: number) {
     return `${Math.floor(x / 16)},${Math.floor(z / 16)}`;
+  }
+  restore(p: PlainsPoint): PlainsPoint {
+    if (this.valid(p)) return { x: p.x, z: p.z };
+    if (Number.isFinite(p.x) && Number.isFinite(p.z)) {
+      for (let r = 0.25; r <= 10; r += 0.25) {
+        const count = Math.ceil(Math.PI * 2 * r / 0.25);
+        for (let i = 0; i < count; i++) {
+          const a = i * Math.PI * 2 / count;
+          const q = { x: p.x + Math.cos(a) * r, z: p.z + Math.sin(a) * r };
+          if (this.valid(q)) return q;
+        }
+      }
+    }
+    return { ...PLAINS_ENTRY };
   }
   valid(p: PlainsPoint, radius = 0.45) {
     if (!plainsWalkable(p, radius)) return false;

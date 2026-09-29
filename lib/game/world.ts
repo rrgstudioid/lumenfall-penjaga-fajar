@@ -1,4 +1,4 @@
-import { PLAINS_ID, PLAINS_ENTRY, PLAINS_EXIT, plainsGroundHeight, plainsWalkable } from './verdant-plains-layout';
+import { PLAINS_ID, PLAINS_EXIT, plainsGroundHeight, plainsWalkable } from './verdant-plains-layout';
 import { PLAINS_QUALITY, PLAINS_QUALITY_KEY, type PlainsQuality } from './verdant-plains-quality';
 import { PLAINS_DAYLIGHT } from './verdant-plains-sky';
 import { UIInputBlockers, isEditableTarget } from './ui-input';
@@ -309,7 +309,7 @@ export class Game {
     return this.fieldTerrain||this.isAverion||this.isPlains?Math.hypot(a.x-b.x,a.z-b.z):a.distanceTo(b);
   }
   placeActor() {
-    if(this.isPlains){this.actor.visible=!!this.plains;if(!this.plains)return;if(!this.plains.navigation.valid(this.hero))Object.assign(this.hero,PLAINS_ENTRY);}
+    if(this.isPlains){this.actor.visible=!!this.plains;if(!this.plains)return;if(!this.plains.navigation.valid(this.hero))Object.assign(this.hero,this.plains.navigation.restore(this.hero));}
     if(this.isAverion) {
       this.actor.visible=!!this.averion;
       if(!this.averion)return;
@@ -1659,6 +1659,9 @@ export class Game {
         this.portalLabels.push({...PLAINS_EXIT,element,name:'Averion',labelHeight:6});
         this.placeActor();this.cameraFocus.copy(this.actor.position);map.update(this.camera,this.hero,0);this.drawMap();
       }).catch(error=>{if(!this.disposed&&buildToken===this.regionBuildToken)this.regionLoadError=error;throw error;}));
+      // Observe early failures while prepareWorld is still awaiting the character.
+      // Keep the original rejected promise: waitForRegionLoads still routes it to Retry.
+      void this.regionLoads.at(-1)!.catch(()=>{});
       return;
     }
     if(this.isAverion) {

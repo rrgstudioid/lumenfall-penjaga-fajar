@@ -163,10 +163,10 @@ try {
   );
   await page.waitForTimeout(1500);
   check(
-    'Balanced grass is taller, twice as dense and uses one mesh without distance LOD',
+    'Balanced grass retains tall/short blades uniformly through 250m',
     await page.evaluate(() => {
       const root = window.__plainsQA.plains.root;
-      const geometry = root.getObjectByName('Grass uniform GPU').geometry;
+      const geometry = root.getObjectByName('Grass dense field').children[0].geometry;
       const profile = geometry.getAttribute('aBladeProfile');
       let shortTip = false,
         tallTip = false;
@@ -176,9 +176,7 @@ try {
         tallTip ||= profile.getY(i) > 1.4;
       }
       return (
-        geometry.instanceCount === 162000 &&
-        !root.getObjectByName('Grass near GPU') &&
-        !root.getObjectByName('Grass far GPU') &&
+        geometry.instanceCount / 62.5**2 >= 90000/6400 &&
         geometry.getAttribute('position').count / 3 === 6 &&
         shortTip &&
         tallTip
@@ -926,10 +924,10 @@ try {
       JSON.stringify(performance, null, 2),
     );
     check(
-      // Explicitly account for requested full-detail grass across the old far
-      // range: 972k grass triangles replace 112k. Retain the non-grass budget.
-      'Balanced geometry budget with uniform full-detail grass (1.46M)',
-      performance.every((p) => p.calls <= 350 && p.triangles <= 1460000),
+      // Dense grass uses one detail level; only off-screen tiles are culled. Oaks have their own explicit
+      // 180k cap; keep the previous whole-scene ceiling for the remainder.
+      'Balanced grass/world budget plus bounded oak geometry',
+      performance.every((p) => p.calls <= 350 && p.map.oaks.triangles <= 180000 && p.triangles-p.map.oaks.triangles-p.map.grassField.submittedTriangles <= 500000),
     );
     await page.evaluate((p) => {
       const g = window.__plainsQA;

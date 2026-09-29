@@ -1,5 +1,6 @@
 import * as T from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { createPlainsOaks } from './verdant-oak-renderer';
 import { createPlainsSky, PLAINS_DAYLIGHT } from './verdant-plains-sky';
 import {
   plainsBoulderGeometry,
@@ -30,12 +31,12 @@ import {
 
 import {
   PLAINS_QUALITY,
-  PLAINS_GRASS_SPAN,
+  PLAINS_GRASS_FIELD,
+  plainsGrassTileCount,
   loadPlainsQuality,
   type PlainsQuality,
 } from './verdant-plains-quality';
 const ROOT = '/assets/maps/verdant-plains-v2/';
-const treeRevision = 'banyan-cemara-v2';
 
 export async function buildVerdantPlains(
   quality: PlainsQuality = loadPlainsQuality(),
@@ -58,9 +59,11 @@ export async function buildVerdantPlains(
     return t;
   };
   let disposed = false;
+  let oaks: Awaited<ReturnType<typeof createPlainsOaks>> | undefined;
   function dispose() {
     if (disposed) return;
     disposed = true;
+    oaks?.dispose();
     root.removeFromParent();
     root.traverse((o) => {
       if (o instanceof T.InstancedMesh) o.dispose();
@@ -122,15 +125,8 @@ export async function buildVerdantPlains(
     root.add(sky.mesh);
     const models = new Map<string, T.Group>();
     const modelResults = await Promise.allSettled(
-      ['fir', 'tree', 'shrub', 'pier', 'banner'].map(async (name) => {
-        const model = (
-          await gltf.loadAsync(
-            ROOT +
-              name +
-              '.glb' +
-              (['fir', 'tree'].includes(name) ? '?v=' + treeRevision : ''),
-          )
-        ).scene;
+      ['shrub', 'pier', 'banner'].map(async (name) => {
+        const model = (await gltf.loadAsync(ROOT + name + '.glb')).scene;
         model.traverse((o) => {
           if (o instanceof T.Mesh) {
             ownGeometry(o.geometry);
@@ -149,6 +145,7 @@ export async function buildVerdantPlains(
     );
     const modelFailure = modelResults.find((r) => r.status === 'rejected');
     if (modelFailure?.status === 'rejected') throw modelFailure.reason;
+    const terrainWind = { value: 0 };
     const terrainMaterial = ownMaterial(
       new T.MeshStandardMaterial({ roughness: 0.96, color: '#eef0ce' }),
     );
@@ -158,6 +155,7 @@ export async function buildVerdantPlains(
         uDirt: { value: dirt },
         uSand: { value: sand },
         uRock: { value: rock },
+        uMeadowTime: terrainWind,
       });
       shader.vertexShader = shader.vertexShader
         .replace(
@@ -171,12 +169,21 @@ export async function buildVerdantPlains(
       shader.fragmentShader = shader.fragmentShader
         .replace(
           '#include <common>',
-          '#include <common>\nuniform sampler2D uGrass,uDirt,uSand,uRock; varying vec3 vSurface; varying vec2 vPlainsXZ;',
+          '#include <common>\nuniform sampler2D uGrass,uDirt,uSand,uRock; uniform float uMeadowTime; varying vec3 vSurface; varying vec2 vPlainsXZ;',
         )
         .replace(
           '#include <map_fragment>',
           `
         vec3 grassColor=texture2D(uGrass,vPlainsXZ/9.0).rgb*vec3(.95,1.4,.82);
+        // Horizon LOD: wind/shading detail on the terrain continues beyond mesh grass.
+        // Derivative filtering prevents subpixel blade patterns from shimmering.
+        float meadowDistance=distance(cameraPosition.xz,vPlainsXZ);
+        float detail=1.0-smoothstep(.08,.65,max(length(dFdx(vPlainsXZ)),length(dFdy(vPlainsXZ))));
+        float streak=sin(vPlainsXZ.x*21.0+sin(vPlainsXZ.y*5.0)*2.0)*sin(vPlainsXZ.y*31.0);
+        float meadowWave=sin(dot(vPlainsXZ,vec2(.16,.09))-uMeadowTime*1.75);
+        // A filtered under-canopy meadow replaces bare-looking gaps beyond blade resolution.
+        vec3 meadowBase=mix(grassColor,vec3(.32,.43,.12),.55);
+        grassColor=mix(grassColor,meadowBase*(1.0+detail*streak*.12+meadowWave*.04),smoothstep(24.0,100.0,meadowDistance));
         vec3 groundColor=mix(grassColor,texture2D(uDirt,vPlainsXZ/7.0).rgb*vec3(1.8,1.65,1.3),clamp(vSurface.x,0.0,1.0));
         groundColor=mix(groundColor,texture2D(uSand,vPlainsXZ/11.0).rgb,clamp(vSurface.y,0.0,1.0));
         groundColor=mix(groundColor,texture2D(uRock,vPlainsXZ/13.0).rgb,clamp(vSurface.z,0.0,1.0));
@@ -184,7 +191,7 @@ export async function buildVerdantPlains(
       `,
         );
     };
-    terrainMaterial.customProgramCacheKey = () => 'verdant-terrain-v1';
+    terrainMaterial.customProgramCacheKey = () => 'verdant-terrain-meadow-v3';
     const heights = plainsHeightfield(),
       mask = new Float32Array(513 * 513 * 3),
       grassMask = new Uint8Array(513 * 513);
@@ -719,7 +726,7 @@ export async function buildVerdantPlains(
       placements: ReturnType<typeof plainsProps>;
       triangles: number;
     }> = [];
-    for (const kind of ['fir', 'tree', 'shrub'] as const) {
+    for (const kind of ['shrub'] as const) {
       const model = models.get(kind)!;
       model.updateMatrixWorld(true);
       const placements = props.filter((p) => p.kind === kind),
@@ -747,12 +754,7 @@ export async function buildVerdantPlains(
         root.add(mesh);
       });
       const texture = ownTexture(
-        await loader.loadAsync(
-          ROOT +
-            kind +
-            '-far.png' +
-            (kind !== 'shrub' ? '?v=' + treeRevision : ''),
-        ),
+        await loader.loadAsync(ROOT + kind + '-far.png'),
       );
       texture.colorSpace = T.SRGBColorSpace;
       const material = ownMaterial(
@@ -788,6 +790,8 @@ export async function buildVerdantPlains(
       root.add(card);
       vegetation.push({ meshes, card, placements, triangles });
     }
+    oaks = await createPlainsOaks(depthTexture);
+    root.add(oaks.root);
     const navigation = new PlainsNavigation();
     // The existing visible character is ~369k triangles. A map-owned caster
     // keeps its silhouette shadow inexpensive without changing that model.
@@ -812,7 +816,8 @@ export async function buildVerdantPlains(
       caster.raycast = () => {};
       characterShadow.add(caster);
     }
-    // Stable world-space patches wrap on the GPU. No per-movement CPU placement/masks.
+    // Restore original close-up density everywhere. Tiles only cull off-screen work;
+    // they never change blade count/detail with distance.
     const wind = { value: 0 },
       grassPlayer = { value: new T.Vector2() },
       grassTrail = { value: new T.Vector2() };
@@ -822,47 +827,107 @@ export async function buildVerdantPlains(
     );
     densityTexture.minFilter = densityTexture.magFilter = T.LinearFilter;
     densityTexture.needsUpdate = true;
-    const grassGeometry = ownGeometry(plainsGrassGeometry());
-    {
-      const geometry = grassGeometry;
-      const max = PLAINS_QUALITY.high.grass,
-        span = PLAINS_GRASS_SPAN,
-        attributes = new Float32Array(max * 4);
-      let seed = 721;
-      const rnd = () => {
-        seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0;
-        return seed / 4294967296;
-      };
-      for (let i = 0; i < max; i++)
-        attributes.set(
-          [
-            (rnd() - 0.5) * span,
-            (rnd() - 0.5) * span,
-            rnd() * Math.PI * 2,
-            rnd(),
-          ],
-          i * 4,
-        );
-      geometry.setAttribute(
-        'aGrassPatch',
-        new T.InstancedBufferAttribute(attributes, 4),
+    const grassGeometries: T.InstancedBufferGeometry[] = [];
+    const grassTiles: T.Mesh<T.InstancedBufferGeometry>[] = [];
+    const grassRoot = new T.Group();
+    grassRoot.name = 'Grass dense field';
+    root.add(grassRoot);
+    const tileSize = PLAINS_GRASS_FIELD.tileSize;
+    const sharedGrass = ownGeometry(plainsGrassGeometry());
+    const maxGrass = plainsGrassTileCount('high');
+    const patches = new Float32Array(maxGrass * 4);
+    let grassSeed = 721;
+    const grassRandom = () => {
+      grassSeed = (Math.imul(grassSeed, 1664525) + 1013904223) >>> 0;
+      return grassSeed / 4294967296;
+    };
+    for (let i = 0; i < maxGrass; i++)
+      patches.set(
+        [
+          (grassRandom() - 0.5) * tileSize,
+          (grassRandom() - 0.5) * tileSize,
+          grassRandom() * Math.PI * 2,
+          grassRandom(),
+        ],
+        i * 4,
       );
-      geometry.instanceCount = PLAINS_QUALITY[quality].grass;
-      const mesh = new T.Mesh(
-        geometry,
-        ownMaterial(
-          plainsGrassMaterial(
-            depthTexture,
-            densityTexture,
-            grassPlayer,
-            wind,
-            grassTrail,
-          ),
+    const sharedPatches = new T.InstancedBufferAttribute(patches, 4);
+    const grassMaterial = ownMaterial(
+      plainsGrassMaterial(
+        depthTexture,
+        densityTexture,
+        grassPlayer,
+        wind,
+        grassTrail,
+      ),
+    );
+    for (let tz = 0; tz < 16; tz++)
+      for (let tx = 0; tx < 16; tx++) {
+        let low = Infinity,
+          high = -Infinity,
+          maximumMask = 0;
+        // The mask/heightfield is static. Skip wholly forbidden tiles, conservatively
+        // include a one-texel border for filtering and bounds for wind/terrain height.
+        for (
+          let iz = Math.max(0, tz * 32 - 1);
+          iz <= Math.min(512, (tz + 1) * 32 + 1);
+          iz++
+        )
+          for (
+            let ix = Math.max(0, tx * 32 - 1);
+            ix <= Math.min(512, (tx + 1) * 32 + 1);
+            ix++
+          ) {
+            const k = iz * 513 + ix;
+            low = Math.min(low, heights[k]);
+            high = Math.max(high, heights[k]);
+            maximumMask = Math.max(maximumMask, grassMask[k]);
+          }
+        if (maximumMask <= 38) continue;
+        const geometry = ownGeometry(new T.InstancedBufferGeometry());
+        for (const [name, attribute] of Object.entries(sharedGrass.attributes))
+          geometry.setAttribute(name, attribute);
+        geometry.setAttribute('aGrassPatch', sharedPatches);
+        geometry.instanceCount = plainsGrassTileCount(quality);
+        geometry.boundingBox = new T.Box3(
+          new T.Vector3(-tileSize / 2 - 2, low - 1, -tileSize / 2 - 2),
+          new T.Vector3(tileSize / 2 + 2, high + 4, tileSize / 2 + 2),
+        );
+        geometry.boundingSphere = geometry.boundingBox.getBoundingSphere(
+          new T.Sphere(),
+        );
+        const mesh = new T.Mesh(geometry, grassMaterial);
+        mesh.name = `Grass tile ${tx},${tz}`;
+        mesh.position.set(
+          -500 + (tx + 0.5) * tileSize,
+          0,
+          -500 + (tz + 0.5) * tileSize,
+        );
+        mesh.frustumCulled = true;
+        grassGeometries.push(geometry);
+        grassTiles.push(mesh);
+        grassRoot.add(mesh);
+      }
+    const grassFrustum = new T.Frustum(),
+      grassProjection = new T.Matrix4();
+    let visibleGrassTiles = 0;
+    function updateGrassVisibility(camera: T.Camera, player: PlainsPoint) {
+      grassFrustum.setFromProjectionMatrix(
+        grassProjection.multiplyMatrices(
+          camera.projectionMatrix,
+          camera.matrixWorldInverse,
         ),
       );
-      mesh.name = 'Grass uniform GPU';
-      mesh.frustumCulled = false;
-      root.add(mesh);
+      grassRoot.updateMatrixWorld(true);
+      visibleGrassTiles = 0;
+      for (const mesh of grassTiles) {
+        const inRange =
+          Math.hypot(mesh.position.x - player.x, mesh.position.z - player.z) -
+            tileSize * Math.SQRT1_2 <=
+          PLAINS_GRASS_FIELD.outer;
+        mesh.visible = inRange && grassFrustum.intersectsObject(mesh);
+        if (mesh.visible) visibleGrassTiles++;
+      }
     }
     let lastLod = '',
       lastVegetation = '',
@@ -925,6 +990,7 @@ export async function buildVerdantPlains(
     function update(camera: T.Camera, player: PlainsPoint, time: number) {
       sky.update(camera, time);
       wind.value = time;
+      terrainWind.value = time;
       waterTime.value = time;
       characterShadow.position.set(
         player.x,
@@ -948,7 +1014,9 @@ export async function buildVerdantPlains(
         grassTrail.value.lerp(grassPlayer.value, 1 - Math.exp(-dt * 7));
       }
       grassTrailTime = time;
+      updateGrassVisibility(camera, player);
       updateVegetation(player);
+      oaks!.update(camera, player, time, currentQuality);
       const lodKey = `${Math.floor(player.x / 12)},${Math.floor(player.z / 12)},${Math.floor(camera.position.x / 25)},${Math.floor(camera.position.z / 25)}`;
       if (lastLod !== lodKey) {
         lastLod = lodKey;
@@ -1024,13 +1092,25 @@ export async function buildVerdantPlains(
       setQuality(value: PlainsQuality) {
         currentQuality = value;
         lastVegetation = '';
-        grassGeometry.instanceCount = PLAINS_QUALITY[value].grass;
+        grassGeometries.forEach((g) => {
+          g.instanceCount = plainsGrassTileCount(value);
+        });
         lastLod = '';
       },
       metrics: () => ({
         chunks: chunks.length,
         props: plainsProps().length,
-        grass: grassGeometry.instanceCount,
+        grass: grassGeometries.reduce((n, g) => n + g.instanceCount, 0),
+        grassField: {
+          density: PLAINS_QUALITY[currentQuality].grassDensity,
+          radius: PLAINS_GRASS_FIELD.outer,
+          tiles: grassTiles.length,
+          visibleTiles: visibleGrassTiles,
+          submittedTriangles:
+            visibleGrassTiles * plainsGrassTileCount(currentQuality) * 6,
+          sharedPatchBytes: patches.byteLength,
+          lod: false,
+        },
         textures: textures.size,
         textureBytes: [...textures].reduce(
           (sum, t) =>
@@ -1038,6 +1118,7 @@ export async function buildVerdantPlains(
           0,
         ),
         geometries: geometries.size,
+        oaks: oaks!.metrics(),
       }),
     };
   } catch (error) {

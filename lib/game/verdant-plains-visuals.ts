@@ -1,5 +1,5 @@
 import * as T from 'three';
-import { PLAINS_GRASS_SPAN } from './verdant-plains-quality';
+import { PLAINS_GRASS_FIELD } from './verdant-plains-quality';
 
 /** Three small silhouettes, shared by all boulders. Shape is independent of material. */
 export function plainsBoulderGeometry(variant: number) {
@@ -82,30 +82,30 @@ export function plainsBoulderMaterial(color: T.Texture, height: T.Texture) {
   return material;
 }
 
-/** Same two-layer, six-triangle tuft at every visible distance. */
+/** The same four-blade tuft at every distance; no enlarged meadow cards. */
 export function plainsGrassGeometry() {
   const geometry = new T.InstancedBufferGeometry();
-  const vertices: number[] = [];
-  const profiles: number[] = [];
+  const vertices: number[] = [],
+    profiles: number[] = [];
   for (let blade = 0; blade < 4; blade++) {
     const a = blade * 2.399,
       c = Math.cos(a),
-      s = Math.sin(a);
-    const short = blade >= 2;
+      s = Math.sin(a),
+      short = blade >= 2;
     const h = (short ? 0.32 + (blade - 2) * 0.12 : 0.88 + blade * 0.2) * 1.35;
-    const points = !short
+    const points = short
       ? [
+          [-0.045, 0, 0],
+          [0.045, 0, 0],
+          [0.04, h, 0.08],
+        ]
+      : [
           [-0.035, 0, 0],
           [0.035, 0, 0],
           [0.04, h * 0.56, 0.04],
           [-0.035, 0, 0],
           [0.04, h * 0.56, 0.04],
           [0.035, h, 0.105],
-        ]
-      : [
-          [-0.045, 0, 0],
-          [0.045, 0, 0],
-          [0.04, h, 0.08],
         ];
     for (const [x, y, z] of points) {
       const spread = short ? 0.19 : 0.06;
@@ -129,6 +129,7 @@ export function plainsGrassMaterial(
   time: { value: number },
   trail: { value: T.Vector2 },
 ) {
+  const range = PLAINS_GRASS_FIELD;
   const material = new T.MeshLambertMaterial({
     color: '#a8b967',
     side: T.DoubleSide,
@@ -150,7 +151,7 @@ export function plainsGrassMaterial(
       uniform sampler2D uGround,uMask;
       uniform vec2 uPlayer,uGrassTrail;
       uniform float uTime;
-      varying float vBladeTip,vGrassTint,vGust;
+      varying float vBladeTip,vGrassTint,vGust,vDistanceFade;
       float groundAt(vec2 q){return texture2D(uGround,(q+.5)/513.0).r;}
       float surfaceAt(vec2 p){
         vec2 grid=clamp((p+500.0)*.512,vec2(0.0),vec2(511.999));
@@ -163,15 +164,17 @@ export function plainsGrassMaterial(
       .replace(
         '#include <begin_vertex>',
         `
-      vec2 worldXZ=mod(aGrassPatch.xy-uPlayer+${(PLAINS_GRASS_SPAN / 2).toFixed(1)},${PLAINS_GRASS_SPAN.toFixed(1)})-${(PLAINS_GRASS_SPAN / 2).toFixed(1)}+uPlayer;
+      vec2 tileOrigin=modelMatrix[3].xz;
+      vec2 worldXZ=aGrassPatch.xy+tileOrigin;
       float dist=distance(worldXZ,uPlayer);
-      // Only fade at the outer draw boundary; no inner model/density transition.
-      float fade=1.0-smoothstep(48.0,53.0,dist);
+      vDistanceFade=1.0-smoothstep(${range.outerStart.toFixed(1)},${range.outer.toFixed(1)},dist);
+      float fade=1.0;
       float density=texture2D(uMask,((worldXZ+500.0)*.512+.5)/513.0).r;
       float clump=.72+.28*sin(worldXZ.x*.61)*sin(worldXZ.y*.53);
       fade*=smoothstep(.15,.8,density)*clump;
-      if(any(greaterThan(abs(worldXZ),vec2(498.0))))fade=0.0;
-      float c=cos(aGrassPatch.z),s=sin(aGrassPatch.z);
+      if(any(greaterThan(abs(worldXZ),vec2(498.0))) || vDistanceFade<=0.0)fade=0.0;
+      float phase=aGrassPatch.z+dot(tileOrigin,vec2(.371,.619));
+      float c=cos(phase),s=sin(phase);
       vec3 transformed=position*(.7+aGrassPatch.w*.65)*fade;
       transformed.xz=mat2(c,-s,s,c)*transformed.xz;
       // A travelling front links neighbouring clumps; fine flutter varies each blade.
@@ -192,23 +195,26 @@ export function plainsGrassMaterial(
       vec2 pushDirection=normalize(away+vec2(.001,.002));
       transformed.xz+=pushDirection*contact*.85*tip*tip*fade*bladeHeight;
       transformed.y*=1.0-contact*.58*tip;
-      transformed.xz+=worldXZ;
-      transformed.y+=surfaceAt(worldXZ)-.025;
+      transformed.xz+=aGrassPatch.xy;
+      transformed.y+=fade>.001 ? surfaceAt(worldXZ)-.025 : -10000.0;
       vBladeTip=tip;vGrassTint=aGrassPatch.w;vGust=gust;
     `,
       );
     shader.fragmentShader = shader.fragmentShader
       .replace(
         '#include <common>',
-        '#include <common>\nvarying float vBladeTip,vGrassTint,vGust;',
+        '#include <common>\nvarying float vBladeTip,vGrassTint,vGust,vDistanceFade;',
       )
       .replace(
         '#include <color_fragment>',
         `#include <color_fragment>
+      // Only fade at the configured outer limit. Never shrink blades in rings around the player.
+      float pixelNoise=fract(52.9829189*fract(dot(gl_FragCoord.xy,vec2(.06711056,.00583715))));
+      if(vDistanceFade<=pixelNoise) discard;
       diffuseColor.rgb*=mix(vec3(.55,.72,.40),vec3(1.14,1.12,.72),vBladeTip)*(.88+vGrassTint*.22)*(.88+vGust*.18);
     `,
       );
   };
-  material.customProgramCacheKey = () => 'plains-grass-uniform-v7';
+  material.customProgramCacheKey = () => `plains-grass-dense-tiles-v7-${range.outerStart}-${range.outer}`;
   return material;
 }
