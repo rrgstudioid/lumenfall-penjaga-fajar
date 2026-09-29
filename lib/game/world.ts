@@ -4,6 +4,7 @@ import { PLAINS_DAYLIGHT } from './verdant-plains-sky';
 import { UIInputBlockers, isEditableTarget } from './ui-input';
 import { CHAT_MESSAGE_LIMIT } from './chat';
 import * as T from 'three';
+import { skillWeaponAllowed } from './rules.ts';
 import { getVisibleJobArchitecture } from './job-presentation';
 import {usesHardTargeting,targetIdentity,validTarget,targetRequirement,needsSelectedTarget,targetDistance,ActionLock,type TargetIdentity,type TargetFailure} from './targeting';
 import {TargetPresentation,type TargetView} from './target-presentation';
@@ -2462,7 +2463,7 @@ export class Game {
     this.syncCombatModifiers();
     if (skill.id === 'v3-blade-master-tempo-drive' && this.transientCombat.tempoCount(this.combatTime) === 0) return this.failTarget('TEMPO_REQUIRED');
     const tempoReduction=this.transientCombat.bladeTempoDrive?.manaReductionPercent ?? 0;
-    const stats=derivedStats(this.hero), preview=resolveHeroSkill(this.hero,skill,level,stats,undefined,[],undefined,tempoReduction);
+    const stats=derivedStats(this.hero), preview=resolveHeroSkill(this.hero,skill,level,stats,undefined,[],undefined,tempoReduction, skill.id === 'v3-berserker-earth-splitter' ? () => 0 : Math.random);
     this.traceV3Damage(skill.id, 'skill_resolved', {
       weaponAllowed: preview.weaponAllowed,
       resolvedHitCount: preview.hitSequence.length,
@@ -2505,8 +2506,8 @@ export class Game {
     }
     const support=combatSupportFor(this.hero);
     const windows=this.transientCombat.windowModifiers(preview,support,this.combatTime);
-    const action=resolveHeroSkill(this.hero,skill,level,stats,counter,windows,this.skillImpactContext(selection.target),tempoReduction);
-    if(!this.consumeMana(action.manaCost))return false;
+    const action=resolveHeroSkill(this.hero,skill,level,stats,counter,windows,this.skillImpactContext(selection.target),tempoReduction, skill.id === 'v3-berserker-earth-splitter' ? () => this.rand() : Math.random);
+    if(!this.consumeMana(action.manaCost)){this.message('Mana tidak cukup.');return false;}
     this.lastActionFailure=null;
     if(targetRequirement(action)!=='self'&&action.hitSequence.some(hit=>skillHitDamage(hit,stats)>0))breakStealth(this.hero,'offensive_skill');
     this.updateStealthPresentation();
@@ -2546,6 +2547,7 @@ export class Game {
     const isBerserkerTrance = skill.skillId === 'v3-berserker-trance';
     const isBreakerEntry = skill.skillId === 'v3-berserker-breaker-entry';
     const isBerserkerDamage = skill.tags.includes('v3-berserker');
+    const isEarthSplitter = skill.skillId === 'v3-berserker-earth-splitter';
     const bladeImpact = new BladeMasterImpactSession(skill.skillId,this.transientCombat,this.combatTime);
     const maxBeforeBuff = maxHP(this.hero);
     for(const buff of skill.temporaryBuffs??[])addTemporaryModifier(this.hero,buff.modifier,buff.duration);
@@ -2578,7 +2580,7 @@ export class Game {
       position: { x: target.group.position.x, z: target.group.position.z },
       alive: target.hp > 0,
     } : null;
-    const targets = selectSkillTargets({
+    const acquireTargets = () => selectSkillTargets({
       action: skill,
       origin: { x: this.actor.position.x, z: this.actor.position.z },
       forward: { x: this.direction.x, z: this.direction.z },
@@ -2586,10 +2588,12 @@ export class Game {
         target: enemy,
         id: String(enemy.id),
         position: { x: enemy.group.position.x, z: enemy.group.position.z },
-        alive: enemy.hp > 0,
+        alive: enemy.hp > 0 && (!isEarthSplitter || this.getCastTarget(targetIdentity(enemy, this.regionBuildToken)) === enemy),
       })),
       selected: targetCandidate,
     });
+    // Moving radial sequences acquire enemies at each impact, not at cast start.
+    const targets = isEarthSplitter ? [] : acquireTargets();
     this.traceV3Damage(skill.skillId, 'impact_scheduled', {
       targetIds: targets.map(enemy => enemy.id),
       scheduledImpacts: skill.hitSequence.length,
@@ -2682,10 +2686,19 @@ export class Game {
     }
     const buildToken=this.regionBuildToken;
     const attackerLevel=this.hero.level;
+    const refreshFrenzyGuard = () => {
+      const trance = this.transientCombat.berserkerTrance;
+      if (isBerserkerDamage && successfulTargets >= 3 && trance && trance.expiresAt > this.combatTime)
+        this.transientCombat.triggerFrenzyGuard(this.combatTime, [0, 4, 5, 6][Math.min(3, trance.rank)], 2);
+    };
+    // The same per-target damage path serves both existing skills and each
+    // landing of a radial sequence. No second damage/crit/mitigation engine.
+    const resolveImpacts = (targets: Enemy[], hits: ResolvedSkillAction['hitSequence'], stompIndex?: number) => {
+    let landedHits = 0;
     for (const enemy of targets) {
       let alive=true;
       const spawn=enemy.respawnDeadline;
-      const castTargetIdentity=skill.targetIdentity??targetIdentity(enemy,buildToken);
+      const castTargetIdentity=isEarthSplitter?targetIdentity(enemy,buildToken):skill.targetIdentity??targetIdentity(enemy,buildToken);
       const isIronCharge = skill.skillId === 'v3-warrior-iron-charge';
       const dashImpactRange = skill.dash ? Math.max(skill.dash.impactRange, skill.dash.stopDistance) : 0;
       let impactInvalidReported = false;
@@ -2705,12 +2718,13 @@ export class Game {
         }
         return valid;
       };
-      this.skillHits.schedule(skill.hitSequence,
+      this.skillHits.schedule(hits,
         ()=>alive&&!this.disposed&&!this.dead&&buildToken===this.regionBuildToken&&enemy.respawnDeadline===spawn&&validImpact(),
         snapshotHit=>{
+      const impactIndex = stompIndex ?? skill.hitSequence.indexOf(snapshotHit);
       this.traceV3Damage(skill.skillId, 'impact_callback', {
         targetId: enemy.id,
-        impactIndex: skill.hitSequence.indexOf(snapshotHit),
+        impactIndex,
         hand: snapshotHit.weaponHand ?? null,
         targetHpBefore: enemy.hp,
       });
@@ -2728,12 +2742,12 @@ export class Game {
         );
       }
       const impactContext=this.skillImpactContext(enemy);
-      const hit=bladeImpact.prepare(resolveTargetHit(snapshotHit,skill.targetModifiers,enemy,this.combatTime,impactContext),skill.hitSequence.indexOf(snapshotHit),skill.hitSequence.length-1,enemy,this.hero.characterId??this.hero.slotId,this.combatTime);
+      const hit=bladeImpact.prepare(resolveTargetHit(snapshotHit,skill.targetModifiers,enemy,this.combatTime,impactContext),impactIndex,skill.hitSequence.length-1,enemy,this.hero.characterId??this.hero.slotId,this.combatTime);
       const hitResolution = resolveHitAgainstEvasion({ attackerAccuracy: hit.accuracy, targetEvasion: enemy.evasion ?? 0, rng: () => this.rand() });
       if (hitResolution.result === 'EVADED') {
         this.traceV3Damage(skill.skillId, 'hit_result', {
           targetId: enemy.id,
-          impactIndex: skill.hitSequence.indexOf(snapshotHit),
+          impactIndex,
           result: 'EVADED',
           accuracy: hit.accuracy,
           targetEvasion: enemy.evasion ?? 0,
@@ -2761,7 +2775,7 @@ export class Game {
       let amount = skillHitDamage(hit,stats);
       this.traceV3Damage(skill.skillId, 'damage_resolver', {
         targetId: enemy.id,
-        impactIndex: skill.hitSequence.indexOf(snapshotHit),
+        impactIndex,
         hand: snapshotHit.weaponHand ?? null,
         accuracy: hit.accuracy,
         result: 'HIT',
@@ -2796,7 +2810,7 @@ export class Game {
       const dummyImpact = enemy.dummy && amount > 0;
       this.traceV3Damage(skill.skillId, 'hp_mutation', {
         targetId: enemy.id,
-        impactIndex: skill.hitSequence.indexOf(snapshotHit),
+        impactIndex,
         hpBefore: beforeHP,
         appliedDamage,
         hpAfter: enemy.hp,
@@ -2804,6 +2818,7 @@ export class Game {
       });
       if (isIronCharge) this.traceDevelopment('target_hp_changed', { targetId: enemy.id, hpBefore: beforeHP, hpAfter: enemy.hp, damage: Math.max(0, beforeHP - enemy.hp) });
       if(amount>0&&(enemy.hp<beforeHP||dummyImpact)){
+        landedHits++;
         const firstSuccessfulImpact = !successful;
         successful=true;
         if (!successfulTargetIds.has(enemy.id)) {
@@ -2829,6 +2844,23 @@ export class Game {
         }
       }
       if(enemy.hp<=0){alive=false;return;}
+      if (isEarthSplitter) {
+        // Only a successful damaging hit applies CC. Choose one duration so
+        // the final Major Stun replaces Mini Stun rather than adding to it.
+        if (!(amount > 0 && (enemy.hp < beforeHP || dummyImpact))) return;
+        const profile = skill.stunProfile!;
+        const chance = stunChanceForRank(profile.chance, skill.rank);
+        const major = stompIndex === 3 && this.rand() < chance;
+        const applied = applyStun(enemy, {
+          sourceActorId: this.hero.characterId ?? this.hero.slotId,
+          sourceSkillId: skill.skillId, chance: major ? chance : 1,
+          pveDuration: major ? profile.pveDuration : .10,
+          pvpDuration: major ? profile.pvpDuration : .10,
+          targetPolicy: profile.targetPolicy, now: this.combatTime,
+        });
+        if (applied) { enemy.stun = remainingStun(enemy, this.combatTime); this.float(enemy.group.position, major ? 'STUN' : 'MINI STUN', 'reward'); }
+        return;
+      }
       for(const status of hit.statuses){
         const rear=!!impactContext.position&&relativePosition(impactContext.position,{rearAngle:90})==='rear';
         const duration=status.duration+(rear?(status.rearDurationBonus??0):0);
@@ -2859,7 +2891,7 @@ export class Game {
       });
       if (
         stunProfile &&
-        (skill.skillId === 'v3-warrior-iron-charge' || skill.skillId === 'v3-berserker-earth-splitter' || skill.skillId === 'v3-blade-master-counterflow') &&
+        (skill.skillId === 'v3-warrior-iron-charge' || skill.skillId === 'v3-blade-master-counterflow') &&
         chargeStunEligible(chargeTravelDistance, stunProfile.minimumTravelDistance) &&
         this.rand() < stunChanceForRank(stunProfile.chance, skill.rank)
       ) {
@@ -2893,16 +2925,36 @@ export class Game {
       if (skill.effect === 'parry') enemy.stun = Math.max(enemy.stun, 0.6);
       });
     }
+    return landedHits;
+    };
+    if (isEarthSplitter) {
+      const actorId = this.hero.characterId ?? this.hero.slotId;
+      this.skillHits.schedule(skill.hitSequence,
+        () => this.started && !this.disposed && !this.dead && this.hero.hp > 0 && buildToken === this.regionBuildToken &&
+          (this.hero.characterId ?? this.hero.slotId) === actorId && !isStunned(this.hero, this.combatTime) && skillWeaponAllowed(this.hero, definition),
+        hit => {
+          const stompIndex = skill.hitSequence.indexOf(hit);
+          const landing = this.actor.position.clone();
+          const landingTargets = acquireTargets();
+          this.traceV3Damage(skill.skillId, 'stomp_landing', {
+            impactIndex: stompIndex, landingPosition: { x: landing.x, y: landing.y, z: landing.z },
+            targetIds: landingTargets.map(enemy => enemy.id), radius: skill.areaRadius, targetCap: skill.maxTargets,
+          });
+          this.ring(landing, '#d8b57d', skill.areaRadius, .18);
+          this.effect(landing, '#ead39a', stompIndex === 3 ? 24 : 12);
+          // The cast already owns its BaseRoll and weighted snapshots. Execute
+          // this impact immediately; never resolve/reroll the whole skill here.
+          if (resolveImpacts(landingTargets, [{ ...hit, delay: 0 }], stompIndex) > 0) refreshFrenzyGuard();
+        });
+      this.message(`${skill.name} digunakan.`);
+    } else resolveImpacts(targets, skill.hitSequence);
     if (skill.skillId === 'v3-berserker-fury-harvest' && successfulTargets > 0) {
       const recoveryRank = Math.max(1, Math.min(5, level));
       const heal = Math.round(maxHP(this.hero) * FURY_HARVEST_RECOVERY_PERCENT[recoveryRank - 1] / 100 * Math.min(5, successfulTargets));
       this.hero.hp = Math.min(maxHP(this.hero), this.hero.hp + heal);
     }
-    const berserkerTrance = this.transientCombat.berserkerTrance;
-    if (isBerserkerDamage && successfulTargets >= 3 && berserkerTrance && berserkerTrance.expiresAt > this.combatTime) {
-      const rank = berserkerTrance.rank;
-      this.transientCombat.triggerFrenzyGuard(this.combatTime, [0, 4, 5, 6][Math.min(3, rank)], 2);
-    }
+    if (isEarthSplitter) return; // Landing feedback is emitted four times above.
+    refreshFrenzyGuard();
     if (skill.tree?.architecture === 'v2' && skill.tree.id === 'warrior') {
       const point = target?.group.position ?? this.actor.position;
       switch (skill.skillId) {

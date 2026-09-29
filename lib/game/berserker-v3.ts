@@ -66,7 +66,7 @@ export const BERSERKER_V3_SKILLS: readonly SkillDefinitionV3[] = [
     targeting: { targetType: 'area', radius: 5, maxTargets: 5 },
     stunProfile: { chance: [.08, .10, .12, .15, .18], pveDuration: 1.5, pvpDuration: .75, minimumTravelDistance: 0, targetPolicy: 'NORMAL' },
     effects: { tags: ['berserker_damage', 'per-target-stun', 'radial', 'no-knockback'] },
-    presentation: { description: 'Drive your Two-Hand Sword into the earth with tremendous force, damaging nearby enemies and giving the impact a chance to Stun them.' },
+    presentation: { description: 'Strikes the ground 4 times, dealing area damage to nearby enemies with each impact.' },
     motion: motion('MULTI_HOP_GROUND_STOMP', 'Heavy upward leap with both hands lifting the greatsword overhead. Each stomp drives the blade downward into the ground with a crushing impact, then the arms and sword recover back to the neutral guard pose after landing.', ['no repeated shockwaves', 'no knockback', 'no Stagger', 'no spinning attack', 'no fixed step sequence', 'no floating airborne slash', 'no teleport', 'no high acrobatics']),
   }),
   makeArea({
@@ -128,18 +128,20 @@ const adapter = (definition: SkillDefinitionV3): SkillDefinition => {
     ...(values?.radius ? { radius: values.radius[index] } : {}),
     ...(values?.maxTargets ? { maxTargets: values.maxTargets[index] } : {}),
   }));
-  const earthSplitterHitSequence = definition.id === 'v3-berserker-earth-splitter'
-    ? earthSplitterHitWeights.map((weight, index) => ({
+  const earthSplitterRankEffects = definition.id === 'v3-berserker-earth-splitter'
+    ? coefficients.map(coefficient => ({ hitSequence: earthSplitterHitWeights.map((weight, index) => ({
+        // Keep the established gameplay cadence, independently of animation assets.
         delay: index * 0.18,
-        physicalCoefficient: 1,
+        physicalCoefficient: coefficient * weight,
         sharedContributionWeight: weight,
         weaponHand: 'MAIN' as const,
-        statusEffect: { id: 'stun', duration: 0.1 },
-      }))
+        knockbackStrength: 0,
+        // Stun is applied through the universal API after successful HP damage.
+      })) }))
     : undefined;
   const rankEffects = blood?.map((entry) => ({ temporaryBuffs: [{ duration: entry.duration, modifier: { id: `${definition.id}-buff`, stats: { percent: { maxHP: entry.hp, damageReduction: entry.dr } } } }] }))
     ?? (definition.id === 'v3-berserker-two-hand-mastery' ? [2,4,6,8,10].map((accuracy) => ({ modifiers: [{ id: `${definition.id}-accuracy`, stats: { flat: { accuracy } } }] })) : undefined)
-    ?? (earthSplitterHitSequence ? [{ hitSequence: earthSplitterHitSequence }] : undefined);
+    ?? earthSplitterRankEffects;
   const effect = definition.skillType === 'ACTIVE_BUFF' || definition.skillType === 'MASTERY' || definition.id === 'v3-berserker-trance' ? 'buff' : definition.targeting?.targetType === 'area' || definition.targeting?.targetType === 'frontal_arc' ? 'aoe_damage' : 'damage';
   return {
     id: definition.id, name: definition.name, description: definition.presentation?.description ?? '', job: 'warrior', specialization: 'berserker',
@@ -147,6 +149,7 @@ const adapter = (definition: SkillDefinitionV3): SkillDefinition => {
     manaCost: definition.resourceCost?.mana ?? 0, cooldown: definition.cooldown ?? 0, castingTime: .55, baseDamage: 0, scalingStat: 'attack', damageCoefficient: 0,
     combatScaling: { physical: 1, magic: 0, damageType: 'physical' }, physicalCoefficient: definition.damageProfile?.physicalCoefficient ?? 0, statScaling: definition.damageProfile?.statScaling,
     magicCoefficient: 0, damageType: 'physical', progressionMode: 'rank_values', rankValues, rankEffects, knockbackStrength: 0,
+    ...(earthSplitterRankEffects ? { canCrit: true, movementAllowedDuringLock: true } : {}),
     targetType: definition.targeting?.targetType === 'frontal_arc' ? 'frontal_arc' : definition.targeting?.targetType === 'area' ? 'area' : definition.targeting?.targetType === 'self' ? 'self' : 'single',
     range: definition.targeting?.range ?? 0, areaRadius: definition.targeting?.radius ?? 0, maxTargets: definition.targeting?.maxTargets, duration: 0, statusEffect: null, effect,
     animation: effect === 'buff' ? 'magic_cast' : 'basic_attack', visualEffect: effect === 'buff' ? 'barrier' : '', soundEffect: '',
