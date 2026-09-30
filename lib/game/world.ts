@@ -1,5 +1,6 @@
 import { PLAINS_ID, PLAINS_EXIT, plainsGroundHeight, plainsWalkable } from './verdant-plains-layout';
-import { PLAINS_QUALITY, PLAINS_QUALITY_KEY, type PlainsQuality } from './verdant-plains-quality';
+import { PLAINS_QUALITY, PLAINS_QUALITY_KEY, PLAINS_QUALITY_LABELS, plainsPixelRatio, type PlainsQuality } from './verdant-plains-quality';
+import { RenderPerformance } from './render-performance';
 import { PLAINS_DAYLIGHT } from './verdant-plains-sky';
 import { UIInputBlockers, isEditableTarget } from './ui-input';
 import { CHAT_MESSAGE_LIMIT } from './chat';
@@ -291,6 +292,8 @@ export class Game {
   terrainSurface: T.Mesh | null = null;
   plains: Awaited<ReturnType<typeof import('./verdant-plains-map').buildVerdantPlains>> | null = null;
   private plainsShadowState = new WeakMap<T.Mesh,boolean>();
+  private renderPerformance = new RenderPerformance();
+  private plainsShadowCheckAt = 0;
   private setPlainsCharacterShadows(active:boolean) {
     this.actor.traverse(object=>{if(object instanceof T.Mesh){
       if(active){if(!this.plainsShadowState.has(object))this.plainsShadowState.set(object,object.castShadow);object.castShadow=false;}
@@ -1231,6 +1234,11 @@ export class Game {
     this.characterModel = model;
     this.actor=model.actor;this.arm=model.arm;this.legs=model.legs;this.aura=model.aura;
     this.scene.add(this.actor);
+    if (this.isPlains) this.setPlainsCharacterShadows(true);
+    void model.ready.then(() => {
+      if (!this.disposed && this.characterModel === model && this.isPlains)
+        this.setPlainsCharacterShadows(true);
+    }).catch(() => { /* Character loading already reports its own failure. */ });
   }
   buildEnemies() {
     if(this.isAverion)return;
@@ -1715,7 +1723,7 @@ export class Game {
       this.scene.background=new T.Color(PLAINS_DAYLIGHT.horizon);this.scene.fog=new T.Fog(PLAINS_DAYLIGHT.horizon,290,1000);
       this.regionLoads.push(import('./verdant-plains-map').then(module=>module.buildVerdantPlains()).then(map=>{
         if(this.disposed||buildToken!==this.regionBuildToken){map.dispose();return;}
-        this.plains=map;this.regionDecor.add(map.root);this.setPlainsQuality(map.quality,false);
+        this.plains=map;this.regionDecor.add(map.root);this.setPlainsQuality(map.quality,false);this.setPlainsCharacterShadows(true);
         const element=document.createElement('div');element.className='npc-label';
         const badge=document.createElement('div');badge.className='npc-service-badge';badge.textContent='Averion · Click to travel';element.appendChild(badge);this.labelHost.appendChild(element);
         this.portalLabels.push({...PLAINS_EXIT,element,name:'Averion',labelHeight:6});
@@ -3709,8 +3717,10 @@ export class Game {
     return {x,z};
   }
   tick = (time: number) => {
+    const frameStarted = performance.now();
     if (this.disposed || !this.started) { this.frame = 0; return; }
     if(this.transitioning||this.regionLoadError||((this.isAverion&&!this.averion)||(this.isPlains&&!this.plains))) {
+      this.renderPerformance.suspend();
       this.lastTime=time;this.frame=requestAnimationFrame(this.tick);return;
     }
     const dt = Math.min((time - (this.lastTime || time)) / 1000, 0.04);
@@ -3763,7 +3773,7 @@ export class Game {
         const sprinting = true;
         const speedMultiplier = 1.22;
         const speed =
-          (6.2 * derivedStats(this.hero).movementSpeed * speedMultiplier) / 100;
+          (6.2 * manaStats.movementSpeed * speedMultiplier) / 100;
         const previousX = this.actor.position.x, previousZ = this.actor.position.z;
         this.move(m.x * dt * speed, m.z * dt * speed);
         moving = Math.hypot(this.actor.position.x - previousX, this.actor.position.z - previousZ) > .0001;
@@ -3775,7 +3785,7 @@ export class Game {
         }
       }
       if (isResourceEnabled(this.hero, 'stamina')) {
-        const staminaMax = derivedStats(this.hero).staminaMax;
+        const staminaMax = manaStats.staminaMax;
         this.stamina = Math.min(staminaMax, this.stamina + dt * 18);
       }
       this.hero.playTimeSeconds += dt;
@@ -3857,8 +3867,14 @@ export class Game {
       this.worldLightRig.traverse(o=>{if(o instanceof T.DirectionalLight){o.position.copy(this.actor.position).add(new T.Vector3(-25,45,20));o.target.position.copy(this.actor.position);o.target.updateMatrixWorld();}});
     }
     if(this.isPlains&&this.plains){
-      this.setPlainsCharacterShadows(true);
+      // Imported equipment can complete after the body ready promise. Catch those
+      // additions at 1 Hz instead of traversing the full character every frame.
+      if (time >= this.plainsShadowCheckAt) {
+        this.setPlainsCharacterShadows(true);
+        this.plainsShadowCheckAt = time + 1000;
+      }
       this.camera.position.y=Math.max(this.camera.position.y,this.groundHeight(this.camera.position.x,this.camera.position.z)+1.2);
+      this.camera.updateMatrixWorld();
       this.plains.update(this.camera,this.hero,time/1000);
       this.worldLightRig.traverse(o=>{if(o instanceof T.DirectionalLight){o.position.set(this.actor.position.x+PLAINS_DAYLIGHT.sun[0]*80,this.actor.position.y+PLAINS_DAYLIGHT.sun[1]*80,this.actor.position.z+PLAINS_DAYLIGHT.sun[2]*80);o.target.position.copy(this.actor.position);o.target.updateMatrixWorld();}});
     }
@@ -3875,6 +3891,9 @@ export class Game {
       this.drawMap();
       this.emit();
     }
+    if (!this.paused && !document.hidden)
+      this.renderPerformance.record(time, performance.now() - frameStarted);
+    else this.renderPerformance.suspend();
     this.frame = requestAnimationFrame(this.tick);
   };
   updateCamera(dt: number) {
@@ -4364,14 +4383,35 @@ export class Game {
   setPlainsQuality(quality:PlainsQuality,persist=true) {
     if(!this.plains||!Object.hasOwn(PLAINS_QUALITY,quality))return;
     this.plains.setQuality(quality);const profile=PLAINS_QUALITY[quality];
+    this.renderPerformance.reset();
     this.renderer.setPixelRatio(Math.min(devicePixelRatio,profile.dpr));this.renderer.shadowMap.enabled=profile.shadow>0;
     this.worldLightRig.traverse(o=>{if(o instanceof T.DirectionalLight){o.shadow.map?.dispose();o.shadow.map=null;o.shadow.mapSize.setScalar(profile.shadow||1024);Object.assign(o.shadow.camera,{left:-42,right:42,top:42,bottom:-42,near:.1,far:140});o.shadow.camera.updateProjectionMatrix();}});
     if(persist)try{localStorage.setItem(PLAINS_QUALITY_KEY,quality);}catch{}
     this.resize();
   }
+  getPerformanceDiagnostics() {
+    const gl = this.renderer.getContext();
+    const debug = gl.getExtension('WEBGL_debug_renderer_info');
+    const buffer = this.renderer.getDrawingBufferSize(new T.Vector2());
+    return {
+      capturedAt: new Date().toISOString(), map: this.hero.inCity ? this.hero.currentCity : this.hero.currentField,
+      quality: this.plains?.quality ?? 'map default', ...this.renderPerformance.snapshot(),
+      qualityLabel: this.plains ? PLAINS_QUALITY_LABELS[this.plains.quality] : 'Map default',
+      viewport: { width: this.host.clientWidth, height: this.host.clientHeight, deviceDpr: devicePixelRatio },
+      drawingBuffer: { width: buffer.x, height: buffer.y },
+      gpu: debug ? gl.getParameter(debug.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER),
+      browser: navigator.userAgent, logicalCores: navigator.hardwareConcurrency,
+      render: { ...this.renderer.info.render }, memory: { ...this.renderer.info.memory },
+      plains: this.plains?.metrics(),
+    };
+  }
   resize = () => {
     const w = this.host.clientWidth, h = this.host.clientHeight;
     if (!w || !h) return;
+    if (this.isPlains && this.plains) {
+      const ratio = plainsPixelRatio(this.plains.quality, w, h, devicePixelRatio);
+      if (Math.abs(this.renderer.getPixelRatio() - ratio) > .0001) this.renderer.setPixelRatio(ratio);
+    }
     this.updateCameraProjection();
     // CSS owns the canvas footprint; Three.js updates only the drawing buffer.
     // This keeps the WebGL surface at the full overlay size without affecting HUD layout.

@@ -18,11 +18,14 @@ import './interface-scale.css';
 import './forge-panel.css';
 import './character-screen.css';
 import './menu-presentation.css';
+import './graphics-settings.css';
 import { MenuPresentation, type MenuFlow, type SelectionMode } from '@/components/game/menu-presentation';
 import { RuneForgePanel } from '@/components/game/rune-forge-panel';
 import { RuneDetails } from '@/components/game/rune-details';
 import { ForgePanel } from '@/components/game/forge-panel';
 import { InterfaceSettings, InterfaceSettingsRuntime } from '@/components/game/interface-settings';
+import { PerformanceDiagnostics } from '@/components/game/performance-diagnostics';
+import { GraphicsPresets } from '@/components/game/graphics-presets';
 import { GameDragDropProvider } from '@/components/game/drag-drop-provider';
 import { InventoryGrid } from '@/components/game/inventory-grid';
 import { InventoryCombatPowerPreview } from '@/components/game/combat-power-preview';
@@ -1329,7 +1332,7 @@ export default function Home() {
           windowId={panel ? `panel-${panel}` : 'panel'}
           dragHandleSelector={panel === 'character' ? '[data-character-header]' : undefined}
           initialFocus={panel === 'character' ? () => document.querySelector<HTMLElement>('.character-dialog [data-slot="dialog-close"]') : undefined}
-          className={`game-dialog ${panel === 'pause' ? 'pause-dialog' : ''} ${panel === 'bag' || panel === 'jobSkill' ? 'binding-window' : ''} ${panel === 'bag' ? 'inventory-dialog' : panel === 'character' ? 'character-dialog' : panel === 'jobSkill' ? 'job-skill-dialog' : panel === 'forge' ? 'forge-dialog' : ''}`}
+          className={`game-dialog ${panel === 'pause' ? `pause-dialog${pauseMenuView === 'graphics' ? ' graphics-dialog' : ''}` : ''} ${panel === 'bag' || panel === 'jobSkill' ? 'binding-window' : ''} ${panel === 'bag' ? 'inventory-dialog' : panel === 'character' ? 'character-dialog' : panel === 'jobSkill' ? 'job-skill-dialog' : panel === 'forge' ? 'forge-dialog' : ''}`}
         >
           {panel !== 'bag' && (
             <span className={panel === 'character' ? 'sr-only' : 'eyebrow'}>
@@ -1556,6 +1559,7 @@ export default function Home() {
                       Back
                     </button>
                   </div>
+                  {state.mapId==='verdant-plains-v2' && <GraphicsPresets game={engine} />}
                   <div className="adventure-menu-links">
                     <button className="secondary-button" onClick={toggleFullscreen}>
                       {isFullscreen ? <Minimize2 size={17} /> : <Maximize2 size={17} />}
@@ -1563,11 +1567,7 @@ export default function Home() {
                     </button>
                   </div>
                   <InterfaceSettings />
-                  {state.mapId==='verdant-plains-v2' && <label className="setting-row">Detail Verdant Plains
-                    <select aria-label="Detail Verdant Plains" defaultValue={engine?.plains?.quality??'balanced'} onChange={event=>engine?.setPlainsQuality(event.target.value as 'light'|'balanced'|'high')}>
-                      <option value="light">Light</option><option value="balanced">Balanced</option><option value="high">High</option>
-                    </select>
-                  </label>}
+                  <PerformanceDiagnostics game={engine} />
                 </>
               )}
             </div>

@@ -33,6 +33,7 @@ import {
   PLAINS_QUALITY,
   PLAINS_GRASS_FIELD,
   plainsGrassTileCount,
+  plainsGrassRange,
   loadPlainsQuality,
   type PlainsQuality,
 } from './verdant-plains-quality';
@@ -834,6 +835,9 @@ export async function buildVerdantPlains(
     root.add(grassRoot);
     const tileSize = PLAINS_GRASS_FIELD.tileSize;
     const sharedGrass = ownGeometry(plainsGrassGeometry());
+    const officeGrass = ownGeometry(plainsGrassGeometry(true));
+    const initialRange = plainsGrassRange(quality);
+    const grassRange = { value: new T.Vector2(initialRange.outerStart, initialRange.outer) };
     const maxGrass = plainsGrassTileCount('high');
     const patches = new Float32Array(maxGrass * 4);
     let grassSeed = 721;
@@ -859,6 +863,7 @@ export async function buildVerdantPlains(
         grassPlayer,
         wind,
         grassTrail,
+        grassRange,
       ),
     );
     for (let tz = 0; tz < 16; tz++)
@@ -885,7 +890,7 @@ export async function buildVerdantPlains(
           }
         if (maximumMask <= 38) continue;
         const geometry = ownGeometry(new T.InstancedBufferGeometry());
-        for (const [name, attribute] of Object.entries(sharedGrass.attributes))
+        for (const [name, attribute] of Object.entries((quality === 'office' ? officeGrass : sharedGrass).attributes))
           geometry.setAttribute(name, attribute);
         geometry.setAttribute('aGrassPatch', sharedPatches);
         geometry.instanceCount = plainsGrassTileCount(quality);
@@ -924,7 +929,7 @@ export async function buildVerdantPlains(
         const inRange =
           Math.hypot(mesh.position.x - player.x, mesh.position.z - player.z) -
             tileSize * Math.SQRT1_2 <=
-          PLAINS_GRASS_FIELD.outer;
+          grassRange.value.y;
         mesh.visible = inRange && grassFrustum.intersectsObject(mesh);
         if (mesh.visible) visibleGrassTiles++;
       }
@@ -947,7 +952,7 @@ export async function buildVerdantPlains(
       let budget =
         currentQuality === 'high'
           ? 50000
-          : currentQuality === 'light'
+          : currentQuality === 'light' || currentQuality === 'office'
             ? 12000
             : 30000;
       const selected = vegetation.map(() => new Set<number>());
@@ -982,7 +987,7 @@ export async function buildVerdantPlains(
         group.meshes.forEach((mesh) => {
           mesh.count = count;
           mesh.visible = count > 0;
-          mesh.castShadow = currentQuality !== 'light';
+          mesh.castShadow = PLAINS_QUALITY[currentQuality].shadow > 0;
           mesh.instanceMatrix.needsUpdate = true;
         });
       });
@@ -1091,9 +1096,14 @@ export async function buildVerdantPlains(
       },
       setQuality(value: PlainsQuality) {
         currentQuality = value;
+        const range = plainsGrassRange(value);
+        grassRange.value.set(range.outerStart, range.outer);
+        characterShadow.visible = PLAINS_QUALITY[value].shadow > 0;
         lastVegetation = '';
         grassGeometries.forEach((g) => {
           g.instanceCount = plainsGrassTileCount(value);
+          for (const [name, attribute] of Object.entries((value === 'office' ? officeGrass : sharedGrass).attributes))
+            g.setAttribute(name, attribute);
         });
         lastLod = '';
       },
@@ -1103,11 +1113,11 @@ export async function buildVerdantPlains(
         grass: grassGeometries.reduce((n, g) => n + g.instanceCount, 0),
         grassField: {
           density: PLAINS_QUALITY[currentQuality].grassDensity,
-          radius: PLAINS_GRASS_FIELD.outer,
+          radius: grassRange.value.y,
           tiles: grassTiles.length,
           visibleTiles: visibleGrassTiles,
           submittedTriangles:
-            visibleGrassTiles * plainsGrassTileCount(currentQuality) * 6,
+            visibleGrassTiles * plainsGrassTileCount(currentQuality) * (currentQuality === 'office' ? 4 : 6),
           sharedPatchBytes: patches.byteLength,
           lod: false,
         },
