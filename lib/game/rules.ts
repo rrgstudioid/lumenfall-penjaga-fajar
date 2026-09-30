@@ -1,4 +1,5 @@
 import { PLAINS_ID, PLAINS_ENTRY, restorePlainsPosition } from './verdant-plains-layout.ts';
+import { normalizeMaleAppearance } from './character-appearance.ts';
 import { isResourceEnabled, staminaDerivedValue } from './gameplay-config.ts';
 import { RogueAmbushState } from './rogue-ambush.ts';
 import { thiefJobCapabilities, thiefSkillJobAllowed, THIEF_JOB_IDENTITY } from './thief-job-capabilities.ts';
@@ -134,6 +135,8 @@ export type CharacterAppearance = {
   hairStyleId: string;
   hairColorId: string;
   skinToneId: string;
+  appearanceVersion?: 2;
+  hairColor?: string;
 };
 export type SavedPosition = { x: number; z: number };
 
@@ -503,6 +506,7 @@ const appearanceValue = <T extends readonly { id: string }[]>(items: T, value: u
 export function normalizeAppearance(value: unknown, gender: CharacterGender = 'male'): CharacterAppearance {
   const source = value && typeof value === 'object' ? value as Record<string, unknown> : {};
   const selectedGender = source.gender === 'female' || gender === 'female' ? 'female' : 'male';
+  if (selectedGender === 'male') return normalizeMaleAppearance(source);
   return {
     gender: selectedGender,
     faceStyleId: appearanceValue(FACE_STYLE_PRESETS, source.faceStyleId, DEFAULT_APPEARANCE.faceStyleId),

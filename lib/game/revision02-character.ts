@@ -68,6 +68,9 @@ export type CharacterVisualProfile = {
   /** Visual rest offsets in game-root XYZ radians; never change the bind pose. */
   restPose?: Partial<Record<Joint, readonly [number, number, number]>>;
   preserveRestFootHeight?: boolean;
+  /** Stable body dimensions: hairstyle changes must not resize the actor. */
+  authoredHeight?: number;
+  authoredGround?: number;
 };
 const cleanName = (name: string) => name.replace(/[. _]/g, '');
 
@@ -93,10 +96,10 @@ export function createRevision02Binding(rig: CharacterRig, actor: T.Group, fallb
     model.traverse(o => { if (o instanceof T.Bone) bones.set(cleanName(o.name), o); });
     for (const name of Object.values(boneNames)) if (!bones.has(cleanName(name))) throw new Error(`${visualProfile.assetKind} missing bone ${name}`);
     const box = new T.Box3().setFromObject(model);
-    modelScale = actor.userData.heightMeters / box.getSize(new T.Vector3()).y;
+    modelScale = actor.userData.heightMeters / (visualProfile.authoredHeight ?? box.getSize(new T.Vector3()).y);
     visual = new T.Group(); visual.name = visualProfile.visualName;
     visual.rotation.y = Math.PI; // authored GLB +Z -> Lumenfall -Z
-    visual.scale.setScalar(modelScale); visual.position.y = -box.min.y * modelScale;
+    visual.scale.setScalar(modelScale); visual.position.y = -(visualProfile.authoredGround ?? box.min.y) * modelScale;
     visual.add(model); rig.root.add(visual); rig.root.updateWorldMatrix(true, true);
     const rootInverse = rig.root.getWorldQuaternion(new T.Quaternion()).invert();
     const rootMatrixInverse = rig.root.matrixWorld.clone().invert();

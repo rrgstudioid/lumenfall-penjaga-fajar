@@ -1,0 +1,317 @@
+{
+  "version": 2,
+  "sourceSHA256": "9101f134e5c08a90c9aeae19ac3f30a29469a8f10603f5a44736b56fa5271461",
+  "sourceTriangles": 4722,
+  "geometryPolicy": "LOD0 original positions and UVs; hidden scalp only",
+  "assets": [
+    {
+      "path": "body/body-lod0.glb",
+      "triangles": 6652,
+      "vertices": 4427,
+      "bytes": 107324,
+      "lod": 0
+    },
+    {
+      "path": "body/body-lod1.glb",
+      "triangles": 3599,
+      "vertices": 2885,
+      "bytes": 74792,
+      "lod": 1
+    },
+    {
+      "path": "body/body-lod2.glb",
+      "triangles": 1799,
+      "vertices": 1804,
+      "bytes": 50600,
+      "lod": 2
+    },
+    {
+      "path": "body/body-lod3.glb",
+      "triangles": 849,
+      "vertices": 1019,
+      "bytes": 32816,
+      "lod": 3
+    },
+    {
+      "path": "hair/hair_01-lod0.glb",
+      "triangles": 970,
+      "vertices": 882,
+      "bytes": 26028,
+      "lod": 0
+    },
+    {
+      "path": "hair/hair_01-lod1.glb",
+      "triangles": 899,
+      "vertices": 843,
+      "bytes": 25252,
+      "lod": 1
+    },
+    {
+      "path": "hair/hair_01-lod2.glb",
+      "triangles": 550,
+      "vertices": 633,
+      "bytes": 21016,
+      "lod": 2
+    },
+    {
+      "path": "hair/hair_01-lod3.glb",
+      "triangles": 249,
+      "vertices": 349,
+      "bytes": 15292,
+      "lod": 3
+    },
+    {
+      "path": "hair/hair_02-lod0.glb",
+      "triangles": 3000,
+      "vertices": 1502,
+      "bytes": 34424,
+      "lod": 0
+    },
+    {
+      "path": "hair/hair_02-lod1.glb",
+      "triangles": 1800,
+      "vertices": 902,
+      "bytes": 24024,
+      "lod": 1
+    },
+    {
+      "path": "hair/hair_02-lod2.glb",
+      "triangles": 1000,
+      "vertices": 502,
+      "bytes": 16896,
+      "lod": 2
+    },
+    {
+      "path": "hair/hair_02-lod3.glb",
+      "triangles": 400,
+      "vertices": 202,
+      "bytes": 11524,
+      "lod": 3
+    },
+    {
+      "path": "hair/hair_03-lod0.glb",
+      "triangles": 3000,
+      "vertices": 1502,
+      "bytes": 34328,
+      "lod": 0
+    },
+    {
+      "path": "hair/hair_03-lod1.glb",
+      "triangles": 1800,
+      "vertices": 902,
+      "bytes": 24008,
+      "lod": 1
+    },
+    {
+      "path": "hair/hair_03-lod2.glb",
+      "triangles": 1000,
+      "vertices": 502,
+      "bytes": 16888,
+      "lod": 2
+    },
+    {
+      "path": "hair/hair_03-lod3.glb",
+      "triangles": 400,
+      "vertices": 202,
+      "bytes": 11544,
+      "lod": 3
+    },
+    {
+      "path": "hair/hair_04-lod0.glb",
+      "triangles": 3000,
+      "vertices": 1484,
+      "bytes": 34456,
+      "lod": 0
+    },
+    {
+      "path": "hair/hair_04-lod1.glb",
+      "triangles": 1800,
+      "vertices": 884,
+      "bytes": 23772,
+      "lod": 1
+    },
+    {
+      "path": "hair/hair_04-lod2.glb",
+      "triangles": 1000,
+      "vertices": 484,
+      "bytes": 16648,
+      "lod": 2
+    },
+    {
+      "path": "hair/hair_04-lod3.glb",
+      "triangles": 400,
+      "vertices": 184,
+      "bytes": 11256,
+      "lod": 3
+    },
+    {
+      "path": "hair/hair_05-lod0.glb",
+      "triangles": 3000,
+      "vertices": 1494,
+      "bytes": 34852,
+      "lod": 0
+    },
+    {
+      "path": "hair/hair_05-lod1.glb",
+      "triangles": 1800,
+      "vertices": 894,
+      "bytes": 24056,
+      "lod": 1
+    },
+    {
+      "path": "hair/hair_05-lod2.glb",
+      "triangles": 1000,
+      "vertices": 494,
+      "bytes": 16856,
+      "lod": 2
+    },
+    {
+      "path": "hair/hair_05-lod3.glb",
+      "triangles": 400,
+      "vertices": 194,
+      "bytes": 11440,
+      "lod": 3
+    },
+    {
+      "path": "hair/hair_06-lod0.glb",
+      "triangles": 3000,
+      "vertices": 1482,
+      "bytes": 34724,
+      "lod": 0
+    },
+    {
+      "path": "hair/hair_06-lod1.glb",
+      "triangles": 1800,
+      "vertices": 882,
+      "bytes": 24064,
+      "lod": 1
+    },
+    {
+      "path": "hair/hair_06-lod2.glb",
+      "triangles": 1000,
+      "vertices": 482,
+      "bytes": 16820,
+      "lod": 2
+    },
+    {
+      "path": "hair/hair_06-lod3.glb",
+      "triangles": 400,
+      "vertices": 182,
+      "bytes": 11260,
+      "lod": 3
+    },
+    {
+      "path": "hair/hair_07-lod0.glb",
+      "triangles": 3000,
+      "vertices": 1488,
+      "bytes": 34768,
+      "lod": 0
+    },
+    {
+      "path": "hair/hair_07-lod1.glb",
+      "triangles": 1800,
+      "vertices": 888,
+      "bytes": 24080,
+      "lod": 1
+    },
+    {
+      "path": "hair/hair_07-lod2.glb",
+      "triangles": 1000,
+      "vertices": 488,
+      "bytes": 16864,
+      "lod": 2
+    },
+    {
+      "path": "hair/hair_07-lod3.glb",
+      "triangles": 400,
+      "vertices": 188,
+      "bytes": 11376,
+      "lod": 3
+    },
+    {
+      "path": "hair/hair_08-lod0.glb",
+      "triangles": 3000,
+      "vertices": 1502,
+      "bytes": 34568,
+      "lod": 0
+    },
+    {
+      "path": "hair/hair_08-lod1.glb",
+      "triangles": 1800,
+      "vertices": 902,
+      "bytes": 24072,
+      "lod": 1
+    },
+    {
+      "path": "hair/hair_08-lod2.glb",
+      "triangles": 1000,
+      "vertices": 502,
+      "bytes": 16940,
+      "lod": 2
+    },
+    {
+      "path": "hair/hair_08-lod3.glb",
+      "triangles": 400,
+      "vertices": 202,
+      "bytes": 11544,
+      "lod": 3
+    },
+    {
+      "path": "hair/hair_09-lod0.glb",
+      "triangles": 3000,
+      "vertices": 1474,
+      "bytes": 34624,
+      "lod": 0
+    },
+    {
+      "path": "hair/hair_09-lod1.glb",
+      "triangles": 1800,
+      "vertices": 874,
+      "bytes": 23880,
+      "lod": 1
+    },
+    {
+      "path": "hair/hair_09-lod2.glb",
+      "triangles": 1000,
+      "vertices": 474,
+      "bytes": 16640,
+      "lod": 2
+    },
+    {
+      "path": "hair/hair_09-lod3.glb",
+      "triangles": 400,
+      "vertices": 174,
+      "bytes": 11104,
+      "lod": 3
+    },
+    {
+      "path": "hair/hair_10-lod0.glb",
+      "triangles": 3000,
+      "vertices": 1476,
+      "bytes": 34568,
+      "lod": 0
+    },
+    {
+      "path": "hair/hair_10-lod1.glb",
+      "triangles": 1800,
+      "vertices": 876,
+      "bytes": 23884,
+      "lod": 1
+    },
+    {
+      "path": "hair/hair_10-lod2.glb",
+      "triangles": 1000,
+      "vertices": 476,
+      "bytes": 16652,
+      "lod": 2
+    },
+    {
+      "path": "hair/hair_10-lod3.glb",
+      "triangles": 400,
+      "vertices": 176,
+      "bytes": 11108,
+      "lod": 3
+    }
+  ],
+  "geometryBytes": 1133632
+}

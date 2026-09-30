@@ -1230,7 +1230,7 @@ export class Game {
     floor.castShadow = false;
   }
   buildHero() {
-    const model=createCharacterModel(this.hero);
+    const model=createCharacterModel(this.hero,{renderer:this.renderer});
     this.characterModel = model;
     this.actor=model.actor;this.arm=model.arm;this.legs=model.legs;this.aura=model.aura;
     this.scene.add(this.actor);
@@ -3801,6 +3801,7 @@ export class Game {
     }
     if (!this.paused) {
       this.characterModel.animator.update(dt, { moving, sprinting: running, blocking: this.blocking, dead: this.dead, speed:animationMoveSpeed });
+      this.characterModel.updateVisual(this.camera, this.renderer.domElement.clientHeight);
       updateCharacterAura(this.aura, this.elapsed, dt);
     }
     if (this.noticeTimer > 0) {
@@ -4381,7 +4382,9 @@ export class Game {
     this.camera.updateProjectionMatrix();
   }
   setPlainsQuality(quality:PlainsQuality,persist=true) {
-    if(!this.plains||!Object.hasOwn(PLAINS_QUALITY,quality))return;
+    if(!Object.hasOwn(PLAINS_QUALITY,quality))return;
+    this.characterModel.setQuality(quality);
+    if(!this.plains)return;
     this.plains.setQuality(quality);const profile=PLAINS_QUALITY[quality];
     this.renderPerformance.reset();
     this.renderer.setPixelRatio(Math.min(devicePixelRatio,profile.dpr));this.renderer.shadowMap.enabled=profile.shadow>0;

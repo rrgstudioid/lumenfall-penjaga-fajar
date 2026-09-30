@@ -1,0 +1,202 @@
+.male-customization {
+  color: #f2ebd8;
+  font-size: 13px;
+}
+.customization-tabs {
+  display: flex;
+  gap: 4px;
+  border-bottom: 1px solid #8e784a;
+  padding-bottom: 8px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+.customization-tabs button {
+  padding: 7px 9px;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  color: #abb5a7;
+}
+.customization-tabs button[aria-selected='true'] {
+  color: #eed28b;
+  background: #d2b56d20;
+  border-color: #8e784a;
+}
+.customization-thumbnails {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  max-height: 330px;
+  overflow: auto;
+  padding: 2px;
+}
+.customization-thumbnails button {
+  background: #101d19b8;
+  border: 1px solid #516152;
+  border-radius: 6px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  padding: 5px;
+  gap: 4px;
+}
+.customization-thumbnails button[aria-pressed='true'] {
+  border-color: #edc979;
+  box-shadow: 0 0 0 1px #edc979;
+}
+.customization-thumbnails img {
+  display: block;
+  max-width: 100%;
+  object-fit: contain;
+  border-radius: 3px;
+}
+.customization-thumbnails span {
+  min-height: 30px;
+  text-align: center;
+  font-size: 11px;
+  line-height: 14px;
+}
+.customization-colors {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 6px;
+  margin: 8px 4px;
+}
+.customization-colors button {
+  height: 24px;
+  border-radius: 5px;
+  border: 2px solid #ffffff35;
+}
+.customization-colors button[aria-pressed='true'] {
+  outline: 2px solid #edc979;
+  outline-offset: 3px;
+}
+.customization-skins {
+  display: grid;
+  gap: 9px;
+}
+.customization-skins button {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px;
+  border: 1px solid #526451;
+  border-radius: 5px;
+}
+.customization-skins span {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+}
+.customization-skins button[aria-pressed='true'] {
+  border-color: #edc979;
+  background: #d2b56d15;
+}
+.male-customization button:focus-visible,
+.male-customization input:focus-visible {
+  outline: 2px solid #f7d991;
+  outline-offset: 3px;
+}
+
+.hair-color-picker {
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+  background: #101d19e8;
+  border: 1px solid #8e784a;
+  border-radius: 6px;
+}
+.hair-color-sv {
+  height: 136px;
+  position: relative;
+  border-radius: 4px;
+  cursor: crosshair;
+  touch-action: none;
+  background-image:
+    linear-gradient(to top, #000, transparent),
+    linear-gradient(to right, #fff, transparent);
+}
+.hair-color-cursor {
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  border: 2px solid white;
+  box-shadow: 0 0 0 1px #0009;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+.hair-color-hue {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 11px;
+  color: #abb5a7;
+}
+.hair-color-hue input {
+  appearance: none;
+  width: 100%;
+  height: 12px;
+  border-radius: 8px;
+  background: linear-gradient(to right, red, #ff0, #0f0, #0ff, #00f, #f0f, red);
+  cursor: pointer;
+}
+.hair-color-hue input::-webkit-slider-thumb {
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border: 2px solid white;
+  border-radius: 50%;
+  background: transparent;
+  box-shadow: 0 0 2px #000;
+}
+.hair-color-hue input::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border: 2px solid white;
+  border-radius: 50%;
+  background: transparent;
+}
+.hair-color-value {
+  display: flex;
+  align-items: stretch;
+  gap: 12px;
+}
+.hair-color-sample {
+  width: 50px;
+  border: 1px solid #ffffff60;
+  border-radius: 4px;
+}
+.hair-color-picker label {
+  color: #abb5a7;
+  font-size: 11px;
+}
+.hair-color-value label {
+  flex: 1;
+}
+.hair-color-picker input:not([type='range']) {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  padding: 6px;
+  margin-top: 3px;
+  border: 1px solid #526451;
+  border-radius: 3px;
+  background: #0c1713;
+  color: #f2ebd8;
+  font-size: 13px;
+}
+.hair-color-rgb {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+.hair-color-picker small {
+  font-size: 11px;
+  color: #abb5a7;
+  line-height: 1.4;
+}
+.hair-color-sv:focus-visible {
+  outline: 2px solid #f7d991;
+  outline-offset: 4px;
+}

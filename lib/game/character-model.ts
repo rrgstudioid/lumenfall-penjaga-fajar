@@ -6,6 +6,9 @@ import { getCharacterEquipmentLayers } from './character-view.ts';
 import { createProceduralAnimator } from './character-animation.ts';
 import { createRevision02Binding } from './revision02-character.ts';
 import { loadCenaCharacter } from './cena-character.ts';
+import { loadModularMaleCharacter, MODULAR_MALE_ENABLED } from './modular-male-character.ts';
+import { loadPlainsQuality, type PlainsQuality } from './verdant-plains-quality.ts';
+import { characterLOD, type CharacterLOD } from './character-quality.ts';
 import { armyRunningCadence } from './army-running.ts';
 import {loadFemaleCharacter,FEMALE_CHARACTER_TRIANGLES} from './female-character.ts';
 import { attachSwordAura, fitSwordAuraToBlade, updateSwordAuras } from './sword-aura.ts';
@@ -15,7 +18,7 @@ const specialSwordLoader = new GLTFLoader();
 // Keep the existing asset URL; item assignment is independent of its original folder.
 const CRIMSON_SWORD_MODEL = '/assets/equipment/jayantara-two-hand-sword/altiverse_crimson_sword_optimized.glb';
 
-function loadCrimsonSword(holder: T.Group, placeholder: T.Object3D[], actor: T.Group, targetLength: number) {
+function loadCrimsonSword(holder: T.Group, placeholder: T.Object3D[], actor: T.Group, targetLength: number, onVisualChange?:()=>void) {
   specialSwordLoader.load(CRIMSON_SWORD_MODEL, gltf => {
     if (!holder.parent || actor.userData.disposed) {
       disposeCharacterModel(gltf.scene);
@@ -36,6 +39,7 @@ function loadCrimsonSword(holder: T.Group, placeholder: T.Object3D[], actor: T.G
       const flame = holder.getObjectByName('EnhancedSwordFlame13') as T.Group | undefined;
       if (flame) fitSwordAuraToBlade(flame, bladeSocket,
         bladeSocket.userData.bladeLength, bladeSocket.userData.bladeWidth);
+      onVisualChange?.();
     } catch (error) {
       disposeCharacterModel(gltf.scene);
       console.warn('Crimson sword alignment failed; retaining default sword.', error);
@@ -43,7 +47,7 @@ function loadCrimsonSword(holder: T.Group, placeholder: T.Object3D[], actor: T.G
   }, undefined, error => console.warn('Crimson sword unavailable; retaining default sword.', error));
 }
 
-// The male body is the rigged Cena GLB; female characters use their own rig.
+// Male V2 uses shared modular assets; female characters retain their own rig.
 // These lightweight pivots remain only as the gameplay/animation attachment
 // hierarchy for equipment, sockets, and procedural combat poses.
 // Keep the flipbook assets and attachment code for reactivation later.
@@ -83,11 +87,11 @@ function applyCharacterAppearance(scene: T.Group, hero: Hero) {
   });
 }
 
-export function createCharacterModel(hero: Hero, options: { aura?: boolean; assetSource?: () => Promise<T.Group> } = {}) {
+export function createCharacterModel(hero: Hero, options: { aura?: boolean; assetSource?: () => Promise<T.Group>; quality?: PlainsQuality; renderer?:T.WebGLRenderer; preview?:boolean; onVisualChange?:()=>void } = {}) {
   const female=hero.gender==='female';
   const actor = new T.Group();
   actor.name = 'LUMENFALL_Character';
-  actor.userData = { assetKind: female?'female-rpg-loading':'cena-loading', gender:female?'female':'male', animationType: 'skinned-procedural-retarget' };
+  actor.userData = { assetKind: female?'female-rpg-loading':MODULAR_MALE_ENABLED?'male-v2-loading':'cena-loading', gender:female?'female':'male', animationType: 'skinned-procedural-retarget' };
   const root = new T.Group(); root.name = 'Root'; actor.add(root);
   const hips = new T.Group(); hips.name = 'Hips'; hips.position.y = 0.95; root.add(hips);
   const spine = new T.Group(); spine.name = 'Spine'; spine.position.y = 0.12; hips.add(spine);
@@ -183,7 +187,7 @@ export function createCharacterModel(hero: Hero, options: { aura?: boolean; asse
       }
       if (type === 'one_hand_sword' && item.templateId === 'field-meteorfall-citadel-sword') {
         // Fit around the calibrated grip; aura follows the resulting blade size.
-        loadCrimsonSword(holder, holder.children.slice(), actor, length * 2.25);
+        loadCrimsonSword(holder, holder.children.slice(), actor, length * 2.25, options.onVisualChange);
       }
       if (sword && item.enhancementLevel >= 5) swordFlames.push(attachSwordAura(holder, length, guardY));
     }
@@ -381,12 +385,18 @@ export function createCharacterModel(hero: Hero, options: { aura?: boolean; asse
     restore(saved: Parameters<typeof procedural.restore>[0]) { procedural.restore(saved); nativeActions.forEach(action => action.stop()); nativeActive = undefined; nativeActiveName = ''; nativeReleasing = undefined; nativeReleaseRemaining = 0; nativeComboIndex = 0; nativeComboIdleTime = 0; binding.update(); },
   };
   animator.update(0);
-  const source = options.assetSource ?? (typeof window !== 'undefined' ? female?loadFemaleCharacter:loadCenaCharacter : undefined);
+  let visualScene:T.Group|undefined;
+  let currentAppearance=hero.appearance;
+  let quality=options.quality??loadPlainsQuality();
+  let visualLOD:CharacterLOD=quality==='office'?1:0;
+  let lodCheck=0;
+  const source = options.assetSource ?? (typeof window !== 'undefined' ? female?loadFemaleCharacter:MODULAR_MALE_ENABLED?()=>loadModularMaleCharacter(currentAppearance,visualLOD,options.renderer,!options.preview):loadCenaCharacter : undefined);
   actor.visible = !source;
   actor.userData.modelStatus = source ? 'loading' : 'fallback';
   const ready = source ? source().then(scene => {
     if (actor.userData.disposed) { disposeCharacterModel(scene); return false; }
     try {
+      visualScene=scene;
       applyCharacterAppearance(scene, hero);
       binding.attach(scene);
       actor.userData.importedSwordGripRoll = scene.userData.importedSwordGripRoll;
@@ -420,11 +430,32 @@ export function createCharacterModel(hero: Hero, options: { aura?: boolean; asse
     }
     return false;
   }) : Promise.resolve(false);
-  return { actor, arm, legs: [leftUpperLeg, rightUpperLeg], aura, rig, animator, ready, sockets: { rightHand: arm, leftHand: leftSocket, back: backSocket } };
+  const setAppearance=async(appearance:Hero['appearance'])=>{
+    currentAppearance=appearance;
+    if(!visualScene){await ready;if(!visualScene||actor.userData.disposed)return;}
+    const update=visualScene.userData.setAppearance as ((value:unknown,lod?:CharacterLOD)=>Promise<void>)|undefined;
+    if(update)await update(appearance,visualLOD);
+    else applyCharacterAppearance(visualScene,{...hero,appearance});
+  };
+  const updateVisual=(camera:T.PerspectiveCamera|T.OrthographicCamera,height:number,now=performance.now())=>{
+    if(!visualScene?.userData.setAppearance||now-lodCheck<200)return;
+    lodCheck=now;
+    const distance=camera.position.distanceTo(actor.position);
+    const pixels=camera instanceof T.PerspectiveCamera?actor.userData.heightMeters*height/(2*Math.tan(camera.fov*Math.PI/360)*Math.max(.1,distance)):actor.userData.heightMeters*height*camera.zoom/(camera.top-camera.bottom);
+    const next=characterLOD(pixels,quality,visualLOD);
+    if(next===visualLOD)return;
+    const previous=visualLOD;visualLOD=next;
+    void setAppearance(currentAppearance).catch(error=>{visualLOD=previous;console.warn('Character LOD unavailable',error);});
+  };
+  return { actor, arm, legs: [leftUpperLeg, rightUpperLeg], aura, rig, animator, ready, setAppearance, updateVisual,
+    setVisualLOD:async(value:CharacterLOD)=>{visualLOD=value;await setAppearance(currentAppearance);},
+    setQuality:(value:PlainsQuality)=>{quality=value;lodCheck=0;},
+    sockets: { rightHand: arm, leftHand: leftSocket, back: backSocket } };
 }
 export type CharacterModel = ReturnType<typeof createCharacterModel>;
 
 export function disposeCharacterModel(model: T.Object3D) {
+  if(model.userData.disposed)return;
   model.userData.disposed = true;
   const mixer = model.userData.animationMixer as T.AnimationMixer | undefined;
   mixer?.stopAllAction();
@@ -433,13 +464,16 @@ export function disposeCharacterModel(model: T.Object3D) {
   const textures = new Set<T.Texture>();
   const geometries = new Set<T.BufferGeometry>();
   const skeletons = new Set<T.Skeleton>();
+  const disposers=new Set<()=>void>();
+  model.traverse(object=>{if(typeof object.userData.disposeCharacterResources==='function')disposers.add(object.userData.disposeCharacterResources);});
   model.traverse(object => { if (object instanceof T.SkinnedMesh) skeletons.add(object.skeleton); });
   skeletons.forEach(skeleton => skeleton.dispose());
   model.traverse((object) => { if (object instanceof T.Mesh || object instanceof T.Line) { geometries.add(object.geometry); for (const mat of Array.isArray(object.material) ? object.material : [object.material]) materials.add(mat); } });
   materials.forEach(material => { for (const value of Object.values(material)) if (value instanceof T.Texture) textures.add(value); });
-  textures.forEach(texture => texture.dispose());
-  geometries.forEach(geometry => geometry.dispose());
-  materials.forEach((material) => material.dispose());
+  textures.forEach(texture => {if(!texture.userData.sharedCharacter)texture.dispose();});
+  geometries.forEach(geometry => {if(!geometry.userData.sharedCharacter)geometry.dispose();});
+  materials.forEach((material) => {if(!material.userData.modularOwned)material.dispose();});
+  disposers.forEach(dispose=>dispose());
 }
 
 export function updateCharacterAura(aura: T.Group, time: number, dt: number) {

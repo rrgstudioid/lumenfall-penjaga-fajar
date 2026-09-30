@@ -1,0 +1,4 @@
+Basis Universal transcoder, distributed with Three.js 0.180.0.
+Copyright Binomial LLC and contributors. Apache License 2.0; see LICENSE.txt.
+Upstream: https://github.com/BinomialLLC/basis_universal
+Runtime files copied from three/examples/jsm/libs/basis, without modification.

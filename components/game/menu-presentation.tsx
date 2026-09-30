@@ -1,6 +1,8 @@
 'use client';
 
 import { useEffect, useRef, type CSSProperties, type ReactNode } from 'react';
+import { CharacterCustomization } from './character-customization';
+import '@/app/character-customization.css';
 import { ArrowLeft, CalendarDays, Check, ChevronRight, Clock3, MapPin, Plus, Sparkles, Trash2, Volume2, VolumeX, Maximize2 } from 'lucide-react';
 import { CharacterPreview } from './character-preview';
 import {
@@ -136,12 +138,12 @@ export function MenuPresentation(props: {
           <button type="button" aria-pressed={appearance.gender === 'male'} onClick={() => update('gender', 'male')}><span aria-hidden="true">♂</span>Male</button>
           <button type="button" aria-pressed={appearance.gender === 'female'} onClick={() => update('gender', 'female')}><span aria-hidden="true">♀</span>Female</button>
         </div></fieldset>
-        <ChoiceGroup label="FACE STYLE" value={appearance.faceStyleId} choices={FACE_STYLE_PRESETS} onChange={value => update('faceStyleId', value)} />
+        {appearance.gender==='male'?<CharacterCustomization value={appearance} onChange={props.onAppearance}/>:<><ChoiceGroup label="FACE STYLE" value={appearance.faceStyleId} choices={FACE_STYLE_PRESETS} onChange={value => update('faceStyleId', value)} />
         <ChoiceGroup label="HAIR STYLE" value={appearance.hairStyleId} choices={HAIR_STYLE_PRESETS} onChange={value => update('hairStyleId', value)} />
         <ChoiceGroup label="HAIR COLOR" value={appearance.hairColorId} choices={HAIR_COLOR_PRESETS} onChange={value => update('hairColorId', value)} swatches />
-        <ChoiceGroup label="SKIN TONE" value={appearance.skinToneId} choices={SKIN_TONE_PRESETS} onChange={value => update('skinToneId', value)} swatches />
+        <ChoiceGroup label="SKIN TONE" value={appearance.skinToneId} choices={SKIN_TONE_PRESETS} onChange={value => update('skinToneId', value)} swatches /></>}
       </div>
-      <div className="menu-model-stage creation-model-stage"><CharacterPreview hero={previewHero} presentation="menu" /></div>
+      <div className="menu-model-stage creation-model-stage"><CharacterPreview hero={previewHero} presentation="menu"/></div>
       <form className="menu-name-area" onSubmit={event => { event.preventDefault(); if (!props.validation) props.onCreate(); }}>
         <div className="menu-name-panel menu-glass">
           <label htmlFor="menu-character-name">CHARACTER NAME</label>
