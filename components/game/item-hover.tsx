@@ -1,5 +1,6 @@
 ﻿'use client';
 import { JobText, useJobText } from './job-presentation-context';
+import { statBonusText } from '@/lib/game/stat-presentation';
 
 import { createElement, useEffect, useLayoutEffect, useRef, useState, type ButtonHTMLAttributes, type PointerEvent, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
@@ -88,7 +89,7 @@ function ItemHoverTooltip({ item, point, buyPrice }: { item: HoverItem; point: P
       </div>
 
       {item.category === 'rune' && <div className="floating-item-group npc-item-tooltip-stats">
-        {item.affixes.map(affix => <p key={affix.id}>{affix.label} +{affix.value}{affix.unit === 'percent' ? '%' : ''}</p>)}
+        {item.affixes.map(affix => <p key={affix.id}>{statBonusText(affix.stat, affix.value)}</p>)}
         {item.uniqueEffect && <p><JobText>{item.uniqueEffect}</JobText></p>}
         {item.runeJobRequirement && <small>Khusus job: <JobText>{item.runeJobRequirement}</JobText></small>}
       </div>}
