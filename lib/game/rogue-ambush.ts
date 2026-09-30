@@ -1,6 +1,7 @@
 import { relativePosition, type PositionContext, type PositionRelation } from './combat-position.ts';
 import type { ImpactContext } from './combat-modifiers.ts';
 import type { ResolvedSkillHit } from './skill-action.ts';
+import { thiefJobCapabilities } from './thief-job-capabilities.ts';
 
 export const AMBUSH_DURATION = 4;
 export const AMBUSH_FINAL_DAMAGE = 1.15;
@@ -25,15 +26,13 @@ export type AmbushActor = {
   coreJob?: string | null;
   specialization?: string | null;
   skillArchitectureVersion?: number;
-  skillProgressionV3?: { chosenCoreJob: string | null; chosenSpecialization: string | null };
+  skillProgressionV3?: { chosenCoreJob: string | null; chosenSpecialization: string | null; chosenAdvancedJob?: string | null };
 };
 type AmbushSkill = { id: string; targetType: string; nonDamaging?: boolean; rogueAmbush?: RogueAmbushConfig };
 type Opportunity = { actorId: string; sourceId: string; source: NonNullable<RogueAmbushConfig['generator']>['source']; expiresAt: number; consumedBy?: number };
 export type AmbushRequirement = { ok: boolean; reason: string; code?: 'ROGUE_REQUIRED' | 'AMBUSH_REQUIRED' | 'AMBUSH_CONFIGURATION_INVALID' };
 // Do not confuse the legacy CoreJobId "rogue" with the V3 Thief specialization.
-export const isRogueActor = (actor: AmbushActor) => actor.hp > 0 && actor.skillArchitectureVersion === 3 &&
-  actor.coreJob === 'thief' && actor.skillProgressionV3?.chosenCoreJob === 'thief' &&
-  actor.skillProgressionV3.chosenSpecialization === 'rogue' && actor.specialization === 'rogue';
+export const isRogueActor = (actor: AmbushActor) => actor.hp > 0 && thiefJobCapabilities(actor).canGenerateAmbush;
 const identity = (actor: AmbushActor) => actor.characterId ?? actor.slotId;
 const eligible = (skill: AmbushSkill) => skill.rogueAmbush?.ambushEligible === true && !skill.nonDamaging && skill.targetType === 'single';
 /** Pure hit transformation only; consumption always remains in commitDamage. */

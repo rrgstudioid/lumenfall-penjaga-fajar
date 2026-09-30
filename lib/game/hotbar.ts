@@ -1,6 +1,8 @@
 import { ALL_SKILLS, activeSkillsFor, skillsFor, type SkillDefinition } from './skills.ts';
 import { ADVENTURER_V3_RUNTIME_SKILLS } from './adventurer-v3.ts';
 import { THIEF_V3_RUNTIME_SKILLS } from './thief-runtime.ts';
+import { ROGUE_V3_RUNTIME_SKILLS } from './rogue-v3.ts';
+import { ASSASIN_V3_RUNTIME_SKILLS } from './assasin-v3.ts';
 import { WARRIOR_V3_RUNTIME_SKILLS } from './warrior-v3.ts';
 import { BERSERKER_V3_RUNTIME_SKILLS } from './berserker-v3.ts';
 import { BLADE_MASTER_V3_RUNTIME_SKILLS } from './blade-master-v3.ts';
@@ -13,10 +15,13 @@ import {
 import type { Hero } from './rules.ts';
 import { heroFamilyHotbarBinding, heroFamilySkillActive, heroFamilySkillReference, heroFamilyContext } from './skill-family-runtime.ts';
 import { isFamilyBinding } from './skill-family.ts';
+import { thiefJobCapabilities } from './thief-job-capabilities.ts';
 
 export const PRIMARY_HOTBAR_SIZE = 10;
 const v3HotbarSkills = (hero: Hero) => [
-  ...(hero.coreJob === 'thief' ? THIEF_V3_RUNTIME_SKILLS : []),
+  ...(thiefJobCapabilities(hero).canUseCoreThiefSkills ? THIEF_V3_RUNTIME_SKILLS : []),
+  ...(thiefJobCapabilities(hero).canUseRogueSkills ? ROGUE_V3_RUNTIME_SKILLS : []),
+  ...(thiefJobCapabilities(hero).canUseAssasinSkills ? ASSASIN_V3_RUNTIME_SKILLS : []),
   ...ADVENTURER_V3_RUNTIME_SKILLS,
   ...(hero.coreJob === 'warrior' ? WARRIOR_V3_RUNTIME_SKILLS : []),
   ...(hero.specialization === 'berserker' ? BERSERKER_V3_RUNTIME_SKILLS : []),
