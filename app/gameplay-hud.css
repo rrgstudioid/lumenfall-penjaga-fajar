@@ -84,6 +84,32 @@ body:has([role='alertdialog']) .hud-hotbar-layer {
   transform-origin: top left;
   pointer-events: auto;
 }
+.hud-fps .hud-text-handle,
+.hud-fps .hud-text-handle:hover,
+.hud-fps .hud-text-handle:disabled {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  color: #fff;
+  opacity: 1;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+.hud-fps[data-hud-gesture] .hud-text-handle { cursor: grabbing; }
+.hud-fps-text {
+  font: 600 18px/1.4 ui-monospace, Consolas, monospace;
+  font-variant-numeric: tabular-nums;
+  text-shadow: 0 1px 2px #000, 0 0 4px #000;
+  white-space: nowrap;
+}
 .hud-panel {
   background: linear-gradient(115deg, #09241eed, #071b16ee);
   border: 1px solid var(--hud-border);
@@ -427,12 +453,54 @@ body:has([role='alertdialog']) .hud-hotbar-layer {
   align-items: center;
   gap: 16px;
 }
+.hud-minimap-frame {
+  position: relative;
+  width: 260px;
+  height: 260px;
+  padding: 24px;
+  flex-shrink: 0;
+}
+.hud-map-columns,
+.hud-map-rows {
+  position: absolute;
+  z-index: 1;
+  display: grid;
+  color: #ffedbf;
+  font: 700 12px/14px Georgia, serif;
+  text-align: center;
+  text-shadow: 0 1px 3px #000, 0 0 4px #000;
+  pointer-events: none;
+}
+.hud-map-columns {
+  bottom: 3px;
+  left: 7px;
+  right: 7px;
+  height: 14px;
+  grid-template-columns: repeat(7, 1fr);
+  align-items: center;
+}
+.hud-map-columns > span {
+  justify-self: end;
+  width: 9px;
+  translate: 50% 0;
+}
+.hud-map-rows {
+  left: 4px;
+  top: 7px;
+  bottom: 7px;
+  width: 9px;
+  grid-template-rows: repeat(7, 1fr);
+  align-items: start;
+}
+.hud-map-rows > span {
+  translate: 0 -50%;
+}
 .hud-minimap {
   position: relative;
   width: 212px;
   height: 212px;
   flex-shrink: 0;
-  border-radius: 50%;
+  border-radius: 0;
   padding: 7px;
   border: 2px solid var(--hud-gold-muted);
   background: #15201bd9;
@@ -442,38 +510,56 @@ body:has([role='alertdialog']) .hud-hotbar-layer {
     var(--hud-shadow);
 }
 .hud-minimap canvas {
+  display: block;
   width: 100%;
   height: 100%;
-  border-radius: 50%;
+  border-radius: 0;
+}
+.hud-map-grid {
+  position: absolute;
+  inset: 7px;
+  width: calc(100% - 14px);
+  height: calc(100% - 14px);
+  border-radius: 0;
+  overflow: hidden;
+  fill: none;
+  stroke: #fff2c1;
+  stroke-width: 0.8;
+  opacity: 0.55;
+  filter: drop-shadow(0 1px 0 #10211bcc);
+  pointer-events: none;
 }
 .hud-compass-rim {
   position: absolute;
   inset: -7px;
   width: calc(100% + 14px);
   height: calc(100% + 14px);
-  fill: #bca268;
+  fill: none;
   stroke: #d2b56d;
   stroke-width: 0.8;
   pointer-events: none;
 }
-.hud-compass-rim circle {
+.hud-compass-rim rect {
   fill: none;
   opacity: 0.6;
 }
-.hud-north {
+.hud-compass-rim path { stroke-width: 2; }
+.hud-cardinal {
   position: absolute;
-  top: -10px;
-  left: 50%;
-  translate: -50%;
-  width: 32px;
-  height: 32px;
-  line-height: 29px;
+  width: 24px;
+  height: 24px;
+  line-height: 21px;
   border: 1px solid var(--hud-gold);
   background: #10211b;
-  border-radius: 50%;
+  border-radius: 3px;
   font-family: Georgia, serif;
   color: var(--hud-gold);
+  pointer-events: none;
 }
+.hud-cardinal-n { top: -26px; left: 50%; translate: -50% 0; }
+.hud-cardinal-s { bottom: -26px; left: 50%; translate: -50% 0; }
+.hud-cardinal-w { left: -26px; top: 50%; translate: 0 -50%; }
+.hud-cardinal-e { right: -26px; top: 50%; translate: 0 -50%; }
 .hud-minimap kbd {
   position: absolute;
   right: 12px;
@@ -1117,7 +1203,7 @@ body[data-hud-resizing='sw'] * {
   position: absolute;
   inset: -5px;
   border: 1px solid #d2b56d88;
-  border-radius: 50%;
+  border-radius: 0;
   pointer-events: none;
 }
 body[data-hud-dragging] {
@@ -1271,14 +1357,14 @@ body[data-hud-dragging] {
   bottom: -6px;
 }
 .hud-minimap kbd {
-  right: -4px;
-  bottom: 1px;
+  right: 0;
+  bottom: -23px;
   font:
-    19px Georgia,
+    13px/18px Georgia,
     serif;
   background: #10221de8;
   border: 1px solid var(--hud-gold);
-  padding: 5px 9px;
+  padding: 2px 6px;
   border-radius: 3px;
 }
 .hud-theme .hud-embedded-hotbar.quick-hotbar-panel .primary-slot .item-artwork {

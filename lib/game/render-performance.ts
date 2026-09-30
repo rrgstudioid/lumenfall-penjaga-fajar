@@ -17,6 +17,16 @@ export class RenderPerformance {
   }
   reset() { this.previous = 0; this.count = 0; this.index = 0; }
   suspend() { this.previous = 0; }
+  /** Recent rendered-frame average, including stalls; no sorting or GPU queries. */
+  currentFPS() {
+    if (!this.previous || !this.count) return null;
+    let elapsed = 0, samples = 0;
+    while (samples < this.count && elapsed < 1000) {
+      elapsed += this.frameMs[(this.index - 1 - samples + this.frameMs.length) % this.frameMs.length];
+      samples++;
+    }
+    return elapsed > 0 ? Math.round(samples * 1000 / elapsed) : null;
+  }
   snapshot() {
     const frames = Array.from(this.frameMs.subarray(0, this.count)).sort((a, b) => a - b);
     const cpu = Array.from(this.cpuMs.subarray(0, this.count)).sort((a, b) => a - b);

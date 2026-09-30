@@ -1,6 +1,7 @@
 ﻿'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { FROSTFIRE_ID } from '@/lib/game/frostfire-highlands-layout';
 import { isDaggerItem } from '@/lib/game/dagger';
 import { getVisibleJobArchitecture, presentJobText } from '@/lib/game/job-presentation';
 import { JobArchitecturePreview } from '@/components/game/job-architecture-preview';
@@ -324,7 +325,7 @@ export default function Home() {
         } catch (cause) {
           if (cancelled) return;
           console.error(cause);
-          if(instance?.isAverion||instance?.isPlains)setMapError({id:instance.isPlains?'verdant-plains-v2':'averion',label:instance.isPlains?'Verdant Plains':'Averion',message:'Map gagal dimuat. Save tetap aman. Periksa koneksi lalu tekan Retry.'});
+          if(instance?.isAverion||instance?.isPlains||instance?.isFrostfire)setMapError({id:instance.isFrostfire?FROSTFIRE_ID:instance.isPlains?'verdant-plains-v2':'averion',label:instance.isFrostfire?'Frostfire Highlands':instance.isPlains?'Verdant Plains':'Averion',message:'Map gagal dimuat. Save tetap aman. Periksa koneksi lalu tekan Retry.'});
           setError(
             'Dunia belum dapat dimuat. Save tetap aman. Periksa koneksi dan WebGL, lalu coba Continue atau Load Game lagi.',
           );
@@ -2421,10 +2422,10 @@ export default function Home() {
                       <span className="eyebrow">{field.codename}</span>
                       <h3>{field.displayName}</h3>
                       <p>
-                        Lv. {field.recommendedLevel} ·{' '}
+                        {field.id===FROSTFIRE_ID ? <>Lv. {field.recommendedLevel} · Snowfields · Frozen lakes</> : <>Lv. {field.recommendedLevel} ·{' '}
                         {field.cityId === hero.currentCity
                           ? 'wilayah terhubung'
-                          : 'frontier'}
+                          : 'frontier'}</>}
                       </p>
                       <button
                         className="secondary-button"

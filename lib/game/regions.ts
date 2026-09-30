@@ -1,4 +1,5 @@
 import { PLAINS_ID, PLAINS_ENTRY, PLAINS_EXIT } from './verdant-plains-layout.ts';
+import { FROSTFIRE_ID, FROSTFIRE_ENTRY, FROSTFIRE_ZONES } from './frostfire-highlands-layout.ts';
 import type { Hero } from './rules.ts';
 import { getVisibleJobArchitecture, showJobQuest } from './job-presentation.ts';
 import { STAMINA_ENABLED } from './gameplay-config.ts';
@@ -78,7 +79,7 @@ const seeds: Array<[string,string,string,number,number,string[],string[],number[
  ['verdant-plains','Padang Arunika','Verdant Plains',1,8,['Gerbang Fajar','Padang Lumbung','Kuil Akar Tua'],['Small Slime','Wild Boar','Forest Piya','Stoneback Beetle','Giant Rootling','Ancient Treant'],[1,3,5,7,8,10],['iron','lumut-fiber'],'#729349',[10,52,112,185,452,1580]],
  ['ironveil-mines','Tambang Selubung Besi','Ironveil Mines',8,16,['Pos Tambang Barat','Lorong Bijih Dalam','Galeri Runtuh'],['Cave Bat','Ore Grub','Ironfang Bat','Tunnel Marauder','Ironhide Golem','Mine Tyrant'],[9,10,12,14,16,18],['iron','titanium'],'#685c51',[270,400,520,650,900,3820]],
  ['whispering-wilds','Rimba Bisik','Whispering Wilds',16,24,['Jalur Bambu','Hutan Kabut','Kanopi Leluhur'],['Moss Sprite','Thorn Wolf','Whispering Wisp','Vineshade Panther','Elder Vine','Forest Warden'],[16,17,20,22,24,26],['titanium'],'#315d50',[640,701,894,1030,1500,6630]],
- ['frostfire-highlands','Dataran Bara-Beku','Frostfire Highlands',24,32,['Punggung Bara','Jalur Es Beku','Kaldera Abu'],['Ember Yak','Frost Wolf','Magma Imp','Frostfire Wyrm','Cinderhorn','Twin Elemental Lord'],[24,25,28,30,32,34],['titanium','vibranium'],'#728b9b',[1180,1250,1490,1700,2300,9915]],
+ [FROSTFIRE_ID,'Frostfire Highlands','Frozen Highlands',24,32,FROSTFIRE_ZONES.map(z=>z.name),['Ember Yak','Frost Wolf','Magma Imp','Frostfire Wyrm','Cinderhorn','Twin Elemental Lord'],[24,25,28,30,32,34],['titanium','vibranium'],'#ccdfe9',[1180,1250,1490,1700,2300,9915]],
  ['sunken-ruins','Reruntuhan Tenggelam','Sunken Ruins',32,42,['Halaman Candi Terendam','Ruang Penjaga','Gudang Harta Banjir'],['Drowned Warrior','Drowned Soldier','Leech Wraith','Ruin Guardian','Sunken Sentinel','Leviathan'],[32,33,37,40,42,44],['vibranium'],'#316c7a',[1700,1896,2300,2700,3600,14595]],
  ['meteorfall-citadel','Benteng Hujan Meteor','Meteorfall Citadel',42,50,['Gerbang Bintang Jatuh','Padang Meteor','Inti Benteng Meteorfall'],['Meteor Wisp','Meteor Hound','Astral Golem','Void Knight','Meteor Titan','Meteorfall Overlord'],[42,43,46,48,49,50],['vibranium','meteorite-core'],'#584465',[2500,2820,3200,3700,4700,17680]],
 ];
@@ -114,6 +115,16 @@ fieldDefinitions[PLAINS_ID] = {id:PLAINS_ID,cityId:'averion',displayName:'Verdan
  unlockQuest:null,previousField:null,nextMap:null,musicId:'field-verdant-plains',ambientId:'ambient-verdant-plains',isUnlocked:true,color:'#b8d4df',questList:[],entry:{...PLAINS_ENTRY},exit:{...PLAINS_EXIT},regionType:'field'};
 CITIES.averion.connectedFields.push(PLAINS_ID);
 
+// Permanent terrain replacement, retaining species/item IDs for existing saves.
+ fieldDefinitions[FROSTFIRE_ID] = {
+  ...fieldDefinitions[FROSTFIRE_ID],
+  id:FROSTFIRE_ID,cityId:'jayantara',displayName:'Frostfire Highlands',codename:'Frozen Highlands',contentFamilyId:FROSTFIRE_ID,
+  chapter:1,minLevel:24,maxLevel:32,recommendedLevel:'24–32',subAreas:FROSTFIRE_ZONES.map(z=>z.name),
+  questList:[],
+  unlockQuest:null,isUnlocked:false,musicId:'',ambientId:'',
+  color:'#ccdfe9',entry:{...FROSTFIRE_ENTRY},exit:{...FROSTFIRE_ENTRY},regionType:'field',
+ };
+
 fieldDefinitions['verdant-plains'].entry = {...VERDANT_TERRAIN.entry};
 fieldDefinitions['verdant-plains'].exit = {...VERDANT_TERRAIN.exit};
 
@@ -147,7 +158,6 @@ export function fieldContent(fieldId:string):FieldDefinition {
 export const FIELD_NPCS: Record<string, NpcDefinition> = {
  'ironveil-mines': {id:'field-npc-ironveil',name:'Mandor Tambang',type:'merchant',service:'field-camp',services:['buy','sell','teleport','quest'],interactionRange:2.5,shopInventory:[],description:'Quest field, teleport, dan toko kebutuhan farming Tambang Selubung Besi.',x:-26,z:28,fieldId:'ironveil-mines'},
  'whispering-wilds': {id:'field-npc-whispering',name:'Pawang Rimba',type:'merchant',service:'field-camp',services:['buy','sell','teleport','quest'],interactionRange:2.5,shopInventory:[],description:'Quest field, teleport, dan toko kebutuhan farming Rimba Bisik.',x:-26,z:28,fieldId:'whispering-wilds'},
- 'frostfire-highlands': {id:'field-npc-frostfire',name:'Penjaga Bara-Beku',type:'merchant',service:'field-camp',services:['buy','sell','teleport','quest'],interactionRange:2.5,shopInventory:[],description:'Quest field, teleport, dan toko kebutuhan farming Dataran Bara-Beku.',x:-26,z:28,fieldId:'frostfire-highlands'},
  'sunken-ruins': {id:'field-npc-sunken',name:'Penjaga Reruntuhan',type:'merchant',service:'field-camp',services:['buy','sell','teleport','quest'],interactionRange:2.5,shopInventory:[],description:'Quest field, teleport, dan toko kebutuhan farming Reruntuhan Tenggelam.',x:-26,z:28,fieldId:'sunken-ruins'},
  'meteorfall-citadel': {id:'field-npc-meteor',name:'Penjaga Benteng Meteor',type:'merchant',service:'field-camp',services:['buy','sell','teleport','quest'],interactionRange:2.5,shopInventory:[],description:'Quest field, teleport, dan toko kebutuhan farming Benteng Hujan Meteor.',x:-26,z:28,fieldId:'meteorfall-citadel'},
 };
@@ -210,7 +220,7 @@ function fieldQuestDifficulty(id:string):FieldQuestDifficulty { return id.endsWi
 export function fieldForQuest(id:string) { return Object.values(FIELDS).find(field=>field.questList.includes(id)); }
 export function migrateFieldQuestId(id:string) {
  if(id==='story-verdant-plains')return 'field-verdant-plains-easy';
- for(const field of Object.values(FIELDS)) if(id===`story-${field.id}`) return field.questList[0];
+ for(const field of Object.values(FIELDS)) if(field.questList.length&&id===`story-${field.id}`) return field.questList[0];
  return id;
 }
 export function fieldQuestInfo(field:FieldDefinition,id:string) {

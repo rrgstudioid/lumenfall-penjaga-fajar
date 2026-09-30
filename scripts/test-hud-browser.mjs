@@ -121,9 +121,9 @@ try {
         .count()) === 0,
     );
     check(
-      'Real runtime mounts one minimap and six HUD clusters',
+      'Real runtime mounts one minimap and seven HUD clusters',
       (await page.locator('.hud-minimap canvas').count()) === 1 &&
-        (await page.locator('[data-hud-id]').count()) === 6,
+        (await page.locator('[data-hud-id]').count()) === 7,
     );
     check(
       'Gameplay branding removed',

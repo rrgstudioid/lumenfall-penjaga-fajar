@@ -807,7 +807,7 @@ ITEM_CATALOG['rune-stabilizer']=base({templateId:'rune-stabilizer',name:'Rune St
 ITEM_CATALOG['gold-of-midas']=base({templateId:'gold-of-midas',name:'Gold of Midas',category:'material',itemType:'developerMaterial',icon:'✦',rarity:'legendary',stackable:true,maxStack:99,buyValue:0,sellValue:999999999,description:'A touch of gold that transforms everything into fortune. A symbol of ambition, prosperity, and limitless power.',source:{type:'shop',sourceId:'aruna-developer-materials',label:'Developer Material Lab'}});
 
 const uniqueBossRunes:Array<{id:string;name:string;theme:RuneTheme;source:string;job:CoreJobId|null;effect:string}>=[
- {id:'rune-inti-bara',name:'Embercore Rune',theme:'elements',source:'Twin Elemental Lord · Dataran Bara-Beku',job:null,effect:'Serangan api memiliki peluang meninggalkan bara.'},
+ {id:'rune-inti-bara',name:'Embercore Rune',theme:'elements',source:'Twin Elemental Lord · Frostfire Highlands',job:null,effect:'Serangan api memiliki peluang meninggalkan bara.'},
  {id:'rune-akar-purba',name:'Primordial Root Rune',theme:'vitality',source:'Ancient Treant · Padang Arunika',job:null,effect:'Pemulihan HP meningkat saat HP rendah.'},
  {id:'rune-bayangan-caroq',name:'Caroq Shadow Rune',theme:'shadows',source:'Field Boss Rimba Bisik',job:'rogue',effect:'Sinergi maksimum untuk Rogue dan serangan dari bayangan.'},
  {id:'rune-penjaga-langit',name:'Skywarden Rune',theme:'guardian',source:'Field Boss Tambang Selubung Besi',job:'warrior',effect:'Perfect guard memperkuat pertahanan singkat.'},

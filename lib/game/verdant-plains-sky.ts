@@ -10,11 +10,24 @@ export const PLAINS_DAYLIGHT = {
   ambientIntensity: 2.0,
   horizon: '#bcdff1',
 };
+/** Frostfire's low eastern sun also drives its terrain and character lighting. */
+export const FROST_DAWN = {
+  sun: [0.72, 0.16, -0.68] as const,
+  sunColor: '#ffd0a0',
+  sunIntensity: 2.0,
+  ambientSky: '#cedbeb',
+  ambientGround: '#839bb4',
+  ambientIntensity: 1.55,
+  horizon: '#e6cbbb',
+  zenith: '#829bb5',
+};
 
 /** UDS-derived cloud atlas on a camera-centred dome: one draw, no extra lights,
  * reflection captures, raymarching, or per-frame allocations. */
-export function createPlainsSky(atlas: T.Texture) {
-  const sun = new T.Vector3(...PLAINS_DAYLIGHT.sun).normalize();
+export function createPlainsSky(atlas: T.Texture, cold = false) {
+  const sun = new T.Vector3(
+    ...(cold ? FROST_DAWN.sun : PLAINS_DAYLIGHT.sun),
+  ).normalize();
   const material = new T.ShaderMaterial({
     side: T.BackSide,
     depthTest: false,
@@ -24,8 +37,11 @@ export function createPlainsSky(atlas: T.Texture) {
       uClouds: { value: atlas },
       uTime: { value: 0 },
       uSun: { value: sun },
-      uHorizon: { value: new T.Color(PLAINS_DAYLIGHT.horizon) },
-      uZenith: { value: new T.Color('#438fd4') },
+      uHorizon: {
+        value: new T.Color(cold ? FROST_DAWN.horizon : PLAINS_DAYLIGHT.horizon),
+      },
+      uZenith: { value: new T.Color(cold ? FROST_DAWN.zenith : '#438fd4') },
+      uCold: { value: cold ? 1 : 0 },
     },
     vertexShader: `
       varying vec3 vSkyDirection;
@@ -37,7 +53,7 @@ export function createPlainsSky(atlas: T.Texture) {
     `,
     fragmentShader: `
       uniform sampler2D uClouds;
-      uniform float uTime;
+      uniform float uTime,uCold;
       uniform vec3 uSun,uHorizon,uZenith;
       varying vec3 vSkyDirection;
       void main(){
@@ -47,10 +63,12 @@ export function createPlainsSky(atlas: T.Texture) {
         float alignment=clamp(dot(d,uSun),-1.0,1.0);
         float angle=acos(alignment);
         // Soft atmospheric aureole plus a small, antialiased solar disc.
-        float halo=exp(-angle*angle/0.016);
-        color+=vec3(.50,.39,.20)*halo;
+        float halo=exp(-angle*angle/mix(.016,.035,uCold));
+        float dawnGlow=uCold*pow(max(0.,alignment),6.)*exp(-elevation*3.);
+        color=mix(color,vec3(1.1,.62,.34),dawnGlow*.32);
+        color+=mix(vec3(.50,.39,.20),vec3(.85,.35,.12),uCold)*halo;
         float disc=1.0-smoothstep(.010,.013,angle);
-        color=mix(color,vec3(6.0,5.5,4.3),disc);
+        color=mix(color,mix(vec3(6.0,5.5,4.3),vec3(5.4,3.5,1.8),uCold),disc);
         // Radial hemisphere projection matches the exported UDS cloud atlas.
         float radius=length(d.xz)/(1.0+elevation)*.46;
         vec2 heading=d.xz/max(length(d.xz),.0001);
@@ -64,8 +82,10 @@ export function createPlainsSky(atlas: T.Texture) {
         vec3 litCloud=mix(vec3(.40,.53,.68),vec3(1.18,1.16,1.08),shade);
         // A warmer rim near the sun, without a screen-space bloom pass.
         litCloud+=vec3(.20,.15,.065)*halo;
+        litCloud+=vec3(.28,.11,.02)*dawnGlow;
         color=mix(color,vec3(.82,.89,.95),cloud.b*.16*horizonFade*(1.0-opacity));
-        color=mix(color,litCloud,opacity);
+        color=mix(color,mix(litCloud,litCloud*vec3(.91,.97,1.04),uCold),min(1.,opacity*(1.+uCold*.16)));
+        color=mix(color,uHorizon,uCold*.18);
         gl_FragColor=vec4(color,1.0);
         #include <tonemapping_fragment>
         #include <colorspace_fragment>

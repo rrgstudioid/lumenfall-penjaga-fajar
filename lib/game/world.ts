@@ -1,7 +1,9 @@
 import { PLAINS_ID, PLAINS_EXIT, plainsGroundHeight, plainsWalkable } from './verdant-plains-layout';
+import { FROSTFIRE_ID, frostHeight, frostWalkable, frostCameraFloor } from './frostfire-highlands-layout';
+import { FROST_STORM } from './frostfire-weather';
 import { PLAINS_QUALITY, PLAINS_QUALITY_KEY, PLAINS_QUALITY_LABELS, plainsPixelRatio, type PlainsQuality } from './verdant-plains-quality';
 import { RenderPerformance } from './render-performance';
-import { PLAINS_DAYLIGHT } from './verdant-plains-sky';
+import { PLAINS_DAYLIGHT, FROST_DAWN } from './verdant-plains-sky';
 import { UIInputBlockers, isEditableTarget } from './ui-input';
 import { CHAT_MESSAGE_LIMIT } from './chat';
 import * as T from 'three';
@@ -301,23 +303,27 @@ export class Game {
     }});
   }
   get isPlains() {return !this.hero.inCity&&this.hero.currentField===PLAINS_ID;}
+  get isFrostfire() {return !this.hero.inCity&&this.hero.currentField===FROSTFIRE_ID;}
+  frostfire: Awaited<ReturnType<typeof import('./frostfire-highlands-map').buildFrostfireHighlands>> | null = null;
   arunikaMaterials: ArunikaMaterials | null = null;
   averion: Awaited<ReturnType<typeof import('./averion-map').buildStage03>> | null = null;
   private averionUseSpawn = false;
   private averionCameraDistance = 9;
   get isAverion() { return this.hero.inCity && this.hero.currentCity === 'averion'; }
   get fieldTerrain() { return this.hero.inCity ? undefined : FIELD_TERRAINS[this.hero.currentField]; }
-  get nearSanctuary() {if(this.isAverion||this.isPlains)return false;const p=this.fieldTerrain?.sanctuary??{x:0,z:0};return Math.hypot(this.hero.x-p.x,this.hero.z-p.z)<5.3;}
+  get nearSanctuary() {if(this.isAverion||this.isPlains||this.isFrostfire)return false;const p=this.fieldTerrain?.sanctuary??{x:0,z:0};return Math.hypot(this.hero.x-p.x,this.hero.z-p.z)<5.3;}
   groundHeight(x:number,z:number) {
+    if(this.isFrostfire)return frostHeight(x,z);
     if(this.isPlains)return plainsGroundHeight(x,z);
     if(this.isAverion)return this.averion?.groundHeight(x,z)??this.actor.position.y;
     const t=this.fieldTerrain;return t?terrainHeight(t,x,z):0;
   }
   groundDistance(a:T.Vector3,b:T.Vector3) {
     // Preserve the old flat-ground combat ranges when actors stand on different elevations.
-    return this.fieldTerrain||this.isAverion||this.isPlains?Math.hypot(a.x-b.x,a.z-b.z):a.distanceTo(b);
+    return this.fieldTerrain||this.isAverion||this.isPlains||this.isFrostfire?Math.hypot(a.x-b.x,a.z-b.z):a.distanceTo(b);
   }
   placeActor() {
+    if(this.isFrostfire){this.actor.visible=!!this.frostfire;if(!this.frostfire)return;Object.assign(this.hero,this.frostfire.navigation.restore(this.hero));}
     if(this.isPlains){this.actor.visible=!!this.plains;if(!this.plains)return;if(!this.plains.navigation.valid(this.hero))Object.assign(this.hero,this.plains.navigation.restore(this.hero));}
     if(this.isAverion) {
       this.actor.visible=!!this.averion;
@@ -331,6 +337,12 @@ export class Game {
   moveEnemy(e:Enemy,dx:number,dz:number) {
     const t=this.fieldTerrain;
     const radius=e.boss?1.8:.55;
+    if(this.isFrostfire){
+      if(!this.frostfire)return;
+      const p=this.frostfire.navigation.move(e.group.position,dx,dz,radius);
+      if(!isFieldSafe(FROSTFIRE_ID,p.x,p.z,1))e.group.position.set(p.x,this.groundHeight(p.x,p.z),p.z);
+      return;
+    }
     if(this.isPlains){
       if(!this.plains)return;
       const p=this.plains.navigation.move(e.group.position,dx,dz,radius);
@@ -1675,9 +1687,11 @@ export class Game {
     };
   }
   buildRegionDecor() {
+    this.renderPerformance.reset();
     const buildToken=++this.regionBuildToken;
     this.setPlainsCharacterShadows(false);
     if(this.plains){this.plains.dispose();this.plains=null;}
+    if(this.frostfire){this.frostfire.dispose();this.frostfire=null;}
     this.renderer.shadowMap.enabled=true;this.renderer.setPixelRatio(Math.min(devicePixelRatio,1.25));
     if(this.averion){this.averion.root.removeFromParent();this.averion.dispose();this.averion=null;}
     this.regionLoads = [];
@@ -1692,7 +1706,7 @@ export class Game {
     this.scene.remove(this.regionDecor);
     this.regionDecor.traverse(object => { if(object instanceof T.Mesh){object.geometry.dispose(); const materials=Array.isArray(object.material)?object.material:[object.material]; materials.forEach(material=>material.dispose());} });
     this.regionDecor = new T.Group(); this.scene.add(this.regionDecor);
-    this.followCamera.far=this.freeCamera.far=this.isPlains?1400:this.isAverion?650:160;
+    this.followCamera.far=this.freeCamera.far=this.isPlains||this.isFrostfire?1400:this.isAverion?650:160;
     this.followCamera.updateProjectionMatrix();this.freeCamera.updateProjectionMatrix();
     this.worldLightRig.traverse(o=>{
       if(o instanceof T.HemisphereLight){o.intensity=this.isPlains?PLAINS_DAYLIGHT.ambientIntensity:this.isAverion?1.2:2.2;o.color.set(this.isPlains?PLAINS_DAYLIGHT.ambientSky:this.isAverion?'#eef5ff':'#f2f8d6');o.groundColor.set(this.isPlains?PLAINS_DAYLIGHT.ambientGround:this.isAverion?'#687b55':'#3f5d45');}
@@ -1718,6 +1732,21 @@ export class Game {
     const sanctuary=this.fieldTerrain?.sanctuary??{x:0,z:0};
     this.shrine.position.set(sanctuary.x,this.groundHeight(sanctuary.x,sanctuary.z),sanctuary.z);
     this.shrine.visible=true;
+    if(this.isFrostfire) {
+      this.terrain.visible=false;this.shrine.visible=false;this.actor.visible=false;
+      this.scene.background=new T.Color(FROST_STORM.fogColor);this.scene.fog=new T.FogExp2(FROST_STORM.fogColor,FROST_STORM.fogDensity);
+      this.renderer.setPixelRatio(Math.min(devicePixelRatio,1.25));
+      this.worldLightRig.traverse(o=>{
+        if(o instanceof T.HemisphereLight){o.color.set(FROST_DAWN.ambientSky);o.groundColor.set(FROST_DAWN.ambientGround);o.intensity=FROST_DAWN.ambientIntensity;}
+        if(o instanceof T.DirectionalLight){o.color.set(FROST_DAWN.sunColor);o.intensity=FROST_DAWN.sunIntensity;Object.assign(o.shadow.camera,{left:-42,right:42,top:42,bottom:-42,near:.1,far:240});o.shadow.camera.updateProjectionMatrix();}
+      });
+      this.regionLoads.push(import('./frostfire-highlands-map').then(module=>module.buildFrostfireHighlands()).then(map=>{
+        if(this.disposed||buildToken!==this.regionBuildToken){map.dispose();return;}
+        this.frostfire=map;this.regionDecor.add(map.root);this.placeActor();this.cameraFocus.copy(this.actor.position);map.update(this.camera,this.hero,0,false,this.renderer.getPixelRatio());this.drawMap();
+      }).catch(error=>{if(!this.disposed&&buildToken===this.regionBuildToken)this.regionLoadError=error;throw error;}));
+      void this.regionLoads.at(-1)!.catch(()=>{});
+      return;
+    }
     if(this.isPlains) {
       this.terrain.visible=false;this.shrine.visible=false;this.actor.visible=false;
       this.scene.background=new T.Color(PLAINS_DAYLIGHT.horizon);this.scene.fog=new T.Fog(PLAINS_DAYLIGHT.horizon,290,1000);
@@ -2070,6 +2099,7 @@ export class Game {
     if(this.isAverion)return;
     const valid = (position: { x: number; z: number }) => {
       if (!Number.isFinite(position.x) || !Number.isFinite(position.z)) return false;
+      if(this.isFrostfire)return frostWalkable(position);
       if(this.isPlains)return plainsWalkable(position);
       const extent = regionHalfExtent(this.hero.inCity);
       if (Math.abs(position.x) > extent - 1 || Math.abs(position.z) > extent - 1) return false;
@@ -2156,7 +2186,7 @@ export class Game {
     else this.keys.delete(key);
   }
   save() {
-    if (!this.started || this.dead || this.transitioning || this.regionLoadError || ((this.isAverion&&!this.averion)||(this.isPlains&&!this.plains))) return;
+    if (!this.started || this.dead || this.transitioning || this.regionLoadError || ((this.isAverion&&!this.averion)||(this.isPlains&&!this.plains)||(this.isFrostfire&&!this.frostfire))) return;
     this.hero.stamina = this.stamina;
     this.hero.lastPlayedAt = Date.now();
     this.hero.lastSafePosition = { x: this.hero.x, z: this.hero.z };
@@ -2172,7 +2202,7 @@ export class Game {
     this.hero.hp = maxHP(this.hero);
     this.hero.x = 0;
     this.hero.z = this.hero.inCity ? 7 : 26;
-    if(this.fieldTerrain||this.isPlains)Object.assign(this.hero,FIELDS[this.hero.currentField].entry);
+    if(this.fieldTerrain||this.isPlains||this.isFrostfire)Object.assign(this.hero,FIELDS[this.hero.currentField].entry);
     this.placeActor();
     this.cameraFocus.copy(this.actor.position);
     this.dead = false;
@@ -3452,7 +3482,7 @@ export class Game {
     else if (autoAim || !this.pointerActive) this.targetNearest();
     else {
       this.raycaster.setFromCamera(this.pointer, this.camera);
-      const hit=this.isPlains&&this.plains ? this.raycaster.intersectObject(this.plains.root,true).find(h=>h.object.visible)?.point : this.terrainSurface?this.raycaster.intersectObject(this.terrainSurface)[0]?.point:this.raycaster.ray.intersectPlane(this.ground,this.aim);
+      const hit=this.isFrostfire&&this.frostfire ? this.raycaster.intersectObject(this.frostfire.surfaces,true)[0]?.point : this.isPlains&&this.plains ? this.raycaster.intersectObject(this.plains.root,true).find(h=>h.object.visible)?.point : this.terrainSurface?this.raycaster.intersectObject(this.terrainSurface)[0]?.point:this.raycaster.ray.intersectPlane(this.ground,this.aim);
       if (hit) {
         this.aim.copy(hit);
         const d = this.aim.clone().sub(this.actor.position).setY(0);
@@ -3496,7 +3526,7 @@ export class Game {
       if (e.hp <= 0) continue;
       if(hard){const damage=resolveBasicDamage(e);if(damage===null)continue;this.hurtEnemy(e,Math.round(damage),this.hero.skillArchitectureVersion===3?0:.8,'physical');continue;}
       const v = e.group.position.clone().sub(this.actor.position);
-      if(this.fieldTerrain||this.isPlains)v.y=0;
+      if(this.fieldTerrain||this.isPlains||this.isFrostfire)v.y=0;
       const d = v.length();
       if (
         d < (isBow?Math.max(11,profile.range):(e.boss ? 4.3 : profile.range)) &&
@@ -3548,11 +3578,11 @@ export class Game {
     }
     e.flash = 0.14;
     const v = e.group.position.clone().sub(this.actor.position);
-    if(this.fieldTerrain||this.isPlains)v.y=0;
+    if(this.fieldTerrain||this.isPlains||this.isFrostfire)v.y=0;
     v.normalize();
     const knockDistance=e.boss?knock*.15:knock;
     this.moveEnemy(e,v.x*knockDistance,v.z*knockDistance);
-    if(!this.fieldTerrain&&!this.isPlains) {
+    if(!this.fieldTerrain&&!this.isPlains&&!this.isFrostfire) {
       const extent=regionHalfExtent(false);
       e.group.position.x=T.MathUtils.clamp(e.group.position.x,-extent,extent);
       e.group.position.z=T.MathUtils.clamp(e.group.position.z,-extent,extent);
@@ -3668,7 +3698,7 @@ export class Game {
     ).normalize();
   }
   move(dx: number, dz: number) {
-    if(this.transitioning||this.regionLoadError||((this.isAverion&&!this.averion)||(this.isPlains&&!this.plains)))return;
+    if(this.transitioning||this.regionLoadError||((this.isAverion&&!this.averion)||(this.isPlains&&!this.plains)||(this.isFrostfire&&!this.frostfire)))return;
     if(isStunned(this.hero,this.combatTime))return;
     const p=moveWithTreeCollisions(this.hero,dx,dz,this.treeColliders,(from,mx,mz)=>this.moveHeroOnGround(from,mx,mz),(x,z)=>this.groundHeight(x,z));
     this.hero.x=p.x;this.hero.z=p.z;
@@ -3693,6 +3723,7 @@ export class Game {
     return this.groundDistance(this.actor.position, target.group.position) <= desiredRange + 1e-4;
   }
   moveHeroOnGround(from:GroundPoint,dx:number,dz:number):GroundPoint {
+    if(this.isFrostfire)return this.frostfire?this.frostfire.move(from,dx,dz):{...from};
     if(this.isPlains)return this.plains?this.plains.move(from,dx,dz):{...from};
     if(this.isAverion)return this.averion?this.averion.move(from,dx,dz):{...from};
     if(this.fieldTerrain) {
@@ -3719,7 +3750,7 @@ export class Game {
   tick = (time: number) => {
     const frameStarted = performance.now();
     if (this.disposed || !this.started) { this.frame = 0; return; }
-    if(this.transitioning||this.regionLoadError||((this.isAverion&&!this.averion)||(this.isPlains&&!this.plains))) {
+    if(this.transitioning||this.regionLoadError||((this.isAverion&&!this.averion)||(this.isPlains&&!this.plains)||(this.isFrostfire&&!this.frostfire))) {
       this.renderPerformance.suspend();
       this.lastTime=time;this.frame=requestAnimationFrame(this.tick);return;
     }
@@ -3854,8 +3885,14 @@ export class Game {
     }
     this.cameraFocus.lerp(this.actor.position, 1 - Math.exp(-dt * 6));
     const targetGroundY = this.groundHeight(this.actor.position.x, this.actor.position.z);
-    this.actor.position.y = this.isPlains?targetGroundY:T.MathUtils.lerp(this.actor.position.y, targetGroundY, 0.18);
+    this.actor.position.y = this.isPlains||this.isFrostfire?targetGroundY:T.MathUtils.lerp(this.actor.position.y, targetGroundY, 0.18);
     this.updateCamera(dt);
+    if(this.isFrostfire&&this.frostfire){
+      this.camera.position.y=Math.max(this.camera.position.y,frostCameraFloor(this.camera.position.x,this.camera.position.z)+1.2);
+      this.camera.updateMatrixWorld();
+      this.frostfire.update(this.camera,this.hero,this.paused||document.hidden?0:dt,moving&&!this.dead&&!this.paused,this.renderer.getPixelRatio());
+      this.worldLightRig.traverse(o=>{if(o instanceof T.DirectionalLight){o.position.set(this.actor.position.x+FROST_DAWN.sun[0]*120,this.actor.position.y+FROST_DAWN.sun[1]*120,this.actor.position.z+FROST_DAWN.sun[2]*120);o.target.position.copy(this.actor.position);o.target.updateMatrixWorld();}});
+    }
     if(this.isAverion&&this.averion) {
       if(this.cameraMode==='follow') {
         const focus=this.actor.position.clone().add(new T.Vector3(0,1.65,0));
@@ -3937,7 +3974,7 @@ export class Game {
     this.updateCameraProjection();
   }
   updateEnemy(e: Enemy, dt: number) {
-    if(this.isPlains&&e.hp>0){
+    if((this.isPlains||this.isFrostfire)&&e.hp>0){
       const nearby=this.groundDistance(e.group.position,this.actor.position)<(e.boss?160:110);
       e.group.visible=nearby;
       // Only sleep healthy, idle actors at home. Death timers, damage-over-time,
@@ -4238,10 +4275,11 @@ export class Game {
     ctx.fillRect(0, 0, size, size);
 
 
-    const mapScale = this.isPlains ? 1000/106 : this.isAverion ? 250/106 : this.fieldTerrain?.id === 'verdant-plains' ? 2 : regionScale(this.hero.inCity);
+    const mapScale = this.isPlains||this.isFrostfire ? 1000/106 : this.isAverion ? 250/106 : this.fieldTerrain?.id === 'verdant-plains' ? 2 : regionScale(this.hero.inCity);
     const p = (v: number) => size / 2 + (v * size) / (106 * mapScale);
 
-    if(this.isPlains&&this.plains) {this.plains.drawMinimap(ctx,size);}
+    if(this.isFrostfire&&this.frostfire) {this.frostfire.drawMinimap(ctx,size);}
+    else if(this.isPlains&&this.plains) {this.plains.drawMinimap(ctx,size);}
     else if(this.isAverion&&this.averion) {
       ctx.fillStyle='#c6b997';ctx.beginPath();ctx.arc(p(0),p(-1.565295),size*104/250,0,Math.PI*2);ctx.fill();
       ctx.fillStyle='#697d8b';
@@ -4392,6 +4430,10 @@ export class Game {
     if(persist)try{localStorage.setItem(PLAINS_QUALITY_KEY,quality);}catch{}
     this.resize();
   }
+  getCurrentFPS() {
+    if (!this.started || this.disposed || this.transitioning || this.regionLoadError || this.paused || document.hidden) return null;
+    return this.renderPerformance.currentFPS();
+  }
   getPerformanceDiagnostics() {
     const gl = this.renderer.getContext();
     const debug = gl.getExtension('WEBGL_debug_renderer_info');
@@ -4406,6 +4448,7 @@ export class Game {
       browser: navigator.userAgent, logicalCores: navigator.hardwareConcurrency,
       render: { ...this.renderer.info.render }, memory: { ...this.renderer.info.memory },
       plains: this.plains?.metrics(),
+      frostfire: this.frostfire?.metrics(),
     };
   }
   resize = () => {
@@ -4616,6 +4659,7 @@ export class Game {
     this.targetPresentation?.dispose();this.targetPresentation=undefined;this.targetEntities?.clear();
     this.disposed = true;
     if(this.plains){this.plains.dispose();this.plains=null;}
+    if(this.frostfire){this.frostfire.dispose();this.frostfire=null;}
     setArunikaShrineMaterials(this.shrine,null);
     this.arunikaMaterials?.dispose();this.arunikaMaterials=null;
     this.treeColliders=[];

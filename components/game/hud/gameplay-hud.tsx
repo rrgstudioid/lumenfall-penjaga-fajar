@@ -1,4 +1,5 @@
 'use client';
+import { FROSTFIRE_ID } from '@/lib/game/frostfire-highlands-layout';
 import {
   memo,
   useCallback,
@@ -46,6 +47,7 @@ import { HotbarLayer } from '../drag-drop-provider';
 import { BuffTray } from './buff-tray';
 import { ChatPanel } from '../chat/chat-panel';
 import { HUDFrame, HUDLayoutProvider } from './hud-layout';
+import { FPSCounter } from './fps-counter';
 
 const PlayerStatusCard = memo(function PlayerStatusCard({
   hero,
@@ -193,6 +195,7 @@ const QuestTracker = memo(function QuestTracker({
 const RightHUDCluster = memo(function RightHUDCluster({
   mapRef,
   gold,
+  weatherLabel = 'Pagi yang tenang',
   muted,
   fullscreen,
   cameraMode,
@@ -203,6 +206,7 @@ const RightHUDCluster = memo(function RightHUDCluster({
 }: {
   mapRef: RefObject<HTMLCanvasElement | null>;
   gold: number;
+  weatherLabel?: string;
   muted: boolean;
   fullscreen: boolean;
   cameraMode: Snapshot['cameraMode'];
@@ -213,29 +217,40 @@ const RightHUDCluster = memo(function RightHUDCluster({
 }) {
   return (
     <aside className="hud-right">
+      <div className="hud-minimap-frame">
       <button className="hud-minimap" onClick={onMap} aria-label="Buka peta">
         <canvas ref={mapRef} width={240} height={240} />
+        <svg className="hud-map-grid" viewBox="0 0 240 240" aria-hidden="true">
+          {[1, 2, 3, 4, 5, 6].map(index => {
+            const offset = index * 240 / 7;
+            return <path key={index} d={`M${offset} 0V240 M0 ${offset}H240`} />;
+          })}
+        </svg>
         <svg
           className="hud-compass-rim"
           viewBox="0 0 240 240"
           aria-hidden="true"
         >
-          <circle cx="120" cy="120" r="114" />
-          <circle cx="120" cy="120" r="110" />
-          {[0, 45, 90, 135, 180, 225, 270, 315].map((angle) => (
-            <path
-              key={angle}
-              transform={`rotate(${angle} 120 120)`}
-              d="M120 2L123 9L120 16L117 9Z M120 16V23"
-            />
-          ))}
+          <rect x="6" y="6" width="228" height="228" />
+          <rect x="10" y="10" width="220" height="220" />
+          <path d="M6 30V6H30 M210 6H234V30 M234 210V234H210 M30 234H6V210" />
         </svg>
-        <span className="hud-north">N</span>
+        <span className="hud-map-columns" aria-hidden="true">
+          {[1, 2, 3, 4, 5, 6, 7].map(column => <span key={column}>{column}</span>)}
+        </span>
+        <span className="hud-map-rows" aria-hidden="true">
+          {['A', 'B', 'C', 'D', 'E', 'F', 'G'].map(row => <span key={row}>{row}</span>)}
+        </span>
+        <span className="hud-cardinal hud-cardinal-n" aria-hidden="true">N</span>
+        <span className="hud-cardinal hud-cardinal-w" aria-hidden="true">W</span>
+        <span className="hud-cardinal hud-cardinal-e" aria-hidden="true">E</span>
+        <span className="hud-cardinal hud-cardinal-s" aria-hidden="true">S</span>
         <kbd>M</kbd>
       </button>
+      </div>
       <div className="hud-weather">
         <Sun size={15} />
-        Pagi yang tenang
+        {weatherLabel}
       </div>
       <div className="hud-gold hud-panel">
         <Coins size={19} />
@@ -413,7 +428,7 @@ export function GameplayHUD({
             <span />
           </div>
           <p>
-            {state.inCity ? 'Kota aman' : state.mapId==='verdant-plains-v2' ? 'Padang Arunika' : state.cityName}
+            {state.inCity ? 'Kota aman' : state.mapId===FROSTFIRE_ID ? 'Frozen Highlands' : state.mapId==='verdant-plains-v2' ? 'Padang Arunika' : state.cityName}
             <b>·</b>Lv. {state.recommendedLevel}
           </p>
         </div>
@@ -421,6 +436,7 @@ export function GameplayHUD({
           <RightHUDCluster
             mapRef={mapRef}
             gold={state.hero.gold}
+            weatherLabel={state.mapId===FROSTFIRE_ID?'Wind-driven snow':undefined}
             muted={state.audioSettings.muted}
             fullscreen={fullscreen}
             cameraMode={state.cameraMode}
@@ -471,6 +487,9 @@ export function GameplayHUD({
               <Minus size={16} />
             </button>
           </div>
+        </HUDFrame>
+        <HUDFrame id="fps" label="FPS" className="hud-fps" textOnly resizable={false}>
+          {visible && <FPSCounter game={game} />}
         </HUDFrame>
         <HUDFrame
           id="buff"

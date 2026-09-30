@@ -22,7 +22,7 @@ import {
 } from './rules.ts';
 import { createItem } from './items.ts';
 import { rankSource, paidTreeInvestment } from './rank-ownership.ts';
-import { skillHitDamage, SkillHitQueue } from './skill-action.ts';
+import { resolveSkillAction, skillHitDamage, SkillHitQueue } from './skill-action.ts';
 import { PersonalMarks, markedBySelf, personalMark } from './personal-mark.ts';
 import { directionalVector, moveDirectional } from './directional-movement.ts';
 import {
@@ -105,7 +105,7 @@ await test('4C registry: exact 16+14, 140 total/139 paid, development root grant
   );
   assert.equal(getJobSkillNodes(h, 'core').active.length, 16);
   assert.equal(getJobSkillNodes(h, 'core').passive.length, 14);
-  assert.equal(parseSave(JSON.stringify(h))!.coreJob, 'thief');
+  assert.equal(parseSave(JSON.stringify(h)), null, 'memory-only V2 fixtures must not enter public saves');
 });
 
 await test('4C every active: exact locks, rank ceilings, physical/zero INT and skill-power coefficients; target-free actions distinct', () => {
@@ -200,11 +200,19 @@ const damageContract: Record<string, number[][]> = {
     [48, 2.25, 14, 22, 14],
   ],
 };
-await test('4C independent golden damage tables: every rank, no legacy +12% double scaling', () => {
-  const h = hero();
+// These coefficient goldens intentionally operate before per-hand equipment
+// composition. Live dagger actions snapshot their power from the actual items.
+function goldenAction(slug: string, rank: number) {
+  const stats = { ...derivedStats(hero()), physicalAttack: 200, magicAttack: 999, skillPower: 999 };
+  return resolveSkillAction(skill(slug), {
+    v2: true, stats, rank, masteryPower: 1, masteryCooldown: 1,
+    equipmentDamage: 0, weaponAllowed: true, weaponStyle: 'dual_dagger',
+  });
+}
+await test('4C independent coefficient golden tables: every rank, no legacy +12% double scaling', () => {
   for (const [slug, rows] of Object.entries(damageContract))
     rows.forEach(([base, c, _legacyValue, mp, cd], i) => {
-      const a = resolveHeroSkill(h, skill(slug), i + 1);
+      const a = goldenAction(slug, i + 1);
       assert.deepEqual(
         [
           a.baseDamage,
@@ -224,9 +232,9 @@ await test('4C independent golden damage tables: every rank, no legacy +12% doub
       );
     });
 });
-await test('4C Rank1 deterministic 200 attack raw totals, local payoff group Mark+Rear adds not multiplies', () => {
+await test('4C Rank1 coefficient totals at 200 attack; live Mark+Rear payoff adds not multiplies', () => {
   const h = hero(),
-    stats = { ...derivedStats(h), physicalAttack: 200 },
+    stats = derivedStats(h),
     marks = new PersonalMarks();
   const expected: Record<string, number> = {
     'quick-stab': 204,
@@ -241,9 +249,9 @@ await test('4C Rank1 deterministic 200 attack raw totals, local payoff group Mar
     'weakpoint-assault': 402,
   };
   for (const [slug, n] of Object.entries(expected)) {
-    const a = resolveHeroSkill(h, skill(slug), 1, stats);
+    const a = goldenAction(slug, 1);
     near(
-      a.hitSequence.reduce((s, hit) => s + skillHitDamage(hit, stats), 0),
+      a.hitSequence.reduce((s, hit) => s + skillHitDamage(hit, { ...stats, physicalAttack: 200 }), 0),
       n,
     );
   }
@@ -276,6 +284,26 @@ await test('4C Rank1 deterministic 200 attack raw totals, local payoff group Mar
     }
   }
   marks.clear();
+});
+await test('live Thief damage uses its hand equipment snapshot and never counts off-hand raw ATK twice', () => {
+  const h = hero();
+  const main = h.inventory.find(item => item.id === h.equipment.mainHand)!;
+  const off = h.inventory.find(item => item.id === h.equipment.offHand)!;
+  const damage = () => {
+    const stats = derivedStats(h);
+    const action = resolveHeroSkill(h, skill('quick-stab'), 1, stats);
+    assert.equal(action.weaponAllowed, true);
+    assert(action.hitSequence.every(hit => Number.isFinite(hit.composedPhysicalPower)));
+    return { action, stats, value: action.hitSequence.reduce((sum, hit) => sum + skillHitDamage(hit, stats), 0) };
+  };
+  const before = damage();
+  off.baseStats = { ...off.baseStats, attack: (off.baseStats.attack ?? 0) + 100 };
+  near(damage().value, before.value);
+  main.baseStats = { ...main.baseStats, attack: (main.baseStats.attack ?? 0) + 100 };
+  const after = damage();
+  near(after.value - before.value, 100 * damageContract['quick-stab'][0][1]);
+  // A cast already resolved must keep its snapshot even if displayed PATK changes.
+  near(skillHitDamage(before.action.hitSequence[0], { ...before.stats, physicalAttack: 9999 }), before.value);
 });
 await test('4C personal mark: source/generation isolation, refresh/move, independent actors, expiry/death/cleanup, no persistence', () => {
   const marks = new PersonalMarks(),

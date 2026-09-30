@@ -1,4 +1,6 @@
 import { PLAINS_ID, PLAINS_ENTRY, restorePlainsPosition } from './verdant-plains-layout.ts';
+import { FROSTFIRE_ID, FROSTFIRE_LAYOUT_VERSION, FrostNavigation } from './frostfire-highlands-layout.ts';
+import { migrateFrostfireSave } from './frostfire-save-migration.ts';
 import { normalizeMaleAppearance } from './character-appearance.ts';
 import { isResourceEnabled, staminaDerivedValue } from './gameplay-config.ts';
 import { RogueAmbushState } from './rogue-ambush.ts';
@@ -11,14 +13,14 @@ import {hostModifiers,applyStatModifiers,isManualGuarding,actionDamageMultiplier
 import { getJobV2, type CoreJobV2Id } from './job-registry-v2.ts';
 import type {CombatSupport} from './combat-transient.ts';
 import { resolveSkillAction, skillHitDamage, resolvedDamageParts } from './skill-action.ts';
-import { ADVENTURER_V3_RUNTIME_SKILLS, ADVENTURER_V3_SKILL_MAP, adventurerV3StartingState } from './adventurer-v3.ts';
+import { ADVENTURER_V3_RUNTIME_SKILLS, adventurerV3StartingState } from './adventurer-v3.ts';
 import { THIEF_V3_SKILL_MAP } from './thief-v3.ts';
 import { ROGUE_V3_RUNTIME_SKILLS, rogueMasteryModifiers } from './rogue-v3.ts';
 import { canApplyAssasinPoison, validPoisonProfile } from './assasin-poison.ts';
 import { THIEF_V3_RUNTIME_SKILLS, thiefPassiveModifiers, thiefManaReduction, reconcileThiefBuffs } from './thief-runtime.ts';
-import { WARRIOR_V3_RUNTIME_SKILLS, WARRIOR_V3_SKILL_MAP, warriorV3StateAfterCoreChange } from './warrior-v3.ts';
-import { BERSERKER_V3_RUNTIME_SKILLS, BERSERKER_V3_SKILL_MAP, BERSERKER_MASTERY_MANA_SKILLS, BERSERKER_TRANCE_DAMAGE_SKILLS, BERSERKER_TRANCE_AOE_SKILLS, berserkerV3StateAfterSpecialization } from './berserker-v3.ts';
-import { BLADE_MASTER_V3_RUNTIME_SKILLS, BLADE_MASTER_V3_SKILL_MAP, BLADE_MASTER_DUAL_MANA_SKILLS, BLADE_MASTER_MASTERY_MANA_SKILLS, BLADE_MASTER_MASTERY_MANA_REDUCTION_BY_RANK, bladeMasterV3StateAfterSpecialization, bladeMasterDualWieldActive, composeBladeWeaponHits } from './blade-master-v3.ts';
+import { WARRIOR_V3_RUNTIME_SKILLS, warriorV3StateAfterCoreChange } from './warrior-v3.ts';
+import { BERSERKER_V3_RUNTIME_SKILLS, BERSERKER_MASTERY_MANA_SKILLS, BERSERKER_TRANCE_DAMAGE_SKILLS, BERSERKER_TRANCE_AOE_SKILLS, berserkerV3StateAfterSpecialization } from './berserker-v3.ts';
+import { BLADE_MASTER_V3_RUNTIME_SKILLS, BLADE_MASTER_DUAL_MANA_SKILLS, BLADE_MASTER_MASTERY_MANA_SKILLS, BLADE_MASTER_MASTERY_MANA_REDUCTION_BY_RANK, bladeMasterV3StateAfterSpecialization, bladeMasterDualWieldActive, composeBladeWeaponHits } from './blade-master-v3.ts';
 import type { StunState } from './stun.ts';
 import { canPurchaseSkillRank, normalizeSkillProgressionV3, purchaseSkillRankV3, refundAllSkillPointsForJobChange, resetFamilyBranch, spentSkillPointsV3, type SkillProgressionV3State } from './skill-progression-v3.ts';
 import { heroFamilyContext, heroFamilyHotbarBinding, heroFamilyNodeStates, heroFamilySkillActive, heroFamilySkillReference, heroSkillCooldownRemaining, reconcileHeroSkillFamilies, skillFamilyDefinitions } from './skill-family-runtime.ts';
@@ -341,6 +343,7 @@ export type Hero = PrimaryHotbarState & {
   selectedAmmo: string | null;
   currentCity: string;
   currentField: string;
+  frostfireLayoutVersion?: number;
   inCity: boolean;
   unlockedCities: string[];
   unlockedFields: string[];
@@ -583,6 +586,7 @@ export function freshHero(
     itemCooldowns: {},
     selectedAmmo: null,
     currentCity: 'arunika', currentField: PLAINS_ID, inCity: true,
+    frostfireLayoutVersion: FROSTFIRE_LAYOUT_VERSION,
     unlockedCities: ['arunika'], unlockedFields: startingFieldIds(),
     completedQuests: [], acceptedQuests: [], activeQuests: [], questCooldowns: {}, cityProgress: {}, fieldProgress: {}, defeatedFieldBosses: [], defeatedBossTimestamp: {}, monsterRespawnState: {}, storage: [],
     characterId: `${slotId}-character`,
@@ -2551,6 +2555,7 @@ function normalizedHero(value: Record<string, unknown>, slotId = 'slot-1') {
     typeof value.gold !== 'number'
   )
     return null;
+  value = migrateFrostfireSave(value);
   const oldSave = value.version === 1 || value.version === 2;
   const id = typeof value.slotId === 'string' ? value.slotId : slotId;
   const name =
@@ -2637,8 +2642,8 @@ function normalizedHero(value: Record<string, unknown>, slotId = 'slot-1') {
     weapon: integer(value.weapon, 0, 20, 0),
     questClaimed: value.questClaimed === true,
     bossDefeated: value.bossDefeated === true,
-    x: value.inCity===false&&value.currentField===PLAINS_ID ? (typeof value.x==='number'?value.x:NaN) : integer(value.x, 1-regionHalfExtent(value.inCity !== false), regionHalfExtent(value.inCity !== false)-1, 0),
-    z: value.inCity===false&&value.currentField===PLAINS_ID ? (typeof value.z==='number'?value.z:NaN) : integer(value.z, 1-regionHalfExtent(value.inCity !== false), regionHalfExtent(value.inCity !== false)-1, 7),
+    x: value.inCity===false&&(value.currentField===PLAINS_ID||value.currentField===FROSTFIRE_ID) ? (typeof value.x==='number'?value.x:NaN) : integer(value.x, 1-regionHalfExtent(value.inCity !== false), regionHalfExtent(value.inCity !== false)-1, 0),
+    z: value.inCity===false&&(value.currentField===PLAINS_ID||value.currentField===FROSTFIRE_ID) ? (typeof value.z==='number'?value.z:NaN) : integer(value.z, 1-regionHalfExtent(value.inCity !== false), regionHalfExtent(value.inCity !== false)-1, 7),
     skillPoints: integer(value.skillPoints, 0, 500, Math.max(0, level - 1)),
     statPoints: integer(value.statPoints, 0, 999, Math.max(0, level - 1) * STAT_POINTS_PER_LEVEL),
     allocatedStats,
@@ -2852,6 +2857,7 @@ function normalizedHero(value: Record<string, unknown>, slotId = 'slot-1') {
     Object.assign(h,PLAINS_ENTRY);
   }
   if(!h.inCity&&h.currentField===PLAINS_ID)Object.assign(h,restorePlainsPosition(h));
+  if(!h.inCity&&h.currentField===FROSTFIRE_ID)Object.assign(h,new FrostNavigation().restore(h));
   const terrain=!h.inCity?FIELD_TERRAINS[h.currentField]:undefined;
   if(terrain)Object.assign(h,nearestTerrainPoint(terrain,{x:h.x,z:h.z}));
   if(h.progressionArchitecture==='v2_test')delete h.statusEffects.stealth;

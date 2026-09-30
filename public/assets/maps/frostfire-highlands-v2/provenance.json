@@ -1,0 +1,70 @@
+{
+  "map": "frostfire-highlands-v2",
+  "sources": [
+    {
+      "file": "snow_02-diff.webp",
+      "source": "C:\\Users\\GG\\Desktop\\Lumenfall\\Master_ Material_ Lumenfall\\Terrain\\snow_02_2k.blend.zip",
+      "entry": "textures/snow_02_diff_2k.jpg",
+      "sourceSha256": "603ad26e8aab0fb1c51bb329e5d3d38ccf7a177d9841feea29ebab989b09e8a8"
+    },
+    {
+      "file": "snow_02-rough.webp",
+      "source": "C:\\Users\\GG\\Desktop\\Lumenfall\\Master_ Material_ Lumenfall\\Terrain\\snow_02_2k.blend.zip",
+      "entry": "textures/snow_02_rough_2k.jpg",
+      "sourceSha256": "603ad26e8aab0fb1c51bb329e5d3d38ccf7a177d9841feea29ebab989b09e8a8"
+    },
+    {
+      "file": "snow_03-diff.webp",
+      "source": "C:\\Users\\GG\\Desktop\\Lumenfall\\Master_ Material_ Lumenfall\\Terrain\\snow_03_2k.blend.zip",
+      "entry": "textures/snow_03_diff_2k.jpg",
+      "sourceSha256": "b569cd976a3890c0fb49f804ccb04962ddb02ceeb3635ddd6be57ea39410306c"
+    },
+    {
+      "file": "snow-rock-pile.glb",
+      "source": "C:\\Users\\GG\\Desktop\\Lumenfall\\snow rock pile 3d model.glb",
+      "sourceSha256": "0b2f093a109c49fccf4bf318c3bd9b97e2ee2a364f14909e0684026980a7b66f",
+      "runtimeCopyUnmodified": true
+    },
+    {
+      "file": "snowy-pine-tree.glb",
+      "source": "C:\\Users\\GG\\Desktop\\Lumenfall\\snowy pine tree 3d model.glb",
+      "sourceSha256": "bc22eb663f663cbbe2bcd543efd6c2236c29d48e6eec97f19f450863801ba2f0",
+      "runtimeCopyUnmodified": true
+    }
+  ],
+  "shared": [
+    "/assets/maps/verdant-plains-v2/sky-clouds.webp",
+    "/assets/maps/verdant-plains-v2/rock.webp",
+    "/assets/maps/verdant-plains-v2/water-ocean-normal.webp"
+  ],
+  "sourceUnmodified": true,
+  "uds": {
+    "sourceAssets": [
+      {
+        "name": "Snow_Bits",
+        "source": "C:\\ProgramData\\Epic\\EpicGamesLauncher\\VaultCache\\UltraDyn12790d13e818V8\\data\\Content\\UltraDynamicSky\\Textures\\Weather\\Snow_Bits.uasset",
+        "sha256": "089fb72af78b7af6f1b6880e31b03cf2f8af90f95ce056bf48086808b72a4d66"
+      },
+      {
+        "name": "RainSnow_Sheet",
+        "source": "C:\\ProgramData\\Epic\\EpicGamesLauncher\\VaultCache\\UltraDyn12790d13e818V8\\data\\Content\\UltraDynamicSky\\Textures\\Weather\\RainSnow_Sheet.uasset",
+        "sha256": "b764bd7ed6754c61753e1ecbcd57da81d9d2af847434925b0531e208039d5edd"
+      },
+      {
+        "name": "Wind_Movement",
+        "source": "C:\\ProgramData\\Epic\\EpicGamesLauncher\\VaultCache\\UltraDyn12790d13e818V8\\data\\Content\\UltraDynamicSky\\Textures\\Weather\\Wind_Movement.uasset",
+        "sha256": "2ff6b69a4a6c2fb250c72820c194661c900c45adcb5676a6f334deb0953a2c46"
+      }
+    ],
+    "sourceUnmodified": true,
+    "engine": "Unreal 5.4.4 TextureExporterTGA",
+    "method": "Snow_Bits top-left alpha tile; Wind_Movement red noise channel. Three.js local wind simulation; not Unreal Blueprint/Niagara execution.",
+    "runtime": [
+      "snow-sprite.webp",
+      "wind-movement.webp"
+    ],
+    "inspectedOnly": [
+      "RainSnow_Sheet"
+    ]
+  }
+}

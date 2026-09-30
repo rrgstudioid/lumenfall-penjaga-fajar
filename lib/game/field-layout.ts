@@ -1,5 +1,7 @@
 import { PLAINS_ID, plainsSafe } from './verdant-plains-layout.ts';
 import { plainsMonsterSpawns } from './verdant-plains-population.ts';
+import { FROSTFIRE_ID } from './frostfire-highlands-layout.ts';
+import { frostMonsterSpawns, frostSafe } from './frostfire-population.ts';
 import { FIELDS, FIELD_NPCS, WORLD_CONFIG, type FieldDefinition, type MonsterDefinition } from './regions.ts';
 import { FIELD_TERRAINS, terrainSafe, terrainWalkable, terrainBridge, nearestTerrainPoint } from './field-terrain.ts';
 
@@ -12,6 +14,7 @@ export const regionHalfExtent = (inCity: boolean) => FIELD_LAYOUT.oldHalfExtent 
 export type MonsterSpawn = { id: number; x: number; z: number; definition: MonsterDefinition };
 export function isFieldSafe(fieldId: string, x: number, z: number, margin = 0) {
   if(fieldId===PLAINS_ID)return plainsSafe({x,z},margin);
+  if(fieldId===FROSTFIRE_ID)return frostSafe({x,z},margin);
   const terrain=FIELD_TERRAINS[fieldId];
   if(terrain)return terrainSafe(terrain,{x,z},margin);
   const camp = FIELD_NPCS[fieldId];
@@ -24,6 +27,7 @@ export function isFieldWater(x: number, z: number, margin = 0) {
 export function fieldSpawns(field: FieldDefinition): MonsterSpawn[] {
   if(!field.normalMonsters.length&&!field.eliteMonsters.length&&!field.fieldBoss)return [];
   if(field.id===PLAINS_ID)return plainsMonsterSpawns(field);
+  if(field.id===FROSTFIRE_ID)return frostMonsterSpawns(field);
   const terrain=FIELD_TERRAINS[field.id];
   if(terrain) {
     // Keep original IDs/species order so existing respawn saves attach to new homes.

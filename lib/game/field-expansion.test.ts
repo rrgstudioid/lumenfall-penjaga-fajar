@@ -1,4 +1,5 @@
 import { STARTER_FIELD_CONTENT } from './regions.ts';
+import { frostPopulation } from './frostfire-population.ts';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
@@ -7,10 +8,10 @@ import { FIELD_TERRAINS, terrainWalkable } from './field-terrain.ts';
 import { FIELD_LAYOUT, regionHalfExtent, fieldSpawns, isFieldWater, isFieldSafe, monsterRespawnKey, restoreRespawnDeadline } from './field-layout.ts';
 import { MONSTER_MODELS, createMonsterBody } from './monster-models.ts';
 import { MONSTER_LOOT_PROFILES, EQUIPMENT_DROP_RARITIES, RUNE_DROP_RARITIES, BOSS_RUNE_DROPS, monsterDropChance, lootItemPool, weightedPick, rollMonsterItem } from './monster-loot.ts';
-import { ITEM_CATALOG } from './items.ts';
-import { freshHero, grantMonsterLoot, parseSave, collectPendingLoot } from './rules.ts';
+import { ITEM_CATALOG, inventorySlotCount } from './items.ts';
+import { freshHero, createItem, grantMonsterLoot, parseSave, collectPendingLoot } from './rules.ts';
 
-await test('legacy fields retain 42 spawns; the large Plains uses its own tested population',()=>{
+await test('legacy fields retain 42 spawns; large maps use their own tested populations',()=>{
   assert.ok(Math.abs((regionHalfExtent(false)/45)**2-2)<1e-12);
   assert.equal(regionHalfExtent(true),67.5);
   assert.equal(FIELD_LAYOUT.normalCount+FIELD_LAYOUT.eliteCount+FIELD_LAYOUT.bossCount,14*3);
@@ -18,6 +19,15 @@ await test('legacy fields retain 42 spawns; the large Plains uses its own tested
     const spawns=fieldSpawns(field);
     assert.deepEqual(spawns,fieldSpawns(field));
     if(field.id==='verdant-plains-v2'){assert.equal(spawns.length,497);continue;}
+    if(field.id==='frostfire-highlands'){
+      const population=frostPopulation();
+      assert.equal(spawns.filter(s=>s.definition.variant==='normal').length,population.normalCount);
+      assert.equal(spawns.filter(s=>s.definition.variant==='elite').length,population.eliteCount);
+      assert.equal(spawns.filter(s=>s.definition.variant==='boss').length,1);
+      assert.equal(spawns.length,population.normalCount+population.eliteCount+1);
+      assert.equal(new Set(spawns.map(s=>s.id)).size,spawns.length);
+      continue;
+    }
     if(!field.fieldBoss){assert.equal(spawns.length,0);assert.deepEqual(field.normalMonsters,[]);assert.deepEqual(field.eliteMonsters,[]);continue;}
     assert.equal(spawns.length,42);
     assert.equal(new Set(spawns.map(s=>s.id)).size,42);
@@ -118,13 +128,23 @@ await test('all ten rune themes, six unique boss runes, optimizer tiers and gear
 });
 
 await test('new monster loot is preserved in overflow and survives save/load without duplication',()=>{
-  const hero=freshHero();hero.inventoryCapacity=hero.inventory.length;
+  const hero=freshHero();
+  // Equipped instances remain owned but do not consume bag slots. Fill the real
+  // capacity so the full bag also survives save normalization.
+  while(inventorySlotCount(hero.inventory)<hero.inventoryCapacity)
+    hero.inventory.push(createItem('field-verdant-plains-sword'));
+  assert.equal(inventorySlotCount(hero.inventory),hero.inventoryCapacity);
+  assert.ok(hero.inventory.length>hero.inventoryCapacity);
   // Force boss rune branch and a unique, nonstacking item.
   const monster=FIELDS[hero.currentField].fieldBoss;assert.ok(monster);
   const draws=[0,.90,0,.5];const drop=grantMonsterLoot(hero,monster,()=>draws.shift()??.5)!;
   assert.ok(drop);assert.equal(hero.pendingLoot.length,1);
   const loaded=parseSave(JSON.stringify(hero))!;
-  assert.equal(loaded.pendingLoot[0].id,drop.id);loaded.inventoryCapacity=100;
-  collectPendingLoot(loaded);collectPendingLoot(loaded);
+  assert.equal(loaded.pendingLoot[0].id,drop.id);
+  assert.equal(collectPendingLoot(loaded),0);
+  assert.equal(loaded.pendingLoot.length,1);
+  loaded.inventory.splice(loaded.inventory.findIndex(item=>!item.isEquipped),1);
+  assert.equal(collectPendingLoot(loaded),1);
+  assert.equal(collectPendingLoot(loaded),0);
   assert.equal(loaded.pendingLoot.length,0);assert.equal(loaded.inventory.filter(item=>item.id===drop.id).length,1);
 });

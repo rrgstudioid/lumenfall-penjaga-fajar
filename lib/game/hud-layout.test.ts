@@ -80,7 +80,7 @@ void test('individual panel sizes restore independently of global UI scale and l
   assert.deepEqual(persistence.load().scales, {});
 });
 
-void test('all six HUD clusters fit supported resolutions and full existing scale range', () => {
+void test('all HUD clusters fit supported resolutions and full existing scale range', () => {
   for (const [width, height] of [
     [1920, 1080],
     [2560, 1440],
@@ -106,6 +106,26 @@ void test('all six HUD clusters fit supported resolutions and full existing scal
         );
       }
     }
+});
+
+void test('FPS defaults above chat, follows collapsed chat, and restores its own saved position', () => {
+  const viewport={width:1920,height:1080},layout=defaultHUDLayout();
+  for(const collapsed of [false,true]){
+    const rects=resolveHUDLayout(viewport,1,layout,1,collapsed);
+    assert.equal(rects.fps.x,rects.chat.x);
+    assert(rects.fps.y+rects.fps.height<rects.chat.y);
+    assert(!hudOverlaps(rects.fps,rects.quest,0));
+  }
+  const rect=resolveHUDLayout(viewport,1,layout).fps;
+  layout.positions.fps=normalizeHUDPosition('fps',{x:600,y:240},viewport,rect);
+  const values=new Map<string,string>();
+  const storage=createHUDLayoutPersistence({getItem:k=>values.get(k)??null,setItem:(k,v)=>{values.set(k,v);},removeItem:k=>{values.delete(k);}});
+  storage.save(layout);
+  const restored=resolveHUDLayout(viewport,1,storage.load(),1,true);
+  assert.equal(restored.fps.x,600);assert.equal(restored.fps.y,240);
+  assert.deepEqual(storage.load().positions.chat,undefined);
+  const small=resolveHUDLayout({width:760,height:600},1,storage.load()).fps;
+  assert(small.x>=0&&small.x+small.width<=760&&small.y>=0&&small.y+small.height<=600);
 });
 void test('reference defaults reserve chat/hotbar space and dock chat upward when scaled', () => {
   for (const scale of [1, 1.2, 1.5]) {
@@ -154,7 +174,7 @@ void test('reference-sized viewport keeps expanded chat alongside the reference 
   assert(!hudOverlaps(r.chat, r.hotbar, 0));
   assert(r.chat.y + r.chat.height > r.hotbar.y);
   assert(r.hotbar.width < 1000 && r.hotbar.width > 980);
-  assert(r.right.width < 200 && r.right.width > 190);
+  assert(r.right.width < 230 && r.right.width > 220);
 });
 void test('anchor-relative positions round trip without writing viewport-clamped results', () => {
   const viewport = { width: 1920, height: 1080 },

@@ -167,7 +167,9 @@ export function resolveSkillAction(
     }
   const damageType =
     skill.damageType ?? (explicit ? 'physical' : legacy.damageType);
-  const rankPowerFactor = skill.rankPowerFactorByRank?.[rank - 1] ?? (1 + (rank - 1) * 0.05);
+  // V3 skills declare their extra rank factor. Older rank tables already own
+  // their scaling; an implicit +5% here would multiply that scaling again.
+  const rankPowerFactor = skill.rankPowerFactorByRank?.[rank - 1] ?? 1;
   const damageMultiplier =
     ((explicit ? 1 : 1 + (rank - 1) * 0.12) *
     context.masteryPower *

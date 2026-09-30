@@ -161,12 +161,14 @@ export function HUDFrame({
   children,
   className = '',
   resizable = true,
+  textOnly = false,
 }: {
   id: HUDId;
   label: string;
   children: ReactNode;
   className?: string;
   resizable?: boolean;
+  textOnly?: boolean;
 }) {
   const context = useContext(Context);
   if (!context) throw new Error('HUDFrame requires HUDLayoutProvider');
@@ -176,6 +178,7 @@ export function HUDFrame({
       label={label}
       className={className}
       resizable={resizable}
+      textOnly={textOnly}
       context={context}
     >
       {children}
@@ -188,6 +191,7 @@ function HUDFrameBody({
   children,
   className,
   resizable,
+  textOnly,
   context,
 }: {
   id: HUDId;
@@ -195,6 +199,7 @@ function HUDFrameBody({
   children: ReactNode;
   className: string;
   resizable: boolean;
+  textOnly: boolean;
   context: LayoutContext;
 }) {
   const element = useRef<HTMLDivElement>(null),
@@ -346,8 +351,12 @@ function HUDFrameBody({
         } as CSSProperties
       }
     >
-      {children}
-      {context.draggable && (
+      {textOnly ? (
+        <button type="button" className="hud-text-handle" aria-label={`Geser ${label}`}
+          title={`Geser untuk memindahkan ${label}`} disabled={!context.draggable}
+          onPointerDown={(event) => begin(event)}>{children}</button>
+      ) : children}
+      {context.draggable && !textOnly && (
         <button
           type="button"
           className="hud-grip"
@@ -366,7 +375,7 @@ function HUDFrameBody({
           />
         </>
       )}
-      {context.draggable && (
+      {context.draggable && !textOnly && (
         <button
           type="button"
           className="hud-frame-handle"
@@ -375,6 +384,7 @@ function HUDFrameBody({
         />
       )}
       {context.draggable &&
+        !textOnly &&
         resizable &&
         !className.includes('hud-empty-buffs') &&
         (['nw', 'ne', 'sw', 'se'] as const).map((direction) => (

@@ -84,9 +84,9 @@ await test('level-up restores mana to full, not just the current value', () => {
   assert.equal(hero.mana, derivedStats(hero).maxMana);
 });
 
-await test('all five Core Jobs and twelve registered Special Jobs are represented', () => {
+await test('all five legacy Core Jobs and fourteen registered Special Jobs are represented', () => {
   assert.equal(Object.keys(CORE_JOBS).length, 5);
-  assert.equal(Object.keys(SPECIALIZATIONS).length, 12);
+  assert.equal(Object.keys(SPECIALIZATIONS).length, 14);
   for (const core of Object.keys(CORE_JOBS) as CoreJobId[]) {
     const hero = freshHero();
     gainXP(hero, 999999);
@@ -403,13 +403,13 @@ await test('full inventory retains loot across save and collects it without loss
 });
 
 await test('all ten legacy specializations preserve their weapon rewards and four skills', () => {
-  // Berserker/Blade Master also appear in the registry, but their active trees use
+  // Warrior and Thief V3 specializations also appear in the registry, but use
   // V3 progression, not this legacy four-slot promotion API.
   const legacyIds = Object.values(CORE_JOBS).flatMap(core => core.specializations);
   assert.equal(new Set(legacyIds).size, 10);
   assert.deepEqual(
     Object.keys(SPECIALIZATIONS).filter(id => !legacyIds.includes(id as keyof typeof SPECIALIZATIONS)).sort(),
-    ['berserker', 'blade_master'],
+    ['assasin', 'berserker', 'blade_master', 'rogue'],
   );
   for (const id of legacyIds) {
     const job = SPECIALIZATIONS[id];
@@ -417,7 +417,9 @@ await test('all ten legacy specializations preserve their weapon rewards and fou
     gainXP(hero, 999999);
     hero.equipment = emptyEquipment();
     hero.inventory = hero.inventory.map((item) => ({ ...item, isEquipped: false }));
-    assert.equal(chooseCoreJob(hero, job.coreJob), true, id);
+    const core = Object.values(CORE_JOBS).find(core => core.id === job.coreJob);
+    assert(core, 'legacy promotion requires a legacy core');
+    assert.equal(chooseCoreJob(hero, core.id), true, id);
     assert.equal(chooseSpecialization(hero, id as keyof typeof SPECIALIZATIONS), true, id);
     assert.equal(skillsFor(hero.coreJob, hero.specialization).length, 4);
     const main = hero.inventory.find(

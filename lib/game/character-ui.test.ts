@@ -36,13 +36,20 @@ import {
   previewEquipmentChange,
 } from './character-view.ts';
 
-function trained(spec: keyof typeof SPECIALIZATIONS = 'resi') {
+type LegacySpecialization = Exclude<keyof typeof SPECIALIZATIONS, 'assasin' | 'rogue' | 'berserker' | 'blade_master'>;
+const legacySpecializations = Object.values(CORE_JOBS).flatMap(core => core.specializations)
+  .filter((id): id is LegacySpecialization => id !== 'assasin' && id !== 'rogue' && id !== 'berserker' && id !== 'blade_master');
+
+function trained(spec: LegacySpecialization = 'resi') {
   const hero = freshHero();
   gainXP(hero, 999999);
   hero.gold = 5000;
   unequipItem(hero, 'mainHand');
-  chooseCoreJob(hero, SPECIALIZATIONS[spec].coreJob);
-  chooseSpecialization(hero, spec);
+  const core = Object.values(CORE_JOBS).find(job => job.specializations.includes(spec));
+  assert(core, 'legacy specialization must belong to a legacy core');
+  assert.equal(core.id, SPECIALIZATIONS[spec].coreJob);
+  assert.equal(chooseCoreJob(hero, core.id), true);
+  assert.equal(chooseSpecialization(hero, spec), true);
   return hero;
 }
 await test('stat allocation changes shared derived stats immutably and rejects empty pool', () => {
@@ -68,7 +75,8 @@ await test('stat allocation changes shared derived stats immutably and rejects e
     derivedStats(hero).magicAttack > derivedStats(original).magicAttack,
   );
 });
-await test('all core and specialization trees use the correct registry and exactly four active nodes', () => {
+await test('legacy core and specialization trees use the correct registry and exactly four active nodes', () => {
+  assert.equal(new Set(legacySpecializations).size, 10);
   for (const core of Object.keys(CORE_JOBS) as Array<keyof typeof CORE_JOBS>) {
     const hero = freshHero();
     gainXP(hero, 999999);
@@ -79,9 +87,7 @@ await test('all core and specialization trees use the correct registry and exact
     assert.ok(nodes.active.every((s) => s.job === core));
     assert.equal(nodes.passive.length, 1);
   }
-  for (const spec of Object.keys(SPECIALIZATIONS) as Array<
-    keyof typeof SPECIALIZATIONS
-  >) {
+  for (const spec of legacySpecializations) {
     const hero = trained(spec);
     const nodes = getJobSkillNodes(hero, 'specialization');
     assert.equal(nodes.active.length, 4);
@@ -105,9 +111,7 @@ await test('active skill upgrades spend SP, increase actual effect, stop at maxi
   assert.equal(canLearnSkill('resi-1', hero).ok, false);
 });
 await test('passive effects apply to all ten jobs and reset refunds investments but not job grants', () => {
-  for (const spec of Object.keys(SPECIALIZATIONS) as Array<
-    keyof typeof SPECIALIZATIONS
-  >) {
+  for (const spec of legacySpecializations) {
     const hero = trained(spec),
       skill = activeSkills(hero)[0],
       passive = PASSIVES[spec];
