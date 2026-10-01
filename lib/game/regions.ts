@@ -1,4 +1,5 @@
 import { PLAINS_ID, PLAINS_ENTRY, PLAINS_EXIT } from './verdant-plains-layout.ts';
+import { WILDS_ID, WILDS_ENTRY, WILDS_LANDMARKS } from './whispering-wilds-layout.ts';
 import { FROSTFIRE_ID, FROSTFIRE_ENTRY, FROSTFIRE_ZONES } from './frostfire-highlands-layout.ts';
 import type { Hero } from './rules.ts';
 import { getVisibleJobArchitecture, showJobQuest } from './job-presentation.ts';
@@ -141,23 +142,46 @@ CITIES.arunika.connectedFields.push('east-gate-arunika');
 // The retired map is no longer a travel destination. Its shared content remains
 // authoritative for East Gate and existing equipment/save identities.
 export const STARTER_FIELD_CONTENT = fieldDefinitions['verdant-plains'];
+// Content compatibility only: the retired terrain is no longer a destination.
+export const WILDS_LEGACY_CONTENT = fieldDefinitions['whispering-wilds'];
+const wildsLegacy = WILDS_LEGACY_CONTENT;
+const wildsBoss = { ...wildsLegacy.fieldBoss!, level:24,
+ maxHP:Math.round((30+24*16)*MONSTER_VARIANTS.boss.hpMultiplier),
+ attack:Math.round((8+24*2.2)*MONSTER_VARIANTS.boss.damageMultiplier),
+ defense:Math.round((4+24*1.1)*MONSTER_VARIANTS.boss.defenseMultiplier),
+ magicDefense:Math.round((3+24)*MONSTER_VARIANTS.boss.defenseMultiplier),
+ exp:Math.round(wildsLegacy.fieldBoss!.exp*24/26) };
+fieldDefinitions[WILDS_ID] = {
+ id:WILDS_ID,cityId:'arunika',displayName:'Whispering Wilds',codename:'Hunting Field',chapter:1,
+ minLevel:16,maxLevel:24,recommendedLevel:'16–24',subAreas:WILDS_LANDMARKS.map(p=>p.name),
+ contentFamilyId:'whispering-wilds',normalMonsters:[...wildsLegacy.normalMonsters],eliteMonsters:[...wildsLegacy.eliteMonsters],fieldBoss:wildsBoss,
+ dropTable:[...wildsLegacy.dropTable],materialTable:wildsLegacy.materialTable.map(item=>({...item})),questList:[],
+ unlockQuest:null,previousField:'ironveil-mines',nextMap:FROSTFIRE_ID,musicId:'',ambientId:'',isUnlocked:false,
+ color:'#172b3a',entry:{...WILDS_ENTRY},exit:{...WILDS_ENTRY},regionType:'field',
+};
+for(const id of ['arunika','averion','jayantara'])CITIES[id].connectedFields.push(WILDS_ID);
 export const FIELDS: Record<string, FieldDefinition> = Object.fromEntries([
  [PLAINS_ID, fieldDefinitions[PLAINS_ID]],
- ...Object.entries(fieldDefinitions).filter(([id])=>id!==PLAINS_ID&&id!=='verdant-plains'),
+ ...Object.entries(fieldDefinitions).filter(([id])=>id!==PLAINS_ID&&id!=='verdant-plains'&&id!==WILDS_ID)
+   .map(([id,field])=>id==='whispering-wilds'?[WILDS_ID,fieldDefinitions[WILDS_ID]]:[id,field]),
 ]);
-for(const city of Object.values(CITIES))city.connectedFields=city.connectedFields.map(id=>id==='verdant-plains'?PLAINS_ID:id);
-for(const field of Object.values(FIELDS))if(field.previousField==='verdant-plains')field.previousField=PLAINS_ID;
+for(const city of Object.values(CITIES))city.connectedFields=[...new Set(city.connectedFields.map(id=>id==='verdant-plains'?PLAINS_ID:id==='whispering-wilds'?WILDS_ID:id))];
+for(const field of Object.values(FIELDS)) {
+ if(field.previousField==='verdant-plains')field.previousField=PLAINS_ID;
+ if(field.previousField==='whispering-wilds')field.previousField=WILDS_ID;
+ if(field.nextMap==='whispering-wilds')field.nextMap=WILDS_ID;
+}
 
 export const startingFieldIds = () => Object.values(FIELDS).filter(field=>field.isUnlocked&&field.chapter<=WORLD_CONFIG.chapterCap).map(field=>field.id);
 export function fieldContent(fieldId:string):FieldDefinition {
  const field=FIELDS[fieldId];
  if(fieldId==='verdant-plains'||field?.contentFamilyId==='verdant-plains')return STARTER_FIELD_CONTENT;
+ if(fieldId==='whispering-wilds'||field?.contentFamilyId==='whispering-wilds')return WILDS_LEGACY_CONTENT;
  return field ? FIELDS[field.contentFamilyId??field.id] : FIELDS[PLAINS_ID];
 }
 
 export const FIELD_NPCS: Record<string, NpcDefinition> = {
  'ironveil-mines': {id:'field-npc-ironveil',name:'Mandor Tambang',type:'merchant',service:'field-camp',services:['buy','sell','teleport','quest'],interactionRange:2.5,shopInventory:[],description:'Quest field, teleport, dan toko kebutuhan farming Tambang Selubung Besi.',x:-26,z:28,fieldId:'ironveil-mines'},
- 'whispering-wilds': {id:'field-npc-whispering',name:'Pawang Rimba',type:'merchant',service:'field-camp',services:['buy','sell','teleport','quest'],interactionRange:2.5,shopInventory:[],description:'Quest field, teleport, dan toko kebutuhan farming Rimba Bisik.',x:-26,z:28,fieldId:'whispering-wilds'},
  'sunken-ruins': {id:'field-npc-sunken',name:'Penjaga Reruntuhan',type:'merchant',service:'field-camp',services:['buy','sell','teleport','quest'],interactionRange:2.5,shopInventory:[],description:'Quest field, teleport, dan toko kebutuhan farming Reruntuhan Tenggelam.',x:-26,z:28,fieldId:'sunken-ruins'},
  'meteorfall-citadel': {id:'field-npc-meteor',name:'Penjaga Benteng Meteor',type:'merchant',service:'field-camp',services:['buy','sell','teleport','quest'],interactionRange:2.5,shopInventory:[],description:'Quest field, teleport, dan toko kebutuhan farming Benteng Hujan Meteor.',x:-26,z:28,fieldId:'meteorfall-citadel'},
 };

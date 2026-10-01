@@ -19,7 +19,7 @@ export function plainsGrassTileCount(quality: PlainsQuality) {
 export type PlainsQuality = keyof typeof PLAINS_QUALITY;
 // Stable storage IDs preserve existing per-device choices when UI names change.
 export const PLAINS_QUALITY_LABELS: Record<PlainsQuality, string> = {
-  office: 'Low', light: 'Normal', balanced: 'High', high: 'Ultra',
+  office: 'Low', light: 'Medium', balanced: 'High', high: 'Ultra',
 };
 // New devices start conservatively; existing explicit preferences remain intact.
 export const DEFAULT_PLAINS_QUALITY: PlainsQuality = 'office';

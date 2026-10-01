@@ -1,7 +1,11 @@
+import { WILDS_ID, WILDS_PORTALS, wildsGroundHeight, wildsWalkable } from './whispering-wilds-layout';
+import { type WildsQuality } from './whispering-wilds-quality';
+import { loadGraphicsQuality, saveGraphicsQuality, type GraphicsQuality } from './graphics-quality';
+import { WILDS_NIGHT } from './whispering-wilds-sky';
 import { PLAINS_ID, PLAINS_EXIT, plainsGroundHeight, plainsWalkable } from './verdant-plains-layout';
 import { FROSTFIRE_ID, frostHeight, frostWalkable, frostCameraFloor } from './frostfire-highlands-layout';
 import { FROST_STORM } from './frostfire-weather';
-import { PLAINS_QUALITY, PLAINS_QUALITY_KEY, PLAINS_QUALITY_LABELS, plainsPixelRatio, type PlainsQuality } from './verdant-plains-quality';
+import { PLAINS_QUALITY, PLAINS_QUALITY_LABELS, plainsPixelRatio, type PlainsQuality } from './verdant-plains-quality';
 import { RenderPerformance } from './render-performance';
 import { PLAINS_DAYLIGHT, FROST_DAWN } from './verdant-plains-sky';
 import { UIInputBlockers, isEditableTarget } from './ui-input';
@@ -303,6 +307,9 @@ export class Game {
     }});
   }
   get isPlains() {return !this.hero.inCity&&this.hero.currentField===PLAINS_ID;}
+  get isWilds() {return !this.hero.inCity&&this.hero.currentField===WILDS_ID;}
+  graphicsQuality: GraphicsQuality = loadGraphicsQuality();
+  wilds: Awaited<ReturnType<typeof import('./whispering-wilds-map').buildWhisperingWilds>> | null = null;
   get isFrostfire() {return !this.hero.inCity&&this.hero.currentField===FROSTFIRE_ID;}
   frostfire: Awaited<ReturnType<typeof import('./frostfire-highlands-map').buildFrostfireHighlands>> | null = null;
   arunikaMaterials: ArunikaMaterials | null = null;
@@ -311,8 +318,9 @@ export class Game {
   private averionCameraDistance = 9;
   get isAverion() { return this.hero.inCity && this.hero.currentCity === 'averion'; }
   get fieldTerrain() { return this.hero.inCity ? undefined : FIELD_TERRAINS[this.hero.currentField]; }
-  get nearSanctuary() {if(this.isAverion||this.isPlains||this.isFrostfire)return false;const p=this.fieldTerrain?.sanctuary??{x:0,z:0};return Math.hypot(this.hero.x-p.x,this.hero.z-p.z)<5.3;}
+  get nearSanctuary() {if(this.isAverion||this.isPlains||this.isFrostfire||this.isWilds)return false;const p=this.fieldTerrain?.sanctuary??{x:0,z:0};return Math.hypot(this.hero.x-p.x,this.hero.z-p.z)<5.3;}
   groundHeight(x:number,z:number) {
+    if(this.isWilds)return wildsGroundHeight(x,z);
     if(this.isFrostfire)return frostHeight(x,z);
     if(this.isPlains)return plainsGroundHeight(x,z);
     if(this.isAverion)return this.averion?.groundHeight(x,z)??this.actor.position.y;
@@ -320,9 +328,10 @@ export class Game {
   }
   groundDistance(a:T.Vector3,b:T.Vector3) {
     // Preserve the old flat-ground combat ranges when actors stand on different elevations.
-    return this.fieldTerrain||this.isAverion||this.isPlains||this.isFrostfire?Math.hypot(a.x-b.x,a.z-b.z):a.distanceTo(b);
+    return this.fieldTerrain||this.isAverion||this.isPlains||this.isFrostfire||this.isWilds?Math.hypot(a.x-b.x,a.z-b.z):a.distanceTo(b);
   }
   placeActor() {
+    if(this.isWilds){this.actor.visible=!!this.wilds;if(!this.wilds)return;Object.assign(this.hero,this.wilds.navigation.restore(this.hero));}
     if(this.isFrostfire){this.actor.visible=!!this.frostfire;if(!this.frostfire)return;Object.assign(this.hero,this.frostfire.navigation.restore(this.hero));}
     if(this.isPlains){this.actor.visible=!!this.plains;if(!this.plains)return;if(!this.plains.navigation.valid(this.hero))Object.assign(this.hero,this.plains.navigation.restore(this.hero));}
     if(this.isAverion) {
@@ -337,6 +346,12 @@ export class Game {
   moveEnemy(e:Enemy,dx:number,dz:number) {
     const t=this.fieldTerrain;
     const radius=e.boss?1.8:.55;
+    if(this.isWilds){
+      if(!this.wilds)return;
+      const p=this.wilds.navigation.move(e.group.position,dx,dz,radius);
+      if(!isFieldSafe(WILDS_ID,p.x,p.z,1))e.group.position.set(p.x,this.groundHeight(p.x,p.z),p.z);
+      return;
+    }
     if(this.isFrostfire){
       if(!this.frostfire)return;
       const p=this.frostfire.navigation.move(e.group.position,dx,dz,radius);
@@ -1594,7 +1609,7 @@ export class Game {
     const spawn=fieldSpawns(FIELDS[this.hero.currentField]).find(s=>s.id===100)!;
     this.makeEnemy(spawn.id, spawn.x, spawn.z, true, spawn.definition);
     if (notify)
-      this.message(`${FIELDS[this.hero.currentField].fieldBoss?.name} terbangun. Cari arena di utara.`);
+      this.message(this.isWilds ? 'Forest Warden has awakened at the circular altar.' : `${FIELDS[this.hero.currentField].fieldBoss?.name} terbangun. Cari arena di utara.`);
   }
   snapshot(): Snapshot {
     const derived = derivedStats(this.hero);
@@ -1692,6 +1707,7 @@ export class Game {
     this.setPlainsCharacterShadows(false);
     if(this.plains){this.plains.dispose();this.plains=null;}
     if(this.frostfire){this.frostfire.dispose();this.frostfire=null;}
+    if(this.wilds){this.wilds.dispose();this.wilds=null;}
     this.renderer.shadowMap.enabled=true;this.renderer.setPixelRatio(Math.min(devicePixelRatio,1.25));
     if(this.averion){this.averion.root.removeFromParent();this.averion.dispose();this.averion=null;}
     this.regionLoads = [];
@@ -1706,7 +1722,7 @@ export class Game {
     this.scene.remove(this.regionDecor);
     this.regionDecor.traverse(object => { if(object instanceof T.Mesh){object.geometry.dispose(); const materials=Array.isArray(object.material)?object.material:[object.material]; materials.forEach(material=>material.dispose());} });
     this.regionDecor = new T.Group(); this.scene.add(this.regionDecor);
-    this.followCamera.far=this.freeCamera.far=this.isPlains||this.isFrostfire?1400:this.isAverion?650:160;
+    this.followCamera.far=this.freeCamera.far=this.isPlains||this.isFrostfire||this.isWilds?1400:this.isAverion?650:160;
     this.followCamera.updateProjectionMatrix();this.freeCamera.updateProjectionMatrix();
     this.worldLightRig.traverse(o=>{
       if(o instanceof T.HemisphereLight){o.intensity=this.isPlains?PLAINS_DAYLIGHT.ambientIntensity:this.isAverion?1.2:2.2;o.color.set(this.isPlains?PLAINS_DAYLIGHT.ambientSky:this.isAverion?'#eef5ff':'#f2f8d6');o.groundColor.set(this.isPlains?PLAINS_DAYLIGHT.ambientGround:this.isAverion?'#687b55':'#3f5d45');}
@@ -1724,6 +1740,7 @@ export class Game {
     const color = this.hero.inCity ? this.hero.currentCity==='arunika'?'#dfe9bb':'#d8d9d0' : field.color;
     this.scene.background = new T.Color(color); this.scene.fog = null;
     this.worldLightRig.visible=true;
+    this.setGraphicsQuality(this.graphicsQuality,false);
     this.renderer.toneMappingExposure = 1.1;
     const scale=regionScale(this.hero.inCity);
     this.terrain.scale.set(scale,1,scale);
@@ -1732,10 +1749,24 @@ export class Game {
     const sanctuary=this.fieldTerrain?.sanctuary??{x:0,z:0};
     this.shrine.position.set(sanctuary.x,this.groundHeight(sanctuary.x,sanctuary.z),sanctuary.z);
     this.shrine.visible=true;
+    if(this.isWilds) {
+      this.terrain.visible=false;this.shrine.visible=false;this.actor.visible=false;
+      this.scene.background=new T.Color(WILDS_NIGHT.horizon);this.scene.fog=new T.Fog(WILDS_NIGHT.horizon,WILDS_NIGHT.fogNear,WILDS_NIGHT.fogFar);this.renderer.toneMappingExposure=WILDS_NIGHT.exposure;
+      this.worldLightRig.traverse(o=>{
+        if(o instanceof T.HemisphereLight){o.color.set(WILDS_NIGHT.ambientSky);o.groundColor.set(WILDS_NIGHT.ambientGround);o.intensity=WILDS_NIGHT.ambientIntensity;}
+        if(o instanceof T.DirectionalLight){o.color.set(WILDS_NIGHT.sunColor);o.intensity=WILDS_NIGHT.sunIntensity;}
+      });
+      this.regionLoads.push(import('./whispering-wilds-map').then(m=>m.buildWhisperingWilds(this.graphicsQuality)).then(map=>{
+        if(this.disposed||buildToken!==this.regionBuildToken){map.dispose();return;}
+        this.wilds=map;this.regionDecor.add(map.root);this.setGraphicsQuality(this.graphicsQuality,false);
+        for(const p of WILDS_PORTALS){const element=document.createElement('div');element.className='npc-label';const badge=document.createElement('div');badge.className='npc-service-badge';badge.textContent=p.name+' ? Click to travel';element.appendChild(badge);this.labelHost.appendChild(element);this.portalLabels.push({...p,element,labelHeight:6});}
+        this.placeActor();this.cameraFocus.copy(this.actor.position);map.update(this.camera,this.hero,0,this.renderer.getPixelRatio());this.drawMap();
+      }).catch(error=>{if(!this.disposed&&buildToken===this.regionBuildToken)this.regionLoadError=error;throw error;}));
+      void this.regionLoads.at(-1)!.catch(()=>{});return;
+    }
     if(this.isFrostfire) {
       this.terrain.visible=false;this.shrine.visible=false;this.actor.visible=false;
       this.scene.background=new T.Color(FROST_STORM.fogColor);this.scene.fog=new T.FogExp2(FROST_STORM.fogColor,FROST_STORM.fogDensity);
-      this.renderer.setPixelRatio(Math.min(devicePixelRatio,1.25));
       this.worldLightRig.traverse(o=>{
         if(o instanceof T.HemisphereLight){o.color.set(FROST_DAWN.ambientSky);o.groundColor.set(FROST_DAWN.ambientGround);o.intensity=FROST_DAWN.ambientIntensity;}
         if(o instanceof T.DirectionalLight){o.color.set(FROST_DAWN.sunColor);o.intensity=FROST_DAWN.sunIntensity;Object.assign(o.shadow.camera,{left:-42,right:42,top:42,bottom:-42,near:.1,far:240});o.shadow.camera.updateProjectionMatrix();}
@@ -1750,9 +1781,9 @@ export class Game {
     if(this.isPlains) {
       this.terrain.visible=false;this.shrine.visible=false;this.actor.visible=false;
       this.scene.background=new T.Color(PLAINS_DAYLIGHT.horizon);this.scene.fog=new T.Fog(PLAINS_DAYLIGHT.horizon,290,1000);
-      this.regionLoads.push(import('./verdant-plains-map').then(module=>module.buildVerdantPlains()).then(map=>{
+      this.regionLoads.push(import('./verdant-plains-map').then(module=>module.buildVerdantPlains(this.graphicsQuality)).then(map=>{
         if(this.disposed||buildToken!==this.regionBuildToken){map.dispose();return;}
-        this.plains=map;this.regionDecor.add(map.root);this.setPlainsQuality(map.quality,false);this.setPlainsCharacterShadows(true);
+        this.plains=map;this.regionDecor.add(map.root);this.setGraphicsQuality(this.graphicsQuality,false);this.setPlainsCharacterShadows(true);
         const element=document.createElement('div');element.className='npc-label';
         const badge=document.createElement('div');badge.className='npc-service-badge';badge.textContent='Averion · Click to travel';element.appendChild(badge);this.labelHost.appendChild(element);
         this.portalLabels.push({...PLAINS_EXIT,element,name:'Averion',labelHeight:6});
@@ -1852,7 +1883,7 @@ export class Game {
       }
       for(let i=0;i<12;i++) {
         const x=(i%2?1:-1)*(20+i%3*4),z=-30+i*5;
-        const geometry=this.hero.currentField==='whispering-wilds'?new T.CylinderGeometry(.4,.6,8,6):new T.BoxGeometry(2+i%3,3+i%4,2);
+        const geometry=new T.BoxGeometry(2+i%3,3+i%4,2);
         this.mesh(geometry,this.mat(field.color),this.regionDecor,x*scale,2,z*scale);
       }
     }
@@ -1879,7 +1910,9 @@ export class Game {
   }
   changeRegion(id:string) {
     if(this.transitioning) return false;
-    const result=travel(this.hero,id); if(!result.ok){this.message(result.reason);return false;}
+    const fromWilds=this.isWilds;
+    const result=travel(this.hero,id); if(!result.ok){this.message(fromWilds?`Requires level ${(CITIES[id]??FIELDS[id])?.minLevel??1}.`:result.reason);return false;}
+    if(fromWilds||id===WILDS_ID)result.reason=`Arrived at ${id===WILDS_ID?'Whispering Wilds':WILDS_PORTALS.find(p=>p.destination===id)?.name??id}.`;
     const destinationLabel = CITIES[id]?.displayName ?? FIELDS[id]?.displayName ?? 'Area baru';
     this.averionUseSpawn=id==='averion';
     this.clearSkillRuntime();
@@ -1904,10 +1937,10 @@ export class Game {
       } catch (error) {
         console.warn('Gagal memuat region tujuan.', error);
         this.regionLoadError=error instanceof Error?error:new Error(String(error));
-        this.message('Map tujuan belum siap sepenuhnya. Silakan coba lagi sebentar.');
+        this.message(id===WILDS_ID?'Unable to load Whispering Wilds. Please retry.':'Map tujuan belum siap sepenuhnya. Silakan coba lagi sebentar.');
       } finally {
         this.transitioning=false;
-        this.onMapTransition?.({ id, loading: false, label: destinationLabel, error: this.regionLoadError ? 'ERROR: Map gagal dimuat. Periksa koneksi, lalu tekan Retry.' : undefined });
+        this.onMapTransition?.({ id, loading: false, label: destinationLabel, error: this.regionLoadError ? (id===WILDS_ID?'Unable to load Whispering Wilds. Check the connection and retry.':'ERROR: Map gagal dimuat. Periksa koneksi, lalu tekan Retry.') : undefined });
         this.emit();
       }
     })();
@@ -2099,6 +2132,7 @@ export class Game {
     if(this.isAverion)return;
     const valid = (position: { x: number; z: number }) => {
       if (!Number.isFinite(position.x) || !Number.isFinite(position.z)) return false;
+      if(this.isWilds)return this.wilds?.navigation.valid(position)??wildsWalkable(position);
       if(this.isFrostfire)return frostWalkable(position);
       if(this.isPlains)return plainsWalkable(position);
       const extent = regionHalfExtent(this.hero.inCity);
@@ -2186,7 +2220,7 @@ export class Game {
     else this.keys.delete(key);
   }
   save() {
-    if (!this.started || this.dead || this.transitioning || this.regionLoadError || ((this.isAverion&&!this.averion)||(this.isPlains&&!this.plains)||(this.isFrostfire&&!this.frostfire))) return;
+    if (!this.started || this.dead || this.transitioning || this.regionLoadError || ((this.isAverion&&!this.averion)||(this.isPlains&&!this.plains)||(this.isFrostfire&&!this.frostfire)||(this.isWilds&&!this.wilds))) return;
     this.hero.stamina = this.stamina;
     this.hero.lastPlayedAt = Date.now();
     this.hero.lastSafePosition = { x: this.hero.x, z: this.hero.z };
@@ -2202,7 +2236,7 @@ export class Game {
     this.hero.hp = maxHP(this.hero);
     this.hero.x = 0;
     this.hero.z = this.hero.inCity ? 7 : 26;
-    if(this.fieldTerrain||this.isPlains||this.isFrostfire)Object.assign(this.hero,FIELDS[this.hero.currentField].entry);
+    if(this.fieldTerrain||this.isPlains||this.isFrostfire||this.isWilds)Object.assign(this.hero,FIELDS[this.hero.currentField].entry);
     this.placeActor();
     this.cameraFocus.copy(this.actor.position);
     this.dead = false;
@@ -3482,7 +3516,7 @@ export class Game {
     else if (autoAim || !this.pointerActive) this.targetNearest();
     else {
       this.raycaster.setFromCamera(this.pointer, this.camera);
-      const hit=this.isFrostfire&&this.frostfire ? this.raycaster.intersectObject(this.frostfire.surfaces,true)[0]?.point : this.isPlains&&this.plains ? this.raycaster.intersectObject(this.plains.root,true).find(h=>h.object.visible)?.point : this.terrainSurface?this.raycaster.intersectObject(this.terrainSurface)[0]?.point:this.raycaster.ray.intersectPlane(this.ground,this.aim);
+      const hit=this.isWilds&&this.wilds ? this.raycaster.intersectObject(this.wilds.surfaces,true).find(h=>h.object.visible||h.object.userData.bridge)?.point : this.isFrostfire&&this.frostfire ? this.raycaster.intersectObject(this.frostfire.surfaces,true)[0]?.point : this.isPlains&&this.plains ? this.raycaster.intersectObject(this.plains.root,true).find(h=>h.object.visible)?.point : this.terrainSurface?this.raycaster.intersectObject(this.terrainSurface)[0]?.point:this.raycaster.ray.intersectPlane(this.ground,this.aim);
       if (hit) {
         this.aim.copy(hit);
         const d = this.aim.clone().sub(this.actor.position).setY(0);
@@ -3526,7 +3560,7 @@ export class Game {
       if (e.hp <= 0) continue;
       if(hard){const damage=resolveBasicDamage(e);if(damage===null)continue;this.hurtEnemy(e,Math.round(damage),this.hero.skillArchitectureVersion===3?0:.8,'physical');continue;}
       const v = e.group.position.clone().sub(this.actor.position);
-      if(this.fieldTerrain||this.isPlains||this.isFrostfire)v.y=0;
+      if(this.fieldTerrain||this.isPlains||this.isFrostfire||this.isWilds)v.y=0;
       const d = v.length();
       if (
         d < (isBow?Math.max(11,profile.range):(e.boss ? 4.3 : profile.range)) &&
@@ -3578,11 +3612,11 @@ export class Game {
     }
     e.flash = 0.14;
     const v = e.group.position.clone().sub(this.actor.position);
-    if(this.fieldTerrain||this.isPlains||this.isFrostfire)v.y=0;
+    if(this.fieldTerrain||this.isPlains||this.isFrostfire||this.isWilds)v.y=0;
     v.normalize();
     const knockDistance=e.boss?knock*.15:knock;
     this.moveEnemy(e,v.x*knockDistance,v.z*knockDistance);
-    if(!this.fieldTerrain&&!this.isPlains&&!this.isFrostfire) {
+    if(!this.fieldTerrain&&!this.isPlains&&!this.isFrostfire&&!this.isWilds) {
       const extent=regionHalfExtent(false);
       e.group.position.x=T.MathUtils.clamp(e.group.position.x,-extent,extent);
       e.group.position.z=T.MathUtils.clamp(e.group.position.z,-extent,extent);
@@ -3629,12 +3663,7 @@ export class Game {
       if (e.boss) {
         if (!this.hero.defeatedFieldBosses.includes(this.hero.currentField))
           this.hero.defeatedFieldBosses.push(this.hero.currentField);
-        if (this.hero.currentField === 'whispering-wilds' && !this.hero.completedQuests.includes('story-whispering-wilds')) {
-          this.hero.cityProgress.arunika = Math.max(this.hero.cityProgress.arunika ?? 0, 1);
-          this.message('Objective Rimba Bisik selesai. Kembali ke Quest NPC untuk turn-in dan membuka Kota Jayantara.');
-        } else {
-          this.message(`${FIELDS[this.hero.currentField].displayName} kembali tenang. Boss telah tumbang!`);
-        }
+        this.message(this.isWilds ? 'Forest Warden has fallen. The altar is quiet again.' : `${FIELDS[this.hero.currentField].displayName} kembali tenang. Boss telah tumbang!`);
         this.sound(1000, 0.4);
       }
       this.save();
@@ -3698,7 +3727,7 @@ export class Game {
     ).normalize();
   }
   move(dx: number, dz: number) {
-    if(this.transitioning||this.regionLoadError||((this.isAverion&&!this.averion)||(this.isPlains&&!this.plains)||(this.isFrostfire&&!this.frostfire)))return;
+    if(this.transitioning||this.regionLoadError||((this.isAverion&&!this.averion)||(this.isPlains&&!this.plains)||(this.isFrostfire&&!this.frostfire)||(this.isWilds&&!this.wilds)))return;
     if(isStunned(this.hero,this.combatTime))return;
     const p=moveWithTreeCollisions(this.hero,dx,dz,this.treeColliders,(from,mx,mz)=>this.moveHeroOnGround(from,mx,mz),(x,z)=>this.groundHeight(x,z));
     this.hero.x=p.x;this.hero.z=p.z;
@@ -3723,6 +3752,7 @@ export class Game {
     return this.groundDistance(this.actor.position, target.group.position) <= desiredRange + 1e-4;
   }
   moveHeroOnGround(from:GroundPoint,dx:number,dz:number):GroundPoint {
+    if(this.isWilds)return this.wilds?this.wilds.move(from,dx,dz):{...from};
     if(this.isFrostfire)return this.frostfire?this.frostfire.move(from,dx,dz):{...from};
     if(this.isPlains)return this.plains?this.plains.move(from,dx,dz):{...from};
     if(this.isAverion)return this.averion?this.averion.move(from,dx,dz):{...from};
@@ -3750,7 +3780,7 @@ export class Game {
   tick = (time: number) => {
     const frameStarted = performance.now();
     if (this.disposed || !this.started) { this.frame = 0; return; }
-    if(this.transitioning||this.regionLoadError||((this.isAverion&&!this.averion)||(this.isPlains&&!this.plains)||(this.isFrostfire&&!this.frostfire))) {
+    if(this.transitioning||this.regionLoadError||((this.isAverion&&!this.averion)||(this.isPlains&&!this.plains)||(this.isFrostfire&&!this.frostfire)||(this.isWilds&&!this.wilds))) {
       this.renderPerformance.suspend();
       this.lastTime=time;this.frame=requestAnimationFrame(this.tick);return;
     }
@@ -3885,8 +3915,13 @@ export class Game {
     }
     this.cameraFocus.lerp(this.actor.position, 1 - Math.exp(-dt * 6));
     const targetGroundY = this.groundHeight(this.actor.position.x, this.actor.position.z);
-    this.actor.position.y = this.isPlains||this.isFrostfire?targetGroundY:T.MathUtils.lerp(this.actor.position.y, targetGroundY, 0.18);
+    this.actor.position.y = this.isPlains||this.isFrostfire||this.isWilds?targetGroundY:T.MathUtils.lerp(this.actor.position.y, targetGroundY, 0.18);
     this.updateCamera(dt);
+    if(this.isWilds&&this.wilds){
+      this.camera.position.y=Math.max(this.camera.position.y,wildsGroundHeight(this.camera.position.x,this.camera.position.z)+1.2);this.camera.updateMatrixWorld();
+      this.wilds.update(this.camera,this.hero,this.paused||document.hidden?0:dt,this.renderer.getPixelRatio(),this.cameraMode==='free');
+      this.worldLightRig.traverse(o=>{if(o instanceof T.DirectionalLight){o.position.set(this.actor.position.x+WILDS_NIGHT.sun[0]*100,this.actor.position.y+WILDS_NIGHT.sun[1]*100,this.actor.position.z+WILDS_NIGHT.sun[2]*100);o.target.position.copy(this.actor.position);o.target.updateMatrixWorld();}});
+    }
     if(this.isFrostfire&&this.frostfire){
       this.camera.position.y=Math.max(this.camera.position.y,frostCameraFloor(this.camera.position.x,this.camera.position.z)+1.2);
       this.camera.updateMatrixWorld();
@@ -3974,7 +4009,7 @@ export class Game {
     this.updateCameraProjection();
   }
   updateEnemy(e: Enemy, dt: number) {
-    if((this.isPlains||this.isFrostfire)&&e.hp>0){
+    if((this.isPlains||this.isFrostfire||this.isWilds)&&e.hp>0){
       const nearby=this.groundDistance(e.group.position,this.actor.position)<(e.boss?160:110);
       e.group.visible=nearby;
       // Only sleep healthy, idle actors at home. Death timers, damage-over-time,
@@ -4275,10 +4310,11 @@ export class Game {
     ctx.fillRect(0, 0, size, size);
 
 
-    const mapScale = this.isPlains||this.isFrostfire ? 1000/106 : this.isAverion ? 250/106 : this.fieldTerrain?.id === 'verdant-plains' ? 2 : regionScale(this.hero.inCity);
+    const mapScale = this.isPlains||this.isFrostfire||this.isWilds ? 1000/106 : this.isAverion ? 250/106 : this.fieldTerrain?.id === 'verdant-plains' ? 2 : regionScale(this.hero.inCity);
     const p = (v: number) => size / 2 + (v * size) / (106 * mapScale);
 
-    if(this.isFrostfire&&this.frostfire) {this.frostfire.drawMinimap(ctx,size);}
+    if(this.isWilds&&this.wilds) {this.wilds.drawMinimap(ctx,size);}
+    else if(this.isFrostfire&&this.frostfire) {this.frostfire.drawMinimap(ctx,size);}
     else if(this.isPlains&&this.plains) {this.plains.drawMinimap(ctx,size);}
     else if(this.isAverion&&this.averion) {
       ctx.fillStyle='#c6b997';ctx.beginPath();ctx.arc(p(0),p(-1.565295),size*104/250,0,Math.PI*2);ctx.fill();
@@ -4394,7 +4430,7 @@ export class Game {
     this.cameraFocus.copy(this.actor.position);
     this.updateCamera(0);
     this.camera.updateMatrixWorld();
-    this.message(mode === 'follow'
+    this.message(this.isWilds ? (mode==='follow'?'Follow Camera - right-drag to orbit, scroll to zoom.':'Free Camera - free movement enabled.') : mode === 'follow'
       ? 'Follow Camera · klik kanan-drag untuk orbit, scroll untuk zoom.'
       : 'Free Camera · kontrol kamera bebas aktif.');
     this.emit();
@@ -4419,15 +4455,28 @@ export class Game {
     this.camera.bottom = -size;
     this.camera.updateProjectionMatrix();
   }
+  setWildsQuality(quality:WildsQuality,persist=true) {
+    this.setGraphicsQuality(quality,persist);
+  }
   setPlainsQuality(quality:PlainsQuality,persist=true) {
+    this.setGraphicsQuality(quality,persist);
+  }
+  setGraphicsQuality(quality:GraphicsQuality,persist=true) {
     if(!Object.hasOwn(PLAINS_QUALITY,quality))return;
-    this.characterModel.setQuality(quality);
-    if(!this.plains)return;
-    this.plains.setQuality(quality);const profile=PLAINS_QUALITY[quality];
+    this.graphicsQuality=quality;
+    this.characterModel?.setQuality(quality);
+    this.plains?.setQuality(quality);
+    this.wilds?.setQuality(quality);
+    const profile=PLAINS_QUALITY[quality];
+    this.renderer.shadowMap.enabled=profile.shadow>0;
+    this.worldLightRig.traverse(o=>{if(o instanceof T.DirectionalLight){
+      const size=profile.shadow||1024;
+      if(o.shadow.mapSize.x!==size){o.shadow.map?.dispose();o.shadow.map=null;o.shadow.mapSize.setScalar(size);}
+      if(this.isWilds||this.isPlains)Object.assign(o.shadow.camera,{left:-42,right:42,top:42,bottom:-42,near:.1,far:this.isWilds?180:140});
+      o.shadow.camera.updateProjectionMatrix();
+    }});
     this.renderPerformance.reset();
-    this.renderer.setPixelRatio(Math.min(devicePixelRatio,profile.dpr));this.renderer.shadowMap.enabled=profile.shadow>0;
-    this.worldLightRig.traverse(o=>{if(o instanceof T.DirectionalLight){o.shadow.map?.dispose();o.shadow.map=null;o.shadow.mapSize.setScalar(profile.shadow||1024);Object.assign(o.shadow.camera,{left:-42,right:42,top:42,bottom:-42,near:.1,far:140});o.shadow.camera.updateProjectionMatrix();}});
-    if(persist)try{localStorage.setItem(PLAINS_QUALITY_KEY,quality);}catch{}
+    if(persist)saveGraphicsQuality(quality);
     this.resize();
   }
   getCurrentFPS() {
@@ -4440,8 +4489,8 @@ export class Game {
     const buffer = this.renderer.getDrawingBufferSize(new T.Vector2());
     return {
       capturedAt: new Date().toISOString(), map: this.hero.inCity ? this.hero.currentCity : this.hero.currentField,
-      quality: this.plains?.quality ?? 'map default', ...this.renderPerformance.snapshot(),
-      qualityLabel: this.plains ? PLAINS_QUALITY_LABELS[this.plains.quality] : 'Map default',
+      quality: this.graphicsQuality, ...this.renderPerformance.snapshot(),
+      qualityLabel: PLAINS_QUALITY_LABELS[this.graphicsQuality],
       viewport: { width: this.host.clientWidth, height: this.host.clientHeight, deviceDpr: devicePixelRatio },
       drawingBuffer: { width: buffer.x, height: buffer.y },
       gpu: debug ? gl.getParameter(debug.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER),
@@ -4449,15 +4498,14 @@ export class Game {
       render: { ...this.renderer.info.render }, memory: { ...this.renderer.info.memory },
       plains: this.plains?.metrics(),
       frostfire: this.frostfire?.metrics(),
+      whisperingWilds: this.wilds?.metrics(),
     };
   }
   resize = () => {
     const w = this.host.clientWidth, h = this.host.clientHeight;
     if (!w || !h) return;
-    if (this.isPlains && this.plains) {
-      const ratio = plainsPixelRatio(this.plains.quality, w, h, devicePixelRatio);
-      if (Math.abs(this.renderer.getPixelRatio() - ratio) > .0001) this.renderer.setPixelRatio(ratio);
-    }
+    const ratio = plainsPixelRatio(this.graphicsQuality, w, h, devicePixelRatio);
+    if (Math.abs(this.renderer.getPixelRatio() - ratio) > .0001) this.renderer.setPixelRatio(ratio);
     this.updateCameraProjection();
     // CSS owns the canvas footprint; Three.js updates only the drawing buffer.
     // This keeps the WebGL surface at the full overlay size without affecting HUD layout.
@@ -4522,9 +4570,9 @@ export class Game {
       let object:T.Object3D|null=hit.object;
       while(object&&object!==this.regionDecor) {
         if(typeof object.userData.npcId==='string') {this.openNpc(object.userData.npcId);return true;}
-        if((this.fieldTerrain||this.isPlains)&&typeof object.userData.destination==='string') {
+        if((this.fieldTerrain||this.isPlains||this.isWilds)&&typeof object.userData.destination==='string') {
           const destinationPosition=this.isPlains?new T.Vector3(PLAINS_EXIT.x,0,PLAINS_EXIT.z):object.getWorldPosition(new T.Vector3());
-          if(Math.hypot(this.hero.x-destinationPosition.x,this.hero.z-destinationPosition.z)>4.5)this.message('Dekati gerbang untuk berpindah wilayah.');
+          if(Math.hypot(this.hero.x-destinationPosition.x,this.hero.z-destinationPosition.z)>4.5)this.message(this.isWilds?'Move closer to the portal to travel.':'Dekati gerbang untuk berpindah wilayah.');
           else this.changeRegion(object.userData.destination);
           return true;
         }
@@ -4660,6 +4708,7 @@ export class Game {
     this.disposed = true;
     if(this.plains){this.plains.dispose();this.plains=null;}
     if(this.frostfire){this.frostfire.dispose();this.frostfire=null;}
+    if(this.wilds){this.wilds.dispose();this.wilds=null;}
     setArunikaShrineMaterials(this.shrine,null);
     this.arunikaMaterials?.dispose();this.arunikaMaterials=null;
     this.treeColliders=[];

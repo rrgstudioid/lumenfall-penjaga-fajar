@@ -38,21 +38,21 @@ await test('field quest journal progress increases after every monster kill',()=
   const hero=freshHero();
   hero.level=50;
   hero.inCity=false;
-  hero.currentField='whispering-wilds';
-  hero.fieldProgress['whispering-wilds']=12;
-  assert.equal(acceptRegionQuest(hero,'field-whispering-wilds-easy'),true);
+  hero.currentField='ironveil-mines';
+  hero.fieldProgress['ironveil-mines']=12;
+  assert.equal(acceptRegionQuest(hero,'field-ironveil-mines-easy'),true);
 
-  let entry=getAllQuestJournalEntries(hero).find(quest=>quest.id==='field-whispering-wilds-easy')!;
+  let entry=getAllQuestJournalEntries(hero).find(quest=>quest.id==='field-ironveil-mines-easy')!;
   assert.deepEqual(entry.progress,[{current:0,required:5}]);
   assert.equal(entry.status,'active');
 
-  hero.fieldProgress['whispering-wilds']+=1;
-  entry=getAllQuestJournalEntries(hero).find(quest=>quest.id==='field-whispering-wilds-easy')!;
+  hero.fieldProgress['ironveil-mines']+=1;
+  entry=getAllQuestJournalEntries(hero).find(quest=>quest.id==='field-ironveil-mines-easy')!;
   assert.deepEqual(entry.progress,[{current:1,required:5}]);
   assert.equal(entry.status,'active');
 
-  hero.fieldProgress['whispering-wilds']+=4;
-  entry=getAllQuestJournalEntries(hero).find(quest=>quest.id==='field-whispering-wilds-easy')!;
+  hero.fieldProgress['ironveil-mines']+=4;
+  entry=getAllQuestJournalEntries(hero).find(quest=>quest.id==='field-ironveil-mines-easy')!;
   assert.deepEqual(entry.progress,[{current:5,required:5}]);
   assert.equal(entry.status,'ready_to_complete');
 });

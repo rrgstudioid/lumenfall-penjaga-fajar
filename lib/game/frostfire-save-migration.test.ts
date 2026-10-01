@@ -66,7 +66,7 @@ await test('production registry contains exactly one permanent Frostfire map wit
     {cwd:process.cwd(),env:{...process.env,NODE_ENV:'production'},encoding:'utf8'});
   assert.deepEqual(JSON.parse(result),[{id:FROSTFIRE_ID,name:'Frostfire Highlands',count:133}]);
   assert(CITIES.jayantara.connectedFields.includes(FROSTFIRE_ID));
-  assert.equal(FIELDS['whispering-wilds'].nextMap,FROSTFIRE_ID);
+  assert.equal(FIELDS['whispering-wilds-v2'].nextMap,FROSTFIRE_ID);
   assert.equal(FIELDS['sunken-ruins'].previousField,FROSTFIRE_ID);
   const hero=createV3AdventurerHero();hero.level=34;
   assert.equal(travel(hero,FROSTFIRE_PREVIEW_ID).ok,false);

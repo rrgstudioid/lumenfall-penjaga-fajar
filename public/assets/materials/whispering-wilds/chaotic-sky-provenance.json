@@ -1,0 +1,18 @@
+{
+  "source": "Owner-supplied Chaotic Skies VaultCache",
+  "sourceRoot": "C:\\ProgramData\\Epic\\EpicGamesLauncher\\VaultCache\\MattePaib5467823f60dV3\\data\\Content\\Chaotic_Skies",
+  "selectedAsset": {
+    "path": "Textures/Skies/t_chaotic_skies_03.uasset",
+    "bytes": 17760236,
+    "sha256": "ab3fff6b1937c8497dcecc521c25cc3832857f760cec17cad0bef98900a7c657"
+  },
+  "exportEngine": "Unreal Engine 5.4.4 TextureExporterTGA",
+  "processing": "2048 square, cool blue grading of variant 03, 64px wrap seam blend",
+  "runtime": "Camera-centred dome, cylindrical azimuth/elevation sampling, slow rotation, continuous angular texture gradients, no moon or stars; not Unreal material/flowmap simulation",
+  "output": {
+    "path": "public/assets/materials/whispering-wilds/chaotic-sky-blue-03.webp",
+    "bytes": 160320,
+    "sha256": "088f51e2ef6e16f85fd2f5161dfa55a35bda704e56224c1777b01cbdaae5d755"
+  },
+  "originalAssetsUnmodified": true
+}

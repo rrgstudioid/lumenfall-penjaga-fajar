@@ -1,0 +1,134 @@
+{
+  "source": "D:\\Lumenfall\\colorful mushrooms 3d model.glb",
+  "sourceSha256": "2d6c5c7b7012e858302c2b7a5764113fe9ab9a23932f87ec92361f121b5b88b6",
+  "sourceUnmodified": true,
+  "sourceBytes": 5105000,
+  "runtimeFile": "five-mushrooms.glb",
+  "runtimeBytes": 1510204,
+  "runtimeSha256": "e18fcda9cc2d6b4989e8ec4756b6fd2502fd7382b48cd1409f40cd6e0457cde8",
+  "textureOriginalSize": [
+    4096,
+    4096
+  ],
+  "textureRuntimeSize": [
+    2048,
+    2048
+  ],
+  "variants": [
+    {
+      "variant": 1,
+      "sourceBounds": [
+        [
+          -0.499755859375,
+          0.0,
+          -0.10229483246803284
+        ],
+        [
+          -0.295654296875,
+          0.22314453125,
+          0.10034188628196716
+        ]
+      ],
+      "vertices": 1661,
+      "triangles": 1609,
+      "runtimeHeight": 1,
+      "sourceGroundCenter": [
+        -0.397705078125,
+        0.0,
+        -0.0009764730930328369
+      ]
+    },
+    {
+      "variant": 2,
+      "sourceBounds": [
+        [
+          -0.293212890625,
+          0.0,
+          -0.08276361227035522
+        ],
+        [
+          -0.110595703125,
+          0.228515625,
+          0.10180670022964478
+        ]
+      ],
+      "vertices": 1706,
+      "triangles": 1666,
+      "runtimeHeight": 1,
+      "sourceGroundCenter": [
+        -0.201904296875,
+        0.0,
+        0.009521543979644775
+      ]
+    },
+    {
+      "variant": 3,
+      "sourceBounds": [
+        [
+          -0.110107421875,
+          0.0,
+          -0.10278317332267761
+        ],
+        [
+          0.091552734375,
+          0.22314453125,
+          0.09838870167732239
+        ]
+      ],
+      "vertices": 1726,
+      "triangles": 1713,
+      "runtimeHeight": 1,
+      "sourceGroundCenter": [
+        -0.00927734375,
+        0.0,
+        -0.0021972358226776123
+      ]
+    },
+    {
+      "variant": 4,
+      "sourceBounds": [
+        [
+          0.093505859375,
+          0.0,
+          -0.0993652194738388
+        ],
+        [
+          0.294189453125,
+          0.2373046875,
+          0.1027832180261612
+        ]
+      ],
+      "vertices": 2217,
+      "triangles": 2198,
+      "runtimeHeight": 1,
+      "sourceGroundCenter": [
+        0.19384765625,
+        0.0,
+        0.0017089992761611938
+      ]
+    },
+    {
+      "variant": 5,
+      "sourceBounds": [
+        [
+          0.298583984375,
+          0.0,
+          -0.1027832180261612
+        ],
+        [
+          0.499755859375,
+          0.24267578125,
+          0.0910644382238388
+        ]
+      ],
+      "vertices": 2486,
+      "triangles": 2472,
+      "runtimeHeight": 1,
+      "sourceGroundCenter": [
+        0.399169921875,
+        0.0,
+        -0.005859389901161194
+      ]
+    }
+  ]
+}

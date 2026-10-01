@@ -15,6 +15,7 @@ import {
   ScrollText,
   ChevronRight,
   Sun,
+  Moon,
   Volume2,
   VolumeX,
   Maximize2,
@@ -249,7 +250,7 @@ const RightHUDCluster = memo(function RightHUDCluster({
       </button>
       </div>
       <div className="hud-weather">
-        <Sun size={15} />
+        {weatherLabel==='Chaotic blue night'?<Moon size={15} />:<Sun size={15} />}
         {weatherLabel}
       </div>
       <div className="hud-gold hud-panel">
@@ -428,7 +429,7 @@ export function GameplayHUD({
             <span />
           </div>
           <p>
-            {state.inCity ? 'Kota aman' : state.mapId===FROSTFIRE_ID ? 'Frozen Highlands' : state.mapId==='verdant-plains-v2' ? 'Padang Arunika' : state.cityName}
+            {state.inCity ? 'Kota aman' : state.mapId==='whispering-wilds-v2' ? 'Hunting Field' : state.mapId===FROSTFIRE_ID ? 'Frozen Highlands' : state.mapId==='verdant-plains-v2' ? 'Padang Arunika' : state.cityName}
             <b>·</b>Lv. {state.recommendedLevel}
           </p>
         </div>
@@ -436,7 +437,7 @@ export function GameplayHUD({
           <RightHUDCluster
             mapRef={mapRef}
             gold={state.hero.gold}
-            weatherLabel={state.mapId===FROSTFIRE_ID?'Wind-driven snow':undefined}
+            weatherLabel={state.mapId==='whispering-wilds-v2'?'Chaotic blue daylight':state.mapId===FROSTFIRE_ID?'Wind-driven snow':undefined}
             muted={state.audioSettings.muted}
             fullscreen={fullscreen}
             cameraMode={state.cameraMode}

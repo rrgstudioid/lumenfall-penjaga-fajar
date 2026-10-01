@@ -1,6 +1,7 @@
 ﻿'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { WILDS_ID } from '@/lib/game/whispering-wilds-layout';
 import { FROSTFIRE_ID } from '@/lib/game/frostfire-highlands-layout';
 import { isDaggerItem } from '@/lib/game/dagger';
 import { getVisibleJobArchitecture, presentJobText } from '@/lib/game/job-presentation';
@@ -25,7 +26,6 @@ import { RuneForgePanel } from '@/components/game/rune-forge-panel';
 import { RuneDetails } from '@/components/game/rune-details';
 import { ForgePanel } from '@/components/game/forge-panel';
 import { InterfaceSettings, InterfaceSettingsRuntime } from '@/components/game/interface-settings';
-import { PerformanceDiagnostics } from '@/components/game/performance-diagnostics';
 import { GraphicsPresets } from '@/components/game/graphics-presets';
 import { GameDragDropProvider } from '@/components/game/drag-drop-provider';
 import { InventoryGrid } from '@/components/game/inventory-grid';
@@ -325,7 +325,8 @@ export default function Home() {
         } catch (cause) {
           if (cancelled) return;
           console.error(cause);
-          if(instance?.isAverion||instance?.isPlains||instance?.isFrostfire)setMapError({id:instance.isFrostfire?FROSTFIRE_ID:instance.isPlains?'verdant-plains-v2':'averion',label:instance.isFrostfire?'Frostfire Highlands':instance.isPlains?'Verdant Plains':'Averion',message:'Map gagal dimuat. Save tetap aman. Periksa koneksi lalu tekan Retry.'});
+          if(instance?.isWilds)setMapError({id:WILDS_ID,label:'Whispering Wilds',message:'Unable to load the forest. Your save is safe. Check the connection and retry.'});
+          else if(instance?.isAverion||instance?.isPlains||instance?.isFrostfire)setMapError({id:instance.isFrostfire?FROSTFIRE_ID:instance.isPlains?'verdant-plains-v2':'averion',label:instance.isFrostfire?'Frostfire Highlands':instance.isPlains?'Verdant Plains':'Averion',message:'Map gagal dimuat. Save tetap aman. Periksa koneksi lalu tekan Retry.'});
           setError(
             'Dunia belum dapat dimuat. Save tetap aman. Periksa koneksi dan WebGL, lalu coba Continue atau Load Game lagi.',
           );
@@ -1336,14 +1337,14 @@ export default function Home() {
           className={`game-dialog ${panel === 'pause' ? `pause-dialog${pauseMenuView === 'graphics' ? ' graphics-dialog' : ''}` : ''} ${panel === 'bag' || panel === 'jobSkill' ? 'binding-window' : ''} ${panel === 'bag' ? 'inventory-dialog' : panel === 'character' ? 'character-dialog' : panel === 'jobSkill' ? 'job-skill-dialog' : panel === 'forge' ? 'forge-dialog' : ''}`}
         >
           {panel !== 'bag' && (
-            <span className={panel === 'character' ? 'sr-only' : 'eyebrow'}>
+            <span className={panel === 'character' || (panel === 'pause' && pauseMenuView === 'graphics') ? 'sr-only' : 'eyebrow'}>
               LUMENFALL / {panel === 'pause' ? 'JEDA' : 'PERJALANANMU'}
             </span>
           )}
-          <DialogTitle className={panel === 'character' ? 'sr-only' : 'dialog-heading'}>
+          <DialogTitle className={panel === 'character' || (panel === 'pause' && pauseMenuView === 'graphics') ? 'sr-only' : 'dialog-heading'}>
             {panel === 'bag' ? <><span aria-hidden="true">✦</span> INVENTORY <span aria-hidden="true">✦</span></> : panelTitles[panel] || 'Petualangan'}
           </DialogTitle>
-          <DialogDescription className={panel === 'character' || panel === 'bag' ? 'sr-only' : 'dialog-subtitle'}>
+          <DialogDescription className={panel === 'character' || panel === 'bag' || (panel === 'pause' && pauseMenuView === 'graphics') ? 'sr-only' : 'dialog-subtitle'}>
             {panel === 'bag' ? 'Inventory items, capacity, and gold.' : panel === 'pause'
               ? 'Tarik napas. Lembah akan menunggumu.'
               : panel === 'character'
@@ -1555,12 +1556,11 @@ export default function Home() {
               {pauseMenuView === 'graphics' && (
                 <>
                   <div className="pause-submenu-heading">
-                    <span className="eyebrow">OPTIONS / GRAPHICS</span>
-                    <button className="secondary-button" onClick={() => setPauseMenuView('options')}>
-                      Back
+                    <button className="secondary-button" aria-label="Back" onClick={() => setPauseMenuView('options')}>
+                      <ChevronRight size={17} className="rotate-180" aria-hidden="true" />
                     </button>
                   </div>
-                  {state.mapId==='verdant-plains-v2' && <GraphicsPresets game={engine} />}
+                  <GraphicsPresets game={engine} />
                   <div className="adventure-menu-links">
                     <button className="secondary-button" onClick={toggleFullscreen}>
                       {isFullscreen ? <Minimize2 size={17} /> : <Maximize2 size={17} />}
@@ -1568,7 +1568,6 @@ export default function Home() {
                     </button>
                   </div>
                   <InterfaceSettings />
-                  <PerformanceDiagnostics game={engine} />
                 </>
               )}
             </div>
@@ -2370,10 +2369,10 @@ export default function Home() {
           {panel === 'map' && (
             <div className="dialog-stack world-services">
               <div className="region-summary">
-                <span className="eyebrow">LOKASI SAAT INI</span>
+                <span className="eyebrow">{state.mapId===WILDS_ID?'CURRENT LOCATION':'LOKASI SAAT INI'}</span>
                 <h3>{state.inCity ? state.cityName : state.fieldName}</h3>
                 <p>
-                  {state.inCity
+                  {state.mapId===WILDS_ID ? 'Hunting Field · Monsters Lv. 16–24 · Permanent magical night' : state.inCity
                     ? 'Kota hub · layanan NPC, storage, shop, healer, dan quest.'
                     : `${state.cityName} · level rekomendasi ${state.recommendedLevel}`}
                 </p>
@@ -2382,7 +2381,7 @@ export default function Home() {
                     className="secondary-button"
                     onClick={() => game.current?.changeRegion(hero.currentCity)}
                   >
-                    Kembali ke kota <ChevronRight size={16} />
+                    {state.mapId===WILDS_ID?'Return to city':'Kembali ke kota'} <ChevronRight size={16} />
                   </button>
                 )}
               </div>
@@ -2413,7 +2412,7 @@ export default function Home() {
               <span className="eyebrow">FIELD MAP</span>
               <div className="region-grid">
                 {Object.values(FIELDS).map((field) => {
-                  const unlocked = hero.unlockedFields.includes(field.id);
+                  const unlocked = hero.unlockedFields.includes(field.id) && !unlockReason(hero, field.id);
                   return (
                     <article
                       className={`region-card ${unlocked ? '' : 'locked'}`}
@@ -2422,7 +2421,7 @@ export default function Home() {
                       <span className="eyebrow">{field.codename}</span>
                       <h3>{field.displayName}</h3>
                       <p>
-                        {field.id===FROSTFIRE_ID ? <>Lv. {field.recommendedLevel} · Snowfields · Frozen lakes</> : <>Lv. {field.recommendedLevel} ·{' '}
+                        {field.id===WILDS_ID ? <>Lv. {field.recommendedLevel} · Forest Warden · Entry Lv. {field.minLevel}+</> : field.id===FROSTFIRE_ID ? <>Lv. {field.recommendedLevel} · Snowfields · Frozen lakes</> : <>Lv. {field.recommendedLevel} ·{' '}
                         {field.cityId === hero.currentCity
                           ? 'wilayah terhubung'
                           : 'frontier'}</>}
@@ -2433,7 +2432,7 @@ export default function Home() {
                         onClick={() => game.current?.changeRegion(field.id)}
                       >
                         {unlocked
-                          ? 'Teleport field'
+                          ? field.id===WILDS_ID?'Enter Whispering Wilds':'Teleport field'
                           : unlockReason(hero, field.id)}
                       </button>
                     </article>

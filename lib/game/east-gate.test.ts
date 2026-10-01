@@ -15,7 +15,7 @@ const east=FIELDS[t.id],old=STARTER_FIELD_CONTENT;
 await test('East Gate remains independent and connected after Sands retirement',()=>{
   assert.ok(Object.keys(FIELDS).length >= 7);
   assert.equal(FIELDS['sands-location'],undefined);
-  assert.deepEqual(CITIES.arunika.connectedFields,['verdant-plains-v2','ironveil-mines','whispering-wilds',t.id]);
+  assert.deepEqual(CITIES.arunika.connectedFields,['verdant-plains-v2','ironveil-mines','whispering-wilds-v2',t.id]);
   assert.equal(east.chapter,1);assert.equal(east.minLevel,1);assert.equal(east.maxLevel,8);
   assert.equal(east.regionType,'field');assert.equal(east.cityDirection,'east');
   assert.deepEqual(east.subAreas,['Gerbang Timur','Dusun Purnama','Lembah Cahaya']);

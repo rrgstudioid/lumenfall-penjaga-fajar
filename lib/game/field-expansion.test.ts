@@ -1,5 +1,6 @@
 import { STARTER_FIELD_CONTENT } from './regions.ts';
 import { frostPopulation } from './frostfire-population.ts';
+import { wildsPopulation } from './whispering-wilds-population.ts';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
@@ -19,8 +20,8 @@ await test('legacy fields retain 42 spawns; large maps use their own tested popu
     const spawns=fieldSpawns(field);
     assert.deepEqual(spawns,fieldSpawns(field));
     if(field.id==='verdant-plains-v2'){assert.equal(spawns.length,497);continue;}
-    if(field.id==='frostfire-highlands'){
-      const population=frostPopulation();
+    if(field.id==='frostfire-highlands'||field.id==='whispering-wilds-v2'){
+      const population=field.id==='whispering-wilds-v2'?wildsPopulation():frostPopulation();
       assert.equal(spawns.filter(s=>s.definition.variant==='normal').length,population.normalCount);
       assert.equal(spawns.filter(s=>s.definition.variant==='elite').length,population.eliteCount);
       assert.equal(spawns.filter(s=>s.definition.variant==='boss').length,1);

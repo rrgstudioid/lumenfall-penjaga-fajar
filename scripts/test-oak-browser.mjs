@@ -422,7 +422,7 @@ try {
       await page.getByRole('button', { name: 'Options', exact: true }).click();
       await page.getByRole('button', { name: 'Graphics', exact: true }).click();
       assert.equal(await page.getByRole('radio').count(), 4);
-      await page.getByRole('radio', { name: 'Preset Low', exact: true }).check();
+      await page.getByRole('radio', { name: 'Low', exact: true }).check();
       await page.getByText('Diagnostik performa', { exact: true }).click();
       await page.getByRole('button', { name: 'Ambil laporan performa', exact: true }).click();
       const report = JSON.parse(await page.getByLabel('Laporan performa').inputValue());
