@@ -1,6 +1,7 @@
 import * as T from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { createPlainsOaks } from './verdant-oak-renderer';
+import { grassBatchInRange, partitionPlainsGrass } from './verdant-grass-tiles';
 import { createPlainsSky, PLAINS_DAYLIGHT } from './verdant-plains-sky';
 import {
   plainsBoulderGeometry,
@@ -830,6 +831,12 @@ export async function buildVerdantPlains(
     densityTexture.needsUpdate = true;
     const grassGeometries: T.InstancedBufferGeometry[] = [];
     const grassTiles: T.Mesh<T.InstancedBufferGeometry>[] = [];
+    const grassBatches: Array<{
+      mesh: T.Mesh<T.InstancedBufferGeometry>;
+      counts: Record<PlainsQuality, number>;
+      bounds: T.Box3;
+      minX: number; minZ: number; maxX: number; maxZ: number;
+    }> = [];
     const grassRoot = new T.Group();
     grassRoot.name = 'Grass dense field';
     root.add(grassRoot);
@@ -855,7 +862,11 @@ export async function buildVerdantPlains(
         ],
         i * 4,
       );
-    const sharedPatches = new T.InstancedBufferAttribute(patches, 4);
+    const partitions = partitionPlainsGrass(patches, tileSize).map((partition) => ({
+      ...partition,
+      attribute: new T.InstancedBufferAttribute(partition.patches, 4),
+    }));
+    const sharedPatchBytes = patches.byteLength;
     const grassMaterial = ownMaterial(
       plainsGrassMaterial(
         depthTexture,
@@ -867,55 +878,65 @@ export async function buildVerdantPlains(
       ),
     );
     for (let tz = 0; tz < 16; tz++)
-      for (let tx = 0; tx < 16; tx++) {
-        let low = Infinity,
-          high = -Infinity,
-          maximumMask = 0;
-        // The mask/heightfield is static. Skip wholly forbidden tiles, conservatively
-        // include a one-texel border for filtering and bounds for wind/terrain height.
-        for (
-          let iz = Math.max(0, tz * 32 - 1);
-          iz <= Math.min(512, (tz + 1) * 32 + 1);
-          iz++
-        )
+      for (let tx = 0; tx < 16; tx++)
+        for (const partition of partitions) {
+          const originX = -500 + (tx + 0.5) * tileSize;
+          const originZ = -500 + (tz + 0.5) * tileSize;
+          const gridX = tx * 32 + partition.x * 16;
+          const gridZ = tz * 32 + partition.z * 16;
+          let low = Infinity,
+            high = -Infinity,
+            maximumMask = 0;
+          // The mask/heightfield is static. Skip wholly forbidden tiles, conservatively
+          // include a one-texel border for filtering and bounds for wind/terrain height.
           for (
-            let ix = Math.max(0, tx * 32 - 1);
-            ix <= Math.min(512, (tx + 1) * 32 + 1);
-            ix++
-          ) {
-            const k = iz * 513 + ix;
-            low = Math.min(low, heights[k]);
-            high = Math.max(high, heights[k]);
-            maximumMask = Math.max(maximumMask, grassMask[k]);
-          }
-        if (maximumMask <= 38) continue;
-        const geometry = ownGeometry(new T.InstancedBufferGeometry());
-        for (const [name, attribute] of Object.entries((quality === 'office' ? officeGrass : sharedGrass).attributes))
-          geometry.setAttribute(name, attribute);
-        geometry.setAttribute('aGrassPatch', sharedPatches);
-        geometry.instanceCount = plainsGrassTileCount(quality);
-        geometry.boundingBox = new T.Box3(
-          new T.Vector3(-tileSize / 2 - 2, low - 1, -tileSize / 2 - 2),
-          new T.Vector3(tileSize / 2 + 2, high + 4, tileSize / 2 + 2),
-        );
-        geometry.boundingSphere = geometry.boundingBox.getBoundingSphere(
-          new T.Sphere(),
-        );
-        const mesh = new T.Mesh(geometry, grassMaterial);
-        mesh.name = `Grass tile ${tx},${tz}`;
-        mesh.position.set(
-          -500 + (tx + 0.5) * tileSize,
-          0,
-          -500 + (tz + 0.5) * tileSize,
-        );
-        mesh.frustumCulled = true;
-        grassGeometries.push(geometry);
-        grassTiles.push(mesh);
-        grassRoot.add(mesh);
-      }
+            let iz = Math.max(0, gridZ - 1);
+            iz <= Math.min(512, gridZ + 16 + 1);
+            iz++
+          )
+            for (
+              let ix = Math.max(0, gridX - 1);
+              ix <= Math.min(512, gridX + 16 + 1);
+              ix++
+            ) {
+              const k = iz * 513 + ix;
+              low = Math.min(low, heights[k]);
+              high = Math.max(high, heights[k]);
+              maximumMask = Math.max(maximumMask, grassMask[k]);
+            }
+          if (maximumMask <= 38) continue;
+          const geometry = ownGeometry(new T.InstancedBufferGeometry());
+          for (const [name, attribute] of Object.entries((quality === 'office' ? officeGrass : sharedGrass).attributes))
+            geometry.setAttribute(name, attribute);
+          geometry.setAttribute('aGrassPatch', partition.attribute);
+          geometry.instanceCount = partition.counts[quality];
+          // Include simultaneous wind and contact displacement, including tall blades.
+          geometry.boundingBox = new T.Box3(
+            new T.Vector3(partition.minX - 3, low - 1, partition.minZ - 3),
+            new T.Vector3(partition.maxX + 3, high + 4, partition.maxZ + 3),
+          );
+          geometry.boundingSphere = geometry.boundingBox.getBoundingSphere(
+            new T.Sphere(),
+          );
+          const mesh = new T.Mesh(geometry, grassMaterial);
+          mesh.name = `Grass tile ${tx},${tz}:${partition.x},${partition.z}`;
+          mesh.position.set(originX, 0, originZ);
+          // We cull the padded box below, avoiding a second, looser sphere test.
+          mesh.frustumCulled = false;
+          grassBatches.push({
+            mesh, counts: partition.counts,
+            bounds: geometry.boundingBox.clone().translate(mesh.position),
+            minX: originX + partition.minX, minZ: originZ + partition.minZ,
+            maxX: originX + partition.maxX, maxZ: originZ + partition.maxZ,
+          });
+          grassGeometries.push(geometry);
+          grassTiles.push(mesh);
+          grassRoot.add(mesh);
+        }
     const grassFrustum = new T.Frustum(),
       grassProjection = new T.Matrix4();
     let visibleGrassTiles = 0;
+    let submittedGrassInstances = 0;
     function updateGrassVisibility(camera: T.Camera, player: PlainsPoint) {
       grassFrustum.setFromProjectionMatrix(
         grassProjection.multiplyMatrices(
@@ -925,13 +946,17 @@ export async function buildVerdantPlains(
       );
       grassRoot.updateMatrixWorld(true);
       visibleGrassTiles = 0;
-      for (const mesh of grassTiles) {
-        const inRange =
-          Math.hypot(mesh.position.x - player.x, mesh.position.z - player.z) -
-            tileSize * Math.SQRT1_2 <=
-          grassRange.value.y;
-        mesh.visible = inRange && grassFrustum.intersectsObject(mesh);
-        if (mesh.visible) visibleGrassTiles++;
+      submittedGrassInstances = 0;
+      // Grass roots and terrain are fixed in world space for this map.
+      for (const { mesh, bounds, minX, minZ, maxX, maxZ } of grassBatches) {
+        const inRange = grassBatchInRange(
+          player.x, player.z, grassRange.value.y, minX, minZ, maxX, maxZ,
+        );
+        mesh.visible = inRange && grassFrustum.intersectsBox(bounds);
+        if (mesh.visible) {
+          visibleGrassTiles++;
+          submittedGrassInstances += mesh.geometry.instanceCount;
+        }
       }
     }
     let lastLod = '',
@@ -1100,8 +1125,11 @@ export async function buildVerdantPlains(
         grassRange.value.set(range.outerStart, range.outer);
         characterShadow.visible = PLAINS_QUALITY[value].shadow > 0;
         lastVegetation = '';
-        grassGeometries.forEach((g) => {
-          g.instanceCount = plainsGrassTileCount(value);
+        submittedGrassInstances = 0;
+        grassBatches.forEach(({ mesh, counts }) => {
+          const g = mesh.geometry;
+          g.instanceCount = counts[value];
+          if (mesh.visible) submittedGrassInstances += g.instanceCount;
           for (const [name, attribute] of Object.entries((value === 'office' ? officeGrass : sharedGrass).attributes))
             g.setAttribute(name, attribute);
         });
@@ -1117,8 +1145,8 @@ export async function buildVerdantPlains(
           tiles: grassTiles.length,
           visibleTiles: visibleGrassTiles,
           submittedTriangles:
-            visibleGrassTiles * plainsGrassTileCount(currentQuality) * (currentQuality === 'office' ? 4 : 6),
-          sharedPatchBytes: patches.byteLength,
+            submittedGrassInstances * (currentQuality === 'office' ? 4 : 6),
+          sharedPatchBytes,
           lod: false,
         },
         textures: textures.size,

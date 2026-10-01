@@ -10,6 +10,46 @@ import {
   PLAINS_QUALITY_KEY,
 } from './verdant-plains-quality.ts';
 import { plainsGrassGeometry } from './verdant-plains-visuals.ts';
+import { grassBatchInRange, partitionPlainsGrass } from './verdant-grass-tiles.ts';
+
+await test('spatial grass batches preserve every original instance and quality prefix', () => {
+  const original = new Float32Array(plainsGrassTileCount('high') * 4);
+  let seed = 721;
+  const random = () => {
+    seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0;
+    return seed / 4294967296;
+  };
+  for (let i = 0; i < original.length; i += 4) {
+    original.set([(random() - .5) * 62.5, (random() - .5) * 62.5, random() * Math.PI * 2, random()], i);
+  }
+  const batches = partitionPlainsGrass(original, 62.5);
+  assert.equal(batches.reduce((n, b) => n + b.patches.byteLength, 0), original.byteLength);
+  for (const quality of ['office', 'light', 'balanced', 'high'] as const) {
+    const expected = new Set<string>();
+    for (let i = 0; i < plainsGrassTileCount(quality); i++)
+      expected.add(Array.from(original.subarray(i * 4, i * 4 + 4)).join(','));
+    let count = 0;
+    for (const batch of batches) {
+      for (let i = 0; i < batch.counts[quality]; i++) {
+        const values = batch.patches.subarray(i * 4, i * 4 + 4);
+        assert.ok(values[0] >= batch.minX && values[0] <= batch.maxX);
+        assert.ok(values[1] >= batch.minZ && values[1] <= batch.maxZ);
+        assert.ok(expected.delete(Array.from(values).join(',')), 'no added, moved or duplicated rumpun');
+        count++;
+      }
+    }
+    assert.equal(expected.size, 0);
+    assert.equal(count, plainsGrassTileCount(quality));
+  }
+});
+
+await test('range culling keeps touching edges and corners but rejects empty circle corners', () => {
+  assert.equal(grassBatchInRange(0, 0, 10, 10, -1, 20, 1), true);
+  assert.equal(grassBatchInRange(0, 0, 10, 6, 8, 20, 20), true);
+  assert.equal(grassBatchInRange(0, 0, 10, 8, 8, 20, 20), false);
+  assert.equal(grassBatchInRange(0, 0, 0, -10, -10, 10, 10), true);
+  assert.equal(grassBatchInRange(-380, -20, 100, -500, -10, -481, 20), false);
+});
 
 await test('full field preserves the former close-up density in every preset', () => {
   for (const [quality, oldNearCount] of [

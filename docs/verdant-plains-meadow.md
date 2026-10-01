@@ -1,5 +1,71 @@
 # Revisi Verdant Plains: 30 oak dan rumput horizon
 
+## Optimasi culling rumput tanpa penipisan (1 Oktober 2026)
+
+Implementasi lokal; tidak publish. Geometri tetap empat helai/enam triangle per
+rumpun pada Normal/High/Ultra, empat triangle pada Low. Posisi, seed, orientasi,
+variasi ukuran/warna, kepadatan, jarak/fade, angin dan respons injakan dipertahankan.
+Tidak ada aset sumber atau gameplay yang diubah.
+
+- Setiap petak 62,5 m dipartisi menjadi empat batch 31,25 m. Partisi menyalin nilai
+  instance asli tanpa mengacak ulang dan mempertahankan prefix masing-masing
+  kualitas. Origin model tetap origin petak lama agar fase shader tidak bergeser.
+- Batch memakai empat buffer bersama di seluruh map; total atribut instance tetap
+  **1.757.824 byte (1,68 MiB)**. Tidak menambah tekstur atau unduhan aset. Jumlah
+  objek batch aktif naik dari 223 menjadi 872; ini menambah metadata CPU/VAO.
+- Batch yang sepenuhnya terlarang oleh mask dihilangkan saat loading. Border satu
+  texel tetap disertakan untuk filtering. Frustum memakai box dengan margin 3 m
+  untuk angin/injakan; radius memakai jarak ke persegi akar, bukan lingkaran
+  pembungkus. Culling tidak bergantung pada kepadatan/LOD jarak.
+- Shader melewati sampling terrain dan animasi untuk akar yang sudah ditolak
+  oleh jarak, batas map, atau mask. Persamaan helai yang terlihat tidak berubah.
+- Diagnostik triangle menjumlahkan instance batch yang benar-benar diajukan.
+
+Perbandingan browser sebelum/sesudah pada kamera dan waktu animasi tetap, camp:
+
+| Kualitas | Triangle rumput sebelum | Sesudah | Pengurangan |
+|---|---:|---:|---:|
+| Low | 384.524 | 219.872 | 42,8% |
+| Normal | 3.460.716 | 2.553.696 | 26,2% |
+| High | 6.921.432 | 5.107.890 | 26,2% |
+| Ultra | 13.842.864 | 10.216.548 | 26,2% |
+
+Di sudut meadow pengurangan 25,0–43,8%; sudut river 65,6–79,2%. Ini pengurangan
+geometri yang dikirim, bukan persentase kenaikan FPS. Tradeoff: draw call rumput
+di camp naik 7 ke 16 (Low) dan 21 ke 62 (preset lain). Pengujian GPU terisolasi
+memakai EXT_disjoint_timer_query_webgl2, 16 sampel per sudut/kualitas; median GPU
+rumput camp Low 1,49 ke 0,69 ms, High 7,76 ke 5,31 ms. Sampel Chrome headless
+terbatas ini bukan jaminan FPS perangkat pengguna, dan hanya merender rumput.
+
+Verifikasi:
+
+- 22 unit test vegetasi/layout/navigation/quality lulus, termasuk kesetaraan
+  seluruh instance asli pada setiap preset dan kasus batas culling.
+- 12 pasangan gambar rumput pada kamera/waktu identik: 0–61 piksel RGB berbeda
+  per gambar (maksimum sekitar 0,003% pada 1080p). Tidak identik bit-per-bit;
+  geometri/animasi tetap sama, dengan perbedaan kecil rasterisasi setelah batching
+  dan perubahan jalur shader.
+- 20 kombinasi empat kualitas, batas petak, sungai, kamera follow/ortografis:
+  batch yang ditolak dirender terpisah dan menghasilkan **nol piksel terlihat**.
+  Animasi lewat update map nyata tetap aktif; angka triangle diagnostik cocok
+  dengan renderer. Resource stabil setelah siklus kualitas dan tiga roundtrip
+  East Gate–Verdant Plains; populasi tetap 497.
+- 57 pemeriksaan integrasi Low 1080p/1440p lulus, termasuk UI diagnostik, reload
+  preferensi dan sepuluh pergantian kualitas. Frame p95 seluruh game pada rute
+  ini 18,2–22,2 ms; belum membuktikan 60 FPS stabil. Tidak ada perbandingan FPS
+  seluruh game sebelum/sesudah yang dikontrol dalam pengujian ini.
+- Typecheck penuh, lint file terkait, dan `vinext build` lulus.
+
+File implementasi: `lib/game/verdant-grass-tiles.ts`,
+`lib/game/verdant-plains-map.ts`, `lib/game/verdant-plains-visuals.ts`.
+Regresi: `lib/game/verdant-grass-lod.test.ts`, `scripts/test-oak-browser.mjs`,
+`scripts/test-verdant-grass-browser.mjs`. Jalankan tes browser terakhir dengan
+`node --experimental-transform-types scripts/test-verdant-grass-browser.mjs`
+saat server lokal aktif; `PLAYWRIGHT_MODULE` dapat menunjuk modul Playwright
+di mesin lain. Artefak perbandingan: `output/grass-opt/baseline.json`,
+`optimized.json`, `pixel-diff.json`, PNG sebelum/sesudah, `acceptance/report.json`,
+`integration/profile-checks.json`, dan log build/typecheck.
+
 29 September 2026. Implementasi lokal; tanpa commit/push/publish.
 
 ## Oak

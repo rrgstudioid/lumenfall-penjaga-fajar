@@ -168,14 +168,19 @@ export function plainsGrassMaterial(
       vec2 worldXZ=aGrassPatch.xy+tileOrigin;
       float dist=distance(worldXZ,uPlayer);
       vDistanceFade=1.0-smoothstep(uGrassRange.x,uGrassRange.y,dist);
+      // Rejected roots never contribute pixels. Avoid their mask/terrain fetches
+      // and animation work; keep all equations for visible blades unchanged.
+      vec3 transformed=vec3(aGrassPatch.x,-10000.0,aGrassPatch.y);
+      vBladeTip=aBladeProfile.x;vGrassTint=aGrassPatch.w;vGust=0.0;
+      if(all(lessThanEqual(abs(worldXZ),vec2(498.0))) && vDistanceFade>0.0){
       float fade=1.0;
       float density=texture2D(uMask,((worldXZ+500.0)*.512+.5)/513.0).r;
       float clump=.72+.28*sin(worldXZ.x*.61)*sin(worldXZ.y*.53);
       fade*=smoothstep(.15,.8,density)*clump;
-      if(any(greaterThan(abs(worldXZ),vec2(498.0))) || vDistanceFade<=0.0)fade=0.0;
+      if(fade>.001){
       float phase=aGrassPatch.z+dot(tileOrigin,vec2(.371,.619));
       float c=cos(phase),s=sin(phase);
-      vec3 transformed=position*(.7+aGrassPatch.w*.65)*fade;
+      transformed=position*(.7+aGrassPatch.w*.65)*fade;
       transformed.xz=mat2(c,-s,s,c)*transformed.xz;
       // A travelling front links neighbouring clumps; fine flutter varies each blade.
       float tip=aBladeProfile.x;
@@ -196,8 +201,10 @@ export function plainsGrassMaterial(
       transformed.xz+=pushDirection*contact*.85*tip*tip*fade*bladeHeight;
       transformed.y*=1.0-contact*.58*tip;
       transformed.xz+=aGrassPatch.xy;
-      transformed.y+=fade>.001 ? surfaceAt(worldXZ)-.025 : -10000.0;
+      transformed.y+=surfaceAt(worldXZ)-.025;
       vBladeTip=tip;vGrassTint=aGrassPatch.w;vGust=gust;
+      }
+      }
     `,
       );
     shader.fragmentShader = shader.fragmentShader
@@ -215,6 +222,6 @@ export function plainsGrassMaterial(
     `,
       );
   };
-  material.customProgramCacheKey = () => 'plains-grass-dense-tiles-v8-range-uniform';
+  material.customProgramCacheKey = () => 'plains-grass-dense-tiles-v9-reject-hidden';
   return material;
 }

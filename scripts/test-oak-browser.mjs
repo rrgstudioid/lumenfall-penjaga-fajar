@@ -201,11 +201,15 @@ try {
     );
   check('uniform dense grass shares buffers and keeps the same blade detail in all tiles',await page.evaluate(()=>{
     const g=window.__plainsQA, tiles=g.plains.root.getObjectByName('Grass dense field').children;
-    const first=tiles[0].geometry;
-    return tiles.every(m=>m.geometry.getAttribute('position').count===18 &&
-      m.geometry.instanceCount===first.instanceCount &&
-      m.geometry.getAttribute('aGrassPatch')===first.getAttribute('aGrassPatch') && m.frustumCulled) &&
-      first.instanceCount/(62.5**2)>=90000/6400;
+    const attributes=new Map();
+    for(const mesh of tiles){
+      const geometry=mesh.geometry, attribute=geometry.getAttribute('aGrassPatch');
+      if(geometry.getAttribute('position').count!==18 || mesh.frustumCulled) return false;
+      if(attributes.has(attribute) && attributes.get(attribute)!==geometry.instanceCount) return false;
+      attributes.set(attribute,geometry.instanceCount);
+    }
+    return attributes.size===4 && [...attributes.values()].reduce((n,c)=>n+c,0)===54932 &&
+      [...attributes.keys()].reduce((n,a)=>n+a.array.byteLength,0)===1757824;
   }));
   // Authoring views under the actual map's sun, sky, fog and tone mapping.
   let orbit;
