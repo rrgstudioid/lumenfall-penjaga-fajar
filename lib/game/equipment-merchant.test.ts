@@ -5,10 +5,10 @@ import { buyShopItem, sellInventoryItem, shopStock, shopItemPrice } from './city
 import { freshHero, unlockUniqueStats } from './rules.ts';
 
 const catalogEquipment = Object.values(ITEM_CATALOG).filter((item) =>
-  ['weapon', 'armor', 'accessory'].includes(item.category),
+  ['weapon', 'armor', 'accessory'].includes(item.category) && item.source.sourceId !== 'aruna-developer-materials',
 );
 
-await test('Equipment Merchant lists every catalog weapon, armor, and accessory for every job', () => {
+await test('Equipment Merchant lists every regular catalog weapon, armor, and accessory for every job', () => {
   const expected = catalogEquipment.map((item) => item.templateId);
   for (const coreJob of [null, 'warrior', 'rogue', 'hunter', 'wizard', 'acolyte'] as const) {
     const hero = freshHero();

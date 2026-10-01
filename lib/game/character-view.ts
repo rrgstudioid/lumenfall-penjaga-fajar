@@ -39,6 +39,7 @@ export const CHARACTER_SLOTS: Array<{
   { id: 'earring2', label: 'Earring 2', side: 'left' },
   { id: 'mainHand', label: 'Main Hand', side: 'right' },
   { id: 'offHand', label: 'Off Hand', side: 'right' },
+  { id: 'accessory', label: 'Accessories', side: 'right' },
   { id: 'ring1', label: 'Ring 1', side: 'right' },
   { id: 'ring2', label: 'Ring 2', side: 'right' },
 ];

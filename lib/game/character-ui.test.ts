@@ -244,7 +244,7 @@ await test('equipment preview is read-only, validates slots/hands, and matches f
     getCharacterEquipmentLayers(hero).some((l) => l.slot === 'mainHand'),
     false,
   );
-  assert.equal(CHARACTER_SLOTS.length, 11);
+  assert.equal(CHARACTER_SLOTS.length, 12);
 });
 await test('Magnifier unlocks only locked Unique Stats once and preserves Rune/Optimizer', () => {
   const hero = trained(),

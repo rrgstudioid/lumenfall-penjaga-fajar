@@ -121,9 +121,9 @@ try {
   await page.screenshot({ path: resolve(out, 'character-1440.png') });
   console.log('INITIAL', (await dashboard.innerText()).slice(0, 2000));
   assert.equal(await dashboard.getByRole('tab').count(), 0);
-  assert.equal(await dashboard.locator('[data-equipment-slot]').count(), 13);
+  assert.equal(await dashboard.locator('[data-equipment-slot]').count(), 14);
   assert.equal(await dashboard.locator('canvas').count(), 1);
-  check('C opens one actual-model dashboard with 13 slots and no tabs');
+  check('C opens one actual-model dashboard with 14 slots and no tabs');
   const cpNumber = n => n.toLocaleString('en-US');
   assert.equal(await dashboard.locator('.cs-power b').innerText(), cpNumber(calculateCombatPower(await current()).total));
   await dashboard.locator('.cs-power').hover();

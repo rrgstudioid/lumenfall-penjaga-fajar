@@ -18,6 +18,12 @@ import {
   CircleHelp,
   Gem,
   PawPrint,
+  Feather,
+  Hand,
+  Shirt,
+  Footprints,
+  Columns2,
+  Circle,
 } from 'lucide-react';
 import {
   AlertDialog,
@@ -234,6 +240,7 @@ export function CharacterScreen({
     return (
       <div className="cs-item-details">
         <p className="cs-requirement">
+          {item.requiredGender && `${item.requiredGender === 'male' ? 'Karakter laki-laki' : 'Karakter perempuan'} · `}
           Requires Lv. {item.levelRequirement} ·{' '}
           <JobText>{(item.requiredSpecialJob ??
             item.requiredCoreJob ??
@@ -352,6 +359,7 @@ export function CharacterScreen({
           </Popover.Close>
         </div>
         <Popover.Description className="cs-muted">
+          {slot === 'accessory' && 'Untuk wings dan aksesori tambahan. '}
           Pilih untuk preview, lalu Equip untuk menerapkan.
         </Popover.Description>
         <div className="cs-popup-scroll">
@@ -728,6 +736,10 @@ export function CharacterScreen({
               <span className="cs-eyebrow">
                 {preview?.validation.ok ? 'UNSAVED PREVIEW' : 'LIVE EQUIPMENT'}
               </span>
+              <span className="cs-equipped-count" aria-label="Equipment terpasang">
+                {PAPER_DOLL_SLOTS.filter((slot) => hero.inventory.some((item) => item.id === hero.equipment[slot.id])).length}
+                <span> / {PAPER_DOLL_SLOTS.length}</span>
+              </span>
               <button
                 className="cs-icon-button"
                 aria-label="Open Inventory"
@@ -756,7 +768,7 @@ export function CharacterScreen({
                     }}
                   >
                     <div
-                      className="cs-slot-position"
+                      className={`cs-slot-position ${slot.id === 'accessory' ? 'cs-accessory-position' : ''}`}
                       style={{
                         left: `${slot.x}%`,
                         top: `${slot.y}%`,
@@ -786,6 +798,7 @@ export function CharacterScreen({
                           ) : (
                             <>
                               <strong>{slot.label}</strong>
+                              {slot.hint && <p>{slot.hint}</p>}
                               <p>Slot kosong. Klik untuk memilih equipment.</p>
                             </>
                           )
@@ -807,8 +820,19 @@ export function CharacterScreen({
                             <Swords size={22} />
                           ) : slot.id === 'head' ? (
                             <Crown size={22} />
-                          ) : slot.id.startsWith('ring') ||
-                            slot.id.startsWith('earring') ||
+                          ) : slot.id === 'accessory' ? (
+                            <Feather size={22} />
+                          ) : slot.id === 'chest' ? (
+                            <Shirt size={22} />
+                          ) : slot.id === 'gloves' ? (
+                            <Hand size={22} />
+                          ) : slot.id === 'legs' ? (
+                            <Columns2 size={22} />
+                          ) : slot.id === 'boots' ? (
+                            <Footprints size={22} />
+                          ) : slot.id.startsWith('ring') ? (
+                            <Circle size={20} />
+                          ) : slot.id.startsWith('earring') ||
                             slot.id === 'necklace' ? (
                             <Gem size={20} />
                           ) : (

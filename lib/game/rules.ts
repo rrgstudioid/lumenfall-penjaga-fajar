@@ -1017,6 +1017,10 @@ export function derivedStats(
 ): DerivedStats {
   const base=calculateBaseStats(hero,allocated);const {profile,level}=base;
   const gear = contributions ?? sumStats(calculateEquipmentStats(hero), calculatePassiveEffects(hero));
+  // Developer wings explicitly grant +500%; all ordinary gear retains its 135% cap.
+  // Widening only the ceiling also keeps partial stat-breakdown columns additive.
+  const accessory = itemById(hero.inventory, hero.equipment.accessory);
+  const movementCap = 135 + (hero.gender === 'male' && accessory?.templateId === 'dragon-veil-wings' ? 500 : 0);
   const str = base.str + (gear.str ?? 0);
   const dex = base.dex + (gear.dex ?? 0);
   const int = base.int + (gear.int ?? 0);
@@ -1056,7 +1060,7 @@ export function derivedStats(
     criticalRate: Math.round(Math.min(100,2+dex*.1+(gear.critRate??0))*10)/10,
     criticalDamage: Math.round((150 + (gear.critDamage ?? 0)) * 10) / 10,
     attackSpeed:Math.round((100+dex*.15+(gear.attackSpeed??0))*100)/100,
-    movementSpeed:Math.round(Math.min(135,100+(gear.movementSpeed??0))*10)/10,
+    movementSpeed:Math.round(Math.min(movementCap,100+(gear.movementSpeed??0))*10)/10,
     evasion: Math.round((dex * 0.1 + (gear.evasion ?? 0)) * 10) / 10,
     blockRate: Math.round((gear.blockRate ?? 0) * 10) / 10,
     healingPower: Math.round((int * .25 + (gear.healingPower ?? 0)) * 100) / 100,

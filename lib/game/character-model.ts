@@ -13,6 +13,7 @@ import { armyRunningCadence } from './army-running.ts';
 import {loadFemaleCharacter,FEMALE_CHARACTER_TRIANGLES} from './female-character.ts';
 import { attachSwordAura, fitSwordAuraToBlade, updateSwordAuras } from './sword-aura.ts';
 import { alignCrimsonSword, setCrimsonSwordGripRoll, setupCrimsonSwordGlow, updateCrimsonSwordGlow } from './special-sword-model.ts';
+import { DRAGON_VEIL_WINGS_MODEL, fitDragonVeilWings } from './dragon-veil-wings.ts';
 
 const specialSwordLoader = new GLTFLoader();
 // Keep the existing asset URL; item assignment is independent of its original folder.
@@ -87,7 +88,7 @@ function applyCharacterAppearance(scene: T.Group, hero: Hero) {
   });
 }
 
-export function createCharacterModel(hero: Hero, options: { aura?: boolean; assetSource?: () => Promise<T.Group>; quality?: PlainsQuality; renderer?:T.WebGLRenderer; preview?:boolean; onVisualChange?:()=>void } = {}) {
+export function createCharacterModel(hero: Hero, options: { aura?: boolean; assetSource?: () => Promise<T.Group>; accessoryAssetSource?: () => Promise<T.Group>; quality?: PlainsQuality; renderer?:T.WebGLRenderer; preview?:boolean; onVisualChange?:()=>void } = {}) {
   const female=hero.gender==='female';
   const actor = new T.Group();
   actor.name = 'LUMENFALL_Character';
@@ -152,6 +153,32 @@ export function createCharacterModel(hero: Hero, options: { aura?: boolean; asse
     }
   }
   const backSocket = new T.Group(); backSocket.name = 'BackWeaponSocket'; backSocket.position.set(0, .08, .28); chest.add(backSocket);
+  const accessorySocket = new T.Group(); accessorySocket.name = 'BackAccessorySocket';
+  accessorySocket.position.set(0, .02, .23); chest.add(accessorySocket);
+  const wings = bySlot('accessory');
+  let accessoryReady = Promise.resolve(true);
+  if (!female && wings?.templateId === 'dragon-veil-wings') {
+    const holder = layerFor('accessory', accessorySocket);
+    actor.userData.accessoryStatus = 'loading';
+    const load = options.accessoryAssetSource ?? (typeof window !== 'undefined'
+      ? () => new GLTFLoader().loadAsync(DRAGON_VEIL_WINGS_MODEL).then(gltf => gltf.scene)
+      : undefined);
+    accessoryReady = load ? load().then(scene => {
+      if (actor.userData.disposed) { disposeCharacterModel(scene); return false; }
+      try { holder.add(fitDragonVeilWings(scene)); }
+      catch (error) { disposeCharacterModel(scene); throw error; }
+      actor.userData.accessoryStatus = 'ready';
+      options.onVisualChange?.();
+      return true;
+    }).catch(error => {
+      if (!actor.userData.disposed) {
+        actor.userData.accessoryStatus = 'error';
+        console.warn('Dragon Veil Wings gagal dimuat.', error);
+        options.onVisualChange?.();
+      }
+      return false;
+    }) : Promise.resolve(false);
+  }
   const arm = new T.Group(); arm.name = 'RightHandSocket'; arm.userData = { attachmentPoint: 'RightHandSocket', orientation: 'grip along local Y' }; rightHand.add(arm);
   const leftSocket = new T.Group(); leftSocket.name = 'LeftHandSocket'; leftSocket.userData = { attachmentPoint: 'LeftHandSocket', orientation: 'off-hand face forward' }; leftHand.add(leftSocket);
 
@@ -447,10 +474,10 @@ export function createCharacterModel(hero: Hero, options: { aura?: boolean; asse
     const previous=visualLOD;visualLOD=next;
     void setAppearance(currentAppearance).catch(error=>{visualLOD=previous;console.warn('Character LOD unavailable',error);});
   };
-  return { actor, arm, legs: [leftUpperLeg, rightUpperLeg], aura, rig, animator, ready, setAppearance, updateVisual,
+  return { actor, arm, legs: [leftUpperLeg, rightUpperLeg], aura, rig, animator, ready, accessoryReady, setAppearance, updateVisual,
     setVisualLOD:async(value:CharacterLOD)=>{visualLOD=value;await setAppearance(currentAppearance);},
     setQuality:(value:PlainsQuality)=>{quality=value;lodCheck=0;},
-    sockets: { rightHand: arm, leftHand: leftSocket, back: backSocket } };
+    sockets: { rightHand: arm, leftHand: leftSocket, back: backSocket, accessory: accessorySocket } };
 }
 export type CharacterModel = ReturnType<typeof createCharacterModel>;
 

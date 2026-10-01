@@ -68,22 +68,24 @@ export const CHARACTER_STAT_ROWS: CharacterStat[] = [
 export const PAPER_DOLL_SLOTS: Array<{
   id: EquipSlot;
   label: string;
+  hint?: string;
   x: number;
   y: number;
 }> = [
-  { id: 'head', label: 'Head', x: 50, y: 8 },
-  { id: 'mainHand', label: 'Main Hand', x: 11, y: 26 },
-  { id: 'offHand', label: 'Off Hand', x: 11, y: 44 },
-  { id: 'necklace', label: 'Necklace', x: 11, y: 62 },
-  { id: 'ring1', label: 'Ring 1', x: 11, y: 80 },
-  { id: 'chest', label: 'Armor', x: 89, y: 26 },
-  { id: 'gloves', label: 'Gloves', x: 89, y: 44 },
-  { id: 'legs', label: 'Legs', x: 89, y: 62 },
-  { id: 'boots', label: 'Boots', x: 89, y: 80 },
-  { id: 'ring2', label: 'Ring 2', x: 23, y: 96 },
-  { id: 'earring1', label: 'Earring 1', x: 41, y: 96 },
-  { id: 'earring2', label: 'Earring 2', x: 59, y: 96 },
-  { id: 'pet', label: 'Pet', x: 77, y: 96 },
+  { id: 'head', label: 'Head', x: 11, y: 8 },
+  { id: 'chest', label: 'Armor', x: 11, y: 25 },
+  { id: 'gloves', label: 'Gloves', x: 11, y: 42 },
+  { id: 'legs', label: 'Legs', x: 11, y: 59 },
+  { id: 'boots', label: 'Boots', x: 11, y: 76 },
+  { id: 'mainHand', label: 'Main Hand', x: 89, y: 8 },
+  { id: 'offHand', label: 'Off Hand', x: 89, y: 25 },
+  { id: 'necklace', label: 'Necklace', x: 89, y: 42 },
+  { id: 'accessory', label: 'Accessories', hint: 'Untuk wings dan aksesori tambahan.', x: 89, y: 59 },
+  { id: 'pet', label: 'Pet', x: 89, y: 76 },
+  { id: 'ring1', label: 'Ring 1', x: 20, y: 96 },
+  { id: 'ring2', label: 'Ring 2', x: 40, y: 96 },
+  { id: 'earring1', label: 'Earring 1', x: 60, y: 96 },
+  { id: 'earring2', label: 'Earring 2', x: 80, y: 96 },
 ];
 
 export function characterAttributes(hero: Hero) {

@@ -3,7 +3,7 @@ import {maxHP,derivedStats,restoreMana,type Hero} from './rules.ts';
 import {FIELDS, WORLD_CONFIG, fieldContent} from './regions.ts';
 import { isResourceEnabled } from './gameplay-config.ts';
 export function shopStock(hero:Hero,service:string) {
- return Object.values(ITEM_CATALOG).filter(item=>service==='developer-materials'?(item.category==='material'||item.itemType==='eternalSeal'):service==='equipment'?['weapon','armor','accessory'].includes(item.category):service==='seal'?['fateRune','eternalSeal'].includes(item.itemType):service==='consumable'?['consumable','potion'].includes(item.category):false);
+ return Object.values(ITEM_CATALOG).filter(item=>service==='developer-materials'?(item.category==='material'||item.itemType==='eternalSeal'||item.templateId==='dragon-veil-wings'):service==='equipment'?item.templateId!=='dragon-veil-wings'&&['weapon','armor','accessory'].includes(item.category):service==='seal'?['fateRune','eternalSeal'].includes(item.itemType):service==='consumable'?['consumable','potion'].includes(item.category):false);
 }
 export function shopItemPrice(item:Pick<ItemData,'buyValue'|'sellValue'|'levelRequirement'>,service:string) {
  return service==='developer-materials'?0:item.buyValue||Math.max(60,item.sellValue*4+item.levelRequirement*5);

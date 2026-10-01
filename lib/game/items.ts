@@ -35,13 +35,14 @@ export type EquipSlot =
   | 'ring2'
   | 'earring1'
   | 'earring2'
+  | 'accessory'
   | 'pet';
 
 export type EquipmentType =
   | 'one_hand_sword' | 'two_hand_sword' | 'dagger' | 'bow' | 'knuckle'
   | 'staff' | 'wand' | 'mace' | 'shield' | 'off_hand_dagger'
   | 'tome' | 'orb' | 'quiver' | 'talisman' | 'helmet' | 'armor'
-  | 'gloves' | 'legs' | 'boots' | 'necklace' | 'ring' | 'earring' | 'pet';
+  | 'gloves' | 'legs' | 'boots' | 'necklace' | 'ring' | 'earring' | 'accessory' | 'pet';
 export type Handedness = 'one_hand' | 'two_hand' | 'off_hand' | 'none';
 export type AttackType = 'melee' | 'ranged' | 'magic' | 'hybrid' | 'none';
 export type EquipmentAsset = { icon: string; sprite: string; model: string | null; fallback: string };
@@ -154,6 +155,7 @@ export type ItemData = {
   icon: string;
   levelRequirement: number;
   jobRequirement: string | null;
+  requiredGender?: 'male' | 'female';
   stackable: boolean;
   maxStack: number;
   quantity: number;
@@ -229,6 +231,7 @@ const EQUIPMENT_TYPE_ALIASES: Record<string, EquipmentType> = {
   orb: 'orb', quiver: 'quiver', talisman: 'talisman', relic: 'talisman',
   head: 'helmet', chest: 'armor', gloves: 'gloves', legs: 'legs', boots: 'boots',
   necklace: 'necklace', ring1: 'ring', ring2: 'ring', earring1: 'earring', earring2: 'earring', petEgg: 'pet',
+  accessory: 'accessory', wings: 'accessory',
 };
 
 export const inferEquipmentType = (item: Pick<ItemData, 'itemType' | 'equipSlot' | 'category'>): EquipmentType | null =>
@@ -282,6 +285,7 @@ const base = (
   icon: data.icon ?? '✦',
   levelRequirement: data.levelRequirement ?? 1,
   jobRequirement: data.jobRequirement ?? null,
+  requiredGender: data.requiredGender,
   stackable: data.stackable ?? false,
   maxStack: data.stackable ? MAX_STACK_QUANTITY : 1,
   sellValue: data.sellValue ?? 5,
@@ -805,6 +809,15 @@ for(const [tier,rule] of Object.entries(RUNE_OPTIMIZER_TIER_RULES)){
 }
 ITEM_CATALOG['rune-stabilizer']=base({templateId:'rune-stabilizer',name:'Rune Stabilizer',category:'rune',itemType:'runeStabilizer',icon:'✧',rarity:'rare',stackable:true,maxStack:99,sellValue:80,source:{type:'elite',sourceId:null,label:'Elite, Field Boss atau crafting Forge Master'},description:'Pelindung quality Rune untuk Chromatic, Greater Chromatic, atau Perfect Chromatic. Hasil di bawah quality saat ini menjadi quality yang sama. Aktifkan di Forge Master. Terpakai 1 bersama optimizer saat roll dikonfirmasi; tidak menjamin upgrade.'});
 ITEM_CATALOG['gold-of-midas']=base({templateId:'gold-of-midas',name:'Gold of Midas',category:'material',itemType:'developerMaterial',icon:'✦',rarity:'legendary',stackable:true,maxStack:99,buyValue:0,sellValue:999999999,description:'A touch of gold that transforms everything into fortune. A symbol of ambition, prosperity, and limitless power.',source:{type:'shop',sourceId:'aruna-developer-materials',label:'Developer Material Lab'}});
+ITEM_CATALOG['dragon-veil-wings']=base({
+  templateId:'dragon-veil-wings', name:'Dragon Veil Wings', category:'accessory',
+  itemType:'wings', equipmentType:'accessory', equipSlot:'accessory', rarity:'legendary',
+  requiredGender:'male',
+  icon:'✦', baseStats:{movementSpeed:500}, maxEnhancementLevel:0, sellValue:0,
+  description:'Sayap naga merah dan emas. Movement Speed +500%.',
+  asset:{icon:'/assets/icons/items/dragon-veil-wings.webp',sprite:'/assets/icons/items/dragon-veil-wings.webp',model:'/assets/equipment/dragon-veil-wings/dragon-veil-wings.glb',fallback:'accessory'},
+  source:{type:'shop',sourceId:'aruna-developer-materials',label:'Developer Material Lab'},
+});
 
 const uniqueBossRunes:Array<{id:string;name:string;theme:RuneTheme;source:string;job:CoreJobId|null;effect:string}>=[
  {id:'rune-inti-bara',name:'Embercore Rune',theme:'elements',source:'Twin Elemental Lord · Frostfire Highlands',job:null,effect:'Serangan api memiliki peluang meninggalkan bara.'},
@@ -925,7 +938,7 @@ const DESCRIPTION_SLOT_NAMES: Record<EquipSlot, string> = {
   mainHand:'Main Hand', offHand:'Off Hand', head:'Head', chest:'Body Armor',
   gloves:'Gloves', legs:'Legs', boots:'Boots', necklace:'Necklace',
   ring1:'Ring 1 / Ring 2', ring2:'Ring 1 / Ring 2',
-  earring1:'Earring 1 / Earring 2', earring2:'Earring 1 / Earring 2', pet:'Pet',
+  earring1:'Earring 1 / Earring 2', earring2:'Earring 1 / Earring 2', accessory:'Accessories', pet:'Pet',
 };
 const usageStatLabel = (stat: keyof StatBlock) => STAT_LABELS[stat]
   ?? ({vit:'Vitality', sta:'Vitality', dex:'Dexterity', int:'Intelligence', attack:'Attack', skillPower:'Skill Power', rangedDamage:'Ranged Damage', healingPower:'Healing Power'} as Partial<Record<keyof StatBlock, string>>)[stat]
@@ -942,6 +955,7 @@ export function equipmentUsageDescription(item: Omit<ItemData, 'id' | 'quantity'
   return [
     stats || 'Tanpa bonus stat',
     `Syarat: ${jobs}`,
+    ...(item.requiredGender ? [`Karakter: ${item.requiredGender === 'male' ? 'Laki-laki' : 'Perempuan'}`] : []),
     `Level: ${item.levelRequirement}`,
     `Jenis: ${type} · Slot: ${slot}`,
     `Harga jual: ${item.sellValue} GOLD`,
@@ -1182,6 +1196,7 @@ export function normalizeItem(raw: unknown): ItemData | null {
     useEffect: template.useEffect ?? (value.useEffect && typeof value.useEffect==='object' && ['heal','mana','resource','stamina','buff','ammunition','mount'].includes(String((value.useEffect as ItemUseEffect).type)) ? value.useEffect as ItemUseEffect : undefined),
     useCooldown: Math.max(0,Math.min(3600,Number(value.useCooldown ?? template.useCooldown)||0)),
     category:normalizedCategory,
+    requiredGender:template.requiredGender ?? (value.requiredGender === 'male' || value.requiredGender === 'female' ? value.requiredGender : undefined),
     equipmentType:migratedEquipmentType,
     handedness:['one_hand','two_hand','off_hand','none'].includes(String(value.handedness))?value.handedness as Handedness:inferHandedness(migratedEquipmentType,value.twoHanded===true||template.twoHanded),
     attackType:['melee','ranged','magic','hybrid','none'].includes(String(value.attackType))?value.attackType as AttackType:inferAttackType(migratedEquipmentType),
@@ -1243,6 +1258,7 @@ export const emptyEquipment = (): EquipmentLoadout => ({
   ring2: null,
   earring1: null,
   earring2: null,
+  accessory: null,
   pet: null,
 });
 
@@ -1360,9 +1376,12 @@ export function canEquipItem(
     level: number;
     coreJob: RuntimeCoreJobId | null;
     specialization: SpecializationId | null;
+    gender?: 'male' | 'female';
   },
   targetSlot: EquipSlot | null = item.equipSlot,
 ) {
+  if (item.requiredGender && context.gender !== item.requiredGender)
+    return { ok: false, reason: `Equipment ini khusus karakter ${item.requiredGender === 'male' ? 'laki-laki' : 'perempuan'}.` };
   if (isDaggerItem(item)) {
     if (!isThiefLineage(context)) return { ok: false, code: 'THIEF_LINEAGE_REQUIRED', reason: 'Dagger hanya untuk Thief lineage.' };
     if (!isOneHandDagger(item)) return { ok: false, code: 'INVALID_DAGGER_INSTANCE', reason: 'Dagger harus satu instance senjata one-hand yang valid.' };

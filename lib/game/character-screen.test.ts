@@ -21,15 +21,51 @@ import {
   attributeEffects,
   readCharacterPower,
 } from './character-screen.ts';
-import { previewEquipmentChange } from './character-view.ts';
+import { getEquipmentCandidatesForSlot, previewEquipmentChange } from './character-view.ts';
 
 await test('dashboard exposes every production equipment slot exactly once', () => {
   assert.deepEqual(
     PAPER_DOLL_SLOTS.map((s) => s.id).sort(),
     Object.keys(freshHero().equipment).sort(),
   );
-  assert.equal(new Set(PAPER_DOLL_SLOTS.map((s) => s.id)).size, 13);
+  assert.equal(new Set(PAPER_DOLL_SLOTS.map((s) => s.id)).size, 14);
   assert(!CHARACTER_STAT_ROWS.some((s) => s.id === 'elementalResistance'));
+});
+await test('accessory slot supports preview, drag equip, replacement, save migration and unequip', () => {
+  const hero = freshHero();
+  const oldSave = JSON.parse(JSON.stringify(hero));
+  delete oldSave.equipment.accessory;
+  assert.equal(parseSave(JSON.stringify(oldSave))?.equipment.accessory, null);
+  const wings = createItem('fajar-necklace', {
+    id: 'test-wings', name: 'Test Wings', itemType: 'wings',
+    equipmentType: 'accessory', equipSlot: 'accessory', levelRequirement: 1,
+    baseStats: {}, bonusStats: {}, sockets: [], uniqueStatsLocked: false,
+  });
+  const replacement = { ...wings, id: 'test-accessory', name: 'Test Accessory' };
+  hero.inventory.push(wings, replacement);
+  assert.deepEqual(getEquipmentCandidatesForSlot(hero, 'accessory').map(item => item.id), [wings.id, replacement.id]);
+  const before = JSON.stringify(hero);
+  const preview = previewEquipmentChange(hero, wings, 'accessory');
+  assert.equal(preview.validation.ok, true);
+  assert.equal(preview.hero.equipment.accessory, wings.id);
+  assert.equal(JSON.stringify(hero), before);
+  assert.deepEqual(preview.before, preview.after);
+  assert.equal(equipItem(hero, wings.id, 'necklace').ok, false);
+  const source = { dragType: 'item' as const, refId: wings.id, inventorySlot: getInventorySlots(hero).indexOf(wings.id) };
+  const target = { type: 'equipment' as const, slot: 'accessory' as const, expectedId: null };
+  const dropped = commitDrop(hero, source, target, false);
+  assert.equal(dropped.ok, true);
+  assert.equal(dropped.hero.equipment.accessory, wings.id);
+  assert.equal(JSON.stringify(hero), before);
+  const restored = parseSave(JSON.stringify(dropped.hero))!;
+  assert.equal(restored.equipment.accessory, wings.id);
+  assert.equal(restored.inventory.find(item => item.id === wings.id)?.isEquipped, true);
+  assert.equal(equipItem(restored, replacement.id).ok, true);
+  assert.equal(restored.equipment.accessory, replacement.id);
+  assert.equal(restored.inventory.find(item => item.id === wings.id)?.isEquipped, false);
+  assert.equal(unequipItem(restored, 'accessory').ok, true);
+  assert.equal(restored.equipment.accessory, null);
+  assert.equal(restored.inventory.find(item => item.id === replacement.id)?.isEquipped, false);
 });
 await test('CP uses the production calculator by default and supports an explicit adapter', () => {
   const hero = freshHero();
