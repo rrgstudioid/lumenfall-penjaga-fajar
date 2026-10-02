@@ -1,5 +1,6 @@
 import type { CoreJobId, RuntimeCoreJobId, SpecializationId, WeaponType } from './skills.ts';
 import { STAMINA_ENABLED } from './gameplay-config.ts';
+import { statBonusText, statDisplayLabel } from './stat-presentation.ts';
 import { canonicalizeDaggerItem, isDaggerItem, isOneHandDagger, isThiefLineage } from './dagger.ts';
 
 export type ItemRarity = 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary' | 'mythic' | 'ancient' | 'normal' | 'unique' | 'legacy';
@@ -406,7 +407,7 @@ export const UNIQUE_STAT_POOL: UniqueStatDefinition[] = [
   { stat: 'damageReduction', label: 'Damage Reduction', unit: 'percent', min: 1, max: 4, slots: ['shield', 'armor'] },
   { stat: 'blockRate', label: 'Block Rate', unit: 'percent', min: 1, max: 4, slots: ['shield'] },
   { stat: 'critRate', label: 'Critical Rate', unit: 'percent', min: 1, max: 3, slots: ['accessory'] },
-  { stat: 'maxMana', label: 'Max MP', unit: 'flat', min: 10, max: 35, slots: ['accessory'] },
+  { stat: 'maxMana', label: 'Max Mana', unit: 'flat', min: 10, max: 35, slots: ['accessory'] },
   { stat: 'cooldownReduction', label: 'Cooldown Reduction', unit: 'percent', min: 1, max: 3, slots: ['accessory'] },
   { stat: 'itemDropRate', label: 'Item Drop Rate', unit: 'percent', min: 1, max: 3, slots: ['accessory'] },
 ];
@@ -459,7 +460,7 @@ const STAT_LABELS: Partial<Record<keyof StatBlock,string>> = {
   "elementalDamage": "Elemental Damage",
   "physicalPenetration": "Physical Penetration",
   "magicPenetration": "Magic Penetration",
-  "maxMana": "Max MP",
+  "maxMana": "Max Mana",
   "mpRecovery": "MP Recovery",
   "manaCostReduction": "Mana Cost Reduction"
 };
@@ -940,13 +941,11 @@ const DESCRIPTION_SLOT_NAMES: Record<EquipSlot, string> = {
   ring1:'Ring 1 / Ring 2', ring2:'Ring 1 / Ring 2',
   earring1:'Earring 1 / Earring 2', earring2:'Earring 1 / Earring 2', accessory:'Accessories', pet:'Pet',
 };
-const usageStatLabel = (stat: keyof StatBlock) => STAT_LABELS[stat]
-  ?? ({vit:'Vitality', sta:'Vitality', dex:'Dexterity', int:'Intelligence', attack:'Attack', skillPower:'Skill Power', rangedDamage:'Ranged Damage', healingPower:'Healing Power'} as Partial<Record<keyof StatBlock, string>>)[stat]
-  ?? stat;
+const usageStatLabel = (stat: keyof StatBlock) => statDisplayLabel(stat);
 
 export function equipmentUsageDescription(item: Omit<ItemData, 'id' | 'quantity'>): string {
   const stats = Object.entries({...item.baseStats, ...item.bonusStats})
-    .map(([stat, value]) => `${usageStatLabel(stat as keyof StatBlock)} +${Number(value).toFixed(1)}`)
+    .map(([stat, value]) => statBonusText(stat, Number(value)))
     .join(' · ');
   const jobs = isDaggerItem(item) ? 'Thief / Rogue / Spectre / Assasin / Reaper' : item.requiredSpecialJob ?? item.requiredCoreJob
     ?? (item.allowedJobs?.length ? item.allowedJobs.join(' / ') : 'Semua job');

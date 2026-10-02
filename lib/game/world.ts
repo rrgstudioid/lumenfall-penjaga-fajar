@@ -119,6 +119,7 @@ import { applySourceOwnedStatus, applyStatus, clearExpiredSourceStatuses, effect
 import {addTemporaryModifier,tickTemporaryModifiers,receivedMultiplier,resolveTargetHit,NO_COUNTER,setManualGuard} from './combat-modifiers';
 import {forwardFromYaw} from './combat-position';
 import {enterStealth,exitStealth,isStealthed,breakStealth} from './stealth';
+import { VanishState } from './vanish.ts';
 import {PersonalMarks,personalMark} from './personal-mark';
 import {directionalVector,moveDirectional,moveCollisionSafeTo,passThroughEndpoint} from './directional-movement';
 import {relativePosition} from './combat-position';
@@ -517,6 +518,17 @@ export class Game {
   noticeTimer = 0;
   saved = true;
   skillCooldowns: Record<string, number> = {};
+  readonly vanish = new VanishState((state) => {
+    // Snapshot the canonical resolved cooldown at activation; start it only now.
+    this.skillCooldowns[state.cooldownKey] = Math.max(this.skillCooldowns[state.cooldownKey] ?? 0, state.cooldown);
+  });
+  private commitVanishOffense() {
+    this.vanish.update(this.hero);
+    const opening = this.vanish.end('OFFENSIVE_ACTION');
+    if (opening?.sourceJob === 'rogue')
+      this.transientCombat.rogueAmbush.grantVanishOpening(this.hero, opening.sourceSkillId, this.combatTime);
+    this.updateRogueConcealmentPresentation();
+  }
   skillHits = new SkillHitQueue();
   // Simulation-owned grounded movement; never serialized or driven by animation.
   private thiefMovement?: { direction: T.Vector3; remaining: number; valid: () => boolean; complete: () => void };
@@ -677,9 +689,9 @@ export class Game {
     if (this.rogueSmoke) { this.rogueSmoke.removeFromParent(); this.rogueSmoke.geometry.dispose(); this.rogueSmoke.material.dispose(); this.rogueSmoke = undefined; }
   }
   private updateRogueConcealmentPresentation() {
-    const vanish = this.assasinCombat.concealed(this.hero, this.combatTime);
+    const vanish = this.vanish.status(this.hero);
     this.updateVanishPresentation(!!vanish);
-    const concealed = this.transientCombat.rogueAmbush.concealed(this.hero, this.combatTime) || vanish;
+    const concealed = vanish;
     if (!concealed) {
       this.clearRogueConcealmentPresentation();
       return;
@@ -708,6 +720,7 @@ export class Game {
     if (this.specializationRuntimeIdentity !== undefined && this.specializationRuntimeIdentity !== identity) this.clearSkillRuntime();
     this.specializationRuntimeIdentity=identity;
     this.transientCombat.rogueAmbush.update(this.hero, this.combatTime);
+    this.vanish.update(this.hero);
     const support=combatSupportFor(this.hero),style=modifierContextFor(this.hero,derivedStats(this.hero)).weaponStyle;
     this.transientCombat.update(this.combatTime,style,support);
     this.transientCombat.updateBladeTempo(this.combatTime, this.hero.specialization === 'blade_master' && bladeMasterDualWieldActive(this.hero) && style === 'dual_sword');
@@ -718,10 +731,8 @@ export class Game {
     const indicators: CombatFeedbackIndicator[] = [];
     const ambush = this.transientCombat.rogueAmbush.status(this.hero, this.combatTime);
     if (ambush) indicators.push({ id: 'rogue-ambush', label: 'Ambush', remaining: ambush.remaining, tone: 'ready' });
-    const smoke = this.transientCombat.rogueAmbush.concealed(this.hero, this.combatTime);
-    if (smoke) indicators.push({ id: 'rogue-smoke-veil', label: 'Smoke Veil', remaining: smoke.expiresAt - this.combatTime, tone: 'defensive' });
-    const vanish=this.assasinCombat.concealed(this.hero,this.combatTime);
-    if (vanish) indicators.push({id:'assasin-vanish',label:'Vanish',remaining:vanish.remaining,tone:'defensive'});
+    const vanish=this.vanish.status(this.hero);
+    if (vanish) indicators.push({id:'vanish',label:'Vanish',iconSkillId:vanish.sourceSkillId,tone:'defensive'});
     if(isStealthed(this.hero))indicators.push({id:'stealth',label:'STEALTH',remaining:Number(getStatus(this.hero,'stealth')),tone:'defensive'});
     const buffs: Array<[string,string,string,'defensive'|'offensive'|'ready']> = [
       ['v2-warrior-guard-stance','Guard Stance','v2-warrior-guard-stance','defensive'],
@@ -793,7 +804,7 @@ export class Game {
     this.updateRogueConcealmentPresentation();
   }
   clearSkillRuntime() {
-    this.assasinCombat?.clearSelf();
+    this.vanish.end(this.hero.hp <= 0 ? 'DEATH' : 'RESET');
     this.assasinExecutions=new WeakMap();
     this.clearAssasinProjectiles();
     this.poisonExecutions = new WeakMap(); // Cancel casts, NOT already-applied target Poison.
@@ -2698,7 +2709,7 @@ export class Game {
       return true;
     });
   }
-  canCastSkill(skillId:string) {return canCastSkillRules(this.hero,skillId,this.skillCooldowns,this.equippedWeaponType(),undefined,{ambush:this.transientCombat.rogueAmbush,now:this.combatTime,assasinRequirement:this.assasinCastRequirement});}
+  canCastSkill(skillId:string) {return canCastSkillRules(this.hero,skillId,this.skillCooldowns,this.equippedWeaponType(),undefined,{ambush:this.transientCombat.rogueAmbush,vanish:this.vanish,now:this.combatTime,assasinRequirement:this.assasinCastRequirement});}
   getSkillManaCost(skillId:string) {
     skillId = heroFamilySkillReference(this.hero, skillId) ?? '';
     const skill=activeSkills(this.hero).find(candidate=>candidate.id===skillId);
@@ -2742,7 +2753,7 @@ export class Game {
       });
     }
     // Structural validation first; mana is paid against the final contextual action below.
-    const validation=canCastSkillRules(this.hero,skill.id,this.skillCooldowns,this.equippedWeaponType(),0,{ambush:this.transientCombat.rogueAmbush,now:this.combatTime,assasinRequirement:this.assasinCastRequirement});
+    const validation=canCastSkillRules(this.hero,skill.id,this.skillCooldowns,this.equippedWeaponType(),0,{ambush:this.transientCombat.rogueAmbush,vanish:this.vanish,now:this.combatTime,assasinRequirement:this.assasinCastRequirement});
     if(!validation.ok){
       if(!validation.reason.includes('masih cooldown'))this.message(validation.reason);
       return false;
@@ -2801,14 +2812,10 @@ export class Game {
     const support=combatSupportFor(this.hero);
     const windows=this.transientCombat.windowModifiers(preview,support,this.combatTime);
     const action=resolveHeroSkill(this.hero,skill,level,stats,counter,windows,this.skillImpactContext(selection.target),tempoReduction, skill.assasin || skill.tags?.includes('v3-thief') || skill.tags?.includes('v3-rogue') || skill.id === 'v3-berserker-earth-splitter' ? () => this.rand() : Math.random);
-    if (action.rogueAmbush?.generator?.source === 'SMOKE_VEIL' && (!action.nonDamaging || !(action.duration > 0) || !Number.isFinite(action.duration))) {
-      this.message('Durasi concealment Smoke Veil belum dikonfigurasi.'); return false;
-    }
     if(!this.consumeMana(action.manaCost)){this.message('Mana tidak cukup.');return false;}
-    if (!action.nonDamaging) this.assasinCombat.breakConcealment('attack');
+    if (!action.nonDamaging && action.targetType !== 'self') this.commitVanishOffense();
     if (action.rogueAmbush) this.ambushExecutions.set(action, this.transientCombat.rogueAmbush.begin(this.hero, action, this.combatTime));
     this.lastActionFailure=null;
-    if (!action.nonDamaging && action.hitSequence.some(hit => skillHitDamage(hit, stats) > 0)) this.transientCombat.rogueAmbush.breakConcealment('ATTACK');
     if(targetRequirement(action)!=='self'&&action.hitSequence.some(hit=>skillHitDamage(hit,stats)>0))breakStealth(this.hero,'offensive_skill');
     this.updateStealthPresentation();
     if(selection.target)action.targetIdentity=targetIdentity(selection.target,this.regionBuildToken);
@@ -2820,7 +2827,7 @@ export class Game {
     const consumedWindows=this.transientCombat.commitWindows(action,support,this.combatTime);
     const mastery = this.hero.masteryChoices[skill.id];
     const cooldown = action.cooldown;
-    this.skillCooldowns[heroSkillCooldownKey(this.hero, skill.id)] = cooldown;
+    if (!action.vanish) this.skillCooldowns[heroSkillCooldownKey(this.hero, skill.id)] = cooldown;
     this.applySkill(skill, level, mastery, action, stats,consumedWindows,false,rogueInput);
     this.traceV3Damage(skill.id, 'cast_accepted', {
       targetId: selection.target?.id ?? null,
@@ -2833,8 +2840,6 @@ export class Game {
       moveDirectional(action.movementDistance??0,movement,(x,z)=>this.move(x,z));
       if (action.rogueAmbush?.generator?.source === 'SLIPSTEP') this.completeRogueReposition(action, start);
     }
-    if (action.rogueAmbush?.generator?.source === 'SMOKE_VEIL')
-      this.transientCombat.rogueAmbush.generate(this.hero, action, this.combatTime, { type: 'ACTIVATED', concealmentDuration: action.duration });
     this.updateRogueConcealmentPresentation();
     this.save();
     this.emit();
@@ -2847,6 +2852,11 @@ export class Game {
   applySkill(definition: SkillDefinition, level: number, mastery?: MasteryChoice, action?: ResolvedSkillAction, stats=derivedStats(this.hero),consumedWindows:readonly string[]=[], movementComplete = false, rogueInput?: T.Vector3) {
     const skill=action??resolveHeroSkill(this.hero,definition,level,stats);
     if (this.hero.skillArchitectureVersion===3 && !thiefSkillJobAllowed(this.hero,definition.specialization ?? definition.job)) return;
+    if (skill.vanish) {
+      this.vanish.activate(this.hero, skill.id, skill.vanish, skill.cooldown, heroSkillCooldownKey(this.hero, skill.id));
+      this.characterModel.animator.play('magic_cast', .3);
+      return;
+    }
     const launchOrigin=this.actor.position.clone();
     const castOwner=this.hero.characterId ?? this.hero.slotId;
     let assasinExecution=this.assasinExecutions.get(skill);
@@ -2857,10 +2867,6 @@ export class Game {
           level:this.hero.level,physicalPenetration:currentStats.physicalPenetration,bossDamage:currentStats.bossDamage,eliteDamage:currentStats.eliteDamage}};
       });
       this.assasinExecutions.set(skill,assasinExecution);
-      if (skill.assasin.vanish) {
-        this.assasinCombat.conceal(this.hero,this.combatTime,skill.duration);
-        this.characterModel.animator.play('magic_cast',.3); return;
-      }
       const target=this.getCastTarget(skill.targetIdentity);
       if (skill.weaponMode?.startsWith('THROWN') && target && skill.targetIdentity) {
         const travel=Math.max(.08,this.groundDistance(launchOrigin,target.group.position)/24);
@@ -2912,7 +2918,7 @@ export class Game {
       return;
     }
     if (rogue && skill.nonDamaging) {
-      // Smoke Veil uses only the actor-owned concealment primitive, never saved activeBuffs.
+      // Rogue utility never becomes a saved activeBuff.
       this.characterModel.animator.play('magic_cast', .3);
       this.message(`${skill.name} digunakan.`);
       return;
@@ -3554,7 +3560,7 @@ export class Game {
         if (d.length() > 0.1) this.direction.copy(d.normalize());
       }
     }
-    this.transientCombat.rogueAmbush.breakConcealment('ATTACK');this.assasinCombat.breakConcealment('attack');this.updateRogueConcealmentPresentation();
+    this.commitVanishOffense();
     breakStealth(this.hero,'basic_attack');this.updateStealthPresentation();
     this.actor.rotation.y = Math.atan2(-this.direction.x, -this.direction.z);
     this.combo = this.comboWindow > 0 ? (this.combo % 3) + 1 : 1;
@@ -3727,7 +3733,7 @@ export class Game {
     this.hero.barrier -= absorbed;
     damage -= absorbed;
     this.hero.hp = Math.max(0, this.hero.hp - damage);
-    if (damageKind === 'direct') { this.transientCombat.rogueAmbush.breakConcealment('DIRECT_DAMAGE', damage); this.assasinCombat.breakConcealment('direct',damage); this.updateRogueConcealmentPresentation(); }
+    if (damageKind === 'direct') { this.vanish.directDamage(damage + absorbed); this.updateRogueConcealmentPresentation(); }
     if(damage>0){breakStealth(this.hero,'received_damage');this.updateStealthPresentation();}
     if(this.hero.hp>0&&displacement){const factor=receivedMultiplier(modifiers,context,'knockbackMultiplier');this.move(displacement.x*factor,displacement.z*factor);}
     if (damage > 0) this.characterModel.animator.play('hit', .24);
@@ -4134,7 +4140,7 @@ export class Game {
     }
     (e.ring.material as T.MeshBasicMaterial).opacity = 0;
     if (
-      !safe &&
+      !safe && this.vanish.canAcquireDirectTarget(this.hero, { actorId: `enemy:${e.id}` }) &&
       dist < (e.boss ? 15 : e.definition?.variant === 'elite' ? 12 : 10) &&
       this.groundDistance(e.group.position,e.home) < 20
     ) {

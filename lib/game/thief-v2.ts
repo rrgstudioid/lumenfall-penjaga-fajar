@@ -22,22 +22,22 @@ const descriptions: Record<string, string> = {
   'twin-fang':
     'Dua hit nyata, hit kedua lebih kuat. Memerlukan dua dagger; bukan double basic attack.',
   'marked-strike':
-    'Personal Mark milikmu menambah Crit Rate dan Crit Damage action ini. Tidak mengonsumsi Mark.',
+    'Personal Mark milikmu menambah Critical Rate dan Critical Damage action ini. Tidak mengonsumsi Mark.',
   'silent-opening':
-    'Snapshot Stealth pada cast valid menambah Crit Rate dan Crit Damage; commit mengakhiri Stealth.',
+    'Snapshot Stealth pada cast valid menambah Critical Rate dan Critical Damage; commit mengakhiri Stealth.',
   'rear-rend':
     'Serangan dari sektor belakang 90° memperkuat total raw damage. Posisi diperiksa saat impact.',
   'weakpoint-assault':
     'Personal Mark dan posisi belakang menambah payoff dalam satu kelompok aditif. Mark tidak dikonsumsi.',
   'agile-conditioning':
-    'Setiap rank: Max HP +1.5% dan Evasion +1 percentage point.',
+    'Setiap rank: Max HP +1.5% dan Evasion +1.',
   'dagger-discipline':
     'Setiap rank: Physical Attack +0.8% saat menggunakan dagger atau dual dagger.',
-  'keen-instinct': 'Setiap rank: Critical Rate +0.5 percentage point.',
+  'keen-instinct': 'Setiap rank: Critical Rate +0.5%.',
   'shadow-discipline':
     'Setiap rank: durasi skill Stealth Thief +5%. Bukan invisibility terhadap AI.',
   'dual-dagger-familiarity':
-    'Dengan dual dagger, tiap rank: damage action physical Thief +0.5% dan Crit Rate +0.5 point. Tidak mengubah basic attack.',
+    'Dengan dual dagger, tiap rank: damage action physical Thief +0.5% dan Critical Rate +0.5%. Tidak mengubah basic attack.',
   'mark-expertise':
     'Setiap rank: durasi personal Mark +0.5 detik; bukan bonus damage.',
   'fleet-footing':
@@ -45,17 +45,17 @@ const descriptions: Record<string, string> = {
   venomcraft:
     'Setiap rank: durasi Poison skill Thief +0.4 detik. Formula tick tetap.',
   'rear-awareness':
-    'Setiap rank: Crit Rate +1 point hanya untuk skill rear-synergy saat benar-benar menyerang dari belakang.',
+    'Setiap rank: Critical Rate +1% hanya untuk skill rear-synergy saat benar-benar menyerang dari belakang.',
   opportunist:
-    'Setiap rank: Crit Rate +1 point hanya pada skill mark-synergy terhadap personal Mark milikmu.',
+    'Setiap rank: Critical Rate +1% hanya pada skill mark-synergy terhadap personal Mark milikmu.',
   'twin-edge-control':
-    'Dengan dual dagger: Crit Damage multi-hit Thief +5 / +10 / +15 points.',
+    'Dengan dual dagger: Critical Damage multi-hit Thief +5% / +10% / +15%.',
   'rapid-technique':
     'Setiap rank: damage multi-hit Thief +1.5%. Timing hit tidak dipercepat.',
   'evasive-instinct':
-    'Saat HP ≤35% Max HP efektif: Evasion +5 / +8 / +12 points, tetap mengikuti cap existing.',
+    'Saat HP ≤35% Max HP efektif: Evasion +5 / +8 / +12, tetap mengikuti cap existing.',
   'silent-opportunity':
-    'Satu cast offensive Thief dari Stealth: Crit Damage +5 / +10 / +15 points. Satu snapshot berlaku pada seluruh hit cast itu, bukan trigger ulang atau bonus cast berikutnya.',
+    'Satu cast offensive Thief dari Stealth: Critical Damage +5% / +10% / +15%. Satu snapshot berlaku pada seluruh hit cast itu, bukan trigger ulang atau bonus cast berikutnya.',
 };
 function active(
   slug: string,
@@ -393,7 +393,7 @@ export const THIEF_V2_ACTIVE: SkillDefinition[] = [
         modifiers: [marked('lunge-mark', c)],
       })),
       description:
-        'Charge collision-aware ke target pilihan; personal Mark menambah Crit Rate.',
+        'Charge collision-aware ke target pilihan; personal Mark menambah Critical Rate.',
     },
   ),
   active(
