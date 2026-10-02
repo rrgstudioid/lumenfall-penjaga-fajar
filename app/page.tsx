@@ -27,6 +27,7 @@ import { RuneDetails } from '@/components/game/rune-details';
 import { ForgePanel } from '@/components/game/forge-panel';
 import { InterfaceSettings, InterfaceSettingsRuntime } from '@/components/game/interface-settings';
 import { GraphicsPresets } from '@/components/game/graphics-presets';
+import { PerformanceDiagnostics } from '@/components/game/performance-diagnostics';
 import { GameDragDropProvider } from '@/components/game/drag-drop-provider';
 import { InventoryGrid } from '@/components/game/inventory-grid';
 import { InventoryCombatPowerPreview } from '@/components/game/combat-power-preview';
@@ -1560,6 +1561,7 @@ export default function Home() {
                     </button>
                   </div>
                   <GraphicsPresets game={engine} />
+                  <PerformanceDiagnostics game={engine} />
                   <div className="adventure-menu-links">
                     <button className="secondary-button" onClick={toggleFullscreen}>
                       {isFullscreen ? <Minimize2 size={17} /> : <Maximize2 size={17} />}
