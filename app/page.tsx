@@ -35,7 +35,6 @@ import {
 } from '@/components/game/primary-hotbar';
 import {
   Sparkles,
-  FlaskConical as _FlaskConical,
   Coins,
   Backpack,
   Volume2,
@@ -2631,5 +2630,4 @@ export default function Home() {
     </GameDragDropProvider></JobPresentationContext.Provider>
   );
 }
-
 

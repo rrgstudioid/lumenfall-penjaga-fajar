@@ -1,4 +1,4 @@
-import type { SkillDefinition, SkillHit, SkillRankValues as _SkillRankValues } from './skills.ts';
+import type { SkillDefinition, SkillHit } from './skills.ts';
 import type { SkillDefinitionV3, SkillProgressionV3State } from './skill-progression-v3.ts';
 import type { ResolvedSkillAction } from './skill-action.ts';
 import type { ItemData } from './items.ts';

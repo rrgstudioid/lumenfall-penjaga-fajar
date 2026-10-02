@@ -114,7 +114,7 @@ import {
 } from './rules';
 import { MASTERY_EFFECTS, type SkillDefinition } from './skills';
 import { COMBAT_MECHANICS, criticalChance, evasionChance, blockChance, barrierAmount, resolveHitAgainstEvasion } from './combat-mechanics';
-import { SkillHitQueue, selectSkillTargets, skillHitDamage, inFrontalArc as _inFrontalArc, type ResolvedSkillAction } from './skill-action';
+import { SkillHitQueue, selectSkillTargets, skillHitDamage, type ResolvedSkillAction } from './skill-action';
 import { applySourceOwnedStatus, applyStatus, clearExpiredSourceStatuses, effectiveArmorBreakStrength, getActiveStatusApplications, hasActiveStatusFromSource, hasStatus, getStatus, DefenseEvents, counterContextAllowed, type DefenseResult, type SourceOwnedStatus } from './combat-status';
 import {addTemporaryModifier,tickTemporaryModifiers,receivedMultiplier,resolveTargetHit,NO_COUNTER,setManualGuard} from './combat-modifiers';
 import {forwardFromYaw} from './combat-position';
@@ -443,6 +443,10 @@ export class Game {
   raycaster = new T.Raycaster();
   pointer = new T.Vector2();
   aim = new T.Vector3();
+  private movementInput = new T.Vector3();
+  private frameProjection = new T.Vector3();
+  private cameraFocusScratch = new T.Vector3();
+  private cameraDirectionScratch = new T.Vector3();
   ground = new T.Plane(new T.Vector3(0, 1, 0), 0);
   pointerActive = false;
   attacking = false;
@@ -3711,16 +3715,16 @@ export class Game {
     }
     this.emit();
   }
-  moveVector() {
-    if (this.thiefMovement) return new T.Vector3();
-    if(this.actionLock?.active(this.combatTime)&&!this.actionLock.movementAllowed)return new T.Vector3();
+  moveVector(movement = new T.Vector3()) {
+    if (this.thiefMovement || (this.actionLock?.active(this.combatTime) && !this.actionLock.movementAllowed))
+      return movement.set(0, 0, 0);
     const right =
         (this.keys.has('d') || this.keys.has('arrowright') ? 1 : 0) -
         (this.keys.has('a') || this.keys.has('arrowleft') ? 1 : 0),
       forward =
         (this.keys.has('s') || this.keys.has('arrowdown') ? 1 : 0) -
         (this.keys.has('w') || this.keys.has('arrowup') ? 1 : 0);
-    return new T.Vector3(
+    return movement.set(
       Math.cos(this.yaw) * right + Math.sin(this.yaw) * forward,
       0,
       -Math.sin(this.yaw) * right + Math.cos(this.yaw) * forward,
@@ -3828,7 +3832,7 @@ export class Game {
       this.invincible = Math.max(0, this.invincible - dt);
       this.comboWindow = Math.max(0, this.comboWindow - dt);
       this.swing = Math.max(0, this.swing - dt);
-      const m = this.moveVector();
+      const m = this.moveVector(this.movementInput);
       if (m.lengthSq() && !isStunned(this.hero,this.combatTime)) {
         // Movement is always a moderate run. Shift no longer changes the speed.
         const sprinting = true;
@@ -3930,14 +3934,15 @@ export class Game {
     }
     if(this.isAverion&&this.averion) {
       if(this.cameraMode==='follow') {
-        const focus=this.actor.position.clone().add(new T.Vector3(0,1.65,0));
+        const focus=this.cameraFocusScratch.copy(this.actor.position);
+        focus.y+=1.65;
         const constrained=this.averion.constrainCamera(focus,this.camera.position);
-        const direction=constrained.clone().sub(focus),allowed=direction.length();
+        const direction=this.cameraDirectionScratch.copy(constrained).sub(focus),allowed=direction.length();
         this.averionCameraDistance=allowed<this.averionCameraDistance?allowed:this.averionCameraDistance+(allowed-this.averionCameraDistance)*(1-Math.exp(-8*dt));
         this.camera.position.copy(focus).addScaledVector(direction.normalize(),this.averionCameraDistance);
       }
       this.averion.updateLOD(this.camera);
-      this.worldLightRig.traverse(o=>{if(o instanceof T.DirectionalLight){o.position.copy(this.actor.position).add(new T.Vector3(-25,45,20));o.target.position.copy(this.actor.position);o.target.updateMatrixWorld();}});
+      this.worldLightRig.traverse(o=>{if(o instanceof T.DirectionalLight){o.position.set(this.actor.position.x-25,this.actor.position.y+45,this.actor.position.z+20);o.target.position.copy(this.actor.position);o.target.updateMatrixWorld();}});
     }
     if(this.isPlains&&this.plains){
       // Imported equipment can complete after the body ready promise. Catch those
@@ -4042,8 +4047,9 @@ export class Game {
       }
       return;
     }
-    const v = this.actor.position.clone().sub(e.group.position).setY(0),
-      dist = v.length(),
+    const dx = this.actor.position.x - e.group.position.x,
+      dz = this.actor.position.z - e.group.position.z,
+      dist = Math.hypot(dx, dz),
       safe = this.hero.inCity || isFieldSafe(this.hero.currentField,this.hero.x,this.hero.z);
     e.cooldown -= dt;
     e.flash = Math.max(0, e.flash - dt);
@@ -4106,14 +4112,17 @@ export class Game {
       this.groundDistance(e.group.position,e.home) < 20
     ) {
       if (dist > (e.boss ? 3.7 : 1.4)) {
-        v.normalize();
         if(this.fieldTerrain)this.followTerrain(e,this.actor.position,e.movementSpeed*movementFactor,dt);
-        else {const step=dt*e.movementSpeed*movementFactor;this.moveEnemy(e,v.x*step,v.z*step);}
-        e.group.rotation.y = Math.atan2(-v.x, -v.z);
+        else {const step=dt*e.movementSpeed*movementFactor;this.moveEnemy(e,dx/dist*step,dz/dist*step);}
+        e.group.rotation.y = Math.atan2(-dx, -dz);
       } else if (e.cooldown <= 0) e.windup = e.boss ? 1.1 : e.definition?.attackSpeed ?? 0.65;
     } else if (this.groundDistance(e.group.position,e.home) > 1) {
       if(this.fieldTerrain)this.followTerrain(e,e.home,1.6*(1-poisonSlow),dt);
-      else {const homeDirection=e.home.clone().sub(e.group.position).setY(0).normalize();this.moveEnemy(e,homeDirection.x*dt*1.6*(1-poisonSlow),homeDirection.z*dt*1.6*(1-poisonSlow));}
+      else {
+        const homeX=e.home.x-e.group.position.x,homeZ=e.home.z-e.group.position.z;
+        const homeDistance=Math.hypot(homeX,homeZ),step=dt*1.6*(1-poisonSlow);
+        if(homeDistance>0)this.moveEnemy(e,homeX/homeDistance*step,homeZ/homeDistance*step);
+      }
     }
     body.position.y =
       Math.abs(Math.sin(this.elapsed * (e.boss ? 2 : 4) + e.id)) *
@@ -4198,6 +4207,16 @@ export class Game {
       life: 1.4,
     });
   }
+  private normalizeResource(value: number, maximum: number) {
+    const current = Number.isFinite(value) ? value : maximum;
+    return Math.max(0, Math.min(1, current / Math.max(1, maximum)));
+  }
+  private updatePlayerBar(resource: keyof typeof this.playerBarValues, value: number) {
+    if (Math.abs(this.playerBarValues[resource] - value) < 0.001) return;
+    const fill = this.playerStatusLabel?.querySelector(`.${resource} i`) as HTMLElement | null;
+    if (fill) fill.style.width = `${value * 100}%`;
+    this.playerBarValues[resource] = value;
+  }
   updateFloating(dt: number) {
     this.updatePlayerSpeech();
     const playerLabel = this.playerStatusLabel;
@@ -4207,10 +4226,9 @@ export class Game {
     if (playerLabel) {
       playerLabel.style.display = playerVisible ? 'block' : 'none';
       if (playerVisible) {
-        const p = this.actor.position
-          .clone()
-          .add(new T.Vector3(0, 0.12, 0))
-          .project(this.camera);
+        const p = this.frameProjection.copy(this.actor.position);
+        p.y+=0.12;
+        this.frameProjection.project(this.camera);
         const validProjection = Number.isFinite(p.x) && Number.isFinite(p.y) && p.z > -1;
         playerLabel.style.display = validProjection ? 'block' : 'none';
         if (validProjection) {
@@ -4218,43 +4236,40 @@ export class Game {
           playerLabel.style.top = `${(-p.y * 0.5 + 0.5) * 100}%`;
           const stats = derivedStats(this.hero);
           const staminaMax = Math.max(1, Number(stats.staminaMax) || 100);
-          const normalized = (value: number, maximum: number) => {
-            const current = Number.isFinite(value) ? value : maximum;
-            return Math.max(0, Math.min(1, current / Math.max(1, maximum)));
-          };
-          const values: Record<string, number> = {
-            hp: normalized(this.hero.hp, maxHP(this.hero)),
-            mana: normalized(this.hero.mana, stats.maxMana),
-            ...(isResourceEnabled(this.hero, 'stamina') ? { stamina: normalized(this.stamina, staminaMax) } : {}),
-          };
-          for (const [resource, value] of Object.entries(values)) {
-            if (Math.abs(this.playerBarValues[resource as keyof typeof this.playerBarValues] - value) < 0.001) continue;
-            const fill = playerLabel.querySelector(`.${resource} i`) as HTMLElement | null;
-            if (fill) fill.style.width = `${value * 100}%`;
-            this.playerBarValues[resource as keyof typeof this.playerBarValues] = value;
-          }
+          this.updatePlayerBar('hp', this.normalizeResource(this.hero.hp, maxHP(this.hero)));
+          this.updatePlayerBar('mana', this.normalizeResource(this.hero.mana, stats.maxMana));
+          if (isResourceEnabled(this.hero, 'stamina'))
+            this.updatePlayerBar('stamina', this.normalizeResource(this.stamina, staminaMax));
         }
       }
     }
     for(const portal of this.portalLabels) {
       const visible=this.started&&Math.hypot(this.hero.x-portal.x,this.hero.z-portal.z)<16;
       portal.element.style.display=visible?'block':'none';
-      if(visible){const p=new T.Vector3(portal.x,this.groundHeight(portal.x,portal.z)+(portal.labelHeight??5),portal.z).project(this.camera);portal.element.style.left=`${(p.x*.5+.5)*100}%`;portal.element.style.top=`${(-p.y*.5+.5)*100}%`;}
+      if(visible){const p=this.frameProjection.set(portal.x,this.groundHeight(portal.x,portal.z)+(portal.labelHeight??5),portal.z).project(this.camera);portal.element.style.left=`${(p.x*.5+.5)*100}%`;portal.element.style.top=`${(-p.y*.5+.5)*100}%`;}
     }
     for(const {npc,element,nameElement} of this.npcLabels) {
-      const position=new T.Vector3(npc.x,this.groundHeight(npc.x,npc.z)+2.8,npc.z);
+      const position=this.frameProjection.set(npc.x,this.groundHeight(npc.x,npc.z)+2.8,npc.z);
       const visible=this.started&&position.distanceTo(this.actor.position)<18;
-      const trackedStatus=npc.services.includes('quest')?this.hero.activeQuests.map(id=>regionQuestStatus(this.hero,id)).find(status=>status==='ready_to_complete'||status==='active'):undefined;
+      let trackedStatus: ReturnType<typeof regionQuestStatus> | undefined;
+      if(npc.services.includes('quest')) {
+        for(const id of this.hero.activeQuests) {
+          const status=regionQuestStatus(this.hero,id);
+          if(status==='ready_to_complete'||status==='active'){trackedStatus=status;break;}
+        }
+      }
       const name=`${trackedStatus==='ready_to_complete'?'?':trackedStatus==='active'?'!':'◆'} ${npc.name}`;
       if(nameElement.textContent!==name) nameElement.textContent=name;
       element.style.display=visible?'block':'none';
-      if(visible){const p=position.project(this.camera);element.style.display=p.z>=-1&&p.z<=1?'block':'none';element.style.left=`${(p.x*.5+.5)*100}%`;element.style.top=`${(-p.y*.5+.5)*100}%`;}
+      if(visible){position.project(this.camera);element.style.display=position.z>=-1&&position.z<=1?'block':'none';element.style.left=`${(position.x*.5+.5)*100}%`;element.style.top=`${(-position.y*.5+.5)*100}%`;}
     }
     for (const loot of this.groundLoot) {
       const visible = this.started && loot.group.position.distanceTo(this.actor.position) < 18;
       loot.label.style.display = visible ? 'block' : 'none';
       if (visible) {
-        const p = loot.group.position.clone().add(new T.Vector3(0, 1.05, 0)).project(this.camera);
+        const p = this.frameProjection.copy(loot.group.position);
+        p.y+=1.05;
+        this.frameProjection.project(this.camera);
         loot.label.style.left = `${(p.x * 0.5 + 0.5) * 100}%`;
         loot.label.style.top = `${(-p.y * 0.5 + 0.5) * 100}%`;
       }
@@ -4263,7 +4278,9 @@ export class Game {
       const visible = this.started && gold.group.position.distanceTo(this.actor.position) < 18;
       gold.label.style.display = visible ? 'block' : 'none';
       if (visible) {
-        const p = gold.group.position.clone().add(new T.Vector3(0, 1.05, 0)).project(this.camera);
+        const p = this.frameProjection.copy(gold.group.position);
+        p.y+=1.05;
+        this.frameProjection.project(this.camera);
         gold.label.style.left = `${(p.x * 0.5 + 0.5) * 100}%`;
         gold.label.style.top = `${(-p.y * 0.5 + 0.5) * 100}%`;
       }
@@ -4277,10 +4294,9 @@ export class Game {
         e.group.position.distanceTo(this.actor.position) < 15;
       label.style.display = visible ? 'block' : 'none';
       if (visible) {
-        const p = e.group.position
-          .clone()
-          .add(new T.Vector3(0, e.group.children[0].userData.labelHeight ?? 1.8, 0))
-          .project(this.camera);
+        const p = this.frameProjection.copy(e.group.position);
+        p.y += e.group.children[0].userData.labelHeight ?? 1.8;
+        p.project(this.camera);
         label.style.left = `${(p.x * 0.5 + 0.5) * 100}%`;
         label.style.top = `${(-p.y * 0.5 + 0.5) * 100}%`;
         const fill = label.querySelector('i');
@@ -4291,7 +4307,7 @@ export class Game {
       const f = this.floating[i];
       f.life -= dt;
       f.position.y += dt;
-      const p = f.position.clone().project(this.camera);
+      const p = this.frameProjection.copy(f.position).project(this.camera);
       f.element.style.left = `${(p.x * 0.5 + 0.5) * 100}%`;
       f.element.style.top = `${(-p.y * 0.5 + 0.5) * 100}%`;
       f.element.style.opacity = String(Math.min(1, f.life * 2));

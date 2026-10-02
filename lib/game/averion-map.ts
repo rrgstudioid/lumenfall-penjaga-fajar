@@ -403,20 +403,32 @@ export async function buildStage03(
     }
     proxies.updateMatrixWorld(true);
     const ray = new T.Raycaster();
+    const cameraOffsets = [
+      new T.Vector3(),
+      new T.Vector3(.22,0,0),
+      new T.Vector3(-.22,0,0),
+      new T.Vector3(0,.22,0),
+      new T.Vector3(0,-.22,0),
+    ];
+    const cameraDirection = new T.Vector3();
+    const cameraOrigin = new T.Vector3();
+    const cameraResult = new T.Vector3();
+    const cameraHits: T.Intersection[] = [];
     const constrainCamera = (focus: T.Vector3, desired: T.Vector3) => {
-      const direction = desired.clone().sub(focus);
+      const direction = cameraDirection.copy(desired).sub(focus);
       const length = direction.length();
       direction.normalize();
       let hitDistance = Infinity;
-      for (const offset of [new T.Vector3(), new T.Vector3(.22,0,0), new T.Vector3(-.22,0,0), new T.Vector3(0,.22,0), new T.Vector3(0,-.22,0)]) {
-        ray.set(focus.clone().add(offset), direction);
+      for (const offset of cameraOffsets) {
+        ray.set(cameraOrigin.copy(focus).add(offset), direction);
         ray.far = length;
-        const hit = ray.intersectObjects(proxies.children, false)[0];
+        cameraHits.length = 0;
+        ray.intersectObjects(proxies.children, false, cameraHits);
+        const hit = cameraHits[0];
         if (hit) hitDistance = Math.min(hitDistance, hit.distance);
       }
       return Number.isFinite(hitDistance)
-        ? focus
-            .clone()
+        ? cameraResult.copy(focus)
             .addScaledVector(direction, Math.max(0.4, hitDistance - 0.35))
         : desired;
     };
