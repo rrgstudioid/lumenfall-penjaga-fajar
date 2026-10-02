@@ -47,6 +47,11 @@ export function createWildsVfx(quality: WildsQuality) {
   const owners = new Int32Array(capacity).fill(-1),
     targets = new Float32Array(capacity),
     slotParticle = new Int16Array(capacity);
+  const slotByEmitterParticle = new Map<number, number>(),
+    freeSlots = Array.from(
+      { length: WILDS_QUALITY[quality].fireflies },
+      (_, index) => index,
+    );
   const palette = WILDS_FIREFLY_PALETTE.map((color) => new T.Color(color));
   const geometry = new T.BufferGeometry();
   // Stable simulation slots; compact only visible slots into the GPU index list.
@@ -169,23 +174,14 @@ export function createWildsVfx(quality: WildsQuality) {
           if (j >= count || wanted >= profile.fireflies) continue;
           wanted++;
           activeEmitters.add(id);
-          let slot = -1;
-          for (let k = 0; k < capacity; k++)
-            if (owners[k] === id && slotParticle[k] === j) {
-              slot = k;
-              break;
-            }
-          if (slot < 0) {
-            for (let k = 0; k < profile.fireflies; k++)
-              if (owners[k] < 0) {
-                slot = k;
-                break;
-              }
-          }
+          const key = id * 48 + j;
+          let slot = slotByEmitterParticle.get(key) ?? -1;
+          if (slot < 0) slot = freeSlots.pop() ?? -1;
           if (slot < 0) break;
           if (owners[slot] < 0) {
             owners[slot] = id;
             slotParticle[slot] = j;
+            slotByEmitterParticle.set(key, slot);
             const s = id * 97 + j * 13,
               angle = s * 2.399,
               spread = 2 + (s % 43) / 3.8;
@@ -231,14 +227,16 @@ export function createWildsVfx(quality: WildsQuality) {
       sz = player.z - previousPlayer.y,
       segmentLength = sx * sx + sz * sz;
     const playerY = wildsGroundHeight(player.x, player.z) + 1.25;
-    for (let i = 0; i < capacity; i++) {
+    for (let i = 0; i < profile.fireflies; i++) {
       fades[i] += (targets[i] - fades[i]) * Math.min(1, step * 5);
-      if (targets[i] === 0 && fades[i] < 0.01) {
+      if (owners[i] >= 0 && targets[i] === 0 && fades[i] < 0.01) {
+        slotByEmitterParticle.delete(owners[i] * 48 + slotParticle[i]);
         owners[i] = -1;
         fades[i] = 0;
         reactions.fill(0, i * 3, i * 3 + 3);
         velocities.fill(0, i * 3, i * 3 + 3);
         cooldowns[i] = 0;
+        freeSlots.push(i);
       }
       if (owners[i] >= 0) {
         active++;
@@ -325,6 +323,10 @@ export function createWildsVfx(quality: WildsQuality) {
       reactions.fill(0);
       velocities.fill(0);
       cooldowns.fill(0);
+      slotByEmitterParticle.clear();
+      freeSlots.length = 0;
+      for (let i = 0; i < WILDS_QUALITY[q].fireflies; i++)
+        freeSlots.push(i);
       previousPlayer.set(NaN, NaN);
       reacting = 0;
       nextCheck = -1;

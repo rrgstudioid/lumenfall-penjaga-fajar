@@ -1,12 +1,10 @@
 ﻿'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { WILDS_ID } from '@/lib/game/whispering-wilds-layout';
 import { FROSTFIRE_ID } from '@/lib/game/frostfire-highlands-layout';
 import { isDaggerItem } from '@/lib/game/dagger';
 import { getVisibleJobArchitecture, presentJobText } from '@/lib/game/job-presentation';
-import { JobArchitecturePreview } from '@/components/game/job-architecture-preview';
-import { V3JobTrainer } from '@/components/game/v3-job-trainer';
 import { JobPresentationContext, JobText } from '@/components/game/job-presentation-context';
 import { createPortal } from 'react-dom';
 import './character-panels.css';
@@ -89,12 +87,11 @@ import {
   equipmentUsageDescription,
   type InventorySort,
 } from '@/lib/game/items';
-import { CharacterOverview, StatBlockList } from '@/components/game/character-overview';
+import { StatBlockList } from '@/components/game/character-overview';
 import {
   DraggableAlertDialogContent,
   DraggableDialogContent,
 } from '@/components/game/draggable-window';
-import { JobSkill } from '@/components/game/job-skill';
 import { ItemIcon } from '@/components/game/entry-icon';
 import { ItemHover } from '@/components/game/item-hover';
 import {
@@ -123,6 +120,27 @@ import {
   type QuestJournalEntry,
 } from '@/lib/game/regions';
 import { fieldShopStock, shopItemPrice, shopStock } from '@/lib/game/city-services';
+
+const JobArchitecturePreview = lazy(() =>
+  import('@/components/game/job-architecture-preview').then((module) => ({
+    default: module.JobArchitecturePreview,
+  })),
+);
+const V3JobTrainer = lazy(() =>
+  import('@/components/game/v3-job-trainer').then((module) => ({
+    default: module.V3JobTrainer,
+  })),
+);
+const CharacterOverview = lazy(() =>
+  import('@/components/game/character-overview').then((module) => ({
+    default: module.CharacterOverview,
+  })),
+);
+const JobSkill = lazy(() =>
+  import('@/components/game/job-skill').then((module) => ({
+    default: module.JobSkill,
+  })),
+);
 
 const initial: Snapshot = {
   cameraMode: 'free',
@@ -1583,14 +1601,18 @@ export default function Home() {
           )}
           {panel === 'class' && (
             <div className="dialog-stack class-panel">
-              <JobArchitecturePreview hero={hero} />
-              <V3JobTrainer
-                hero={hero}
-                onChooseWarrior={() => game.current?.chooseCoreJob('warrior')}
-                onChooseThief={() => game.current?.chooseCoreJob('thief')}
-                onChooseSpecialization={(id) => game.current?.chooseSpecialization(id)}
-                onResetToAdventurer={() => game.current?.resetJobToAdventurer()}
-              />
+              <Suspense
+                fallback={<p className="muted-copy">Memuat jalur job...</p>}
+              >
+                <JobArchitecturePreview hero={hero} />
+                <V3JobTrainer
+                  hero={hero}
+                  onChooseWarrior={() => game.current?.chooseCoreJob('warrior')}
+                  onChooseThief={() => game.current?.chooseCoreJob('thief')}
+                  onChooseSpecialization={(id) => game.current?.chooseSpecialization(id)}
+                  onResetToAdventurer={() => game.current?.resetJobToAdventurer()}
+                />
+              </Suspense>
               {visibleJobs.v2 && !hero.coreJob && (
                 <>
                   <span className="eyebrow">CORE JOB · LEVEL 15</span>
@@ -2179,24 +2201,32 @@ export default function Home() {
             </div>
           )}
           {panel === 'character' && (
-            <CharacterOverview
-              hero={hero}
-              game={engine}
-              onInventory={(item) => {
-                if (item) setSelectedItemId(item.id);
-                setPanel('bag');
-              }}
-            />
+            <Suspense
+              fallback={<p className="muted-copy">Memuat karakter...</p>}
+            >
+              <CharacterOverview
+                hero={hero}
+                game={engine}
+                onInventory={(item) => {
+                  if (item) setSelectedItemId(item.id);
+                  setPanel('bag');
+                }}
+              />
+            </Suspense>
           )}
           {panel === 'jobSkill' && (
-            <JobSkill
-              hero={hero}
-              game={engine}
-              onMark={(npcId) => {
-                setQuestMarkerId(npcId);
-                setPanel('map');
-              }}
-            />
+            <Suspense
+              fallback={<p className="muted-copy">Memuat skill...</p>}
+            >
+              <JobSkill
+                hero={hero}
+                game={engine}
+                onMark={(npcId) => {
+                  setQuestMarkerId(npcId);
+                  setPanel('map');
+                }}
+              />
+            </Suspense>
           )}
           {panel === 'quest' && (
             <div className="dialog-stack quest-journal">

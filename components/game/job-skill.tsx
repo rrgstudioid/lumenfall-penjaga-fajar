@@ -486,7 +486,7 @@ export function JobSkill({
                   <PresentationSection title="NEXT RANK" rows={presentation.nextRank} />
                   {level >= selected.maxLevel && <span className="js-max-rank">MAX RANK</span>}
                   {(selectedActive?.rogueAmbush?.requiresAmbush || selectedActive?.assasin?.execution) && game?.started && level > 0 && !game.canCastSkill(selected.id).ok &&
-                    <p className="js-reason" role="status">Cast unavailable: {game.canCastSkill(selected.id).reason}</p>}
+                    <output className="js-reason">Cast unavailable: {game.canCastSkill(selected.id).reason}</output>}
                 </div>
               )}
               {selectedActive && !selectedIsMastery && !v3Definition && (

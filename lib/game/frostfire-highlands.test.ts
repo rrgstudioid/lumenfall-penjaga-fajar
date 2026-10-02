@@ -231,6 +231,7 @@ await test('footprints alternate, follow actual motion, reject ice/teleports, fa
   for (let i = 1; i < marks.length; i++)
     assert.equal(marks[i]!.side, -marks[i - 1]!.side);
   const count = pool.count;
+  assert.equal(pool.activeSlots.size, count);
   pool.update(p, 2.1, 0.02, false);
   assert.equal(pool.count, count);
   const ice = FROSTFIRE_LAKES[0];
@@ -240,7 +241,10 @@ await test('footprints alternate, follow actual motion, reject ice/teleports, fa
   assert.equal(pool.count, count);
   pool.update(ice, 50, 0.02, false);
   assert.equal(pool.count, 0);
+  assert.equal(pool.activeSlots.size, 0);
+  assert.equal(pool.expiredSlots.length, count);
   pool.reset();
+  assert.equal(pool.expiredSlots.length, 0);
   for (let i = 0; i < 5000; i++) {
     const x = FROSTFIRE_ENTRY.x + Math.sin(i * 0.025) * 12;
     pool.update({ x, z: FROSTFIRE_ENTRY.z }, i * 0.001, 0.03, true);

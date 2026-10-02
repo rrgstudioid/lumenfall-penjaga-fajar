@@ -15,21 +15,30 @@ export type Footprint = {
 /** Distance sampling is independent from render FPS and never alters locomotion. */
 export class FrostFootprints {
   readonly slots: Array<Footprint | undefined> = Array(FOOTPRINT_LIMIT);
+  readonly activeSlots = new Set<number>();
+  readonly expiredSlots: number[] = [];
   private cursor = 0;
   private previous: FrostPoint | undefined;
   private distance = 0;
   private side = 1;
   reset() {
     this.slots.fill(undefined);
+    this.activeSlots.clear();
+    this.expiredSlots.length = 0;
     this.previous = undefined;
     this.distance = 0;
     this.cursor = 0;
     this.side = 1;
   }
   update(p: FrostPoint, time: number, dt: number, walking: boolean) {
-    for (let i = 0; i < this.slots.length; i++)
-      if (this.slots[i] && time - this.slots[i]!.born >= FOOTPRINT_LIFETIME)
+    this.expiredSlots.length = 0;
+    for (const i of this.activeSlots) {
+      if (time - this.slots[i]!.born >= FOOTPRINT_LIFETIME) {
         this.slots[i] = undefined;
+        this.activeSlots.delete(i);
+        this.expiredSlots.push(i);
+      }
+    }
     const from = this.previous;
     this.previous = { x: p.x, z: p.z };
     if (!from || !walking || dt <= 0) {
@@ -65,6 +74,7 @@ export class FrostFootprints {
           side: this.side,
           born: time,
         };
+        this.activeSlots.add(this.cursor);
         this.cursor = (this.cursor + 1) % FOOTPRINT_LIMIT;
       }
       this.side *= -1;
@@ -80,6 +90,6 @@ export class FrostFootprints {
     );
   }
   get count() {
-    return this.slots.filter(Boolean).length;
+    return this.activeSlots.size;
   }
 }

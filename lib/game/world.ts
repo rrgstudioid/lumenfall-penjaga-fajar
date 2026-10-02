@@ -274,7 +274,26 @@ type Enemy = {
   movementSpeed: number;
 };
 type GroundLoot = { id: string; item: ItemData; group: T.Group; label: HTMLSpanElement };
-type GroundGold = { id: string; amount: number; group: T.Group; label: HTMLSpanElement };
+type GroundGold = {
+  id: string;
+  amount: number;
+  group: T.Group;
+  label: HTMLSpanElement;
+  fallback: T.Mesh<T.CylinderGeometry, T.MeshStandardMaterial> | null;
+  materials: T.Material[];
+};
+
+function disposeGroundGold(drop: GroundGold) {
+  drop.group.removeFromParent();
+  drop.label.remove();
+  if (drop.fallback) {
+    drop.fallback.geometry.dispose();
+    drop.fallback.material.dispose();
+    drop.fallback = null;
+  }
+  for (const material of drop.materials) material.dispose();
+  drop.materials.length = 0;
+}
 type Particle = {
   mesh: T.Mesh;
   velocity: T.Vector3;
@@ -1512,7 +1531,14 @@ export class Game {
     label.className = 'floating reward';
     label.textContent = `${amount} Gold Coins`;
     this.labelHost.appendChild(label);
-    const drop: GroundGold = { id: `gold-${Date.now()}-${this.groundGold.length}`, amount, group, label };
+    const drop: GroundGold = {
+      id: `gold-${Date.now()}-${this.groundGold.length}`,
+      amount,
+      group,
+      label,
+      fallback,
+      materials: [],
+    };
     this.groundGold.push(drop);
     loadGoldCoin().then(source => {
       if (this.disposed || !this.groundGold.includes(drop)) return;
@@ -1530,12 +1556,16 @@ export class Game {
           metalness: 0.9,
           roughness: 0.0,
         });
+        drop.materials.push(goldMaterial);
         object.material = Array.isArray(object.material)
           ? object.material.map(() => goldMaterial)
           : goldMaterial;
       });
       model.position.y = 0.28;
       group.remove(fallback);
+      fallback.geometry.dispose();
+      fallback.material.dispose();
+      drop.fallback = null;
       group.add(model);
     }).catch(() => undefined);
   }
@@ -1555,8 +1585,7 @@ export class Game {
     }
     if (nearestGold) {
       this.hero.gold += nearestGold.amount;
-      this.scene.remove(nearestGold.group);
-      nearestGold.label.remove();
+      disposeGroundGold(nearestGold);
       this.groundGold = this.groundGold.filter(drop => drop !== nearestGold);
       this.message(`Gold diambil: ${nearestGold.amount} Gold Coins`);
       this.save();
@@ -1599,10 +1628,7 @@ export class Game {
       });
     }
     this.groundLoot = [];
-    for (const gold of this.groundGold) {
-      this.scene.remove(gold.group);
-      gold.label.remove();
-    }
+    for (const gold of this.groundGold) disposeGroundGold(gold);
     this.groundGold = [];
   }
   spawnBoss(notify = true) {
@@ -2184,7 +2210,8 @@ export class Game {
     this.renderer.domElement.focus({ preventScroll: true });
     this.emit();
     this.lastTime = 0;
-    if (!this.frame) this.frame = requestAnimationFrame(this.tick);
+    if (!document.hidden && !this.frame)
+      this.frame = requestAnimationFrame(this.tick);
   }
   returnToCharacterSelection() {
     this.returnToMainMenu();
@@ -4573,7 +4600,16 @@ export class Game {
   };
   visibility = () => {
     this.bgm.setHidden(document.hidden);
-    if (document.hidden) this.blur();
+    if (document.hidden) {
+      this.blur();
+      cancelAnimationFrame(this.frame);
+      this.frame = 0;
+      this.lastTime = 0;
+      this.renderPerformance.suspend();
+    } else if (this.started && !this.disposed && !this.frame) {
+      this.lastTime = 0;
+      this.frame = requestAnimationFrame(this.tick);
+    }
   };
   pagehide = () => {
     this.bgm.setHidden(true);

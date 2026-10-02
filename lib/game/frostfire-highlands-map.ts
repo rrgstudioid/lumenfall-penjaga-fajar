@@ -339,36 +339,36 @@ export async function buildFrostfireHighlands() {
         walking: boolean,
         pixelRatio: number,
       ) {
+        if (disposed) return;
         time += Math.max(0, dt);
         sky.update(camera, time);
         oceanMat.userData.time.value = time;
         weather!.update(camera, dt, pixelRatio);
         prints.update(player, time, dt, walking);
-        for (let i = 0; i < FOOTPRINT_LIMIT; i++) {
-          const p = prints.slots[i];
-          let alpha = 0;
-          if (p) {
-            alpha =
-              prints.opacity(p, time) *
-              (1 -
-                frostSmooth(
-                  45,
-                  60,
-                  Math.hypot(player.x - p.x, player.z - p.z),
-                ));
-            normal.set(p.nx, p.ny, p.nz);
-            rotation.setFromUnitVectors(up, normal);
-            yaw.setFromAxisAngle(up, p.yaw);
-            dummy.position.set(p.x, p.y, p.z);
-            dummy.quaternion.copy(rotation).multiply(yaw);
-            dummy.scale.set(1, 1, 1);
-            dummy.updateMatrix();
-            footprints.setMatrixAt(i, dummy.matrix);
-          }
+        for (const i of prints.expiredSlots) alphas.setX(i, 0);
+        for (const i of prints.activeSlots) {
+          const p = prints.slots[i]!;
+          const alpha =
+            prints.opacity(p, time) *
+            (1 -
+              frostSmooth(
+                45,
+                60,
+                Math.hypot(player.x - p.x, player.z - p.z),
+              ));
           alphas.setX(i, alpha);
+          normal.set(p.nx, p.ny, p.nz);
+          rotation.setFromUnitVectors(up, normal);
+          yaw.setFromAxisAngle(up, p.yaw);
+          dummy.position.set(p.x, p.y, p.z);
+          dummy.quaternion.copy(rotation).multiply(yaw);
+          dummy.scale.set(1, 1, 1);
+          dummy.updateMatrix();
+          footprints.setMatrixAt(i, dummy.matrix);
         }
-        alphas.needsUpdate = true;
-        footprints.instanceMatrix.needsUpdate = true;
+        if (prints.activeSlots.size || prints.expiredSlots.length)
+          alphas.needsUpdate = true;
+        if (prints.activeSlots.size) footprints.instanceMatrix.needsUpdate = true;
       },
       drawMinimap(target: CanvasRenderingContext2D, size: number) {
         target.drawImage(mini, 0, 0, size, size);

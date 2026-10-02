@@ -127,7 +127,7 @@ function Fixture() {
             data-twin-weapon-valid={String(weaponValid)}>
             Main: {main?.name ?? 'empty'} ({main?.id ?? 'none'}) · Off: {off?.name ?? 'empty'} ({off?.id ?? 'none'}) · Style: {style ?? 'none'} · Twin Assault weapon: {weaponValid ? 'VALID' : 'LOCKED'}
           </output>
-          {notice && <p role="status">{notice}</p>}
+          {notice && <output style={{ display: 'block' }}>{notice}</output>}
           <section className="bm-fixture-panel" aria-label={panel === 'character' ? 'Character Overview fixture' : 'Job Skill fixture'}>
             {panel === 'character' ? (
               <CharacterOverview hero={hero} game={game as Game} onInventory={() => {}} />
