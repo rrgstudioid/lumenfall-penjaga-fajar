@@ -3,13 +3,11 @@ import { test } from 'node:test';
 import {
   clampWindowPosition,
   readUILayout,
-  resetHotbarUILayoutToDefaultOnce,
   resetUILayout,
   resetUILayoutEntries,
   saveWindowPosition,
   saveWindowScale,
   saveWindowSize,
-  HOTBAR_LAYOUT_MIGRATION_KEY,
   UI_LAYOUT_STORAGE_KEY,
   WindowFocusManager,
 } from './ui-layout.ts';
@@ -99,41 +97,6 @@ await test('hotbar position and local scale share UI layout storage independentl
   assert.equal(
     storage.values.get('lumenfall:characters:v2'),
     JSON.stringify({ gold: 321 }),
-  );
-});
-
-await test('hotbar size migration resets only the three saved hotbar layouts once', () => {
-  const storage = createStorage({
-    [UI_LAYOUT_STORAGE_KEY]: JSON.stringify({
-      version: 2,
-      windows: {
-        'primary-hotbar': { x: 120, y: 640, scale: 1.5 },
-        'quick-hotbar-q': { x: 480, y: 520, scale: 1.25 },
-        'quick-hotbar-e': { x: 920, y: 520, scale: 1.25 },
-        'panel-bag': { x: 40, y: 60, scale: 1 },
-      },
-    }),
-    'lumenfall:characters:v2': JSON.stringify({
-      characters: { 'slot-1': { primaryHotbar: ['skill-a'] } },
-    }),
-  });
-
-  assert.equal(resetHotbarUILayoutToDefaultOnce(storage), true);
-  assert.deepEqual(readUILayout(storage), {
-    'panel-bag': { x: 40, y: 60, scale: 1 },
-  });
-  assert.equal(storage.getItem(HOTBAR_LAYOUT_MIGRATION_KEY), '1');
-
-  saveWindowScale('primary-hotbar', 1.25, storage);
-  assert.equal(resetHotbarUILayoutToDefaultOnce(storage), false);
-  assert.deepEqual(readUILayout(storage)['primary-hotbar'], {
-    x: 0,
-    y: 0,
-    scale: 1.25,
-  });
-  assert.deepEqual(
-    JSON.parse(storage.getItem('lumenfall:characters:v2') ?? '{}'),
-    { characters: { 'slot-1': { primaryHotbar: ['skill-a'] } } },
   );
 });
 

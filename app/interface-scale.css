@@ -6,7 +6,7 @@ body > .toast,
 .topbar > :is(.brand, .location, .top-tools),
 .game-footer > :is(.journey-note, .experience),
 .lumenfall-draggable-window[data-slot],
-.primary-hotbar-panel {
+.primary-hotbar-panel:not(.hud-embedded-hotbar) {
   scale: var(--lumenfall-ui-scale);
 }
 
@@ -37,7 +37,7 @@ html .game-dialog.lumenfall-draggable-window[data-slot='dialog-content'],
   max-height: calc(86dvh / var(--lumenfall-ui-scale));
   overflow-y: auto;
 }
-.primary-hotbar-panel:not(.quick-hotbar-panel) {
+.primary-hotbar-panel:not(.quick-hotbar-panel):not(.hud-embedded-hotbar) {
   /* PrimaryHotbar is intentionally 25% more compact than the other UI. */
   scale: calc(var(--lumenfall-ui-scale) * var(--primary-hotbar-scale));
   width: min(880px, calc((100vw - 16px) / (var(--lumenfall-ui-scale) * var(--primary-hotbar-scale))));
