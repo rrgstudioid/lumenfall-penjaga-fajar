@@ -7,6 +7,12 @@ export type WindowLayout = Record<string, WindowPosition & Partial<WindowSize> &
 export const UI_LAYOUT_VERSION = 2;
 export const UI_LAYOUT_STORAGE_KEY = 'lumenfall:ui-layout:v2';
 export const UI_LAYOUT_RESET_EVENT = 'lumenfall:ui-layout-reset';
+export const HOTBAR_LAYOUT_MIGRATION_KEY = 'lumenfall:hotbar-layout-reset:v1';
+export const HOTBAR_LAYOUT_IDS = [
+  'primary-hotbar',
+  'quick-hotbar-q',
+  'quick-hotbar-e',
+] as const;
 
 type LayoutStorage = Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>;
 type StoredLayout = {
@@ -93,7 +99,7 @@ export function saveWindowScale(
   }
 }
 
-export function resetUILayoutEntries(ids: string[], storage?: LayoutStorage): void {
+export function resetUILayoutEntries(ids: readonly string[], storage?: LayoutStorage): void {
   if (!storage || !ids.length) return;
   try {
     const current = readUILayout(storage);
@@ -105,6 +111,24 @@ export function resetUILayoutEntries(ids: string[], storage?: LayoutStorage): vo
   } catch {
     // UI preferences are optional and must never affect gameplay.
   }
+}
+
+export function resetHotbarUILayoutToDefaultOnce(
+  storage?: LayoutStorage,
+): boolean {
+  if (!storage || storage.getItem(HOTBAR_LAYOUT_MIGRATION_KEY) === '1')
+    return false;
+  const windows = readUILayout(storage);
+  HOTBAR_LAYOUT_IDS.forEach((id) => delete windows[id]);
+  storage.setItem(
+    UI_LAYOUT_STORAGE_KEY,
+    JSON.stringify({
+      version: UI_LAYOUT_VERSION,
+      windows,
+    } satisfies StoredLayout),
+  );
+  storage.setItem(HOTBAR_LAYOUT_MIGRATION_KEY, '1');
+  return true;
 }
 
 export function saveWindowPosition(

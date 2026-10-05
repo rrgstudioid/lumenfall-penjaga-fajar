@@ -50,7 +50,9 @@ import { useGameDrag } from './drag-drop-provider';
 import { EntryIcon as HotbarIcon } from './entry-icon';
 import { INTERFACE_SCALE_EVENT } from '@/lib/game/interface-settings';
 import {
+  HOTBAR_LAYOUT_IDS,
   readUILayout,
+  resetHotbarUILayoutToDefaultOnce,
   resetUILayoutEntries,
   saveWindowPosition,
   saveWindowScale,
@@ -155,6 +157,7 @@ export function PrimaryHotbar({
       setLocalScale(HOTBAR_DEFAULT_SCALE);
     };
     try {
+      resetHotbarUILayoutToDefaultOnce(window.localStorage);
       const saved = readUILayout(window.localStorage)[layoutId];
       setSavedLayout(
         saved ? { x: saved.x, y: saved.y, scale: saved.scale } : null,
@@ -165,7 +168,11 @@ export function PrimaryHotbar({
           Math.max(HOTBAR_MIN_SCALE, saved?.scale ?? HOTBAR_DEFAULT_SCALE),
         ),
       );
-    } catch {
+    } catch (error) {
+      console.warn(
+        'Unable to reset saved hotbar layout; using default sizing.',
+        error,
+      );
       setSavedLayout(null);
       setLocalScale(HOTBAR_DEFAULT_SCALE);
     }
@@ -693,10 +700,7 @@ export function PrimaryHotbarEditor({
               return;
             }
             game?.resetHotbarLayouts();
-            resetUILayoutEntries(
-              ['primary-hotbar', 'quick-hotbar-q', 'quick-hotbar-e'],
-              window.localStorage,
-            );
+            resetUILayoutEntries(HOTBAR_LAYOUT_IDS, window.localStorage);
             window.dispatchEvent(new Event(UI_LAYOUT_RESET_EVENT));
           }}
         >
