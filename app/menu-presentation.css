@@ -13,7 +13,7 @@
 .menu-presentation button { cursor: pointer; font: inherit; }
 .menu-presentation button:disabled { cursor: not-allowed; opacity: .38; }
 .menu-presentation button:focus-visible, .menu-presentation input:focus-visible, .menu-presentation a:focus-visible { outline: 2px solid #bceeff; outline-offset: 5px; }
-.menu-scenery { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: center; z-index: -3; pointer-events: none; user-select: none; }
+.menu-scenery { position: absolute; inset: 0; width: 100%; height: 100%; background-position: center; background-repeat: no-repeat; background-size: cover; z-index: -3; pointer-events: none; user-select: none; }
 .menu-scene-shade { position: absolute; inset: 0; z-index: -2; pointer-events: none; background: linear-gradient(0deg, #041a35a6, transparent 22%, transparent 78%, #08294338); }
 .menu-main .menu-scene-shade { background: radial-gradient(ellipse at 50% 43%, #123b7345, transparent 50%), linear-gradient(0deg, #061c3988, transparent 17%); }
 .menu-wordmark { text-align: center; position: relative; display: grid; justify-items: center; }
