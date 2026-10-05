@@ -804,7 +804,7 @@ body:has([role='alertdialog']) .hud-hotbar-layer {
 .hud-theme .hud-embedded-hotbar.primary-hotbar-panel {
   position: relative;
   inset: auto;
-  transform: none;
+  transform: none !important;
   scale: 1;
   width: 100%;
   padding: 0;
