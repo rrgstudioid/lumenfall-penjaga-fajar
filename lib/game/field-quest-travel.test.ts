@@ -38,30 +38,30 @@ await test('field quest journal progress increases after every monster kill',()=
   const hero=freshHero();
   hero.level=50;
   hero.inCity=false;
-  hero.currentField='ironveil-mines';
-  hero.fieldProgress['ironveil-mines']=12;
-  assert.equal(acceptRegionQuest(hero,'field-ironveil-mines-easy'),true);
+  hero.currentField='sunken-ruins';
+  hero.fieldProgress['sunken-ruins']=12;
+  assert.equal(acceptRegionQuest(hero,'field-sunken-ruins-easy'),true);
 
-  let entry=getAllQuestJournalEntries(hero).find(quest=>quest.id==='field-ironveil-mines-easy')!;
+  let entry=getAllQuestJournalEntries(hero).find(quest=>quest.id==='field-sunken-ruins-easy')!;
   assert.deepEqual(entry.progress,[{current:0,required:5}]);
   assert.equal(entry.status,'active');
 
-  hero.fieldProgress['ironveil-mines']+=1;
-  entry=getAllQuestJournalEntries(hero).find(quest=>quest.id==='field-ironveil-mines-easy')!;
+  hero.fieldProgress['sunken-ruins']+=1;
+  entry=getAllQuestJournalEntries(hero).find(quest=>quest.id==='field-sunken-ruins-easy')!;
   assert.deepEqual(entry.progress,[{current:1,required:5}]);
   assert.equal(entry.status,'active');
 
-  hero.fieldProgress['ironveil-mines']+=4;
-  entry=getAllQuestJournalEntries(hero).find(quest=>quest.id==='field-ironveil-mines-easy')!;
+  hero.fieldProgress['sunken-ruins']+=4;
+  entry=getAllQuestJournalEntries(hero).find(quest=>quest.id==='field-sunken-ruins-easy')!;
   assert.deepEqual(entry.progress,[{current:5,required:5}]);
   assert.equal(entry.status,'ready_to_complete');
 });
 
 await test('legacy field opening quests migrate to the new local Easy quest',()=>{
-  assert.equal(migrateFieldQuestId('story-ironveil-mines'),'field-ironveil-mines-easy');
-  const hero=freshHero();hero.activeQuests=['story-ironveil-mines'];hero.acceptedQuests=['story-ironveil-mines'];hero.completedQuests=['story-verdant-plains'];
+  assert.equal(migrateFieldQuestId('story-sunken-ruins'),'field-sunken-ruins-easy');
+  const hero=freshHero();hero.activeQuests=['story-sunken-ruins'];hero.acceptedQuests=['story-sunken-ruins'];hero.completedQuests=['story-verdant-plains'];
   const loaded=parseSave(JSON.stringify(hero))!;
-  assert.deepEqual(loaded.activeQuests,['field-ironveil-mines-easy']);
-  assert.deepEqual(loaded.acceptedQuests,['field-ironveil-mines-easy']);
+  assert.deepEqual(loaded.activeQuests,['field-sunken-ruins-easy']);
+  assert.deepEqual(loaded.acceptedQuests,['field-sunken-ruins-easy']);
   assert.deepEqual(loaded.completedQuests,['field-verdant-plains-easy']);
 });

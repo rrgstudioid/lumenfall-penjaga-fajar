@@ -1,6 +1,9 @@
 ﻿'use client';
+import { MINE_ID } from '@/lib/game/ironveil-interior-layout';
+import { IronveilInteriorLocalMap } from '@/components/game/ironveil-interior-local-map';
 
 import { lazy, Suspense, useEffect, useRef, useState } from 'react';
+import { IRONVEIL_ID } from '@/lib/game/ironveil-mines-layout';
 import { WILDS_ID } from '@/lib/game/whispering-wilds-layout';
 import { FROSTFIRE_ID } from '@/lib/game/frostfire-highlands-layout';
 import { isDaggerItem } from '@/lib/game/dagger';
@@ -342,7 +345,9 @@ export default function Home() {
         } catch (cause) {
           if (cancelled) return;
           console.error(cause);
-          if(instance?.isWilds)setMapError({id:WILDS_ID,label:'Whispering Wilds',message:'Unable to load the forest. Your save is safe. Check the connection and retry.'});
+          if(instance?.isMineInterior)setMapError({id:MINE_ID,label:'Ironveil Mines \u00b7 Interior',message:'Unable to load the mine interior. Your save is safe. Check the connection and retry.'});
+          else if(instance?.isIronveil)setMapError({id:IRONVEIL_ID,label:'Ironveil Mines',message:'Unable to load Ironveil Mines. Your save is safe. Check the connection and retry.'});
+          else if(instance?.isWilds)setMapError({id:WILDS_ID,label:'Whispering Wilds',message:'Unable to load the forest. Your save is safe. Check the connection and retry.'});
           else if(instance?.isAverion||instance?.isPlains||instance?.isFrostfire)setMapError({id:instance.isFrostfire?FROSTFIRE_ID:instance.isPlains?'verdant-plains-v2':'averion',label:instance.isFrostfire?'Frostfire Highlands':instance.isPlains?'Verdant Plains':'Averion',message:'Map gagal dimuat. Save tetap aman. Periksa koneksi lalu tekan Retry.'});
           setError(
             'Dunia belum dapat dimuat. Save tetap aman. Periksa koneksi dan WebGL, lalu coba Continue atau Load Game lagi.',
@@ -701,7 +706,7 @@ export default function Home() {
       <InterfaceSettingsRuntime />
       <div ref={host} className="world" data-world-surface />
       <div className="vignette" />
-      <div ref={labels} className="world-labels" aria-hidden="true" />
+      <div ref={labels} className="world-labels" aria-hidden={(state.mapId===IRONVEIL_ID||state.mapId===MINE_ID)?undefined:true} />
       <GameplayHUD state={state} game={engine} mapRef={map} visible={flow === 'world'} active={active} panel={panel} modalOpen={Boolean(panel || activeNpcMenu)} fullscreen={isFullscreen} quest={activeJournalQuest} onOpen={open} onSound={toggleSound} onFullscreen={toggleFullscreen} onEditHotbar={index => {
         setHotbarEditSlot(index);
         open('hotbar');
@@ -742,10 +747,10 @@ export default function Home() {
         onEnter={startSelectedCharacter} onCreate={beginAdventure}
         onSound={toggleSound} onFullscreen={toggleFullscreen}
       />}
-      {mapError && <div className="map-load-error" role="alertdialog" aria-label="Map gagal dimuat">
+      {mapError && <div className="map-load-error" role="alertdialog" aria-label={mapError.id===IRONVEIL_ID?'Unable to load map':'Map gagal dimuat'}>
         <h2>{mapError.label}</h2><p>{mapError.message}</p>
         <button className="primary-button" onClick={()=>{
-          if(loadingSlot)game.current?.changeRegion(mapError.id);
+          if(loadingSlot)game.current?.retryLocationLoad();
           else {setMapError(null);startSelectedCharacter();}
         }}>Retry</button>
       </div>}
@@ -1359,7 +1364,7 @@ export default function Home() {
             </span>
           )}
           <DialogTitle className={panel === 'character' || (panel === 'pause' && pauseMenuView === 'graphics') ? 'sr-only' : 'dialog-heading'}>
-            {panel === 'bag' ? <><span aria-hidden="true">✦</span> INVENTORY <span aria-hidden="true">✦</span></> : panelTitles[panel] || 'Petualangan'}
+            {panel === 'bag' ? <><span aria-hidden="true">✦</span> INVENTORY <span aria-hidden="true">✦</span></> : panel==='map'&&state.mapId===MINE_ID?'Local Cave Map':panelTitles[panel] || 'Petualangan'}
           </DialogTitle>
           <DialogDescription className={panel === 'character' || panel === 'bag' || (panel === 'pause' && pauseMenuView === 'graphics') ? 'sr-only' : 'dialog-subtitle'}>
             {panel === 'bag' ? 'Inventory items, capacity, and gold.' : panel === 'pause'
@@ -2395,13 +2400,14 @@ export default function Home() {
               </div>
             </div>
           )}
-          {panel === 'map' && (
+          {panel === 'map' && state.mapId===MINE_ID && <IronveilInteriorLocalMap x={hero.x} z={hero.z} />}
+          {panel === 'map' && state.mapId!==MINE_ID && (
             <div className="dialog-stack world-services">
               <div className="region-summary">
-                <span className="eyebrow">{state.mapId===WILDS_ID?'CURRENT LOCATION':'LOKASI SAAT INI'}</span>
+                <span className="eyebrow">{(state.mapId===WILDS_ID||state.mapId===IRONVEIL_ID)?'CURRENT LOCATION':'LOKASI SAAT INI'}</span>
                 <h3>{state.inCity ? state.cityName : state.fieldName}</h3>
                 <p>
-                  {state.mapId===WILDS_ID ? 'Hunting Field · Monsters Lv. 16–24 · Permanent magical night' : state.inCity
+                  {state.mapId===IRONVEIL_ID ? 'Hunting Field · Monsters Lv. 8–16 · Elite & Field Boss · Enter the mine through its northern doorway.' : state.mapId===WILDS_ID ? 'Hunting Field · Monsters Lv. 16–24 · Permanent magical night' : state.inCity
                     ? 'Kota hub · layanan NPC, storage, shop, healer, dan quest.'
                     : `${state.cityName} · level rekomendasi ${state.recommendedLevel}`}
                 </p>
@@ -2410,7 +2416,7 @@ export default function Home() {
                     className="secondary-button"
                     onClick={() => game.current?.changeRegion(hero.currentCity)}
                   >
-                    {state.mapId===WILDS_ID?'Return to city':'Kembali ke kota'} <ChevronRight size={16} />
+                    {(state.mapId===WILDS_ID||state.mapId===IRONVEIL_ID)?'Return to city':'Kembali ke kota'} <ChevronRight size={16} />
                   </button>
                 )}
               </div>
@@ -2450,7 +2456,7 @@ export default function Home() {
                       <span className="eyebrow">{field.codename}</span>
                       <h3>{field.displayName}</h3>
                       <p>
-                        {field.id===WILDS_ID ? <>Lv. {field.recommendedLevel} · Forest Warden · Entry Lv. {field.minLevel}+</> : field.id===FROSTFIRE_ID ? <>Lv. {field.recommendedLevel} · Snowfields · Frozen lakes</> : <>Lv. {field.recommendedLevel} ·{' '}
+                        {field.id===IRONVEIL_ID ? <>Lv. {field.recommendedLevel} · Mine Tyrant · Entry Lv. {field.minLevel}+</> : field.id===WILDS_ID ? <>Lv. {field.recommendedLevel} · Forest Warden · Entry Lv. {field.minLevel}+</> : field.id===FROSTFIRE_ID ? <>Lv. {field.recommendedLevel} · Snowfields · Frozen lakes</> : <>Lv. {field.recommendedLevel} ·{' '}
                         {field.cityId === hero.currentCity
                           ? 'wilayah terhubung'
                           : 'frontier'}</>}
@@ -2461,7 +2467,7 @@ export default function Home() {
                         onClick={() => game.current?.changeRegion(field.id)}
                       >
                         {unlocked
-                          ? field.id===WILDS_ID?'Enter Whispering Wilds':'Teleport field'
+                          ? field.id===IRONVEIL_ID?'Enter Ironveil Mines':field.id===WILDS_ID?'Enter Whispering Wilds':'Teleport field'
                           : unlockReason(hero, field.id)}
                       </button>
                     </article>

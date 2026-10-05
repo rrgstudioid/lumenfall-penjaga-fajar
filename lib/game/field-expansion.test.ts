@@ -19,6 +19,7 @@ await test('legacy fields retain 42 spawns; large maps use their own tested popu
   for(const field of Object.values(FIELDS)){
     const spawns=fieldSpawns(field);
     assert.deepEqual(spawns,fieldSpawns(field));
+    if(field.id==='ironveil-mines-exterior-v1'){assert.equal(spawns.length,129);continue;}
     if(field.id==='verdant-plains-v2'){assert.equal(spawns.length,497);continue;}
     if(field.id==='frostfire-highlands'||field.id==='whispering-wilds-v2'){
       const population=field.id==='whispering-wilds-v2'?wildsPopulation():frostPopulation();

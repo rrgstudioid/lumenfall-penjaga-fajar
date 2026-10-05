@@ -15,16 +15,16 @@ const east=FIELDS[t.id],old=STARTER_FIELD_CONTENT;
 await test('East Gate remains independent and connected after Sands retirement',()=>{
   assert.ok(Object.keys(FIELDS).length >= 7);
   assert.equal(FIELDS['sands-location'],undefined);
-  assert.deepEqual(CITIES.arunika.connectedFields,['verdant-plains-v2','ironveil-mines','whispering-wilds-v2',t.id]);
+  assert.deepEqual(CITIES.arunika.connectedFields,['verdant-plains-v2','ironveil-mines-exterior-v1','whispering-wilds-v2',t.id]);
   assert.equal(east.chapter,1);assert.equal(east.minLevel,1);assert.equal(east.maxLevel,8);
   assert.equal(east.regionType,'field');assert.equal(east.cityDirection,'east');
   assert.deepEqual(east.subAreas,['Gerbang Timur','Dusun Purnama','Lembah Cahaya']);
-  assert.equal(east.nextMap,'ironveil-mines');assert.notEqual(east,old);
+  assert.equal(east.nextMap,'ironveil-mines-exterior-v1');assert.notEqual(east,old);
   const h=freshHero();h.inCity=true;assert(travel(h,t.id).ok);
   assert.equal(h.currentField,t.id);assert.equal(h.currentCity,'arunika');assert(!h.inCity);
   assert.equal(h.x,t.entry.x);assert.equal(h.z,t.entry.z);
-  assert.match(unlockReason(h,'ironveil-mines'),/8/);assert(!travel(h,'ironveil-mines').ok);
-  h.level=8;assert(travel(h,'ironveil-mines').ok);
+  assert.match(unlockReason(h,'ironveil-mines-exterior-v1'),/8/);assert(!travel(h,'ironveil-mines-exterior-v1').ok);
+  h.level=8;assert(travel(h,'ironveil-mines-exterior-v1').ok);
 });
 await test('Padang expansion is isolated and East Gate retains its footprint',()=>{
   assert.equal(VERDANT_TERRAIN.horizontalScale,2);
@@ -102,10 +102,10 @@ await test('old saves gain starting field safely; East invalid coordinates reloc
   assert(starting.includes('verdant-plains-v2'));
   assert(starting.includes(t.id));
   assert(!starting.includes('sands-location'));
-  const h=freshHero();h.unlockedFields=['verdant-plains','ironveil-mines'];h.gold=5432;
+  const h=freshHero();h.level=8;h.unlockedFields=['verdant-plains','ironveil-mines'];h.gold=5432;
   h.monsterRespawnState={'verdant-plains-5:spawn:100':123456};
   let loaded=parseSave(JSON.stringify(h))!;
-  assert(loaded.unlockedFields.includes(t.id));assert(loaded.unlockedFields.includes('ironveil-mines'));
+  assert(loaded.unlockedFields.includes(t.id));assert(loaded.unlockedFields.includes('ironveil-mines-exterior-v1'));
   for(const p of [{x:100,z:100},{x:3,z:18},{x:-27,z:27}]){
     h.currentField=t.id;h.inCity=false;Object.assign(h,p);loaded=parseSave(JSON.stringify(h))!;
     assert(terrainWalkable(t,loaded));assert.equal(loaded.currentField,t.id);

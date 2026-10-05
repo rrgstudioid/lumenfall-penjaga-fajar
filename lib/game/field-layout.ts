@@ -1,4 +1,6 @@
 import { PLAINS_ID, plainsSafe } from './verdant-plains-layout.ts';
+import { IRONVEIL_ID } from './ironveil-mines-layout.ts';
+import { ironveilSafe, ironveilMonsterSpawns } from './ironveil-mines-population.ts';
 import { WILDS_ID } from './whispering-wilds-layout.ts';
 import { wildsMonsterSpawns, wildsSafe } from './whispering-wilds-population.ts';
 import { plainsMonsterSpawns } from './verdant-plains-population.ts';
@@ -15,6 +17,7 @@ export const regionScale = (inCity: boolean) => inCity ? CITY_SCALE : FIELD_SCAL
 export const regionHalfExtent = (inCity: boolean) => FIELD_LAYOUT.oldHalfExtent * regionScale(inCity);
 export type MonsterSpawn = { id: number; x: number; z: number; definition: MonsterDefinition };
 export function isFieldSafe(fieldId: string, x: number, z: number, margin = 0) {
+  if(fieldId===IRONVEIL_ID)return ironveilSafe({x,z},margin);
   if(fieldId===WILDS_ID)return wildsSafe({x,z},margin);
   if(fieldId===PLAINS_ID)return plainsSafe({x,z},margin);
   if(fieldId===FROSTFIRE_ID)return frostSafe({x,z},margin);
@@ -28,6 +31,7 @@ export function isFieldWater(x: number, z: number, margin = 0) {
   return ((x / FIELD_SCALE - 24) / (11.8 + margin)) ** 2 + ((z / FIELD_SCALE + 3) / (7.5 + margin)) ** 2 < 1;
 }
 export function fieldSpawns(field: FieldDefinition): MonsterSpawn[] {
+  if(field.id===IRONVEIL_ID)return ironveilMonsterSpawns(field);
   if(field.id===WILDS_ID)return wildsMonsterSpawns(field);
   if(!field.normalMonsters.length&&!field.eliteMonsters.length&&!field.fieldBoss)return [];
   if(field.id===PLAINS_ID)return plainsMonsterSpawns(field);

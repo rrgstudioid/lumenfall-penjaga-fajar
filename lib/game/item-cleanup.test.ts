@@ -75,7 +75,7 @@ await test('all field, monster, shop, crafting and quest references remain valid
     );
   }
   for (const [field, id] of [
-    ['ironveil-mines', 'titanium'],
+    ['ironveil-mines-exterior-v1', 'titanium'],
     ['frostfire-highlands', 'vibranium'],
     ['meteorfall-citadel', 'meteorite-core'],
   ])

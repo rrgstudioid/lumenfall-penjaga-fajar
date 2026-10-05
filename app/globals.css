@@ -1550,6 +1550,7 @@ kbd {
       #14352b30
     );
 }
+.game-shell.in-world[data-map-id='ironveil-mines-exterior-v1'] .vignette,
 .game-shell.in-world[data-map-id='verdant-plains-v2'] .vignette,
 .game-shell.in-world[data-map-id='frostfire-highlands'] .vignette {
   /* Let the daylight sky and meadow render without the legacy green overlay. */

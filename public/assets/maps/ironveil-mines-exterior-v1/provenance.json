@@ -1,0 +1,175 @@
+{
+  "map": "ironveil-mines-exterior-v1",
+  "sourceUnmodified": true,
+  "sources": [
+    {
+      "file": "rock-face.glb",
+      "source": "D:\\Lumenfall\\Master_Model_Lumenfall\\Environment\\Rock\\rock_face_02_2k.blend.zip",
+      "entry": "rock_face_02_2k.blend",
+      "sourceSha256": "07c61ecd02ba5efb724db9b750331ab28a6dcdb7c35b5be77449126cc625454f",
+      "bytes": 92828,
+      "sha256": "d8c13e7b318c401ffdf4da3f7f560a3fa4145797db18d7777614aef7be3f4204"
+    },
+    {
+      "file": "boulder.glb",
+      "source": "D:\\Lumenfall\\Master_Model_Lumenfall\\Environment\\Rock\\boulder_01_2k.blend.zip",
+      "entry": "boulder_01_2k.blend",
+      "sourceSha256": "fa54238e9b60a4692bb497544e45157c15b23bf3854b26d89255d09f650ab7c7",
+      "bytes": 92820,
+      "sha256": "d9bdf92d17c5647425c987aaac5d20c1e9abf48f624aaa00a5727552f84f8a1c"
+    },
+    {
+      "file": "rock.glb",
+      "source": "D:\\Lumenfall\\Master_Model_Lumenfall\\Environment\\Rock\\rock_07_2k.blend.zip",
+      "entry": "rock_07_2k.blend",
+      "sourceSha256": "4eddcdc562017feced9c7eb028ccf4ffc23a7050a5e5653a8b1d5b4c4c704aaf",
+      "bytes": 92736,
+      "sha256": "65d612c5e8b33af469593a60ed9d422a4d8a3c1c7d60d850d2fa0f2cdf4db982"
+    },
+    {
+      "file": "crate.glb",
+      "source": "D:\\Lumenfall\\Master_Model_Lumenfall\\Environment\\Building\\Medieval_Village_MegaKit.zip",
+      "entry": "Medieval Village MegaKit[Standard]/glTF/Prop_Crate.gltf",
+      "sourceSha256": "e60dea67c10f30dccccfbff92a7933f5ea5cfe99be0e2a0fa5118cceabeec5c4",
+      "bytes": 17840,
+      "sha256": "cdf7fb7f423bc00598c52f5035dcbfcef760934256d3dc81542d026a424e48dd"
+    },
+    {
+      "file": "fence.glb",
+      "source": "D:\\Lumenfall\\Master_Model_Lumenfall\\Environment\\Building\\Medieval_Village_MegaKit.zip",
+      "entry": "Medieval Village MegaKit[Standard]/glTF/Prop_WoodenFence_Single.gltf",
+      "sourceSha256": "e60dea67c10f30dccccfbff92a7933f5ea5cfe99be0e2a0fa5118cceabeec5c4",
+      "bytes": 4800,
+      "sha256": "1b55b5d2d6dbe34b113fd366c34c99b553d97f173b40300f251b317dd91bdeea"
+    },
+    {
+      "file": "barrel.glb",
+      "source": "D:\\Lumenfall\\Master_Model_Lumenfall\\Environment\\Building\\Fantasy_Props_MegaKit.zip",
+      "entry": "Exports/glTF/Barrel.gltf",
+      "sourceSha256": "8b6f7e806d222e585478f0e1bdc6b271bbc7bc6f84dd6af8ca703a7c64f0cb1e",
+      "bytes": 66048,
+      "sha256": "d490d6f3030665180d365aa4b81c33f03cc7138b99c152b5701683d4ef6a4899"
+    },
+    {
+      "file": "lantern.glb",
+      "source": "D:\\Lumenfall\\Master_Model_Lumenfall\\Environment\\Building\\Fantasy_Props_MegaKit.zip",
+      "entry": "Exports/glTF/Lantern_Wall.gltf",
+      "sourceSha256": "8b6f7e806d222e585478f0e1bdc6b271bbc7bc6f84dd6af8ca703a7c64f0cb1e",
+      "bytes": 122656,
+      "sha256": "342f30c7619af7575e66d597b358fbfb8c03557c839ccecbe5637cbed5873a0d"
+    }
+  ],
+  "shared": [
+    {
+      "url": "/assets/maps/verdant-plains-v2/dirt.webp",
+      "sha256": "9cffcc7d5a026a2561a2cebebe353f5d409ed113a8aa6c6a8554e6aead7609fe"
+    },
+    {
+      "url": "/assets/maps/verdant-plains-v2/grass.webp",
+      "sha256": "a3a4cdd4d150ebdf73c3759677c34d930590153d5bfcfae77cc3cf7484941710"
+    },
+    {
+      "url": "/assets/maps/verdant-plains-v2/wood.webp",
+      "sha256": "1d92f7d370ec4ba4c65a511120ed7d74b88f9d2bab6813104e83df5e5c6dafb6"
+    },
+    {
+      "url": "/assets/maps/verdant-plains-v2/shrub.glb",
+      "sha256": "c3dd3a6aeb110163b078555b89bbfd6c0d76f615ed59c484bbc25bc38b609cc3"
+    },
+    {
+      "url": "/assets/maps/verdant-plains-v2/banner.glb",
+      "sha256": "df5faffb3bbff9ee4ebcb8b24028cb89c7f99e7ef1cc4c3e80880f028cd67302"
+    },
+    {
+      "url": "/assets/maps/stylized-tree/meshes/pine-sm_stylized_tree_pine_03.glb",
+      "sha256": "5341ce3d4910c90a3691c0f87e2d70d3f947b462c0aef172f5edcddce2e7759d"
+    },
+    {
+      "url": "/assets/materials/stylized-tree/T_Stylized_Bark_1_COLOR.png",
+      "sha256": "5dbbc94bf4cdaf2f6703f267dea637492ed2fdf4a355711fff1a4028a3283d68"
+    },
+    {
+      "url": "/assets/materials/stylized-tree/T_Leaf_Texture_Pine.png",
+      "sha256": "ad424d0017179a6bb538e6e91d15c70f00080af2ed83aea19a2612ed151a042b"
+    },
+    {
+      "url": "/assets/materials/stylized-tree/T_Leaf_Texture_Pine_Branch.png",
+      "sha256": "616567186142038bf0d64d99a2aab300d12e4dda5ce90f207f37445f2019c981"
+    },
+    {
+      "url": "/assets/materials/whispering-wilds/forest.webp",
+      "sha256": "4a48ab7f6b1d6c4c45827103cddfe1e12588463eaf4a29ae840a3cdf06851a9e"
+    },
+    {
+      "url": "/assets/materials/whispering-wilds/rock.webp",
+      "sha256": "2a2b408751d225fe3ce34bdc06f6f6f5c8acfc13c8f297918f2bc76b1a35e55c"
+    }
+  ],
+  "deduplicatedTextures": [
+    {
+      "file": "trim-1f8d954dce6e4f33.webp",
+      "bytes": 52064,
+      "sha256": "1f8d954dce6e4f3381b0ab0c7bb654e917da90dd5d24870e9476f1c65a92c29a"
+    },
+    {
+      "file": "trim-1fe4d7d28308b85a.webp",
+      "bytes": 27282,
+      "sha256": "1fe4d7d28308b85afd200671e74725e33099638ca2454bb02cb2b21db9440029"
+    },
+    {
+      "file": "trim-33b425cd517465be.webp",
+      "bytes": 56700,
+      "sha256": "33b425cd517465bec17d26bb8c02ebd80792390f74a38afec581b18092fd8cf2"
+    },
+    {
+      "file": "trim-42904db003b5a7f7.webp",
+      "bytes": 45464,
+      "sha256": "42904db003b5a7f7374486681794868792a186f78cf13ab6c702387de4b0157f"
+    },
+    {
+      "file": "trim-6e6a9c3563a1e6da.webp",
+      "bytes": 68328,
+      "sha256": "6e6a9c3563a1e6da182b28a6cd12a29757aa7d6cdfc615ddc94c0304340da155"
+    },
+    {
+      "file": "trim-902b412608547c43.webp",
+      "bytes": 36400,
+      "sha256": "902b412608547c43c3a693937e016cfc75d0495c4d641c2b025ae492fa6e1c45"
+    },
+    {
+      "file": "trim-a7a2d5a26d12cfb8.webp",
+      "bytes": 40000,
+      "sha256": "a7a2d5a26d12cfb8e3dc865c2bdfa929cac294fd057a53d13b1835f396f9e8e6"
+    },
+    {
+      "file": "trim-cf47bc75e145aaa4.webp",
+      "bytes": 34780,
+      "sha256": "cf47bc75e145aaa40e854b77939d84691e571eba597c7a6ee3eb99f2c0ce9079"
+    },
+    {
+      "file": "trim-efe604436c29b5c0.webp",
+      "bytes": 26170,
+      "sha256": "efe604436c29b5c03e056d2064ca214587a9b3d7ed139ccfe1b1ee561b23911b"
+    }
+  ],
+  "currentEnvironment": {
+    "provenance": "owner-assets-provenance.json",
+    "models": [
+      "cypress.glb",
+      "owner-rock-01.glb",
+      "owner-rock-04.glb"
+    ],
+    "trees": 42,
+    "rocks": 24,
+    "grassClumps": 0,
+    "shrubs": 0,
+    "retiredEnvironmentModels": [
+      "rock-face.glb",
+      "boulder.glb",
+      "rock.glb",
+      "/assets/maps/stylized-tree/meshes/pine-sm_stylized_tree_pine_03.glb",
+      "/assets/maps/verdant-plains-v2/shrub.glb"
+    ],
+    "note": "Retired staging files remain only for provenance/history; the exterior no longer loads them."
+  }
+}

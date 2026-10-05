@@ -1,0 +1,78 @@
+{
+  "map": "ironveil-mines-exterior-v1",
+  "sourceUnmodified": true,
+  "sources": [
+    {
+      "source": "D:\\Lumenfall\\tree_04_cypress_fixed.glb",
+      "sourceSha256": "47e9c331630aac5b725405106a23f9c6c4e155fc903eff5a2a2a4713b979824e",
+      "file": "cypress.glb",
+      "sha256": "224bfee5c4546709c869b09b923cdd1d4d6a0d6db0e8a7a10b1254f17c232054",
+      "bytes": 60004,
+      "geometryUnchanged": true,
+      "materialsPreserved": true,
+      "textures": [
+        {
+          "file": "cypress-basecolor.webp",
+          "sourceSha256": "40a6861a49af0237af35187a3488d51a409c9a99ff16bc000c25c39246514378",
+          "sha256": "dbf6f01a3c2b0650b71613c94c9352e457d34aba6447ffa95ec73b26c25062f3",
+          "sourceSize": [
+            4096,
+            4096
+          ],
+          "runtimeSize": [
+            1024,
+            1024
+          ]
+        }
+      ]
+    },
+    {
+      "source": "D:\\Lumenfall\\LUMENFALL_Rock_01.glb",
+      "sourceSha256": "f28b7f07d18d5203002118bfea45d677d6f6afd611c990a6c33bc98081865e13",
+      "file": "owner-rock-01.glb",
+      "sha256": "d5d91200919301cff3353b76686cf5b26e66e66a720b118fc79f86684f40383d",
+      "bytes": 114828,
+      "geometryUnchanged": true,
+      "materialsPreserved": true,
+      "textures": [
+        {
+          "file": "owner-rock-basecolor.webp",
+          "sourceSha256": "bccd7d28da708e232f9878e91cf4d21c59a24618559b5be42918304d6e6e8863",
+          "sha256": "748308f3fa67755fbb2a1be77faad0239b0f324a756add80a28562a1c236e978",
+          "sourceSize": [
+            4096,
+            4096
+          ],
+          "runtimeSize": [
+            1024,
+            1024
+          ]
+        }
+      ]
+    },
+    {
+      "source": "D:\\Lumenfall\\LUMENFALL_Rock_04.glb",
+      "sourceSha256": "1678b24ae6d46e3cd3652b1d06ee128836551112977d85053bff3355ca53f22f",
+      "file": "owner-rock-04.glb",
+      "sha256": "24ba8a95389c38749d815b41fb339007cc50e71017e7a2b10373bb2d3a7da47b",
+      "bytes": 122296,
+      "geometryUnchanged": true,
+      "materialsPreserved": true,
+      "textures": [
+        {
+          "file": "owner-rock-basecolor.webp",
+          "sourceSha256": "bccd7d28da708e232f9878e91cf4d21c59a24618559b5be42918304d6e6e8863",
+          "sha256": "748308f3fa67755fbb2a1be77faad0239b0f324a756add80a28562a1c236e978",
+          "sourceSize": [
+            4096,
+            4096
+          ],
+          "runtimeSize": [
+            1024,
+            1024
+          ]
+        }
+      ]
+    }
+  ]
+}

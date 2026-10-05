@@ -1,3 +1,4 @@
+import { IRONVEIL_ID, IRONVEIL_ENTRY, IRONVEIL_ENTRANCE, IRONVEIL_POCKETS } from './ironveil-mines-layout.ts';
 import { PLAINS_ID, PLAINS_ENTRY, PLAINS_EXIT } from './verdant-plains-layout.ts';
 import { WILDS_ID, WILDS_ENTRY, WILDS_LANDMARKS } from './whispering-wilds-layout.ts';
 import { FROSTFIRE_ID, FROSTFIRE_ENTRY, FROSTFIRE_ZONES } from './frostfire-highlands-layout.ts';
@@ -160,28 +161,46 @@ fieldDefinitions[WILDS_ID] = {
  color:'#172b3a',entry:{...WILDS_ENTRY},exit:{...WILDS_ENTRY},regionType:'field',
 };
 for(const id of ['arunika','averion','jayantara'])CITIES[id].connectedFields.push(WILDS_ID);
+// Retain item/species identities only; the old terrain is not a destination.
+export const IRONVEIL_LEGACY_CONTENT = fieldDefinitions['ironveil-mines'];
+const ironveilSpecies = [...IRONVEIL_LEGACY_CONTENT.normalMonsters, ...IRONVEIL_LEGACY_CONTENT.eliteMonsters, IRONVEIL_LEGACY_CONTENT.fieldBoss!].map((monster,i) => {
+ const level=[8,10,12,14,15,16][i], tuning=MONSTER_VARIANTS[monster.variant];
+ return {...monster,level,maxHP:Math.round((30+level*16)*tuning.hpMultiplier),attack:Math.round((8+level*2.2)*tuning.damageMultiplier),defense:Math.round((4+level*1.1)*tuning.defenseMultiplier),magicDefense:Math.round((3+level)*tuning.defenseMultiplier),exp:Math.round(monster.exp*level/monster.level)};
+});
+fieldDefinitions[IRONVEIL_ID] = {
+ id:IRONVEIL_ID,cityId:'averion',displayName:'Ironveil Mines',codename:'Hunting Field',contentFamilyId:'ironveil-mines',
+ chapter:1,minLevel:8,maxLevel:16,recommendedLevel:'8–16',subAreas:IRONVEIL_POCKETS.map(p=>p.name),
+ normalMonsters:ironveilSpecies.slice(0,4),eliteMonsters:[ironveilSpecies[4]],fieldBoss:ironveilSpecies[5],dropTable:[...IRONVEIL_LEGACY_CONTENT.dropTable],materialTable:IRONVEIL_LEGACY_CONTENT.materialTable.map(m=>({...m})),questList:[],
+ unlockQuest:null,previousField:PLAINS_ID,nextMap:WILDS_ID,musicId:'',ambientId:'',isUnlocked:false,
+ color:'#b4c2bd',entry:{...IRONVEIL_ENTRY},exit:{...IRONVEIL_ENTRANCE},regionType:'field',
+};
+CITIES.averion.connectedFields.push(IRONVEIL_ID);
 export const FIELDS: Record<string, FieldDefinition> = Object.fromEntries([
  [PLAINS_ID, fieldDefinitions[PLAINS_ID]],
- ...Object.entries(fieldDefinitions).filter(([id])=>id!==PLAINS_ID&&id!=='verdant-plains'&&id!==WILDS_ID)
-   .map(([id,field])=>id==='whispering-wilds'?[WILDS_ID,fieldDefinitions[WILDS_ID]]:[id,field]),
+ ...Object.entries(fieldDefinitions).filter(([id])=>id!==PLAINS_ID&&id!=='verdant-plains'&&id!==WILDS_ID&&id!==IRONVEIL_ID)
+   .map(([id,field])=>id==='whispering-wilds'?[WILDS_ID,fieldDefinitions[WILDS_ID]]:id==='ironveil-mines'?[IRONVEIL_ID,fieldDefinitions[IRONVEIL_ID]]:[id,field]),
 ]);
-for(const city of Object.values(CITIES))city.connectedFields=[...new Set(city.connectedFields.map(id=>id==='verdant-plains'?PLAINS_ID:id==='whispering-wilds'?WILDS_ID:id))];
+for(const city of Object.values(CITIES))city.connectedFields=[...new Set(city.connectedFields.map(id=>id==='verdant-plains'?PLAINS_ID:id==='whispering-wilds'?WILDS_ID:id==='ironveil-mines'?IRONVEIL_ID:id))];
 for(const field of Object.values(FIELDS)) {
+ if(field.previousField==='ironveil-mines')field.previousField=IRONVEIL_ID;
+ if(field.nextMap==='ironveil-mines')field.nextMap=IRONVEIL_ID;
  if(field.previousField==='verdant-plains')field.previousField=PLAINS_ID;
  if(field.previousField==='whispering-wilds')field.previousField=WILDS_ID;
  if(field.nextMap==='whispering-wilds')field.nextMap=WILDS_ID;
 }
 
+fieldDefinitions[PLAINS_ID].nextMap=IRONVEIL_ID;
+
 export const startingFieldIds = () => Object.values(FIELDS).filter(field=>field.isUnlocked&&field.chapter<=WORLD_CONFIG.chapterCap).map(field=>field.id);
 export function fieldContent(fieldId:string):FieldDefinition {
  const field=FIELDS[fieldId];
+ if(fieldId==='ironveil-mines'||field?.contentFamilyId==='ironveil-mines')return IRONVEIL_LEGACY_CONTENT;
  if(fieldId==='verdant-plains'||field?.contentFamilyId==='verdant-plains')return STARTER_FIELD_CONTENT;
  if(fieldId==='whispering-wilds'||field?.contentFamilyId==='whispering-wilds')return WILDS_LEGACY_CONTENT;
  return field ? FIELDS[field.contentFamilyId??field.id] : FIELDS[PLAINS_ID];
 }
 
 export const FIELD_NPCS: Record<string, NpcDefinition> = {
- 'ironveil-mines': {id:'field-npc-ironveil',name:'Mandor Tambang',type:'merchant',service:'field-camp',services:['buy','sell','teleport','quest'],interactionRange:2.5,shopInventory:[],description:'Quest field, teleport, dan toko kebutuhan farming Tambang Selubung Besi.',x:-26,z:28,fieldId:'ironveil-mines'},
  'sunken-ruins': {id:'field-npc-sunken',name:'Penjaga Reruntuhan',type:'merchant',service:'field-camp',services:['buy','sell','teleport','quest'],interactionRange:2.5,shopInventory:[],description:'Quest field, teleport, dan toko kebutuhan farming Reruntuhan Tenggelam.',x:-26,z:28,fieldId:'sunken-ruins'},
  'meteorfall-citadel': {id:'field-npc-meteor',name:'Penjaga Benteng Meteor',type:'merchant',service:'field-camp',services:['buy','sell','teleport','quest'],interactionRange:2.5,shopInventory:[],description:'Quest field, teleport, dan toko kebutuhan farming Benteng Hujan Meteor.',x:-26,z:28,fieldId:'meteorfall-citadel'},
 };
@@ -202,6 +221,8 @@ export function refreshUnlocks(hero:Hero) {
  for(const id of Object.keys(FIELDS)) if(!unlockReason(hero,id)&&!hero.unlockedFields.includes(id)) hero.unlockedFields.push(id);
 }
 export function travel(hero:Hero,id:string) {
+ if(hero.interiorId) return {ok:false,reason:'Walk back to the mine entrance to leave.'};
+ if(id==='ironveil-mines-interior-v1') return {ok:false,reason:'Enter through the Ironveil Mines doorway.'};
  const reason=unlockReason(hero,id); if(reason) return {ok:false,reason};
  refreshUnlocks(hero);
  if(CITIES[id]) {hero.currentCity=id;hero.inCity=true;hero.x=0;hero.z=8;}
@@ -243,6 +264,7 @@ type FieldQuestDifficulty='easy'|'veteran'|'elite';
 function fieldQuestDifficulty(id:string):FieldQuestDifficulty { return id.endsWith('-veteran')?'veteran':id.endsWith('-elite')?'elite':'easy'; }
 export function fieldForQuest(id:string) { return Object.values(FIELDS).find(field=>field.questList.includes(id)); }
 export function migrateFieldQuestId(id:string) {
+ if(id==='story-ironveil-mines')return 'field-ironveil-mines-easy';
  if(id==='story-verdant-plains')return 'field-verdant-plains-easy';
  for(const field of Object.values(FIELDS)) if(field.questList.length&&id===`story-${field.id}`) return field.questList[0];
  return id;

@@ -87,9 +87,9 @@ await test('one permanent forest occupies the old M-menu order and links with ad
   const ids = Object.keys(FIELDS);
   assert(!ids.includes('whispering-wilds'));
   assert.equal(ids.filter((id) => id.startsWith('whispering-wilds')).length, 1);
-  assert.equal(ids.indexOf(WILDS_ID), ids.indexOf('ironveil-mines') + 1);
+  assert.equal(ids.indexOf(WILDS_ID), ids.indexOf('ironveil-mines-exterior-v1') + 1);
   assert.equal(ids.indexOf('frostfire-highlands'), ids.indexOf(WILDS_ID) + 1);
-  assert.equal(FIELDS['ironveil-mines'].nextMap, WILDS_ID);
+  assert.equal(FIELDS['ironveil-mines-exterior-v1'].nextMap, WILDS_ID);
   assert.equal(FIELDS['frostfire-highlands'].previousField, WILDS_ID);
   for (const c of Object.values(CITIES))
     assert(!c.connectedFields.includes('whispering-wilds'));

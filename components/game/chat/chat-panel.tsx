@@ -173,7 +173,7 @@ export const ChatPanel = memo(function ChatPanel({
         id: `location:${++sequence.current}`,
         channel: 'system',
         timestamp: Date.now(),
-        text: mapId==='whispering-wilds-v2'?`Welcome to ${mapName}!`:`Selamat datang di ${mapName}!`,
+        text: (mapId==='whispering-wilds-v2'||mapId==='ironveil-mines-exterior-v1')?`Welcome to ${mapName}!`:`Selamat datang di ${mapName}!`,
       },
     });
   }, [available, mapId, mapName, sessionId]);

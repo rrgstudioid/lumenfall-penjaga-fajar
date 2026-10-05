@@ -15,6 +15,7 @@ import {
   ScrollText,
   ChevronRight,
   Sun,
+  Flame,
   Moon,
   Volume2,
   VolumeX,
@@ -250,7 +251,7 @@ const RightHUDCluster = memo(function RightHUDCluster({
       </button>
       </div>
       <div className="hud-weather">
-        {weatherLabel==='Chaotic blue night'?<Moon size={15} />:<Sun size={15} />}
+        {weatherLabel==='Underground · Lantern light'?<Flame size={15} />:weatherLabel==='Chaotic blue night'?<Moon size={15} />:<Sun size={15} />}
         {weatherLabel}
       </div>
       <div className="hud-gold hud-panel">
@@ -429,15 +430,15 @@ export function GameplayHUD({
             <span />
           </div>
           <p>
-            {state.inCity ? 'Kota aman' : state.mapId==='whispering-wilds-v2' ? 'Hunting Field' : state.mapId===FROSTFIRE_ID ? 'Frozen Highlands' : state.mapId==='verdant-plains-v2' ? 'Padang Arunika' : state.cityName}
-            <b>·</b>Lv. {state.recommendedLevel}
+            {state.inCity ? 'Kota aman' : state.mapId==='ironveil-mines-interior-v1' ? 'Underground' : state.mapId==='whispering-wilds-v2' ? 'Hunting Field' : state.mapId===FROSTFIRE_ID ? 'Frozen Highlands' : state.mapId==='verdant-plains-v2' ? 'Padang Arunika' : state.cityName}
+            <b>·</b>{<>Lv. {state.recommendedLevel}</>}
           </p>
         </div>
         <HUDFrame id="right" label="Minimap">
           <RightHUDCluster
             mapRef={mapRef}
             gold={state.hero.gold}
-            weatherLabel={state.mapId==='whispering-wilds-v2'?'Chaotic blue daylight':state.mapId===FROSTFIRE_ID?'Wind-driven snow':undefined}
+            weatherLabel={state.mapId==='ironveil-mines-interior-v1'?'Underground · Lantern light':state.mapId==='ironveil-mines-exterior-v1'?'Hot midday · Scattered clouds':state.mapId==='whispering-wilds-v2'?'Chaotic blue daylight':state.mapId===FROSTFIRE_ID?'Wind-driven snow':undefined}
             muted={state.audioSettings.muted}
             fullscreen={fullscreen}
             cameraMode={state.cameraMode}

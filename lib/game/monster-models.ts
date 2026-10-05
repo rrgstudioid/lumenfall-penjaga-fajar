@@ -60,7 +60,8 @@ Object.assign(MONSTER_MODELS, {
   'verdant-plains-v2-ancient-treant': MONSTER_MODELS['verdant-plains-5'],
 });
 export function createMonsterBody(definition: Pick<MonsterDefinition,'id'|'variant'|'visualScale'>):T.Mesh<T.BufferGeometry,T.MeshStandardMaterial> {
-  const r=MONSTER_MODELS[definition.id] ?? MONSTER_MODELS['verdant-plains-0'];
+  const mineLevel=/^ironveil-mines-interior-v1-level-(\d+)$/.exec(definition.id);
+  const r=MONSTER_MODELS[definition.id] ?? (mineLevel ? MONSTER_MODELS[`ironveil-mines-${(Number(mineLevel[1])-12)%5}`] : MONSTER_MODELS['verdant-plains-0']);
   const parts:T.BufferGeometry[]=[];
   const add=(shape:'orb'|'box'|'cone'|'crystal',x:number,y:number,z:number,sx:number,sy:number,sz:number,color=r.color,rx=0,rz=0) => {
     const primitive=shape==='box'?new T.BoxGeometry(1,1,1):shape==='cone'?new T.ConeGeometry(.5,1,5):shape==='crystal'?new T.OctahedronGeometry(.5,0):new T.IcosahedronGeometry(.5,0);

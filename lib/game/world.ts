@@ -1,3 +1,8 @@
+import { mineMonsterSpawns, mineSafe, moveMineMonster } from './ironveil-interior-population';
+import { MINE_ID, MINE_ENTRY, MINE_EXIT, MineNavigation, mineGroundHeight, mineLineOfSight } from './ironveil-interior-layout';
+import { IRONVEIL_ID, IRONVEIL_TRANSITION, ironveilGroundHeight, ironveilWalkable } from './ironveil-mines-layout';
+import { IRONVEIL_DAYLIGHT } from './ironveil-mines-sky';
+import { moveIronveilMonster } from './ironveil-mines-population';
 import { WILDS_ID, WILDS_PORTALS, wildsGroundHeight, wildsWalkable } from './whispering-wilds-layout';
 import { type WildsQuality } from './whispering-wilds-quality';
 import { loadGraphicsQuality, saveGraphicsQuality, type GraphicsQuality } from './graphics-quality';
@@ -326,6 +331,11 @@ export class Game {
     }});
   }
   get isPlains() {return !this.hero.inCity&&this.hero.currentField===PLAINS_ID;}
+  get isMineInterior() {return !this.hero.inCity&&this.hero.currentField===IRONVEIL_ID&&this.hero.interiorId===MINE_ID;}
+  get activeLocationId() {return this.hero.inCity?this.hero.currentCity:this.hero.interiorId??this.hero.currentField;}
+  get isIronveil() {return !this.hero.inCity&&this.hero.currentField===IRONVEIL_ID&&!this.hero.interiorId;}
+  mineInterior: Awaited<ReturnType<typeof import('./ironveil-interior-map').buildIronveilInterior>> | null = null;
+  ironveil: Awaited<ReturnType<typeof import('./ironveil-mines-map').buildIronveilMines>> | null = null;
   get isWilds() {return !this.hero.inCity&&this.hero.currentField===WILDS_ID;}
   graphicsQuality: GraphicsQuality = loadGraphicsQuality();
   wilds: Awaited<ReturnType<typeof import('./whispering-wilds-map').buildWhisperingWilds>> | null = null;
@@ -337,8 +347,10 @@ export class Game {
   private averionCameraDistance = 9;
   get isAverion() { return this.hero.inCity && this.hero.currentCity === 'averion'; }
   get fieldTerrain() { return this.hero.inCity ? undefined : FIELD_TERRAINS[this.hero.currentField]; }
-  get nearSanctuary() {if(this.isAverion||this.isPlains||this.isFrostfire||this.isWilds)return false;const p=this.fieldTerrain?.sanctuary??{x:0,z:0};return Math.hypot(this.hero.x-p.x,this.hero.z-p.z)<5.3;}
+  get nearSanctuary() {if(this.isAverion||this.isPlains||this.isFrostfire||this.isWilds||this.isIronveil||this.isMineInterior)return false;const p=this.fieldTerrain?.sanctuary??{x:0,z:0};return Math.hypot(this.hero.x-p.x,this.hero.z-p.z)<5.3;}
   groundHeight(x:number,z:number) {
+    if(this.isMineInterior)return mineGroundHeight(x,z);
+    if(this.isIronveil)return ironveilGroundHeight(x,z);
     if(this.isWilds)return wildsGroundHeight(x,z);
     if(this.isFrostfire)return frostHeight(x,z);
     if(this.isPlains)return plainsGroundHeight(x,z);
@@ -347,9 +359,11 @@ export class Game {
   }
   groundDistance(a:T.Vector3,b:T.Vector3) {
     // Preserve the old flat-ground combat ranges when actors stand on different elevations.
-    return this.fieldTerrain||this.isAverion||this.isPlains||this.isFrostfire||this.isWilds?Math.hypot(a.x-b.x,a.z-b.z):a.distanceTo(b);
+    return this.fieldTerrain||this.isAverion||this.isPlains||this.isFrostfire||this.isWilds||this.isIronveil||this.isMineInterior?Math.hypot(a.x-b.x,a.z-b.z):a.distanceTo(b);
   }
   placeActor() {
+    if(this.isMineInterior){this.actor.visible=!!this.mineInterior;if(!this.mineInterior)return;Object.assign(this.hero,this.mineInterior.navigation.restore(this.hero));}
+    if(this.isIronveil){this.actor.visible=!!this.ironveil;if(!this.ironveil)return;Object.assign(this.hero,this.ironveil.navigation.restore(this.hero));}
     if(this.isWilds){this.actor.visible=!!this.wilds;if(!this.wilds)return;Object.assign(this.hero,this.wilds.navigation.restore(this.hero));}
     if(this.isFrostfire){this.actor.visible=!!this.frostfire;if(!this.frostfire)return;Object.assign(this.hero,this.frostfire.navigation.restore(this.hero));}
     if(this.isPlains){this.actor.visible=!!this.plains;if(!this.plains)return;if(!this.plains.navigation.valid(this.hero))Object.assign(this.hero,this.plains.navigation.restore(this.hero));}
@@ -365,6 +379,12 @@ export class Game {
   moveEnemy(e:Enemy,dx:number,dz:number) {
     const t=this.fieldTerrain;
     const radius=e.boss?1.8:.55;
+    if(this.isMineInterior){if(!this.mineInterior)return;const p=moveMineMonster(e.group.position,dx,dz,radius);e.group.position.set(p.x,this.groundHeight(p.x,p.z),p.z);return;}
+    if(this.isIronveil){
+      if(!this.ironveil)return;
+      const p=moveIronveilMonster(e.group.position,dx,dz,radius);
+      e.group.position.set(p.x,this.groundHeight(p.x,p.z),p.z);return;
+    }
     if(this.isWilds){
       if(!this.wilds)return;
       const p=this.wilds.navigation.move(e.group.position,dx,dz,radius);
@@ -423,6 +443,8 @@ export class Game {
   worldLightRig = new T.Group();
   freeCamera = new T.OrthographicCamera(-25, 25, 20, -20, 0.1, 160);
   followCamera = new T.PerspectiveCamera(FOLLOW_CAMERA.fov, 1, 0.1, 160);
+  mineFreeCamera = new T.PerspectiveCamera(70, 1, 0.1, 350);
+  cameraOrbitTarget = new T.Vector3();
   camera: T.OrthographicCamera | T.PerspectiveCamera = this.freeCamera;
   cameraMode: CameraMode = 'free';
   followView = createFollowCamera(0);
@@ -1292,6 +1314,7 @@ export class Game {
   }
   buildEnemies() {
     if(this.isAverion)return;
+    if(this.isMineInterior){for(const spawn of mineMonsterSpawns())this.makeEnemy(spawn.id,spawn.x,spawn.z,false,spawn.definition);this.bossSpawned=true;return;}
     if (this.hero.inCity) {
       this.buildTrainingDummies();
       return;
@@ -1632,7 +1655,7 @@ export class Game {
     this.groundGold = [];
   }
   spawnBoss(notify = true) {
-    if (this.hero.inCity||!FIELDS[this.hero.currentField]?.fieldBoss) return;
+    if (this.hero.inCity||this.isMineInterior||!FIELDS[this.hero.currentField]?.fieldBoss) return;
     const existing = this.enemies.find(enemy => enemy.boss);
     if (existing) { this.bossSpawned = true; return; }
     this.bossSpawned = true;
@@ -1716,7 +1739,7 @@ export class Game {
       })),
       bossActive: this.enemies.some(e => e.boss && e.hp > 0),
       bossRespawn: Math.ceil(this.enemies.find(e => e.boss)?.respawn ?? 0),
-      bossName: FIELDS[this.hero.currentField]?.fieldBoss?.name ?? '',
+      bossName: this.isMineInterior ? '' : FIELDS[this.hero.currentField]?.fieldBoss?.name ?? '',
       combo: this.combo,
       mana: this.hero.mana,
       maxMana: derived.maxMana,
@@ -1725,9 +1748,9 @@ export class Game {
       skillViews,
       classQuest,
       cityName: CITIES[this.hero.currentCity].displayName,
-      fieldName: FIELDS[this.hero.currentField].displayName,
-      recommendedLevel: FIELDS[this.hero.currentField].recommendedLevel,
-      mapId: this.hero.inCity ? this.hero.currentCity : this.hero.currentField,
+      fieldName: this.isMineInterior ? 'Ironveil Mines \u00b7 Interior' : FIELDS[this.hero.currentField].displayName,
+      recommendedLevel: this.isMineInterior ? '12\u201324' : FIELDS[this.hero.currentField].recommendedLevel,
+      mapId: this.activeLocationId,
       inCity: this.hero.inCity,
     };
   }
@@ -1737,6 +1760,8 @@ export class Game {
     this.setPlainsCharacterShadows(false);
     if(this.plains){this.plains.dispose();this.plains=null;}
     if(this.frostfire){this.frostfire.dispose();this.frostfire=null;}
+    if(this.ironveil){this.ironveil.dispose();this.ironveil=null;}
+    if(this.mineInterior){this.mineInterior.dispose();this.mineInterior=null;}
     if(this.wilds){this.wilds.dispose();this.wilds=null;}
     this.renderer.shadowMap.enabled=true;this.renderer.setPixelRatio(Math.min(devicePixelRatio,1.25));
     if(this.averion){this.averion.root.removeFromParent();this.averion.dispose();this.averion=null;}
@@ -1752,7 +1777,7 @@ export class Game {
     this.scene.remove(this.regionDecor);
     this.regionDecor.traverse(object => { if(object instanceof T.Mesh){object.geometry.dispose(); const materials=Array.isArray(object.material)?object.material:[object.material]; materials.forEach(material=>material.dispose());} });
     this.regionDecor = new T.Group(); this.scene.add(this.regionDecor);
-    this.followCamera.far=this.freeCamera.far=this.isPlains||this.isFrostfire||this.isWilds?1400:this.isAverion?650:160;
+    this.followCamera.far=this.freeCamera.far=this.isPlains||this.isFrostfire||this.isWilds||this.isIronveil||this.isMineInterior?1400:this.isAverion?650:160;
     this.followCamera.updateProjectionMatrix();this.freeCamera.updateProjectionMatrix();
     this.worldLightRig.traverse(o=>{
       if(o instanceof T.HemisphereLight){o.intensity=this.isPlains?PLAINS_DAYLIGHT.ambientIntensity:this.isAverion?1.2:2.2;o.color.set(this.isPlains?PLAINS_DAYLIGHT.ambientSky:this.isAverion?'#eef5ff':'#f2f8d6');o.groundColor.set(this.isPlains?PLAINS_DAYLIGHT.ambientGround:this.isAverion?'#687b55':'#3f5d45');}
@@ -1779,6 +1804,39 @@ export class Game {
     const sanctuary=this.fieldTerrain?.sanctuary??{x:0,z:0};
     this.shrine.position.set(sanctuary.x,this.groundHeight(sanctuary.x,sanctuary.z),sanctuary.z);
     this.shrine.visible=true;
+    if(this.isMineInterior) {
+      this.terrain.visible=false;this.shrine.visible=false;this.actor.visible=false;
+      this.scene.background=new T.Color('#08090b');this.scene.fog=new T.Fog('#08090b',130,240);
+      this.worldLightRig.visible=false;this.renderer.shadowMap.enabled=false;this.renderer.toneMappingExposure=1.15;
+      this.followCamera.far=this.freeCamera.far=350;this.followCamera.updateProjectionMatrix();this.freeCamera.updateProjectionMatrix();
+      this.regionLoads.push(import('./ironveil-interior-map').then(m=>m.buildIronveilInterior(this.graphicsQuality)).then(map=>{
+        if(this.disposed||buildToken!==this.regionBuildToken){map.dispose();return;}
+        this.mineInterior=map;this.regionDecor.add(map.root);this.setGraphicsQuality(this.graphicsQuality,false);
+        const element=document.createElement('div');element.className='npc-label';
+        const badge=document.createElement('button');badge.type='button';badge.className='npc-service-badge';badge.textContent='To Outside Mines';badge.style.pointerEvents='auto';badge.style.cursor='pointer';badge.addEventListener('click',()=>this.interactIronveilExit());element.appendChild(badge);this.labelHost.appendChild(element);
+        this.portalLabels.push({...MINE_EXIT,element,name:'Mine exit',labelHeight:6});
+        this.placeActor();this.cameraFocus.copy(this.actor.position);map.update(this.camera,this.hero);this.drawMap();
+      }).catch(error=>{if(!this.disposed&&buildToken===this.regionBuildToken)this.regionLoadError=error;throw error;}));
+      void this.regionLoads.at(-1)!.catch(()=>{});return;
+    }
+    if(this.isIronveil) {
+      this.terrain.visible=false;this.shrine.visible=false;this.actor.visible=false;
+      this.scene.background=new T.Color(IRONVEIL_DAYLIGHT.horizon);this.scene.fog=null;
+      this.renderer.toneMappingExposure=IRONVEIL_DAYLIGHT.exposure;
+      this.worldLightRig.traverse(o=>{
+        if(o instanceof T.HemisphereLight){o.color.set(IRONVEIL_DAYLIGHT.ambientSky);o.groundColor.set(IRONVEIL_DAYLIGHT.ambientGround);o.intensity=IRONVEIL_DAYLIGHT.ambientIntensity;}
+        if(o instanceof T.DirectionalLight){o.color.set(IRONVEIL_DAYLIGHT.sunColor);o.intensity=IRONVEIL_DAYLIGHT.sunIntensity;}
+      });
+      this.regionLoads.push(import('./ironveil-mines-map').then(m=>m.buildIronveilMines(this.graphicsQuality)).then(map=>{
+        if(this.disposed||buildToken!==this.regionBuildToken){map.dispose();return;}
+        this.ironveil=map;this.regionDecor.add(map.root);this.setGraphicsQuality(this.graphicsQuality,false);
+        const element=document.createElement('div');element.className='npc-label';
+        const badge=document.createElement('button');badge.type='button';badge.className='npc-service-badge';badge.textContent=IRONVEIL_TRANSITION.label;badge.style.pointerEvents='auto';badge.style.cursor='pointer';badge.title='Approach the doorway and click to enter the mines.';badge.addEventListener('click',()=>this.interactIronveilEntrance());element.appendChild(badge);this.labelHost.appendChild(element);
+        this.portalLabels.push({...IRONVEIL_TRANSITION.anchor,element,name:'Mine entrance',labelHeight:6});
+        this.placeActor();this.cameraFocus.copy(this.actor.position);map.update(this.camera,this.hero);this.drawMap();
+      }).catch(error=>{if(!this.disposed&&buildToken===this.regionBuildToken)this.regionLoadError=error;throw error;}));
+      void this.regionLoads.at(-1)!.catch(()=>{});return;
+    }
     if(this.isWilds) {
       this.terrain.visible=false;this.shrine.visible=false;this.actor.visible=false;
       this.scene.background=new T.Color(WILDS_NIGHT.horizon);this.scene.fog=new T.Fog(WILDS_NIGHT.horizon,WILDS_NIGHT.fogNear,WILDS_NIGHT.fogFar);this.renderer.toneMappingExposure=WILDS_NIGHT.exposure;
@@ -1941,10 +1999,19 @@ export class Game {
   changeRegion(id:string) {
     if(this.transitioning) return false;
     const fromWilds=this.isWilds;
+    const ironveilTravel=this.isIronveil||id===IRONVEIL_ID;
     const result=travel(this.hero,id); if(!result.ok){this.message(fromWilds?`Requires level ${(CITIES[id]??FIELDS[id])?.minLevel??1}.`:result.reason);return false;}
     if(fromWilds||id===WILDS_ID)result.reason=`Arrived at ${id===WILDS_ID?'Whispering Wilds':WILDS_PORTALS.find(p=>p.destination===id)?.name??id}.`;
+    if(ironveilTravel)result.reason=`Arrived at ${CITIES[id]?.displayName??FIELDS[id]?.displayName??id}.`;
     const destinationLabel = CITIES[id]?.displayName ?? FIELDS[id]?.displayName ?? 'Area baru';
     this.averionUseSpawn=id==='averion';
+    return this.loadActiveLocation(id,destinationLabel,result.reason);
+  }
+  retryLocationLoad() {
+    if(this.transitioning||!this.regionLoadError)return false;
+    return this.loadActiveLocation(this.activeLocationId,this.isMineInterior?'Ironveil Mines \u00b7 Interior':FIELDS[this.hero.currentField]?.displayName??'Map','Map loaded.');
+  }
+  private loadActiveLocation(id:string,destinationLabel:string,message:string) {
     this.clearSkillRuntime();
     this.assasinPoison.clear(); this.assasinCombat.clear(); // Old target instances leave the loaded world.
     this.closeNpcMenu();
@@ -1963,14 +2030,14 @@ export class Game {
         this.invincible=2;
         this.transitioning=false;
         this.save();
-        this.message(result.reason);
+        this.message(message);
       } catch (error) {
         console.warn('Gagal memuat region tujuan.', error);
         this.regionLoadError=error instanceof Error?error:new Error(String(error));
-        this.message(id===WILDS_ID?'Unable to load Whispering Wilds. Please retry.':'Map tujuan belum siap sepenuhnya. Silakan coba lagi sebentar.');
+        this.message((id===IRONVEIL_ID||id===MINE_ID)?'Unable to load Ironveil Mines. Please retry.':id===WILDS_ID?'Unable to load Whispering Wilds. Please retry.':'Map tujuan belum siap sepenuhnya. Silakan coba lagi sebentar.');
       } finally {
         this.transitioning=false;
-        this.onMapTransition?.({ id, loading: false, label: destinationLabel, error: this.regionLoadError ? (id===WILDS_ID?'Unable to load Whispering Wilds. Check the connection and retry.':'ERROR: Map gagal dimuat. Periksa koneksi, lalu tekan Retry.') : undefined });
+        this.onMapTransition?.({ id, loading: false, label: destinationLabel, error: this.regionLoadError ? ((id===IRONVEIL_ID||id===MINE_ID)?'Unable to load Ironveil Mines. Check the connection and retry.':id===WILDS_ID?'Unable to load Whispering Wilds. Check the connection and retry.':'ERROR: Map gagal dimuat. Periksa koneksi, lalu tekan Retry.') : undefined });
         this.emit();
       }
     })();
@@ -2158,10 +2225,12 @@ export class Game {
   }
   restoreSavedPosition() {
     refreshUnlocks(this.hero);
+    if(this.isMineInterior){Object.assign(this.hero,new MineNavigation().restore(this.hero));this.hero.lastSafePosition={x:this.hero.x,z:this.hero.z};return;}
     // Validate Averion saves against its collision package once it has loaded.
     if(this.isAverion)return;
     const valid = (position: { x: number; z: number }) => {
       if (!Number.isFinite(position.x) || !Number.isFinite(position.z)) return false;
+      if(this.isIronveil)return ironveilWalkable(position);
       if(this.isWilds)return this.wilds?.navigation.valid(position)??wildsWalkable(position);
       if(this.isFrostfire)return frostWalkable(position);
       if(this.isPlains)return plainsWalkable(position);
@@ -2251,7 +2320,7 @@ export class Game {
     else this.keys.delete(key);
   }
   save() {
-    if (!this.started || this.dead || this.transitioning || this.regionLoadError || ((this.isAverion&&!this.averion)||(this.isPlains&&!this.plains)||(this.isFrostfire&&!this.frostfire)||(this.isWilds&&!this.wilds))) return;
+    if (!this.started || this.dead || this.transitioning || this.regionLoadError || ((this.isAverion&&!this.averion)||(this.isPlains&&!this.plains)||(this.isFrostfire&&!this.frostfire)||(this.isWilds&&!this.wilds)||(this.isIronveil&&!this.ironveil)||(this.isMineInterior&&!this.mineInterior))) return;
     this.hero.stamina = this.stamina;
     this.hero.lastPlayedAt = Date.now();
     this.hero.lastSafePosition = { x: this.hero.x, z: this.hero.z };
@@ -2267,7 +2336,8 @@ export class Game {
     this.hero.hp = maxHP(this.hero);
     this.hero.x = 0;
     this.hero.z = this.hero.inCity ? 7 : 26;
-    if(this.fieldTerrain||this.isPlains||this.isFrostfire||this.isWilds)Object.assign(this.hero,FIELDS[this.hero.currentField].entry);
+    if(this.fieldTerrain||this.isPlains||this.isFrostfire||this.isWilds||this.isIronveil||this.isMineInterior)Object.assign(this.hero,FIELDS[this.hero.currentField].entry);
+    if(this.isMineInterior)Object.assign(this.hero,MINE_ENTRY);
     this.placeActor();
     this.cameraFocus.copy(this.actor.position);
     this.dead = false;
@@ -2281,13 +2351,13 @@ export class Game {
       e.group.position.copy(e.home);
       e.windup = 0;
       e.cooldown = 2;
-      if(this.isPlains&&e.hp<=0){e.group.visible=false;continue;}
+      if((this.isPlains||this.isMineInterior)&&e.hp<=0){e.group.visible=false;continue;}
       e.hp = e.max;
       e.group.visible = true;
       e.respawn = 0;
     }
     this.save();
-    this.message(this.isPlains?'Kamu kembali di Arunika Rest. Progresmu tetap tersimpan.':'Kamu kembali di Kuil Fajar. Progresmu tetap tersimpan.');
+    this.message(this.isMineInterior?'You returned to the mine entrance. Progress is preserved.':this.isPlains?'Kamu kembali di Arunika Rest. Progresmu tetap tersimpan.':'Kamu kembali di Kuil Fajar. Progresmu tetap tersimpan.');
   }
   chooseCoreJob(coreJob: CoreJobId | 'thief') {
     if (!this.atJobTrainer('core')) return false;
@@ -3547,7 +3617,7 @@ export class Game {
     else if (autoAim || !this.pointerActive) this.targetNearest();
     else {
       this.raycaster.setFromCamera(this.pointer, this.camera);
-      const hit=this.isWilds&&this.wilds ? this.raycaster.intersectObject(this.wilds.surfaces,true).find(h=>h.object.visible||h.object.userData.bridge)?.point : this.isFrostfire&&this.frostfire ? this.raycaster.intersectObject(this.frostfire.surfaces,true)[0]?.point : this.isPlains&&this.plains ? this.raycaster.intersectObject(this.plains.root,true).find(h=>h.object.visible)?.point : this.terrainSurface?this.raycaster.intersectObject(this.terrainSurface)[0]?.point:this.raycaster.ray.intersectPlane(this.ground,this.aim);
+      const hit=this.isMineInterior&&this.mineInterior ? this.raycaster.intersectObject(this.mineInterior.surfaces,true)[0]?.point : this.isIronveil&&this.ironveil ? this.raycaster.intersectObject(this.ironveil.surfaces,true)[0]?.point : this.isWilds&&this.wilds ? this.raycaster.intersectObject(this.wilds.surfaces,true).find(h=>h.object.visible||h.object.userData.bridge)?.point : this.isFrostfire&&this.frostfire ? this.raycaster.intersectObject(this.frostfire.surfaces,true)[0]?.point : this.isPlains&&this.plains ? this.raycaster.intersectObject(this.plains.root,true).find(h=>h.object.visible)?.point : this.terrainSurface?this.raycaster.intersectObject(this.terrainSurface)[0]?.point:this.raycaster.ray.intersectPlane(this.ground,this.aim);
       if (hit) {
         this.aim.copy(hit);
         const d = this.aim.clone().sub(this.actor.position).setY(0);
@@ -3591,7 +3661,7 @@ export class Game {
       if (e.hp <= 0) continue;
       if(hard){const damage=resolveBasicDamage(e);if(damage===null)continue;this.hurtEnemy(e,Math.round(damage),this.hero.skillArchitectureVersion===3?0:.8,'physical');continue;}
       const v = e.group.position.clone().sub(this.actor.position);
-      if(this.fieldTerrain||this.isPlains||this.isFrostfire||this.isWilds)v.y=0;
+      if(this.fieldTerrain||this.isPlains||this.isFrostfire||this.isWilds||this.isIronveil||this.isMineInterior)v.y=0;
       const d = v.length();
       if (
         d < (isBow?Math.max(11,profile.range):(e.boss ? 4.3 : profile.range)) &&
@@ -3619,6 +3689,7 @@ export class Game {
     this.emit();
   }
   hurtEnemy(e: Enemy, damage: number, knock: number, damageType: 'physical' | 'magic' = 'physical', snapshot?:Pick<DerivedStats, 'bossDamage' | 'eliteDamage' | 'physicalPenetration' | 'magicPenetration'>, attackerLevel=this.hero.level, damageKind: 'direct' | 'poison_dot' = 'direct') {
+    if(this.isMineInterior && damageKind==='direct' && !mineLineOfSight(this.hero,e.group.position))return 0;
     if (e.hp <= 0) return 0;
     const playerStats=snapshot??derivedStats(this.hero);
     if(e.boss)damage*=1+playerStats.bossDamage/100;
@@ -3643,11 +3714,11 @@ export class Game {
     }
     e.flash = 0.14;
     const v = e.group.position.clone().sub(this.actor.position);
-    if(this.fieldTerrain||this.isPlains||this.isFrostfire||this.isWilds)v.y=0;
+    if(this.fieldTerrain||this.isPlains||this.isFrostfire||this.isWilds||this.isIronveil||this.isMineInterior)v.y=0;
     v.normalize();
     const knockDistance=e.boss?knock*.15:knock;
     this.moveEnemy(e,v.x*knockDistance,v.z*knockDistance);
-    if(!this.fieldTerrain&&!this.isPlains&&!this.isFrostfire&&!this.isWilds) {
+    if(!this.fieldTerrain&&!this.isPlains&&!this.isFrostfire&&!this.isWilds&&!this.isIronveil&&!this.isMineInterior) {
       const extent=regionHalfExtent(false);
       e.group.position.x=T.MathUtils.clamp(e.group.position.x,-extent,extent);
       e.group.position.z=T.MathUtils.clamp(e.group.position.z,-extent,extent);
@@ -3666,7 +3737,7 @@ export class Game {
       const goldMultiplier = e.definition?.variant === 'boss' || e.boss ? 1.8 : e.definition?.variant === 'elite' ? 1.5 : 1;
       const goldReward=Math.floor((8 + monsterLevel * 1.5) * goldMultiplier * (1 + rewardStats.goldDropRate / 100));
       this.hero.kills += 1;
-      this.hero.fieldProgress[this.hero.currentField] = (this.hero.fieldProgress[this.hero.currentField] ?? 0) + 1;
+      this.hero.fieldProgress[this.activeLocationId] = (this.hero.fieldProgress[this.activeLocationId] ?? 0) + 1;
       const goldPosition = e.group.position.clone().add(new T.Vector3(0.85, 0, 0));
       this.spawnGoldDrop(goldReward, goldPosition);
       const levels = gainXP(this.hero, xp);
@@ -3758,7 +3829,7 @@ export class Game {
     ).normalize();
   }
   move(dx: number, dz: number) {
-    if(this.transitioning||this.regionLoadError||((this.isAverion&&!this.averion)||(this.isPlains&&!this.plains)||(this.isFrostfire&&!this.frostfire)||(this.isWilds&&!this.wilds)))return;
+    if(this.transitioning||this.regionLoadError||((this.isAverion&&!this.averion)||(this.isPlains&&!this.plains)||(this.isFrostfire&&!this.frostfire)||(this.isWilds&&!this.wilds)||(this.isIronveil&&!this.ironveil)||(this.isMineInterior&&!this.mineInterior)))return;
     if(isStunned(this.hero,this.combatTime))return;
     const p=moveWithTreeCollisions(this.hero,dx,dz,this.treeColliders,(from,mx,mz)=>this.moveHeroOnGround(from,mx,mz),(x,z)=>this.groundHeight(x,z));
     this.hero.x=p.x;this.hero.z=p.z;
@@ -3783,6 +3854,8 @@ export class Game {
     return this.groundDistance(this.actor.position, target.group.position) <= desiredRange + 1e-4;
   }
   moveHeroOnGround(from:GroundPoint,dx:number,dz:number):GroundPoint {
+    if(this.isMineInterior)return this.mineInterior?this.mineInterior.move(from,dx,dz):{...from};
+    if(this.isIronveil)return this.ironveil?this.ironveil.move(from,dx,dz):{...from};
     if(this.isWilds)return this.wilds?this.wilds.move(from,dx,dz):{...from};
     if(this.isFrostfire)return this.frostfire?this.frostfire.move(from,dx,dz):{...from};
     if(this.isPlains)return this.plains?this.plains.move(from,dx,dz):{...from};
@@ -3811,7 +3884,7 @@ export class Game {
   tick = (time: number) => {
     const frameStarted = performance.now();
     if (this.disposed || !this.started) { this.frame = 0; return; }
-    if(this.transitioning||this.regionLoadError||((this.isAverion&&!this.averion)||(this.isPlains&&!this.plains)||(this.isFrostfire&&!this.frostfire)||(this.isWilds&&!this.wilds))) {
+    if(this.transitioning||this.regionLoadError||((this.isAverion&&!this.averion)||(this.isPlains&&!this.plains)||(this.isFrostfire&&!this.frostfire)||(this.isWilds&&!this.wilds)||(this.isIronveil&&!this.ironveil)||(this.isMineInterior&&!this.mineInterior))) {
       this.renderPerformance.suspend();
       this.lastTime=time;this.frame=requestAnimationFrame(this.tick);return;
     }
@@ -3946,8 +4019,20 @@ export class Game {
     }
     this.cameraFocus.lerp(this.actor.position, 1 - Math.exp(-dt * 6));
     const targetGroundY = this.groundHeight(this.actor.position.x, this.actor.position.z);
-    this.actor.position.y = this.isPlains||this.isFrostfire||this.isWilds?targetGroundY:T.MathUtils.lerp(this.actor.position.y, targetGroundY, 0.18);
+    this.actor.position.y = this.isPlains||this.isFrostfire||this.isWilds||this.isIronveil||this.isMineInterior?targetGroundY:T.MathUtils.lerp(this.actor.position.y, targetGroundY, 0.18);
     this.updateCamera(dt);
+    if(this.isMineInterior&&this.mineInterior){
+      this.camera.position.copy(this.mineInterior.constrainCamera(this.cameraOrbitTarget,this.camera.position,dt));
+      // Keep the orbit quaternion from updateCamera: collision adjusts distance only.
+      this.camera.updateMatrixWorld();this.mineInterior.update(this.camera,this.hero,time/1000);
+    }
+    if(this.isIronveil&&this.ironveil){
+      const focus=this.cameraFocusScratch.copy(this.actor.position);focus.y+=1.5;
+      this.camera.position.copy(this.ironveil.constrainCamera(focus,this.camera.position));
+      this.camera.position.y=Math.max(this.camera.position.y,ironveilGroundHeight(this.camera.position.x,this.camera.position.z)+1.2);this.camera.updateMatrixWorld();
+      this.ironveil.update(this.camera,this.hero,time/1000);
+      this.worldLightRig.traverse(o=>{if(o instanceof T.DirectionalLight){o.position.set(this.actor.position.x+IRONVEIL_DAYLIGHT.sun[0]*80,this.actor.position.y+IRONVEIL_DAYLIGHT.sun[1]*80,this.actor.position.z+IRONVEIL_DAYLIGHT.sun[2]*80);o.target.position.copy(this.actor.position);o.target.updateMatrixWorld();}});
+    }
     if(this.isWilds&&this.wilds){
       this.camera.position.y=Math.max(this.camera.position.y,wildsGroundHeight(this.camera.position.x,this.camera.position.z)+1.2);this.camera.updateMatrixWorld();
       this.wilds.update(this.camera,this.hero,this.paused||document.hidden?0:dt,this.renderer.getPixelRatio(),this.cameraMode==='free');
@@ -4002,6 +4087,7 @@ export class Game {
     this.frame = requestAnimationFrame(this.tick);
   };
   updateCamera(dt: number) {
+    this.camera=this.cameraMode==='follow'?this.followCamera:this.isMineInterior?this.mineFreeCamera:this.freeCamera;
     if (this.cameraMode === 'follow') {
       this.followView = stepFollowCamera(this.followView, dt);
       const view = this.followView;
@@ -4014,7 +4100,8 @@ export class Game {
         this.cameraFocus.z + Math.cos(view.yaw) * horizontal,
       );
       if(this.fieldTerrain&&insideBoundary(this.fieldTerrain,this.camera.position))this.camera.position.y=Math.max(this.camera.position.y,this.groundHeight(this.camera.position.x,this.camera.position.z)+1.2);
-      this.camera.lookAt(this.cameraFocus.x, targetY, this.cameraFocus.z);
+      this.cameraOrbitTarget.set(this.cameraFocus.x,targetY,this.cameraFocus.z);
+      this.camera.lookAt(this.cameraOrbitTarget);
       this.impactShakeRemaining = Math.max(0, this.impactShakeRemaining - dt);
       const shake = followImpactShake(this.impactShakeRemaining);
       this.camera.rotateX(shake.x);
@@ -4037,13 +4124,14 @@ export class Game {
       z + Math.cos(view.state.yaw) * horizontalDistance,
     );
     if(this.fieldTerrain&&insideBoundary(this.fieldTerrain,this.camera.position))this.camera.position.y=Math.max(this.camera.position.y,this.groundHeight(this.camera.position.x,this.camera.position.z)+1.2);
-    this.camera.lookAt(x, targetY, z);
+    this.cameraOrbitTarget.set(x,targetY,z);
+    this.camera.lookAt(this.cameraOrbitTarget);
     this.updateCameraProjection();
   }
   updateEnemy(e: Enemy, dt: number) {
-    if((this.isPlains||this.isFrostfire||this.isWilds)&&e.hp>0){
+    if((this.isPlains||this.isFrostfire||this.isWilds||this.isIronveil||this.isMineInterior)&&e.hp>0){
       const nearby=this.groundDistance(e.group.position,this.actor.position)<(e.boss?160:110);
-      e.group.visible=nearby;
+      e.group.visible=nearby && (!this.isMineInterior || mineLineOfSight(e.group.position,this.hero));
       // Only sleep healthy, idle actors at home. Death timers, damage-over-time,
       // control effects and returning combatants still use the existing update.
       if(!nearby&&e.hp===e.max&&this.groundDistance(e.group.position,e.home)<1&&
@@ -4077,7 +4165,7 @@ export class Game {
     const dx = this.actor.position.x - e.group.position.x,
       dz = this.actor.position.z - e.group.position.z,
       dist = Math.hypot(dx, dz),
-      safe = this.hero.inCity || isFieldSafe(this.hero.currentField,this.hero.x,this.hero.z);
+      safe = this.hero.inCity || (this.isMineInterior ? mineSafe(this.hero) || !mineLineOfSight(e.group.position,this.hero) : isFieldSafe(this.hero.currentField,this.hero.x,this.hero.z));
     e.cooldown -= dt;
     e.flash = Math.max(0, e.flash - dt);
     const body = e.group.children[0] as T.Mesh;
@@ -4273,7 +4361,13 @@ export class Game {
     for(const portal of this.portalLabels) {
       const visible=this.started&&Math.hypot(this.hero.x-portal.x,this.hero.z-portal.z)<16;
       portal.element.style.display=visible?'block':'none';
-      if(visible){const p=this.frameProjection.set(portal.x,this.groundHeight(portal.x,portal.z)+(portal.labelHeight??5),portal.z).project(this.camera);portal.element.style.left=`${(p.x*.5+.5)*100}%`;portal.element.style.top=`${(-p.y*.5+.5)*100}%`;}
+      if(visible){
+        const p=this.frameProjection.set(portal.x,this.groundHeight(portal.x,portal.z)+(portal.labelHeight??5),portal.z).project(this.camera);
+        // Keep the nearby entrance action reachable when the tall doorway is above the camera.
+        const x=p.x*.5+.5,y=-p.y*.5+.5;
+        portal.element.style.left=`${((this.isIronveil||this.isMineInterior)?T.MathUtils.clamp(x,.3,.7):x)*100}%`;
+        portal.element.style.top=`${((this.isIronveil||this.isMineInterior)?T.MathUtils.clamp(y,.28,.72):y)*100}%`;
+      }
     }
     for(const {npc,element,nameElement} of this.npcLabels) {
       const position=this.frameProjection.set(npc.x,this.groundHeight(npc.x,npc.z)+2.8,npc.z);
@@ -4317,7 +4411,7 @@ export class Game {
       if (!label) continue;
       const visible =
         this.started &&
-        e.hp > 0 &&
+        e.hp > 0 && e.group.visible &&
         e.group.position.distanceTo(this.actor.position) < 15;
       label.style.display = visible ? 'block' : 'none';
       if (visible) {
@@ -4353,10 +4447,12 @@ export class Game {
     ctx.fillRect(0, 0, size, size);
 
 
-    const mapScale = this.isPlains||this.isFrostfire||this.isWilds ? 1000/106 : this.isAverion ? 250/106 : this.fieldTerrain?.id === 'verdant-plains' ? 2 : regionScale(this.hero.inCity);
+    const mapScale = this.isPlains||this.isFrostfire||this.isWilds||this.isIronveil||this.isMineInterior ? 1000/106 : this.isAverion ? 250/106 : this.fieldTerrain?.id === 'verdant-plains' ? 2 : regionScale(this.hero.inCity);
     const p = (v: number) => size / 2 + (v * size) / (106 * mapScale);
 
-    if(this.isWilds&&this.wilds) {this.wilds.drawMinimap(ctx,size);}
+    if(this.isMineInterior&&this.mineInterior){this.mineInterior.drawMinimap(ctx,size);}
+    else if(this.isIronveil&&this.ironveil){this.ironveil.drawMinimap(ctx,size);}
+    else if(this.isWilds&&this.wilds) {this.wilds.drawMinimap(ctx,size);}
     else if(this.isFrostfire&&this.frostfire) {this.frostfire.drawMinimap(ctx,size);}
     else if(this.isPlains&&this.plains) {this.plains.drawMinimap(ctx,size);}
     else if(this.isAverion&&this.averion) {
@@ -4399,6 +4495,7 @@ export class Game {
     }
     for (const e of this.enemies) {
       if (e.hp <= 0) continue;
+      if(this.isMineInterior&&!e.group.visible)continue;
       if(this.isPlains&&!e.boss&&this.groundDistance(e.group.position,this.actor.position)>110)continue;
       const enemyPoint = { x: p(e.group.position.x), y: p(e.group.position.z) };
       ctx.fillStyle = e.boss ? '#dda4e9' : '#d6a871';
@@ -4473,7 +4570,7 @@ export class Game {
     this.cameraFocus.copy(this.actor.position);
     this.updateCamera(0);
     this.camera.updateMatrixWorld();
-    this.message(this.isWilds ? (mode==='follow'?'Follow Camera - right-drag to orbit, scroll to zoom.':'Free Camera - free movement enabled.') : mode === 'follow'
+    this.message(this.isWilds||this.isIronveil ? (mode==='follow'?'Follow Camera - right-drag to orbit, scroll to zoom.':'Free Camera - free movement enabled.') : mode === 'follow'
       ? 'Follow Camera · klik kanan-drag untuk orbit, scroll untuk zoom.'
       : 'Free Camera · kontrol kamera bebas aktif.');
     this.emit();
@@ -4510,12 +4607,14 @@ export class Game {
     this.characterModel?.setQuality(quality);
     this.plains?.setQuality(quality);
     this.wilds?.setQuality(quality);
+    this.ironveil?.setQuality(quality);
+    this.mineInterior?.setQuality(quality);
     const profile=PLAINS_QUALITY[quality];
-    this.renderer.shadowMap.enabled=profile.shadow>0;
+    this.renderer.shadowMap.enabled=!this.isMineInterior&&profile.shadow>0;
     this.worldLightRig.traverse(o=>{if(o instanceof T.DirectionalLight){
       const size=profile.shadow||1024;
       if(o.shadow.mapSize.x!==size){o.shadow.map?.dispose();o.shadow.map=null;o.shadow.mapSize.setScalar(size);}
-      if(this.isWilds||this.isPlains)Object.assign(o.shadow.camera,{left:-42,right:42,top:42,bottom:-42,near:.1,far:this.isWilds?180:140});
+      if(this.isWilds||this.isPlains||this.isIronveil)Object.assign(o.shadow.camera,{left:-42,right:42,top:42,bottom:-42,near:.1,far:this.isWilds?180:140});
       o.shadow.camera.updateProjectionMatrix();
     }});
     this.renderPerformance.reset();
@@ -4531,7 +4630,7 @@ export class Game {
     const debug = gl.getExtension('WEBGL_debug_renderer_info');
     const buffer = this.renderer.getDrawingBufferSize(new T.Vector2());
     return {
-      capturedAt: new Date().toISOString(), map: this.hero.inCity ? this.hero.currentCity : this.hero.currentField,
+      capturedAt: new Date().toISOString(), map: this.activeLocationId,
       quality: this.graphicsQuality, ...this.renderPerformance.snapshot(),
       qualityLabel: PLAINS_QUALITY_LABELS[this.graphicsQuality],
       viewport: { width: this.host.clientWidth, height: this.host.clientHeight, deviceDpr: devicePixelRatio },
@@ -4542,6 +4641,8 @@ export class Game {
       plains: this.plains?.metrics(),
       frostfire: this.frostfire?.metrics(),
       whisperingWilds: this.wilds?.metrics(),
+      ironveilMines: this.ironveil?.metrics(),
+      ironveilInterior: this.mineInterior?.metrics(),
     };
   }
   resize = () => {
@@ -4616,11 +4717,32 @@ export class Game {
     this.save();
   };
   contextmenu = (e: Event) => e.preventDefault();
+  interactIronveilEntrance() {
+    if(!this.started||!this.isIronveil||!this.ironveil||this.dead||this.paused||this.transitioning||this.regionLoadError)return;
+    const entrance=IRONVEIL_TRANSITION;
+    if(Math.hypot(this.hero.x-entrance.anchor.x,this.hero.z-entrance.anchor.z)>entrance.reach){
+      this.message('Move closer to the mine entrance.');return;
+    }
+    this.hero.interiorId=MINE_ID;Object.assign(this.hero,MINE_ENTRY);this.hero.lastSafePosition={...MINE_ENTRY};
+    this.actor.rotation.y=0;this.followView.yaw=0;this.direction.set(0,0,-1);
+    this.loadActiveLocation(MINE_ID,'Ironveil Mines \u00b7 Interior','Entered Ironveil Mines.');
+  }
+  interactIronveilExit() {
+    if(!this.started||!this.isMineInterior||!this.mineInterior||this.dead||this.paused||this.transitioning||this.regionLoadError)return;
+    if(Math.hypot(this.hero.x-MINE_EXIT.x,this.hero.z-MINE_EXIT.z)>4.5){this.message('Move closer to the mine exit.');return;}
+    delete this.hero.interiorId;Object.assign(this.hero,IRONVEIL_TRANSITION.returnAnchor);this.hero.lastSafePosition={...IRONVEIL_TRANSITION.returnAnchor};
+    this.loadActiveLocation(IRONVEIL_ID,'Ironveil Mines','Returned to the mine exterior.');
+  }
   tryNpcInteraction() {
     this.raycaster.setFromCamera(this.pointer,this.camera);
     for(const hit of this.raycaster.intersectObjects(this.regionDecor.children,true)) {
       let object:T.Object3D|null=hit.object;
       while(object&&object!==this.regionDecor) {
+        if(this.isMineInterior&&object.userData.ironveilInteriorExit){this.interactIronveilExit();return true;}
+        if(this.isIronveil&&object.userData.ironveilEntrance){
+          this.interactIronveilEntrance();
+          return true;
+        }
         if(typeof object.userData.npcId==='string') {this.openNpc(object.userData.npcId);return true;}
         if((this.fieldTerrain||this.isPlains||this.isWilds)&&typeof object.userData.destination==='string') {
           const destinationPosition=this.isPlains?new T.Vector3(PLAINS_EXIT.x,0,PLAINS_EXIT.z):object.getWorldPosition(new T.Vector3());
@@ -4760,6 +4882,8 @@ export class Game {
     this.disposed = true;
     if(this.plains){this.plains.dispose();this.plains=null;}
     if(this.frostfire){this.frostfire.dispose();this.frostfire=null;}
+    if(this.ironveil){this.ironveil.dispose();this.ironveil=null;}
+    if(this.mineInterior){this.mineInterior.dispose();this.mineInterior=null;}
     if(this.wilds){this.wilds.dispose();this.wilds=null;}
     setArunikaShrineMaterials(this.shrine,null);
     this.arunikaMaterials?.dispose();this.arunikaMaterials=null;

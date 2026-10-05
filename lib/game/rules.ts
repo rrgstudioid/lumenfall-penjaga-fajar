@@ -1,3 +1,6 @@
+import { migrateIronveilSave } from './ironveil-mines-save-migration.ts';
+import { MINE_ID, MineNavigation } from './ironveil-interior-layout.ts';
+import { IRONVEIL_ID, IronveilNavigation } from './ironveil-mines-layout.ts';
 import { WILDS_ID } from './whispering-wilds-layout.ts';
 import { migrateWildsSave } from './whispering-wilds-save-migration.ts';
 import { WildsNavigation } from './whispering-wilds-navigation.ts';
@@ -346,6 +349,7 @@ export type Hero = PrimaryHotbarState & {
   selectedAmmo: string | null;
   currentCity: string;
   currentField: string;
+  interiorId?: typeof MINE_ID;
   frostfireLayoutVersion?: number;
   inCity: boolean;
   unlockedCities: string[];
@@ -2564,6 +2568,7 @@ function normalizedHero(value: Record<string, unknown>, slotId = 'slot-1') {
     return null;
   value = migrateFrostfireSave(value);
   value = migrateWildsSave(value);
+  value = migrateIronveilSave(value);
   const oldSave = value.version === 1 || value.version === 2;
   const id = typeof value.slotId === 'string' ? value.slotId : slotId;
   const name =
@@ -2630,6 +2635,7 @@ function normalizedHero(value: Record<string, unknown>, slotId = 'slot-1') {
     selectedAmmo: typeof value.selectedAmmo==='string' ? value.selectedAmmo : null,
     currentCity: typeof value.currentCity === 'string' && CITIES[value.currentCity] ? value.currentCity : 'arunika',
     currentField: typeof value.currentField === 'string' && FIELDS[value.currentField] ? value.currentField : PLAINS_ID,
+    interiorId: value.interiorId===MINE_ID&&value.inCity===false&&value.currentField===IRONVEIL_ID ? MINE_ID : undefined,
     inCity: typeof value.inCity === 'boolean' ? value.inCity : true,
     unlockedCities: Array.isArray(value.unlockedCities) ? value.unlockedCities.filter((id):id is string=>typeof id==='string'&&Boolean(CITIES[id])) : ['arunika'],
     unlockedFields: Array.isArray(value.unlockedFields) ? value.unlockedFields.filter((id):id is string=>typeof id==='string'&&Boolean(FIELDS[id])) : [PLAINS_ID],
@@ -2650,8 +2656,8 @@ function normalizedHero(value: Record<string, unknown>, slotId = 'slot-1') {
     weapon: integer(value.weapon, 0, 20, 0),
     questClaimed: value.questClaimed === true,
     bossDefeated: value.bossDefeated === true,
-    x: value.inCity===false&&(value.currentField===PLAINS_ID||value.currentField===FROSTFIRE_ID||value.currentField===WILDS_ID) ? (typeof value.x==='number'?value.x:NaN) : integer(value.x, 1-regionHalfExtent(value.inCity !== false), regionHalfExtent(value.inCity !== false)-1, 0),
-    z: value.inCity===false&&(value.currentField===PLAINS_ID||value.currentField===FROSTFIRE_ID||value.currentField===WILDS_ID) ? (typeof value.z==='number'?value.z:NaN) : integer(value.z, 1-regionHalfExtent(value.inCity !== false), regionHalfExtent(value.inCity !== false)-1, 7),
+    x: value.inCity===false&&(value.currentField===PLAINS_ID||value.currentField===FROSTFIRE_ID||value.currentField===WILDS_ID||value.currentField===IRONVEIL_ID) ? (typeof value.x==='number'?value.x:NaN) : integer(value.x, 1-regionHalfExtent(value.inCity !== false), regionHalfExtent(value.inCity !== false)-1, 0),
+    z: value.inCity===false&&(value.currentField===PLAINS_ID||value.currentField===FROSTFIRE_ID||value.currentField===WILDS_ID||value.currentField===IRONVEIL_ID) ? (typeof value.z==='number'?value.z:NaN) : integer(value.z, 1-regionHalfExtent(value.inCity !== false), regionHalfExtent(value.inCity !== false)-1, 7),
     skillPoints: integer(value.skillPoints, 0, 500, Math.max(0, level - 1)),
     statPoints: integer(value.statPoints, 0, 999, Math.max(0, level - 1) * STAT_POINTS_PER_LEVEL),
     allocatedStats,
@@ -2867,6 +2873,8 @@ function normalizedHero(value: Record<string, unknown>, slotId = 'slot-1') {
   if(!h.inCity&&h.currentField===PLAINS_ID)Object.assign(h,restorePlainsPosition(h));
   if(!h.inCity&&h.currentField===FROSTFIRE_ID)Object.assign(h,new FrostNavigation().restore(h));
   if(!h.inCity&&h.currentField===WILDS_ID)Object.assign(h,new WildsNavigation().restore(h));
+  if(h.interiorId===MINE_ID)Object.assign(h,new MineNavigation().restore(h));
+  else if(!h.inCity&&h.currentField===IRONVEIL_ID)Object.assign(h,new IronveilNavigation().restore(h));
   const terrain=!h.inCity?FIELD_TERRAINS[h.currentField]:undefined;
   if(terrain)Object.assign(h,nearestTerrainPoint(terrain,{x:h.x,z:h.z}));
   if(h.progressionArchitecture==='v2_test')delete h.statusEffects.stealth;

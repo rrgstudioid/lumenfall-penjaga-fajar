@@ -68,6 +68,7 @@ export function createPlainsSky(
           night ? WILDS_NIGHT.zenith : cold ? FROST_DAWN.zenith : '#438fd4',
         ),
       },
+      uClearMidday: { value: 0 },
       uCold: { value: cold ? 1 : 0 },
       uNight: { value: night ? 1 : 0 },
     },
@@ -81,7 +82,7 @@ export function createPlainsSky(
     `,
     fragmentShader: `
       uniform sampler2D uClouds,uChaoticSky;
-      uniform float uTime,uCold,uNight,uChaotic;
+      uniform float uTime,uCold,uNight,uChaotic,uClearMidday;
       uniform vec3 uSun,uHorizon,uZenith;
       varying vec3 vSkyDirection;
       vec2 starHash(vec2 p){return fract(sin(vec2(dot(p,vec2(127.1,311.7)),dot(p,vec2(269.5,183.3))))*43758.5453);}
@@ -148,13 +149,13 @@ export function createPlainsSky(
           return;
         }
         float horizonFade=smoothstep(.005,.09,d.y);
-        float opacity=cloud.g*horizonFade*.92*(1.0-halo*.72);
+        float opacity=cloud.g*horizonFade*mix(.92,.64,uClearMidday)*(1.0-halo*.72);
         float shade=pow(cloud.r,1.7);
-        vec3 litCloud=mix(vec3(.40,.53,.68),vec3(1.18,1.16,1.08),shade);
+        vec3 litCloud=mix(mix(vec3(.40,.53,.68),vec3(.78,.83,.89),uClearMidday),vec3(1.18,1.16,1.08),shade);
         // A warmer rim near the sun, without a screen-space bloom pass.
         litCloud+=vec3(.20,.15,.065)*halo;
         litCloud+=vec3(.28,.11,.02)*dawnGlow;
-        color=mix(color,vec3(.82,.89,.95),cloud.b*.16*horizonFade*(1.0-opacity));
+        color=mix(color,vec3(.82,.89,.95),cloud.b*.16*horizonFade*(1.0-opacity)*(1.0-uClearMidday));
         color=mix(color,mix(litCloud,litCloud*vec3(.91,.97,1.04),uCold),min(1.,opacity*(1.+uCold*.16)));
         color=mix(color,uHorizon,uCold*.18);
         gl_FragColor=vec4(color,1.0);
