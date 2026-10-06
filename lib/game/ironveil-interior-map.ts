@@ -10,6 +10,7 @@ import {
   MINE_ID,
   MINE_ENTRY,
   MINE_EXIT,
+  MINE_HUD_MINIMAP_VIEW_SIZE,
   MINE_ROOMS,
   mineTimberFrames,
   MINE_BLOCKERS,
@@ -22,7 +23,7 @@ import {
   mineLanterns,
   mineLineOfSight,
   mineBakedLight,
-  drawMineMinimap,
+  drawMineLocalMinimap,
   type MinePoint,
 } from './ironveil-interior-layout';
 
@@ -730,9 +731,6 @@ export async function buildIronveilInterior(
       currentQuality = value;
       lastSelection = -100;
     };
-    const mapCanvas = document.createElement('canvas');
-    mapCanvas.width = mapCanvas.height = 1000;
-    drawMineMinimap(mapCanvas.getContext('2d')!, 1000, undefined, false);
     return {
       root,
       surfaces,
@@ -744,20 +742,20 @@ export async function buildIronveilInterior(
       update,
       setQuality,
       anchors: { entry: MINE_ENTRY, respawn: MINE_ENTRY, exit: MINE_EXIT },
-      drawMinimap: (ctx: CanvasRenderingContext2D, size: number) => {
-        ctx.drawImage(mapCanvas, 0, 0, size, size);
-        ctx.save();
-        ctx.font = `${Math.max(7, size / 33)}px sans-serif`;
-        ctx.textAlign = 'center';
-        ctx.fillStyle = '#f2deba';
-        for (const [name, u, v] of [
-          ['Junction', 480, 430],
-          ['Deep Hall', 470, 170],
-          ['Minerals', 800, 170],
-        ] as const)
-          ctx.fillText(name, (u * size) / 1000, (v * size) / 1000 - 6);
-        ctx.restore();
-      },
+      drawMinimap: (
+        ctx: CanvasRenderingContext2D,
+        size: number,
+        player: MinePoint,
+        enemies: MinePoint[],
+        direction: MinePoint,
+      ) =>
+        drawMineLocalMinimap(
+          ctx,
+          size,
+          player,
+          { enemies, direction },
+          MINE_HUD_MINIMAP_VIEW_SIZE,
+        ),
       metrics: () => ({
         textureMiB:
           [...textures].reduce(

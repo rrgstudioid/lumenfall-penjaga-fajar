@@ -4072,13 +4072,14 @@ export class Game {
     updateCharacterBillboards(this.aura, this.camera);
     this.updateFloating(dt);
     this.renderer.render(this.scene, this.camera);
+    if (this.isMineInterior) this.drawMap();
     this.emitTimer += dt;
     const moved = Math.hypot(this.hero.x - this.lastEmitX, this.hero.z - this.lastEmitZ) > 0.25;
     if (this.emitTimer > 0.5 && (moved || this.emitTimer > 2)) {
       this.emitTimer = 0;
       this.lastEmitX = this.hero.x;
       this.lastEmitZ = this.hero.z;
-      this.drawMap();
+      if (!this.isMineInterior) this.drawMap();
       this.emit();
     }
     if (!this.paused && !document.hidden)
@@ -4446,12 +4447,27 @@ export class Game {
     ctx.fillStyle = '#173d34';
     ctx.fillRect(0, 0, size, size);
 
+    if (this.isMineInterior && this.mineInterior) {
+      const enemies = this.enemies
+        .filter((enemy) => enemy.hp > 0 && enemy.group.visible)
+        .map((enemy) => ({
+          x: enemy.group.position.x,
+          z: enemy.group.position.z,
+        }));
+      this.mineInterior.drawMinimap(
+        ctx,
+        size,
+        { x: this.hero.x, z: this.hero.z },
+        enemies,
+        { x: this.direction.x, z: this.direction.z },
+      );
+      return;
+    }
 
-    const mapScale = this.isPlains||this.isFrostfire||this.isWilds||this.isIronveil||this.isMineInterior ? 1000/106 : this.isAverion ? 250/106 : this.fieldTerrain?.id === 'verdant-plains' ? 2 : regionScale(this.hero.inCity);
+    const mapScale = this.isPlains||this.isFrostfire||this.isWilds||this.isIronveil ? 1000/106 : this.isAverion ? 250/106 : this.fieldTerrain?.id === 'verdant-plains' ? 2 : regionScale(this.hero.inCity);
     const p = (v: number) => size / 2 + (v * size) / (106 * mapScale);
 
-    if(this.isMineInterior&&this.mineInterior){this.mineInterior.drawMinimap(ctx,size);}
-    else if(this.isIronveil&&this.ironveil){this.ironveil.drawMinimap(ctx,size);}
+    if(this.isIronveil&&this.ironveil){this.ironveil.drawMinimap(ctx,size);}
     else if(this.isWilds&&this.wilds) {this.wilds.drawMinimap(ctx,size);}
     else if(this.isFrostfire&&this.frostfire) {this.frostfire.drawMinimap(ctx,size);}
     else if(this.isPlains&&this.plains) {this.plains.drawMinimap(ctx,size);}

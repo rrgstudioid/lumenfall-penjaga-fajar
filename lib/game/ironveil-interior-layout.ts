@@ -10,6 +10,8 @@ export const MINE_EXIT = minePoint(500, 950);
 export const MINE_GRID = 4;
 export const MINE_CELLS = 250;
 export const MINE_SAFE_RADIUS = 28;
+export const MINE_LOCAL_MAP_VIEW_SIZE = 280;
+export const MINE_HUD_MINIMAP_VIEW_SIZE = 120;
 export const MINE_ROOMS = [
   ['A', 'Receiving Chamber', 500, 840, 120, 90, 34],
   ['W1', 'West Excavation', 230, 790, 180, 130, 46],
@@ -771,6 +773,26 @@ export function drawMineMinimap(
   player?: MinePoint,
   labels = true,
 ) {
+  ctx.clearRect(0, 0, size, size);
+  ctx.drawImage(getMineMinimapBase(), 0, 0, size, size);
+  if (size >= 450 && labels) drawMineMinimapLabels(ctx, size);
+  if (player) drawMineMinimapPlayer(ctx, size, player);
+}
+
+let mineMinimapBase: HTMLCanvasElement | undefined;
+
+function getMineMinimapBase() {
+  if (mineMinimapBase) return mineMinimapBase;
+  const canvas = document.createElement('canvas');
+  canvas.width = canvas.height = 1000;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) throw new Error('Unable to create the mine map canvas.');
+  drawMineMinimapBase(ctx, 1000);
+  mineMinimapBase = canvas;
+  return canvas;
+}
+
+function drawMineMinimapBase(ctx: CanvasRenderingContext2D, size: number) {
   const s = size / 1000;
   ctx.fillStyle = '#101215';
   ctx.fillRect(0, 0, size, size);
@@ -810,37 +832,118 @@ export function drawMineMinimap(
   }
   ctx.fillStyle = '#ead3a4';
   ctx.fillRect(494 * s, 942 * s, 12 * s, 12 * s);
-  if (size >= 450 && labels) {
-    ctx.font = `${Math.max(16, size / 42)}px sans-serif`;
-    ctx.textAlign = 'center';
-    for (const r of MINE_ROOMS) {
-      ctx.fillStyle = '#f4dbb8';
-      const words = r.name.split(' '),
-        middle = Math.ceil(words.length / 2);
-      ctx.fillText(
-        words.slice(0, middle).join(' '),
-        (r.x + 500) * s,
-        (r.z + 500) * s - 5,
-      );
-      ctx.fillText(
-        words.slice(middle).join(' '),
-        (r.x + 500) * s,
-        (r.z + 500) * s + 20,
-      );
-    }
-    ctx.fillText('EXIT', 500 * s, 976 * s);
-    ctx.fillText('N ↑', 950 * s, 28 * s);
+}
+
+function drawMineMinimapLabels(ctx: CanvasRenderingContext2D, size: number) {
+  const s = size / 1000;
+  ctx.font = `${Math.max(16, size / 42)}px sans-serif`;
+  ctx.textAlign = 'center';
+  for (const r of MINE_ROOMS) {
+    ctx.fillStyle = '#f4dbb8';
+    const words = r.name.split(' '),
+      middle = Math.ceil(words.length / 2);
+    ctx.fillText(
+      words.slice(0, middle).join(' '),
+      (r.x + 500) * s,
+      (r.z + 500) * s - 5,
+    );
+    ctx.fillText(
+      words.slice(middle).join(' '),
+      (r.x + 500) * s,
+      (r.z + 500) * s + 20,
+    );
   }
-  if (player) {
+  ctx.fillText('EXIT', 500 * s, 976 * s);
+  ctx.fillText('N ↑', 950 * s, 28 * s);
+}
+
+function drawMineMinimapPlayer(
+  ctx: CanvasRenderingContext2D,
+  size: number,
+  player: MinePoint,
+) {
+  const s = size / 1000;
+  ctx.beginPath();
+  ctx.arc(
+    (player.x + 500) * s,
+    (player.z + 500) * s,
+    Math.max(3, size / 180),
+    0,
+    Math.PI * 2,
+  );
+  ctx.fillStyle = '#fff3ac';
+  ctx.fill();
+}
+
+export function mineMinimapViewport(
+  player: MinePoint,
+  size = MINE_LOCAL_MAP_VIEW_SIZE,
+) {
+  const originX = Math.max(
+    0,
+    Math.min(1000 - size, player.x + 500 - size / 2),
+  );
+  const originZ = Math.max(
+    0,
+    Math.min(1000 - size, player.z + 500 - size / 2),
+  );
+  return { x: originX, z: originZ, size };
+}
+
+export function drawMineLocalMinimap(
+  ctx: CanvasRenderingContext2D,
+  size: number,
+  player: MinePoint,
+  overlays: { enemies?: MinePoint[]; direction?: MinePoint } = {},
+  viewSize = MINE_LOCAL_MAP_VIEW_SIZE,
+) {
+  const viewport = mineMinimapViewport(player, viewSize);
+  ctx.clearRect(0, 0, size, size);
+  ctx.drawImage(
+    getMineMinimapBase(),
+    viewport.x,
+    viewport.z,
+    viewport.size,
+    viewport.size,
+    0,
+    0,
+    size,
+    size,
+  );
+  const scale = size / viewport.size;
+  for (const enemy of overlays.enemies ?? []) {
     ctx.beginPath();
     ctx.arc(
-      (player.x + 500) * s,
-      (player.z + 500) * s,
-      Math.max(3, size / 180),
+      (enemy.x + 500 - viewport.x) * scale,
+      (enemy.z + 500 - viewport.z) * scale,
+      2,
       0,
       Math.PI * 2,
     );
-    ctx.fillStyle = '#fff3ac';
+    ctx.fillStyle = '#d6a871';
     ctx.fill();
   }
+  const playerX = (player.x + 500 - viewport.x) * scale;
+  const playerZ = (player.z + 500 - viewport.z) * scale;
+  if (overlays.direction) {
+    ctx.save();
+    ctx.translate(playerX, playerZ);
+    ctx.rotate(
+      Math.atan2(overlays.direction.x, -overlays.direction.z),
+    );
+    ctx.fillStyle = '#fff1b6';
+    ctx.beginPath();
+    ctx.moveTo(0, -6);
+    ctx.lineTo(4, 4);
+    ctx.lineTo(0, 2);
+    ctx.lineTo(-4, 4);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+    return;
+  }
+  ctx.beginPath();
+  ctx.arc(playerX, playerZ, Math.max(5, size / 120), 0, Math.PI * 2);
+  ctx.fillStyle = '#fff3ac';
+  ctx.fill();
 }

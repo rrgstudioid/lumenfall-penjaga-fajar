@@ -19,6 +19,8 @@ import {
   minePoint,
   mineGrid,
   MINE_CELLS,
+  mineMinimapViewport,
+  MINE_HUD_MINIMAP_VIEW_SIZE,
 } from './ironveil-interior-layout.ts';
 import { IRONVEIL_ID, IRONVEIL_TRANSITION } from './ironveil-mines-layout.ts';
 import { FIELDS, travel } from './regions.ts';
@@ -33,6 +35,29 @@ await test('sub-map identity, door contract and exterior population are independ
   assert.deepEqual(IRONVEIL_TRANSITION.interiorArrival, MINE_ENTRY);
   assert.deepEqual(IRONVEIL_TRANSITION.interiorReturnDoor, MINE_EXIT);
   assert.equal(fieldSpawns(FIELDS[IRONVEIL_ID]).length, 129);
+});
+await test('local map viewport follows the player and stays within the cave bounds', () => {
+  assert.deepEqual(mineMinimapViewport({ x: 0, z: 0 }), {
+    x: 360,
+    z: 360,
+    size: 280,
+  });
+  assert.deepEqual(mineMinimapViewport({ x: -500, z: -500 }), {
+    x: 0,
+    z: 0,
+    size: 280,
+  });
+  assert.deepEqual(mineMinimapViewport({ x: 500, z: 500 }), {
+    x: 720,
+    z: 720,
+    size: 280,
+  });
+  assert.equal(MINE_HUD_MINIMAP_VIEW_SIZE, 120);
+  assert.deepEqual(mineMinimapViewport({ x: 0, z: 0 }, MINE_HUD_MINIMAP_VIEW_SIZE), {
+    x: 440,
+    z: 440,
+    size: 120,
+  });
 });
 await test('closed floor footprint stays inside 1000 units and retains the planned floor allocation', () => {
   const shell = mineShell();
