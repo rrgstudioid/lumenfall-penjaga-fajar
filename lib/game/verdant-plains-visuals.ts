@@ -1,4 +1,5 @@
 import * as T from 'three';
+import { PLAINS_BOUNDARY_GLSL } from './verdant-plains-boundary.ts';
 
 /** Three small silhouettes, shared by all boulders. Shape is independent of material. */
 export function plainsBoulderGeometry(variant: number) {
@@ -152,6 +153,7 @@ export function plainsGrassMaterial(
       uniform vec2 uPlayer,uGrassTrail,uGrassRange;
       uniform float uTime;
       varying float vBladeTip,vGrassTint,vGust,vDistanceFade;
+      ${PLAINS_BOUNDARY_GLSL}
       float groundAt(vec2 q){return texture2D(uGround,(q+.5)/513.0).r;}
       float surfaceAt(vec2 p){
         vec2 grid=clamp((p+500.0)*.512,vec2(0.0),vec2(511.999));
@@ -172,8 +174,11 @@ export function plainsGrassMaterial(
       // and animation work; keep all equations for visible blades unchanged.
       vec3 transformed=vec3(aGrassPatch.x,-10000.0,aGrassPatch.y);
       vBladeTip=aBladeProfile.x;vGrassTint=aGrassPatch.w;vGust=0.0;
-      if(all(lessThanEqual(abs(worldXZ),vec2(498.0))) && vDistanceFade>0.0){
-      float fade=1.0;
+      float boundaryFade=1.0;
+      if(max(abs(worldXZ.x),abs(worldXZ.y))>450.0)
+        boundaryFade=smoothstep(.2,2.0,plainsBoundaryClearance(worldXZ));
+      if(all(lessThanEqual(abs(worldXZ),vec2(498.0))) && vDistanceFade>0.0 && boundaryFade>0.0){
+      float fade=boundaryFade;
       float density=texture2D(uMask,((worldXZ+500.0)*.512+.5)/513.0).r;
       float clump=.72+.28*sin(worldXZ.x*.61)*sin(worldXZ.y*.53);
       fade*=smoothstep(.15,.8,density)*clump;
@@ -222,6 +227,6 @@ export function plainsGrassMaterial(
     `,
       );
   };
-  material.customProgramCacheKey = () => 'plains-grass-dense-tiles-v9-reject-hidden';
+  material.customProgramCacheKey = () => 'plains-grass-dense-tiles-v10-boundary';
   return material;
 }

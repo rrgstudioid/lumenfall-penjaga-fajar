@@ -4065,6 +4065,10 @@ export class Game {
         this.plainsShadowCheckAt = time + 1000;
       }
       this.camera.position.y=Math.max(this.camera.position.y,this.groundHeight(this.camera.position.x,this.camera.position.z)+1.2);
+      if(this.cameraMode==='follow') {
+        const focus=this.cameraFocusScratch.copy(this.actor.position);focus.y+=1.65;
+        this.camera.position.copy(this.plains.constrainCamera(focus,this.camera.position,dt));
+      }
       this.camera.updateMatrixWorld();
       this.plains.update(this.camera,this.hero,time/1000);
       this.worldLightRig.traverse(o=>{if(o instanceof T.DirectionalLight){o.position.set(this.actor.position.x+PLAINS_DAYLIGHT.sun[0]*80,this.actor.position.y+PLAINS_DAYLIGHT.sun[1]*80,this.actor.position.z+PLAINS_DAYLIGHT.sun[2]*80);o.target.position.copy(this.actor.position);o.target.updateMatrixWorld();}});

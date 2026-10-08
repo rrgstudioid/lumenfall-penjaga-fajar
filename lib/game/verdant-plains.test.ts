@@ -1,17 +1,16 @@
 import { STARTER_FIELD_CONTENT } from './regions.ts';
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { plainsBoundaryClearance, plainsBoundaryPoint, plainsBoundaryWalkable } from './verdant-plains-boundary.ts';
 import {
   PLAINS_ID,
   PLAINS_ENTRY,
   PLAINS_EXIT,
-  PLAINS_BRIDGE,
   PLAINS_POCKETS,
   PLAINS_CLEARING,
   PLAINS_RESOLUTION,
   PLAINS_STEP,
   PLAINS_PATHS,
-  PLAINS_RIVER,
   PlainsNavigation,
   plainsHeightfield,
   plainsTerrainHeight,
@@ -21,8 +20,6 @@ import {
   plainsProps,
   plainsCoast,
   plainsRoadDistance,
-  onPlainsBridge,
-  bridgeLocal,
 } from './verdant-plains-layout.ts';
 import {
   FIELDS,
@@ -86,7 +83,6 @@ await test('population is deterministic, distributed, grouped and safely navigab
       String(s.id),
     );
     assert.ok(!plainsSafe(s, 24));
-    assert.ok(!onPlainsBridge(s));
     if (s.definition.variant !== 'boss') assert.ok(plainsRoadDistance(s) > 3);
   }
   for (const pocket of PLAINS_POCKETS)
@@ -218,36 +214,77 @@ await test('camp, exit and future pockets are safe navigable terrain with connec
       }
     }
 });
-await test('bridge deck matches ground and crosses both directions; swept movement blocks all other water', () => {
-  const nav = new PlainsNavigation(),
-    b = PLAINS_BRIDGE;
+await test('former river and bridge are continuous land; swept movement still blocks the sea', () => {
+  const nav = new PlainsNavigation();
+  const b = { x: 120, z: -10, dx: 0.4, dz: 0.916515 };
   for (const sign of [-1, 1]) {
-    const start = { x: b.x + b.dx * 40 * sign, z: b.z + b.dz * 40 * sign },
-      end = nav.move(start, -b.dx * 80 * sign, -b.dz * 80 * sign);
-    assert.ok(
-      Math.hypot(
-        end.x - (b.x - b.dx * 40 * sign),
-        end.z - (b.z - b.dz * 40 * sign),
-      ) < 0.01,
-      JSON.stringify(end),
-    );
+    const start = { x: b.x + b.dx * 40 * sign, z: b.z + b.dz * 40 * sign };
+    const end = nav.move(start, -b.dx * 80 * sign, -b.dz * 80 * sign);
+    assert.ok(Math.hypot(end.x - (b.x - b.dx * 40 * sign), end.z - (b.z - b.dz * 40 * sign)) < 0.01);
   }
-  assert.equal(plainsGroundHeight(b.x, b.z), b.height);
-  for (const p of PLAINS_RIVER.filter((_, i) => i % 9 === 0)) {
-    if (
-      Math.abs(bridgeLocal(p).along) < 35 &&
-      Math.abs(bridgeLocal(p).across) < 8
-    )
-      continue;
-    assert.equal(plainsWalkable(p), false);
+  // Interior control points along the removed waterway now use the actual ground.
+  for (const p of [{ x: 430, z: -300 }, { x: 370, z: -120 }, b, { x: -120, z: 100 }, { x: -280, z: 220 }]) {
+    assert.ok(plainsTerrainHeight(p.x, p.z) > 0.12, JSON.stringify(p));
+    assert.ok(plainsWalkable(p), JSON.stringify(p));
+    assert.equal(plainsGroundHeight(p.x, p.z), plainsTerrainHeight(p.x, p.z));
+  }
+  for (let x = -450; x <= 450; x += 25) {
+    const z = plainsCoast(x) + 20;
+    assert.ok(plainsTerrainHeight(x, z) < 0);
+    assert.equal(plainsWalkable({ x, z }), false);
   }
   const from = { x: 0, z: plainsCoast(0) - 35 },
     end = nav.move(from, 0, 120);
   assert.ok(end.z < plainsCoast(0) - 4);
   assert.ok(nav.valid(end));
 });
+await test('all inland slopes are walkable while coast, bounds and solid props still block movement', () => {
+  const nav = new PlainsNavigation();
+  let steepSamples = 0;
+  for (let z = -496; z <= 496; z += 4)
+    for (let x = -496; x <= 496; x += 4) {
+      const p = { x, z };
+      const inland = z <= plainsCoast(x) - 4.45 && plainsBoundaryWalkable(x, z, 0.45);
+      assert.equal(plainsWalkable(p), inland, JSON.stringify(p));
+      if (!inland) continue;
+      const h = plainsGroundHeight(x, z);
+      if (Math.max(Math.abs(plainsGroundHeight(x + 1, z) - h), Math.abs(plainsGroundHeight(x, z + 1) - h)) >= 0.65) {
+        steepSamples++;
+        if (nav.valid(p)) assert.deepEqual(nav.restore(p), p);
+      }
+    }
+  assert.ok(steepSamples > 100, `covered ${steepSamples} formerly blocked slope samples`);
+  for (const p of [{ x: 499, z: 0 }, { x: -499, z: 0 }, { x: 0, z: -499 }, { x: NaN, z: 0 }])
+    assert.equal(plainsWalkable(p), false);
+  for (const p of plainsProps().filter(p => p.radius > 0))
+    assert.equal(nav.valid(p), false);
+});
+await test('rounded rock perimeter and swept movement share the same continuous contour', () => {
+  const nav = new PlainsNavigation();
+  let tested = 0, atRockFoot = 0;
+  for (let i = 0; i < 256; i++) {
+    const angle = i / 256 * Math.PI * 2;
+    const foot = plainsBoundaryPoint(angle);
+    assert.ok(Math.abs(plainsBoundaryClearance(foot.x, foot.z)) < 0.001);
+    if (foot.z > plainsCoast(foot.x) - 30) continue;
+    const from = plainsBoundaryPoint(angle, 12);
+    if (!nav.valid(from)) continue;
+    const end = nav.move(from, Math.cos(angle) * 80, Math.sin(angle) * 80);
+    const clearance = plainsBoundaryClearance(end.x, end.z);
+    assert.ok(nav.valid(end));
+    assert.ok(clearance >= 0.44, JSON.stringify(end));
+    if (clearance < 1.5) atRockFoot++;
+    assert.equal(plainsWalkable(plainsBoundaryPoint(angle, -2)), false);
+    tested++;
+  }
+  assert.ok(tested > 150);
+  assert.ok(atRockFoot / tested > 0.95, `${atRockFoot}/${tested} reach the visible rock foot`);
+  // The Averion portal remains in an open, accessible pass before the ridge.
+  assert.ok(plainsBoundaryClearance(PLAINS_EXIT.x, PLAINS_EXIT.z) > 40);
+  assert.ok(nav.valid(PLAINS_EXIT));
+});
 await test('far save coordinates survive; invalid and water saves return to camp without schema changes', () => {
-  for (const point of [PLAINS_EXIT, ...PLAINS_POCKETS]) {
+  for (const point of [PLAINS_EXIT, ...PLAINS_POCKETS, { x: 120, z: -10 }]) {
     const hero = freshHero();
     travel(hero, PLAINS_ID);
     Object.assign(hero, point);
@@ -256,7 +293,7 @@ await test('far save coordinates survive; invalid and water saves return to camp
     assert.equal(loaded.x, point.x);
     assert.equal(loaded.z, point.z);
   }
-  for (const point of [{ x: 900, z: 0 }, { x: NaN, z: 0 }, PLAINS_RIVER[30]]) {
+  for (const point of [{ x: 900, z: 0 }, { x: NaN, z: 0 }, { x: 0, z: 440 }]) {
     const hero = freshHero();
     travel(hero, PLAINS_ID);
     Object.assign(hero, point);
@@ -309,7 +346,7 @@ await test('road grades stay below eight degrees and hunting pockets are predomi
   }
 });
 
-await test('all reserved pockets are reachable from camp through the single river crossing', () => {
+await test('all reserved pockets are reachable from camp across continuous terrain', () => {
   const nav = new PlainsNavigation(),
     step = 4,
     n = 249,

@@ -11,7 +11,6 @@ import {
   PLAINS_ENTRY,
   PLAINS_EXIT,
   PLAINS_POCKETS,
-  PLAINS_BRIDGE,
 } from '../lib/game/verdant-plains-layout.ts';
 const { chromium } = await import(
   pathToFileURL(
@@ -338,8 +337,8 @@ try {
               ...PLAINS_POCKETS,
               PLAINS_EXIT,
               {
-                x: PLAINS_BRIDGE.x - PLAINS_BRIDGE.dx * 42,
-                z: PLAINS_BRIDGE.z - PLAINS_BRIDGE.dz * 42,
+                x: 103.2,
+                z: -48.49363,
               },
             ]
           : [PLAINS_ENTRY, PLAINS_OAKS.find((p) => p.zone === 'southeast')];

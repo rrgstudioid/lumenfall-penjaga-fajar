@@ -1,5 +1,7 @@
 /** Authoritative, deterministic layout. North is -Z; design coordinates are 0..1000. */
 import { PLAINS_OAKS } from './verdant-plains-oaks.ts';
+import { PLAINS_DECOR } from './verdant-plains-decor.ts';
+import { plainsBoundaryClearance, plainsBoundaryWalkable } from './verdant-plains-boundary.ts';
 export type PlainsPoint = { x: number; z: number };
 export const PLAINS_ID = 'verdant-plains-v2';
 export const PLAINS_SIZE = 1000;
@@ -37,39 +39,6 @@ function curve(a: PlainsPoint[], steps = 12): PlainsPoint[] {
     }
   }
   return [...result, a[a.length - 1]];
-}
-export const PLAINS_RIVER = curve(
-  points([
-    [960, 0],
-    [930, 200],
-    [870, 380],
-    [620, 490],
-    [380, 600],
-    [220, 720],
-    [120, 840],
-    [70, 960],
-  ]),
-);
-export const PLAINS_BRIDGE = {
-  ...plainsPoint(620, 490),
-  dx: 0.4,
-  dz: 0.916515,
-  halfLength: 32,
-  halfWidth: 4,
-  height: 6.4,
-};
-export function bridgeLocal(p: PlainsPoint) {
-  const b = PLAINS_BRIDGE,
-    x = p.x - b.x,
-    z = p.z - b.z;
-  return { along: x * b.dx + z * b.dz, across: x * b.dz - z * b.dx };
-}
-export function onPlainsBridge(p: PlainsPoint, margin = 0) {
-  const q = bridgeLocal(p);
-  return (
-    Math.abs(q.along) <= PLAINS_BRIDGE.halfLength &&
-    Math.abs(q.across) <= PLAINS_BRIDGE.halfWidth - margin
-  );
 }
 export const PLAINS_PATHS = [
   {
@@ -173,10 +142,6 @@ export function lineDistance(p: PlainsPoint, line: PlainsPoint[]) {
   }
   return Math.sqrt(best);
 }
-export const riverHalfWidth = (x: number, z: number) =>
-  14 + 4 * smooth(-250, 250, -x) + 17 * smooth(220, 440, z);
-export const plainsRiverDistance = (p: PlainsPoint) =>
-  lineDistance(p, PLAINS_RIVER) - riverHalfWidth(p.x, p.z);
 export const plainsRoadDistance = (p: PlainsPoint) =>
   Math.min(
     ...PLAINS_PATHS.map(
@@ -185,15 +150,21 @@ export const plainsRoadDistance = (p: PlainsPoint) =>
   );
 export const plainsSafe = (p: PlainsPoint, margin = 0) =>
   Math.hypot(p.x - PLAINS_ENTRY.x, p.z - PLAINS_ENTRY.z) <= 20 + margin;
+// Retain the surrounding lowland contours so filling the channel does not
+// reshape established hills, groves or hunting grounds. This is dry terrain.
+const lowlandAxis = curve(points([
+  [960, 0], [930, 200], [870, 380], [620, 490],
+  [380, 600], [220, 720], [120, 840], [70, 960],
+]));
 function rawHeight(x: number, z: number) {
-  const river = plainsRiverDistance({ x, z }),
-    coast = plainsCoast(x) - z;
+  const lowland = lineDistance({ x, z }, lowlandAxis)
+    - (14 + 4 * smooth(-250, 250, -x) + 17 * smooth(220, 440, z));
+  const coast = plainsCoast(x) - z;
   const hills =
     17 +
     8 * Math.sin(x / 180 + 0.7) * Math.cos(z / 145) +
     5 * Math.sin((x + z) / 280);
-  let y =
-    (6.2 + (hills - 6.2) * smooth(22, 115, river)) * smooth(-12, 65, coast);
+  let y = (6.2 + (hills - 6.2) * smooth(22, 115, lowland)) * smooth(-12, 65, coast);
   const ridges = [
     [-250, -285, 45, 26, 34],
     [-115, -150, 36, 24, 27],
@@ -208,16 +179,15 @@ function rawHeight(x: number, z: number) {
     y +=
       ridge *
       smooth(8, 24, plainsRoadDistance({ x, z })) *
-      smooth(8, 30, river) *
+      smooth(8, 30, lowland) *
       smooth(25, 70, coast);
   y +=
     smooth(453, 500, Math.max(Math.abs(x), -z)) *
     28 *
-    smooth(4, 30, river) *
+    smooth(4, 30, lowland) *
     smooth(35, 80, coast);
-  y -= 9 * (1 - smooth(-10, 8, river));
   if (coast < 0) y = Math.min(y, coast * 0.16);
-  if (river > 7 && coast > 20)
+  if (coast > 20)
     for (const pocket of [...PLAINS_POCKETS, PLAINS_CLEARING]) {
       const distance = Math.hypot(x - pocket.x, z - pocket.z);
       const level = 8 + Math.max(0, -z - 50) * 0.018;
@@ -225,28 +195,28 @@ function rawHeight(x: number, z: number) {
         (level - y) *
         (1 - smooth(pocket.radius * 0.9, pocket.radius + 55, distance));
     }
-  // Flatten the camp and both approaches, preserving a gentle transition.
+  // Flatten the camp, preserving a gentle transition.
   y =
     y +
     (8 - y) *
       (1 - smooth(19, 48, Math.hypot(x - PLAINS_ENTRY.x, z - PLAINS_ENTRY.z)));
-  const b = bridgeLocal({ x, z });
-  if (river > 3)
-    y =
-      y +
-      (PLAINS_BRIDGE.height - y) *
-        (1 - smooth(32, 70, Math.abs(b.along))) *
-        (1 - smooth(8, 32, Math.abs(b.across)));
-  if (river > 3 && coast > 20) {
+  if (coast > 20) {
     const road = plainsRoadDistance({ x, z });
-    const roadHeight =
-      8 +
-      Math.max(0, -z - 50) * 0.018 -
-      1.6 *
-        (1 - smooth(32, 110, Math.abs(b.along))) *
-        (1 - smooth(8, 32, Math.abs(b.across)));
+    const roadHeight = 8 + Math.max(0, -z - 50) * 0.018;
     if (road < 90) y += (roadHeight - y) * (1 - smooth(1, 90, road));
   }
+  // A continuous beach profile avoids the old height jump at the waterline.
+  // Blend only the narrow sandy shore, preserving the rocky coastal headlands.
+  if (coast >= 0 && coast < 18) {
+    const beachBlend = (1 - smooth(0, 18, coast))
+      * smooth(12, 36, plainsBoundaryClearance(x, z));
+    y += (coast * 0.16 - y) * beachBlend;
+  }
+  // A grassy apron eases into the visible perimeter rocks. Interior hills,
+  // authored spawn locations and the Averion approach keep their old heights.
+  y += (10 + 2 * Math.sin(x / 37 + z / 53))
+    * (1 - smooth(0, 24, plainsBoundaryClearance(x, z)))
+    * smooth(-10, 30, coast);
   return y;
 }
 let heights: Float32Array | undefined;
@@ -279,7 +249,7 @@ export function plainsTerrainHeight(x: number, z: number) {
         (1 - b) * (h[k + 1] - h[k + 514]);
 }
 export const plainsGroundHeight = (x: number, z: number) =>
-  onPlainsBridge({ x, z }) ? PLAINS_BRIDGE.height : plainsTerrainHeight(x, z);
+  plainsTerrainHeight(x, z);
 export function plainsWalkable(p: PlainsPoint, radius = 0.45) {
   if (
     !Number.isFinite(p.x) ||
@@ -288,17 +258,10 @@ export function plainsWalkable(p: PlainsPoint, radius = 0.45) {
     Math.abs(p.z) > 498 - radius
   )
     return false;
-  if (onPlainsBridge(p, radius)) return true;
-  if (
-    p.z > plainsCoast(p.x) - 4 - radius ||
-    plainsRiverDistance(p) < 4 + radius
-  )
-    return false;
-  const h = plainsTerrainHeight(p.x, p.z);
-  return (
-    Math.abs(plainsTerrainHeight(p.x + 1, p.z) - h) < 0.65 &&
-    Math.abs(plainsTerrainHeight(p.x, p.z + 1) - h) < 0.65
-  );
+  if (p.z > plainsCoast(p.x) - 4 - radius) return false;
+  if (!plainsBoundaryWalkable(p.x, p.z, radius)) return false;
+  // Hills are traversable ground; solid props are checked by PlainsNavigation.
+  return true;
 }
 export function restorePlainsPosition(p: PlainsPoint) {
   return new PlainsNavigation().restore(p);
@@ -312,51 +275,7 @@ export type PlainsProp = PlainsPoint & {
 let props: PlainsProp[] | undefined;
 export function plainsProps() {
   if (props) return props;
-  props = [];
-  let seed = 71943;
-  const rnd = () => {
-    seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0;
-    return seed / 4294967296;
-  };
-  for (let cluster = 0; cluster < 110; cluster++) {
-    const cx = rnd() * 950 - 475,
-      cz = rnd() * 810 - 460;
-    for (let j = 0; j < 16; j++) {
-      const x = cx + (rnd() - 0.5) * 75,
-        z = cz + (rnd() - 0.5) * 65,
-        p = { x, z },
-        r = rnd();
-      if (
-        !plainsWalkable(p, 3) ||
-        plainsRoadDistance(p) < 6 ||
-        plainsSafe(p, 15) ||
-        Math.hypot(x - PLAINS_EXIT.x, z - PLAINS_EXIT.z) < 15 ||
-        PLAINS_POCKETS.some((q) => Math.hypot(x - q.x, z - q.z) < q.radius) ||
-        Math.hypot(x - PLAINS_CLEARING.x, z - PLAINS_CLEARING.z) <
-          PLAINS_CLEARING.radius
-      )
-        continue;
-      const kind =
-          r < 0.38 ? 'fir' : r < 0.62 ? 'tree' : r < 0.82 ? 'rock' : 'shrub',
-        scale =
-          kind === 'rock'
-            ? 2 + rnd() * 3
-            : kind === 'shrub'
-              ? 1 + rnd()
-              : 0.75 + rnd() * 0.75;
-      props.push({
-        x,
-        z,
-        kind,
-        scale,
-        yaw: rnd() * Math.PI * 2,
-        radius:
-          kind === 'rock' ? scale * 0.55 : kind === 'shrub' ? 0 : 0.55 * scale,
-      });
-    }
-  }
-  // Consume the original RNG sequence before filtering: rocks/shrubs do not move.
-  props = props.filter((p) => p.kind === 'rock' || p.kind === 'shrub');
+  props = PLAINS_DECOR.map((p) => ({ ...p }));
   props.push(...PLAINS_OAKS.map((p) => ({ ...p, kind: 'oak' as const })));
   return props;
 }
