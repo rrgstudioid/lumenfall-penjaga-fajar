@@ -64,17 +64,22 @@ export async function buildIronveilMines(quality: GraphicsQuality = 'office') {
   try {
     const loader = new GLTFLoader(),
       tl = new T.TextureLoader();
-    const loaded = await Promise.allSettled(
-      Object.entries(IRONVEIL_ASSETS).map(async ([key, url]) => {
-        const t = ownT(await tl.loadAsync(url));
-        t.colorSpace = T.SRGBColorSpace;
-        t.wrapS = t.wrapT = T.RepeatWrapping;
-        t.anisotropy = 4;
-        return [key, t] as const;
-      }),
-    );
+    const [loaded, cloudsResult] = await Promise.all([
+      Promise.allSettled(
+        Object.entries(IRONVEIL_ASSETS).map(async ([key, url]) => {
+          const t = ownT(await tl.loadAsync(url));
+          t.colorSpace = T.SRGBColorSpace;
+          t.wrapS = t.wrapT = T.RepeatWrapping;
+          t.anisotropy = 4;
+          return [key, t] as const;
+        }),
+      ),
+      Promise.allSettled([tl.loadAsync(IRONVEIL_CLOUD_ATLAS).then(ownT)]),
+    ]);
     const failed = loaded.find((r) => r.status === 'rejected');
     if (failed?.status === 'rejected') throw failed.reason;
+    const cloudResult = cloudsResult[0]!;
+    if (cloudResult.status === 'rejected') throw cloudResult.reason;
     const tex = Object.fromEntries(
       loaded.map(
         (r) =>
@@ -83,7 +88,7 @@ export async function buildIronveilMines(quality: GraphicsQuality = 'office') {
     ) as IronveilTextures;
     const mat = createIronveilMaterials(tex);
     Object.values(mat).forEach(ownM);
-    const clouds = ownT(await tl.loadAsync(IRONVEIL_CLOUD_ATLAS));
+    const clouds = cloudResult.value;
     // Reuse Verdant's URL, with a 1K GPU copy to stay within this map's budget.
     const cloudCanvas = document.createElement('canvas');
     cloudCanvas.width = cloudCanvas.height = 1024;
@@ -917,11 +922,7 @@ export async function buildIronveilMines(quality: GraphicsQuality = 'office') {
             )
         : desired;
     }
-    function update(
-      camera: T.Camera,
-      _player: IronveilPoint,
-      time = performance.now() / 1000,
-    ) {
+    function update(camera: T.Camera, time = performance.now() / 1000) {
       sky.update(camera, time);
     }
     function drawMinimap(ctx: CanvasRenderingContext2D, size: number) {

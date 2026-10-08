@@ -550,7 +550,7 @@ export default function Home() {
   const npcShopItems = currentNpc
       ? currentNpc.fieldId
         ? fieldShopStock(currentNpc.fieldId)
-        : shopStock(hero, currentNpc.service)
+        : shopStock(currentNpc.service)
       : [],
     selectedSellItem = selectedSellItemId
       ? (hero.inventory.find((item) => item.id === selectedSellItemId) ?? null)

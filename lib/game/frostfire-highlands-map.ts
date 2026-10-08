@@ -36,6 +36,7 @@ export async function buildFrostfireHighlands() {
   };
   let disposed = false;
   let weather: ReturnType<typeof createFrostWeather> | undefined;
+  let importedPromise: Promise<PromiseSettledResult<T.Group>[]> | undefined;
   const prints = new FrostFootprints();
   function dispose() {
     if (disposed) return;
@@ -68,18 +69,44 @@ export async function buildFrostfireHighlands() {
       ROOT + 'snow-sprite.webp',
       ROOT + 'wind-movement.webp',
     ];
-    const loaded = await Promise.allSettled(
-      sources.map(async (url, i) => {
-        const t = await loader.loadAsync(url);
-        textures.add(t);
-        t.wrapS = t.wrapT =
-          i === 5 || i === 6 ? T.ClampToEdgeWrapping : T.RepeatWrapping;
-        t.colorSpace =
-          i === 0 || i === 1 || i === 3 ? T.SRGBColorSpace : T.NoColorSpace;
-        t.anisotropy = 4;
-        return t;
+    const assetLoader = new GLTFLoader();
+    const modelLoads = Promise.allSettled(
+      ['snow-rock-pile.glb', 'snowy-pine-tree.glb'].map(async (file) => {
+        const scene = (await assetLoader.loadAsync(ROOT + file)).scene;
+        scene.updateMatrixWorld(true);
+        scene.traverse((o) => {
+          if (!(o instanceof T.Mesh)) return;
+          ownGeometry(o.geometry);
+          const source = Array.isArray(o.material) ? o.material : [o.material];
+          source.forEach((m) => {
+            ownMaterial(m);
+            Object.values(m).forEach((v) => {
+              if (v instanceof T.Texture) {
+                textures.add(v);
+                v.anisotropy = 4;
+              }
+            });
+          });
+        });
+        return scene;
       }),
     );
+    importedPromise = modelLoads;
+    const [loaded, imported] = await Promise.all([
+      Promise.allSettled(
+        sources.map(async (url, i) => {
+          const t = await loader.loadAsync(url);
+          textures.add(t);
+          t.wrapS = t.wrapT =
+            i === 5 || i === 6 ? T.ClampToEdgeWrapping : T.RepeatWrapping;
+          t.colorSpace =
+            i === 0 || i === 1 || i === 3 ? T.SRGBColorSpace : T.NoColorSpace;
+          t.anisotropy = 4;
+          return t;
+        }),
+      ),
+      modelLoads,
+    ]);
     const failed = loaded.find((r) => r.status === 'rejected');
     if (failed?.status === 'rejected') throw failed.reason;
     const [snow, packed, rough, rock, water, clouds, sprite, wind] = loaded.map(
@@ -147,30 +174,6 @@ export async function buildFrostfireHighlands() {
       boulders = props.filter((p) => p.kind === 'rock'),
       trees = props.filter((p) => p.kind === 'fir');
     const dummy = new T.Object3D();
-    const assetLoader = new GLTFLoader();
-    // Register ownership as each request resolves, so a failed sibling load
-    // still disposes every geometry, material and embedded texture.
-    const imported = await Promise.allSettled(
-      ['snow-rock-pile.glb', 'snowy-pine-tree.glb'].map(async (file) => {
-        const scene = (await assetLoader.loadAsync(ROOT + file)).scene;
-        scene.updateMatrixWorld(true);
-        scene.traverse((o) => {
-          if (!(o instanceof T.Mesh)) return;
-          ownGeometry(o.geometry);
-          const source = Array.isArray(o.material) ? o.material : [o.material];
-          source.forEach((m) => {
-            ownMaterial(m);
-            Object.values(m).forEach((v) => {
-              if (v instanceof T.Texture) {
-                textures.add(v);
-                v.anisotropy = 4;
-              }
-            });
-          });
-        });
-        return scene;
-      }),
-    );
     const failedModel = imported.find((result) => result.status === 'rejected');
     if (failedModel?.status === 'rejected') throw failedModel.reason;
     const [rockAsset, pineAsset] = imported.map(
@@ -351,11 +354,7 @@ export async function buildFrostfireHighlands() {
           const alpha =
             prints.opacity(p, time) *
             (1 -
-              frostSmooth(
-                45,
-                60,
-                Math.hypot(player.x - p.x, player.z - p.z),
-              ));
+              frostSmooth(45, 60, Math.hypot(player.x - p.x, player.z - p.z)));
           alphas.setX(i, alpha);
           normal.set(p.nx, p.ny, p.nz);
           rotation.setFromUnitVectors(up, normal);
@@ -368,7 +367,8 @@ export async function buildFrostfireHighlands() {
         }
         if (prints.activeSlots.size || prints.expiredSlots.length)
           alphas.needsUpdate = true;
-        if (prints.activeSlots.size) footprints.instanceMatrix.needsUpdate = true;
+        if (prints.activeSlots.size)
+          footprints.instanceMatrix.needsUpdate = true;
       },
       drawMinimap(target: CanvasRenderingContext2D, size: number) {
         target.drawImage(mini, 0, 0, size, size);
@@ -384,6 +384,7 @@ export async function buildFrostfireHighlands() {
       }),
     };
   } catch (error) {
+    if (importedPromise) await importedPromise;
     dispose();
     throw error;
   }

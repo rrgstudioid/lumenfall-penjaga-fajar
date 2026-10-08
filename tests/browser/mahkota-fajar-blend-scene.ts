@@ -5,7 +5,7 @@ import type { ReviewObjectRecord } from './kingdom-capital-review';
 
 const MAP_URL = '/dev-prototypes/mahkota-fajar-blend-v1/assets/LUMENFALL_Medieval_City.glb';
 
-function zoneFor(x: number, z: number) {
+function zoneFor(z: number) {
   if (z > 52) return 'OUTER_FIELD';
   if (z > 20) return 'LOWER_CITY';
   if (z < -85) return 'CASTLE';
@@ -32,7 +32,7 @@ function objectRecords(root: T.Group): ReviewObjectRecord[] {
       assetName: object.name,
       family: /castle|keep/i.test(object.name) ? 'CASTLE' : /wall|gate|tower/i.test(object.name) ? 'ARCHITECTURE' : /tree|garden|vegetation/i.test(object.name) ? 'VEGETATION' : 'CITY OBJECT',
       chunk: 'blend-scene',
-      zone: zoneFor(center.x, center.z),
+      zone: zoneFor(center.z),
       sourcePack: 'LUMENFALL_Medieval_City.blend · preserved GLB staging',
     });
   });

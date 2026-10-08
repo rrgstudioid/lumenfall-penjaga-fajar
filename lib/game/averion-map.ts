@@ -2,13 +2,17 @@ import * as T from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { ImportedMapGround } from './imported-map';
-import {
-  Stage03Collision,
-  type StageBlocker,
-} from './stage03-collision';
+import { Stage03Collision, type StageBlocker } from './stage03-collision';
 type ReviewObjectRecord = {
-  center: [number, number, number]; size: [number, number, number]; rotation: number;
-  assetId: string; assetName: string; family: string; chunk: string; zone: string; sourcePack: string;
+  center: [number, number, number];
+  size: [number, number, number];
+  rotation: number;
+  assetId: string;
+  assetName: string;
+  family: string;
+  chunk: string;
+  zone: string;
+  sourcePack: string;
 };
 
 export type StageAnchor = {
@@ -56,7 +60,11 @@ export async function buildStage03(
   const response = await fetch(base + 'manifest.json');
   if (!response.ok) throw Error(`Manifest HTTP ${response.status}`);
   const manifest: StageManifest = await response.json();
-  if (!['averion', 'lumenfall-kingdom-capital-stage03-v1'].includes(manifest.mapId))
+  if (
+    !['averion', 'lumenfall-kingdom-capital-stage03-v1'].includes(
+      manifest.mapId,
+    )
+  )
     throw Error('Invalid Stage03 manifest');
   const root = new T.Group();
   root.name = manifest.mapId;
@@ -96,7 +104,11 @@ export async function buildStage03(
       let data = await response.arrayBuffer();
       const magic = new Uint8Array(data, 0, Math.min(2, data.byteLength));
       if (magic[0] === 0x1f && magic[1] === 0x8b) {
-        data = await new Response(new Blob([data]).stream().pipeThrough(new DecompressionStream('gzip'))).arrayBuffer();
+        data = await new Response(
+          new Blob([data])
+            .stream()
+            .pipeThrough(new DecompressionStream('gzip')),
+        ).arrayBuffer();
       }
       const gltf = await loader.parseAsync(data, base);
       owned.add(gltf.scene);
@@ -236,25 +248,33 @@ export async function buildStage03(
       }
       return chunk;
     }
-    for (const a of manifest.chunks) {
-      const near = await batch(a);
-      if (!a.lods?.length) {
-        root.add(near);
-        continue;
-      }
-      const lod = new T.LOD(),
-        center = new T.Box3().setFromObject(near).getCenter(new T.Vector3());
-      lod.position.copy(center);
-      lod.name = a.id;
-      near.position.copy(center).negate();
-      lod.addLevel(near, 0);
-      for (const asset of a.lods) {
-        const level = await batch(asset);
-        level.position.copy(center).negate();
-        lod.addLevel(level, asset.distance, 0.12);
-      }
-      root.add(lod);
-      lods.push(lod);
+    async function mapConcurrent<T, R>(
+      items: readonly T[],
+      limit: number,
+      visit: (item: T) => Promise<R>,
+    ): Promise<R[]> {
+      const results: R[] = [];
+      let next = 0;
+      let failed = false;
+      let failure: unknown;
+      const workers = Array.from(
+        { length: Math.min(limit, items.length) },
+        async () => {
+          while (!failed) {
+            const index = next++;
+            if (index >= items.length) return;
+            try {
+              results[index] = await visit(items[index]!);
+            } catch (error) {
+              if (!failed) failure = error;
+              failed = true;
+            }
+          }
+        },
+      );
+      await Promise.all(workers);
+      if (failed) throw failure;
+      return results;
     }
     const instanceGroups: {
       object: T.InstancedMesh;
@@ -262,75 +282,111 @@ export async function buildStage03(
       far: T.BufferGeometry;
       small: boolean;
     }[] = [];
-    for (const a of manifest.modules) {
-      const source = await load(a);
-      source.traverse((o) => {
-        if (!(o instanceof T.Mesh)) return;
-        for (let sector = 0; sector < 8; sector++) {
-          const places = manifest.placements.filter(
-            (p) => p.module === a.kind && p.sector === sector,
-          );
-          if (!places.length) continue;
-          const geo = o.geometry.clone().applyMatrix4(o.matrixWorld);
-          extraGeometry.add(geo);
-          if (!geo.attributes.color)
-            geo.setAttribute(
+    const [chunksResult, modulesResult] = await Promise.allSettled([
+      mapConcurrent(manifest.chunks, 3, async (asset) => {
+        const near = await batch(asset);
+        if (!asset.lods?.length) return near;
+        const lod = new T.LOD(),
+          center = new T.Box3().setFromObject(near).getCenter(new T.Vector3());
+        lod.position.copy(center);
+        lod.name = asset.id;
+        near.position.copy(center).negate();
+        lod.addLevel(near, 0);
+        for (const lodAsset of asset.lods) {
+          const level = await batch(lodAsset);
+          level.position.copy(center).negate();
+          lod.addLevel(level, lodAsset.distance, 0.12);
+        }
+        lods.push(lod);
+        return lod;
+      }),
+      mapConcurrent(manifest.modules, 1, async (asset) => {
+        const source = await load(asset);
+        const moduleGroup = new T.Group();
+        moduleGroup.name = asset.kind;
+        source.traverse((o) => {
+          if (!(o instanceof T.Mesh)) return;
+          for (let sector = 0; sector < 8; sector++) {
+            const places = manifest.placements.filter(
+              (p) => p.module === asset.kind && p.sector === sector,
+            );
+            if (!places.length) continue;
+            const geo = o.geometry.clone().applyMatrix4(o.matrixWorld);
+            extraGeometry.add(geo);
+            if (!geo.attributes.color)
+              geo.setAttribute(
+                'color',
+                new T.BufferAttribute(
+                  new Float32Array(geo.attributes.position.count * 4).fill(1),
+                  4,
+                ),
+              );
+            const mat = normalize(
+              Array.isArray(o.material) ? o.material[0] : o.material,
+            );
+            const inst = new T.InstancedMesh(geo, mat, places.length);
+            inst.name = `${asset.kind}-${sector}`;
+            const matrix = new T.Matrix4();
+            places.forEach((p, i) => {
+              matrix.compose(
+                new T.Vector3().fromArray(p.position),
+                new T.Quaternion().setFromAxisAngle(
+                  new T.Vector3(0, 1, 0),
+                  p.rotation ?? 0,
+                ),
+                new T.Vector3().fromArray(p.scale),
+              );
+              inst.setMatrixAt(i, matrix);
+            });
+            inst.computeBoundingSphere();
+            inst.castShadow = !(
+              asset.kind.startsWith('tree') && mat.name === 'S03_wood'
+            );
+            inst.receiveShadow = true;
+            moduleGroup.add(inst);
+            const pieces = asset.kind.startsWith('tree')
+              ? [
+                  [-0.18, 0.65, 0, 0.3],
+                  [0.18, 0.68, 0.04, 0.28],
+                  [0, 0.83, -0.04, 0.2],
+                ]
+              : [
+                  [-0.18, 0.4, 0, 0.28],
+                  [0.17, 0.45, 0, 0.28],
+                  [0, 0.62, 0.12, 0.27],
+                ];
+            const parts = pieces.map(([x, y, z, r]) => {
+              const geometry = new T.IcosahedronGeometry(r, 0);
+              if (asset.kind === 'tree-spire') geometry.scale(0.65, 1.25, 0.65);
+              geometry.translate(x, y, z);
+              return geometry;
+            });
+            const far = mergeGeometries(parts, false)!;
+            for (const part of parts) part.dispose();
+            extraGeometry.add(far);
+            far.setAttribute(
               'color',
               new T.BufferAttribute(
-                new Float32Array(geo.attributes.position.count * 4).fill(1),
+                new Float32Array(far.attributes.position.count * 4).fill(1),
                 4,
               ),
             );
-          const mat = normalize(
-            Array.isArray(o.material) ? o.material[0] : o.material,
-          );
-          const inst = new T.InstancedMesh(geo, mat, places.length);
-          inst.name = `${a.kind}-${sector}`;
-          const matrix = new T.Matrix4();
-          places.forEach((p, i) => {
-            matrix.compose(
-              new T.Vector3().fromArray(p.position),
-              new T.Quaternion().setFromAxisAngle(
-                new T.Vector3(0, 1, 0),
-                p.rotation ?? 0,
-              ),
-              new T.Vector3().fromArray(p.scale),
-            );
-            inst.setMatrixAt(i, matrix);
-          });
-          inst.computeBoundingSphere();
-          inst.castShadow = !(a.kind.startsWith('tree') && mat.name === 'S03_wood');
-          inst.receiveShadow = true;
-          root.add(inst);
-          const pieces = a.kind.startsWith('tree')
-            ? [[-0.18, 0.65, 0, 0.30], [0.18, 0.68, 0.04, 0.28], [0, 0.83, -0.04, 0.20]]
-            : [[-0.18, 0.4, 0, 0.28], [0.17, 0.45, 0, 0.28], [0, 0.62, 0.12, 0.27]];
-          const parts = pieces.map(([x, y, z, r]) => {
-            const geometry = new T.IcosahedronGeometry(r, 0);
-            if (a.kind === 'tree-spire') geometry.scale(0.65, 1.25, 0.65);
-            geometry.translate(x, y, z);
-            return geometry;
-          });
-          const far = mergeGeometries(parts, false)!;
-          for (const part of parts) part.dispose();
-          extraGeometry.add(far);
-          far.setAttribute(
-            'color',
-            new T.BufferAttribute(
-              new Float32Array(far.attributes.position.count * 4).fill(1),
-              4,
-            ),
-          );
-          if (a.kind !== 'tower' && mat.name === 'S03_foliage')
-            instanceGroups.push({
-              object: inst,
-              near: geo,
-              far,
-              small: a.kind === 'shrub',
-            });
-        }
-      });
-    }
+            if (asset.kind !== 'tower' && mat.name === 'S03_foliage')
+              instanceGroups.push({
+                object: inst,
+                near: geo,
+                far,
+                small: asset.kind === 'shrub',
+              });
+          }
+        });
+        return moduleGroup;
+      }),
+    ]);
+    if (chunksResult.status === 'rejected') throw chunksResult.reason;
+    if (modulesResult.status === 'rejected') throw modulesResult.reason;
+    for (const chunk of chunksResult.value) root.add(chunk);
+    for (const moduleGroup of modulesResult.value) root.add(moduleGroup);
     if (manifest.textures) {
       const textureLoader = new T.TextureLoader(),
         cache = new Map<string, T.Texture>();
@@ -341,27 +397,42 @@ export async function buildStage03(
         textures.add(t);
         return t;
       };
-      for (const [family, files] of Object.entries(manifest.textures)) {
-        const mat = materials.get('S03_' + family);
-        if (!(mat instanceof T.MeshStandardMaterial)) continue;
-        const color = await texture(files.color);
-        color.colorSpace = T.SRGBColorSpace;
-        const normal = await texture(files.normal);
-        const orm = await texture(files.orm);
-        for (const t of [color, normal, orm]) {
-          t.wrapS = t.wrapT = T.RepeatWrapping;
-          t.anisotropy = 4;
-        }
-        mat.map = color;
-        mat.color.set('white');
-        mat.normalMap = normal;
-        mat.normalScale.set(0.45, 0.45);
-        mat.roughnessMap = orm;
-        mat.metalnessMap = orm;
-        mat.aoMap = orm;
-        mat.aoMapIntensity = 0.45;
-        mat.needsUpdate = true;
-      }
+      const textureResults = await Promise.allSettled(
+        Object.entries(manifest.textures).map(async ([family, files]) => {
+          const mat = materials.get('S03_' + family);
+          if (!(mat instanceof T.MeshStandardMaterial)) return;
+          const [colorResult, normalResult, ormResult] =
+            await Promise.allSettled([
+              texture(files.color),
+              texture(files.normal),
+              texture(files.orm),
+            ]);
+          if (colorResult.status === 'rejected') throw colorResult.reason;
+          if (normalResult.status === 'rejected') throw normalResult.reason;
+          if (ormResult.status === 'rejected') throw ormResult.reason;
+          const color = colorResult.value;
+          color.colorSpace = T.SRGBColorSpace;
+          const normal = normalResult.value;
+          const orm = ormResult.value;
+          for (const t of [color, normal, orm]) {
+            t.wrapS = t.wrapT = T.RepeatWrapping;
+            t.anisotropy = 4;
+          }
+          mat.map = color;
+          mat.color.set('white');
+          mat.normalMap = normal;
+          mat.normalScale.set(0.45, 0.45);
+          mat.roughnessMap = orm;
+          mat.metalnessMap = orm;
+          mat.aoMap = orm;
+          mat.aoMapIntensity = 0.45;
+          mat.needsUpdate = true;
+        }),
+      );
+      const failedTexture = textureResults.find(
+        (result) => result.status === 'rejected',
+      );
+      if (failedTexture?.status === 'rejected') throw failedTexture.reason;
     }
     root.updateMatrixWorld(true);
     const proxies = new T.Group();
@@ -392,23 +463,34 @@ export async function buildStage03(
       const geo = new T.BoxGeometry(size.x, Math.max(size.y, 0.1), size.z);
       geo.translate(...min.add(max).multiplyScalar(0.5).toArray());
       extraGeometry.add(geo);
-      proxies.add(new T.Mesh(geo, new T.MeshBasicMaterial({ side: T.DoubleSide })));
+      proxies.add(
+        new T.Mesh(geo, new T.MeshBasicMaterial({ side: T.DoubleSide })),
+      );
     }
     if (manifest.cameraWall) {
       const w = manifest.cameraWall;
-      const geo = new T.CylinderGeometry(w.radius, w.radius, w.maxY-w.minY, 96, 1, true);
-      geo.translate(w.center[0], (w.minY+w.maxY)/2, w.center[1]);
+      const geo = new T.CylinderGeometry(
+        w.radius,
+        w.radius,
+        w.maxY - w.minY,
+        96,
+        1,
+        true,
+      );
+      geo.translate(w.center[0], (w.minY + w.maxY) / 2, w.center[1]);
       extraGeometry.add(geo);
-      proxies.add(new T.Mesh(geo, new T.MeshBasicMaterial({side: T.DoubleSide})));
+      proxies.add(
+        new T.Mesh(geo, new T.MeshBasicMaterial({ side: T.DoubleSide })),
+      );
     }
     proxies.updateMatrixWorld(true);
     const ray = new T.Raycaster();
     const cameraOffsets = [
       new T.Vector3(),
-      new T.Vector3(.22,0,0),
-      new T.Vector3(-.22,0,0),
-      new T.Vector3(0,.22,0),
-      new T.Vector3(0,-.22,0),
+      new T.Vector3(0.22, 0, 0),
+      new T.Vector3(-0.22, 0, 0),
+      new T.Vector3(0, 0.22, 0),
+      new T.Vector3(0, -0.22, 0),
     ];
     const cameraDirection = new T.Vector3();
     const cameraOrigin = new T.Vector3();
@@ -428,7 +510,8 @@ export async function buildStage03(
         if (hit) hitDistance = Math.min(hitDistance, hit.distance);
       }
       return Number.isFinite(hitDistance)
-        ? cameraResult.copy(focus)
+        ? cameraResult
+            .copy(focus)
             .addScaledVector(direction, Math.max(0.4, hitDistance - 0.35))
         : desired;
     };

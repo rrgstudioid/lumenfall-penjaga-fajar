@@ -428,8 +428,8 @@ export async function buildPilot() {
       display,
       name !== 'lantern_wall',
     );
-  const _tree = model(treeId, 7, 0, 9),
-    rock = model(rockId, 11, 0, 9, 0, display, true);
+  model(treeId, 7, 0, 9);
+  const rock = model(rockId, 11, 0, 9, 0, display, true);
   // Derive a conservative lower-trunk collider from sampled source bark/trunk slices.
   const trunkSource = cache.get(treeId)!.clone(true);
   trunkSource.traverse((o) => {

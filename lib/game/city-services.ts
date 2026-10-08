@@ -2,7 +2,7 @@ import {addItemToInventory,createItem,ITEM_CATALOG,POTION_IDS,removeItemQuantity
 import {maxHP,derivedStats,restoreMana,type Hero} from './rules.ts';
 import {FIELDS, WORLD_CONFIG, fieldContent} from './regions.ts';
 import { isResourceEnabled } from './gameplay-config.ts';
-export function shopStock(hero:Hero,service:string) {
+export function shopStock(service:string) {
  return Object.values(ITEM_CATALOG).filter(item=>service==='developer-materials'?(item.category==='material'||item.itemType==='eternalSeal'||item.templateId==='dragon-veil-wings'):service==='equipment'?item.templateId!=='dragon-veil-wings'&&['weapon','armor','accessory'].includes(item.category):service==='seal'?['fateRune','eternalSeal'].includes(item.itemType):service==='consumable'?['consumable','potion'].includes(item.category):false);
 }
 export function shopItemPrice(item:Pick<ItemData,'buyValue'|'sellValue'|'levelRequirement'>,service:string) {
@@ -37,7 +37,7 @@ export function sellInventoryItem(hero:Hero,itemId:string,quantity:number,allowe
  return {ok:true,reason:'Item berhasil dijual',earned};
 }
 export function buyShopItem(hero:Hero,templateId:string,service:string,quantity=1) {
- const template=shopStock(hero,service).find(item=>item.templateId===templateId);
+ const template=shopStock(service).find(item=>item.templateId===templateId);
  if(!hero.inCity||!template) return {ok:false,reason:'Item tidak tersedia di toko ini.'};
  const amount=Math.max(1,Math.floor(quantity));
  const price=shopItemPrice(template,service)*amount;

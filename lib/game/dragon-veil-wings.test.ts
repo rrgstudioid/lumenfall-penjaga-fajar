@@ -11,8 +11,8 @@ import { FIELDS } from './regions.ts';
 
 await test('developer NPC gives Dragon Veil Wings; exact +500% speed works and persists without raising other gear caps', () => {
   const hero = createNewCharacter('slot-1', 'Wings Test'); hero.inCity = true; hero.gold = 0;
-  assert(shopStock(hero, 'developer-materials').some(i => i.templateId === 'dragon-veil-wings'));
-  assert(!shopStock(hero, 'equipment').some(i => i.templateId === 'dragon-veil-wings'));
+  assert(shopStock('developer-materials').some(i => i.templateId === 'dragon-veil-wings'));
+  assert(!shopStock('equipment').some(i => i.templateId === 'dragon-veil-wings'));
   for (const field of Object.keys(FIELDS)) assert(!equipmentDropPool(field).some(i => i.value === 'dragon-veil-wings'));
   const baseline = derivedStats(hero).movementSpeed;
   assert.equal(buyShopItem(hero, 'dragon-veil-wings', 'developer-materials').ok, true);

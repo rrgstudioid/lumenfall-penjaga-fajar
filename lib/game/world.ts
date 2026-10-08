@@ -324,6 +324,7 @@ export class Game {
   private plainsShadowState = new WeakMap<T.Mesh,boolean>();
   private renderPerformance = new RenderPerformance();
   private plainsShadowCheckAt = 0;
+  private interiorMinimapLastDrawAt = -Infinity;
   private setPlainsCharacterShadows(active:boolean) {
     this.actor.traverse(object=>{if(object instanceof T.Mesh){
       if(active){if(!this.plainsShadowState.has(object))this.plainsShadowState.set(object,object.castShadow);object.castShadow=false;}
@@ -1815,7 +1816,7 @@ export class Game {
         const element=document.createElement('div');element.className='npc-label';
         const badge=document.createElement('button');badge.type='button';badge.className='npc-service-badge';badge.textContent='To Outside Mines';badge.style.pointerEvents='auto';badge.style.cursor='pointer';badge.addEventListener('click',()=>this.interactIronveilExit());element.appendChild(badge);this.labelHost.appendChild(element);
         this.portalLabels.push({...MINE_EXIT,element,name:'Mine exit',labelHeight:6});
-        this.placeActor();this.cameraFocus.copy(this.actor.position);map.update(this.camera,this.hero);this.drawMap();
+        this.placeActor();this.cameraFocus.copy(this.actor.position);map.update(this.hero);this.drawMap();
       }).catch(error=>{if(!this.disposed&&buildToken===this.regionBuildToken)this.regionLoadError=error;throw error;}));
       void this.regionLoads.at(-1)!.catch(()=>{});return;
     }
@@ -1833,7 +1834,7 @@ export class Game {
         const element=document.createElement('div');element.className='npc-label';
         const badge=document.createElement('button');badge.type='button';badge.className='npc-service-badge';badge.textContent=IRONVEIL_TRANSITION.label;badge.style.pointerEvents='auto';badge.style.cursor='pointer';badge.title='Approach the doorway and click to enter the mines.';badge.addEventListener('click',()=>this.interactIronveilEntrance());element.appendChild(badge);this.labelHost.appendChild(element);
         this.portalLabels.push({...IRONVEIL_TRANSITION.anchor,element,name:'Mine entrance',labelHeight:6});
-        this.placeActor();this.cameraFocus.copy(this.actor.position);map.update(this.camera,this.hero);this.drawMap();
+        this.placeActor();this.cameraFocus.copy(this.actor.position);map.update(this.camera);this.drawMap();
       }).catch(error=>{if(!this.disposed&&buildToken===this.regionBuildToken)this.regionLoadError=error;throw error;}));
       void this.regionLoads.at(-1)!.catch(()=>{});return;
     }
@@ -4024,13 +4025,13 @@ export class Game {
     if(this.isMineInterior&&this.mineInterior){
       this.camera.position.copy(this.mineInterior.constrainCamera(this.cameraOrbitTarget,this.camera.position,dt));
       // Keep the orbit quaternion from updateCamera: collision adjusts distance only.
-      this.camera.updateMatrixWorld();this.mineInterior.update(this.camera,this.hero,time/1000);
+      this.camera.updateMatrixWorld();this.mineInterior.update(this.hero,time/1000);
     }
     if(this.isIronveil&&this.ironveil){
       const focus=this.cameraFocusScratch.copy(this.actor.position);focus.y+=1.5;
       this.camera.position.copy(this.ironveil.constrainCamera(focus,this.camera.position));
       this.camera.position.y=Math.max(this.camera.position.y,ironveilGroundHeight(this.camera.position.x,this.camera.position.z)+1.2);this.camera.updateMatrixWorld();
-      this.ironveil.update(this.camera,this.hero,time/1000);
+      this.ironveil.update(this.camera,time/1000);
       this.worldLightRig.traverse(o=>{if(o instanceof T.DirectionalLight){o.position.set(this.actor.position.x+IRONVEIL_DAYLIGHT.sun[0]*80,this.actor.position.y+IRONVEIL_DAYLIGHT.sun[1]*80,this.actor.position.z+IRONVEIL_DAYLIGHT.sun[2]*80);o.target.position.copy(this.actor.position);o.target.updateMatrixWorld();}});
     }
     if(this.isWilds&&this.wilds){
@@ -4072,7 +4073,13 @@ export class Game {
     updateCharacterBillboards(this.aura, this.camera);
     this.updateFloating(dt);
     this.renderer.render(this.scene, this.camera);
-    if (this.isMineInterior) this.drawMap();
+    if (
+      this.isMineInterior &&
+      time - this.interiorMinimapLastDrawAt >= 100
+    ) {
+      this.interiorMinimapLastDrawAt = time;
+      this.drawMap();
+    }
     this.emitTimer += dt;
     const moved = Math.hypot(this.hero.x - this.lastEmitX, this.hero.z - this.lastEmitZ) > 0.25;
     if (this.emitTimer > 0.5 && (moved || this.emitTimer > 2)) {
@@ -4448,6 +4455,7 @@ export class Game {
     ctx.fillRect(0, 0, size, size);
 
     if (this.isMineInterior && this.mineInterior) {
+      this.interiorMinimapLastDrawAt = performance.now();
       const enemies = this.enemies
         .filter((enemy) => enemy.hp > 0 && enemy.group.visible)
         .map((enemy) => ({

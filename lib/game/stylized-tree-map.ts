@@ -23,12 +23,12 @@ const TREE_HEIGHT: Record<TreeFamily, number> = {
   acacia: 5.5, beech: 6, joshua: 3.8, maple: 6.5,
   oak: 5.6, pine: 5.8, spruce: 7, willow: 6.2,
 };
-function treeLimits(regionId: string, inCity: boolean) {
+function treeLimits(inCity: boolean) {
   return inCity ? { height: 6, radius: 3.6 } : { height: 8, radius: 4.2 };
 }
 
 /** Fit an independent copy without changing source geometry or materials. */
-export function placeStylizedTree(source: T.Group, placement: TreePlacement, groundY: number, regionId: string, inCity: boolean) {
+export function placeStylizedTree(source: T.Group, placement: TreePlacement, groundY: number, inCity: boolean) {
   const tree = cloneImportedMap(source);
   tree.name = `StylizedTree_${placement.family}`;
   tree.position.set(0, 0, 0);
@@ -40,7 +40,7 @@ export function placeStylizedTree(source: T.Group, placement: TreePlacement, gro
   if (!Number.isFinite(height) || height <= 0 || !Number.isFinite(radius) || radius <= 0) {
     throw new Error(`Invalid bounds for stylized tree: ${placement.family}`);
   }
-  const limits = treeLimits(regionId, inCity);
+  const limits = treeLimits(inCity);
   const scale = Math.min(TREE_HEIGHT[placement.family] * placement.scale / height, limits.height / height, limits.radius / radius);
   tree.scale.multiplyScalar(scale);
   tree.rotation.y += placement.rotation;
@@ -198,7 +198,7 @@ export async function buildStylizedTreeDecor(regionId: string, inCity: boolean, 
   for (const placement of placements) {
     const source = sourceMap.get(placement.family);
     if (!source) continue;
-    target.add(placeStylizedTree(source, placement, groundHeight(placement.x, placement.z), regionId, inCity));
+    target.add(placeStylizedTree(source, placement, groundHeight(placement.x, placement.z), inCity));
   }
   return target;
 }

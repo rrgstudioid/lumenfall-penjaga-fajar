@@ -160,7 +160,6 @@ await test('Mana Cost Reduction from INT and equipment is shared and capped at 5
   );
 });
 await test('six potion prices, tiers, effects, sell values and merchant stock use the item registry', () => {
-  const hero = freshHero();
   const prices = [25, 50, 75, 20, 40, 60];
   assert.equal(POTION_IDS.length, 6);
   POTION_IDS.forEach((id, index) => {
@@ -173,11 +172,11 @@ await test('six potion prices, tiers, effects, sell values and merchant stock us
     assert.equal(item.useCooldown, 3);
   });
   assert.equal(
-    shopStock(hero, 'consumable').filter((item) => item.potionType).length,
+    shopStock('consumable').filter((item) => item.potionType).length,
     6,
   );
   assert.equal(
-    shopStock(hero, 'equipment').filter((item) => item.potionType).length,
+    shopStock('equipment').filter((item) => item.potionType).length,
     0,
   );
   for (const field of Object.keys(FIELDS))

@@ -380,6 +380,19 @@ export async function buildVerdantPlains(
     );
     depthTexture.minFilter = depthTexture.magFilter = T.LinearFilter;
     depthTexture.needsUpdate = true;
+    const oakLoad = createPlainsOaks(depthTexture).then(
+      (forest) => {
+        if (disposed) {
+          forest.dispose();
+          return {
+            error: new Error('Verdant Plains map was disposed during loading'),
+          };
+        }
+        oaks = forest;
+        return { forest };
+      },
+      (error: unknown) => ({ error }),
+    );
     waterMaterial.onBeforeCompile = (shader) => {
       shader.uniforms.uGround = { value: depthTexture };
       shader.uniforms.uWaterTime = waterTime;
@@ -792,8 +805,9 @@ export async function buildVerdantPlains(
       root.add(card);
       vegetation.push({ meshes, card, placements, triangles });
     }
-    oaks = await createPlainsOaks(depthTexture);
-    root.add(oaks.root);
+    const oakResult = await oakLoad;
+    if ('error' in oakResult) throw oakResult.error;
+    root.add(oakResult.forest.root);
     const navigation = new PlainsNavigation();
     // The existing visible character is ~369k triangles. A map-owned caster
     // keeps its silhouette shadow inexpensive without changing that model.
@@ -835,7 +849,10 @@ export async function buildVerdantPlains(
       mesh: T.Mesh<T.InstancedBufferGeometry>;
       counts: Record<PlainsQuality, number>;
       bounds: T.Box3;
-      minX: number; minZ: number; maxX: number; maxZ: number;
+      minX: number;
+      minZ: number;
+      maxX: number;
+      maxZ: number;
     }> = [];
     const grassRoot = new T.Group();
     grassRoot.name = 'Grass dense field';
@@ -844,7 +861,9 @@ export async function buildVerdantPlains(
     const sharedGrass = ownGeometry(plainsGrassGeometry());
     const officeGrass = ownGeometry(plainsGrassGeometry(true));
     const initialRange = plainsGrassRange(quality);
-    const grassRange = { value: new T.Vector2(initialRange.outerStart, initialRange.outer) };
+    const grassRange = {
+      value: new T.Vector2(initialRange.outerStart, initialRange.outer),
+    };
     const maxGrass = plainsGrassTileCount('high');
     const patches = new Float32Array(maxGrass * 4);
     let grassSeed = 721;
@@ -862,10 +881,12 @@ export async function buildVerdantPlains(
         ],
         i * 4,
       );
-    const partitions = partitionPlainsGrass(patches, tileSize).map((partition) => ({
-      ...partition,
-      attribute: new T.InstancedBufferAttribute(partition.patches, 4),
-    }));
+    const partitions = partitionPlainsGrass(patches, tileSize).map(
+      (partition) => ({
+        ...partition,
+        attribute: new T.InstancedBufferAttribute(partition.patches, 4),
+      }),
+    );
     const sharedPatchBytes = patches.byteLength;
     const grassMaterial = ownMaterial(
       plainsGrassMaterial(
@@ -906,7 +927,9 @@ export async function buildVerdantPlains(
             }
           if (maximumMask <= 38) continue;
           const geometry = ownGeometry(new T.InstancedBufferGeometry());
-          for (const [name, attribute] of Object.entries((quality === 'office' ? officeGrass : sharedGrass).attributes))
+          for (const [name, attribute] of Object.entries(
+            (quality === 'office' ? officeGrass : sharedGrass).attributes,
+          ))
             geometry.setAttribute(name, attribute);
           geometry.setAttribute('aGrassPatch', partition.attribute);
           geometry.instanceCount = partition.counts[quality];
@@ -924,10 +947,13 @@ export async function buildVerdantPlains(
           // We cull the padded box below, avoiding a second, looser sphere test.
           mesh.frustumCulled = false;
           grassBatches.push({
-            mesh, counts: partition.counts,
+            mesh,
+            counts: partition.counts,
             bounds: geometry.boundingBox.clone().translate(mesh.position),
-            minX: originX + partition.minX, minZ: originZ + partition.minZ,
-            maxX: originX + partition.maxX, maxZ: originZ + partition.maxZ,
+            minX: originX + partition.minX,
+            minZ: originZ + partition.minZ,
+            maxX: originX + partition.maxX,
+            maxZ: originZ + partition.maxZ,
           });
           grassGeometries.push(geometry);
           grassTiles.push(mesh);
@@ -950,7 +976,13 @@ export async function buildVerdantPlains(
       // Grass roots and terrain are fixed in world space for this map.
       for (const { mesh, bounds, minX, minZ, maxX, maxZ } of grassBatches) {
         const inRange = grassBatchInRange(
-          player.x, player.z, grassRange.value.y, minX, minZ, maxX, maxZ,
+          player.x,
+          player.z,
+          grassRange.value.y,
+          minX,
+          minZ,
+          maxX,
+          maxZ,
         );
         mesh.visible = inRange && grassFrustum.intersectsBox(bounds);
         if (mesh.visible) {
@@ -1130,7 +1162,9 @@ export async function buildVerdantPlains(
           const g = mesh.geometry;
           g.instanceCount = counts[value];
           if (mesh.visible) submittedGrassInstances += g.instanceCount;
-          for (const [name, attribute] of Object.entries((value === 'office' ? officeGrass : sharedGrass).attributes))
+          for (const [name, attribute] of Object.entries(
+            (value === 'office' ? officeGrass : sharedGrass).attributes,
+          ))
             g.setAttribute(name, attribute);
         });
         lastLod = '';

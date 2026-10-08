@@ -1,12 +1,7 @@
-import type { SkillDefinition, SkillRankValues } from './skills.ts';
+import type { SkillDefinition } from './skills.ts';
 import type { SkillDefinitionV3, SkillProgressionV3State } from './skill-progression-v3.ts';
 
 const swords = ['one_hand_sword', 'two_hand_sword'];
-const _r = (values: SkillRankValues[]) => values;
-const _profile = (coefficient: number, str: number, mana: number, cooldown: number) => ({
-  damageProfile: { physicalCoefficient: coefficient, statScaling: { str } },
-  resourceCost: { mana }, cooldown,
-});
 const motion = (motionArchetype: string, motionNotes: string, animationNoGo: string[]) => ({ motionArchetype, motionNotes, animationNoGo });
 
 const makeDamage = (patch: Partial<SkillDefinitionV3> & Pick<SkillDefinitionV3, 'id' | 'name' | 'maxRank' | 'rankLevelRequirements' | 'damageProfile' | 'resourceCost' | 'cooldown' | 'presentation' | 'motion'>): SkillDefinitionV3 => ({

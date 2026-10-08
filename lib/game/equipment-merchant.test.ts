@@ -8,13 +8,9 @@ const catalogEquipment = Object.values(ITEM_CATALOG).filter((item) =>
   ['weapon', 'armor', 'accessory'].includes(item.category) && item.source.sourceId !== 'aruna-developer-materials',
 );
 
-await test('Equipment Merchant lists every regular catalog weapon, armor, and accessory for every job', () => {
+await test('Equipment Merchant lists every regular catalog weapon, armor, and accessory', () => {
   const expected = catalogEquipment.map((item) => item.templateId);
-  for (const coreJob of [null, 'warrior', 'rogue', 'hunter', 'wizard', 'acolyte'] as const) {
-    const hero = freshHero();
-    hero.coreJob = coreJob;
-    assert.deepEqual(shopStock(hero, 'equipment').map((item) => item.templateId), expected);
-  }
+  assert.deepEqual(shopStock('equipment').map((item) => item.templateId), expected);
 });
 
 await test('buying equipment ignores job restriction while equipping still enforces it', () => {

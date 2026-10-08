@@ -56,7 +56,6 @@ await test('only eight audited unused Normal materials leave the catalog; useful
 });
 
 await test('all field, monster, shop, crafting and quest references remain valid', () => {
-  const hero = freshHero();
   for (const field of Object.values(FIELDS)) {
     const ids = [
       ...field.dropTable,
@@ -90,7 +89,7 @@ await test('all field, monster, shop, crafting and quest references remain valid
     assert.ok(ITEM_CATALOG[recipe.materialId]);
   for (const service of ['consumable', 'equipment', 'seal'])
     assert.ok(
-      shopStock(hero, service).every(
+      shopStock(service).every(
         (item) => !retiredIds.includes(item.templateId),
       ),
     );

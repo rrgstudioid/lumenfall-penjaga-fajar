@@ -10,9 +10,8 @@ void test('Kota Arunika has one developer material NPC with a complete active ma
   assert.equal(developerNpcs.length, 1);
   assert.deepEqual(developerNpcs[0].services, ['buy', 'sell']);
 
-  const hero = freshHero();
   const materials = Object.values(ITEM_CATALOG).filter(item => item.category === 'material' || item.itemType === 'eternalSeal' || item.templateId === 'dragon-veil-wings');
-  const stock = shopStock(hero, 'developer-materials');
+  const stock = shopStock('developer-materials');
   assert.ok(materials.length > 0);
   assert.deepEqual(stock.map(item => item.templateId), materials.map(item => item.templateId));
   assert.ok(stock.every(item => shopItemPrice(item, 'developer-materials') === 0));
@@ -31,7 +30,7 @@ void test('developer material NPC grants materials without changing GOLD and rej
   hero.inCity = true;
   hero.currentCity = 'arunika';
   hero.gold = 0;
-  const material = shopStock(hero, 'developer-materials')[0];
+  const material = shopStock('developer-materials')[0];
 
   const bought = buyShopItem(hero, material.templateId, 'developer-materials');
   assert.equal(bought.ok, true);

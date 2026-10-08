@@ -97,18 +97,7 @@ export async function buildIronveilInterior(
       t.anisotropy = 4;
       return [k, t] as const;
     });
-    const loaded = await Promise.allSettled(jobs);
-    const failed = loaded.find((r) => r.status === 'rejected');
-    if (failed?.status === 'rejected') throw failed.reason;
-    const tex = Object.fromEntries(
-      loaded.map(
-        (r) =>
-          (r as PromiseFulfilledResult<readonly [string, T.Texture]>).value,
-      ),
-    ) as Record<keyof typeof MINE_TEXTURES, T.Texture>;
-    const mat = createMineMaterials(tex);
-    Object.values(mat).forEach(ownM);
-    const packages = await Promise.allSettled(
+    const packagesPromise = Promise.allSettled(
       ['cave-shell.glb', 'crate.glb', 'barrel.glb', 'owner-rock-01.glb'].map(
         async (name) => {
           const asset = await gltf.loadAsync(
@@ -119,6 +108,20 @@ export async function buildIronveilInterior(
         },
       ),
     );
+    const [loaded, packages] = await Promise.all([
+      Promise.allSettled(jobs),
+      packagesPromise,
+    ]);
+    const failed = loaded.find((r) => r.status === 'rejected');
+    if (failed?.status === 'rejected') throw failed.reason;
+    const tex = Object.fromEntries(
+      loaded.map(
+        (r) =>
+          (r as PromiseFulfilledResult<readonly [string, T.Texture]>).value,
+      ),
+    ) as Record<keyof typeof MINE_TEXTURES, T.Texture>;
+    const mat = createMineMaterials(tex);
+    Object.values(mat).forEach(ownM);
     const error = packages.find((r) => r.status === 'rejected');
     if (error?.status === 'rejected') throw error.reason;
     const [shell, crate, barrel, rock] = packages.map(
@@ -631,7 +634,7 @@ export async function buildIronveilInterior(
       const p = focus.clone().addScaledVector(vector, cameraDistance);
       return p;
     }
-    function update(camera: T.Camera, player: MinePoint, time = 0) {
+    function update(player: MinePoint, time = 0) {
       const key = cellKey(player.x, player.z);
       if (key !== lastCell) {
         lastCell = key;

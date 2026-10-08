@@ -1,8 +1,6 @@
 import type { SkillDefinition, SkillRankValues } from './skills.ts';
 import type { SkillDefinitionV3, SkillProgressionV3State } from './skill-progression-v3.ts';
 
-const ranks = (values: SkillRankValues[]): SkillRankValues[] => values;
-
 export const ADVENTURER_V3_SKILLS: readonly SkillDefinitionV3[] = [
   {
     id: 'v3-adventurer-quick-slash', name: 'Quick Slash', jobId: 'adventurer', jobTier: 'adventurer',
@@ -49,21 +47,21 @@ export const ADVENTURER_V3_SKILLS: readonly SkillDefinitionV3[] = [
 ];
 
 const rankValues: SkillRankValues[][] = [
-  ranks([
+  [
     { physicalCoefficient: 1.05, statScaling: { str: .02 }, manaCost: 3, cooldown: 3.2 },
     { physicalCoefficient: 1.08, statScaling: { str: .03 }, manaCost: 3, cooldown: 3.1 },
     { physicalCoefficient: 1.12, statScaling: { str: .04 }, manaCost: 4, cooldown: 3 },
     { physicalCoefficient: 1.16, statScaling: { str: .05 }, manaCost: 4, cooldown: 2.9 },
     { physicalCoefficient: 1.2, statScaling: { str: .06 }, manaCost: 5, cooldown: 2.8 },
-  ]),
-  ranks([
+  ],
+  [
     { physicalCoefficient: 1.2, statScaling: { str: .04 }, manaCost: 5, cooldown: 6 },
     { physicalCoefficient: 1.26, statScaling: { str: .05 }, manaCost: 5, cooldown: 5.75 },
     { physicalCoefficient: 1.32, statScaling: { str: .06 }, manaCost: 6, cooldown: 5.5 },
     { physicalCoefficient: 1.38, statScaling: { str: .07 }, manaCost: 6, cooldown: 5.25 },
     { physicalCoefficient: 1.45, statScaling: { str: .08 }, manaCost: 7, cooldown: 5 },
-  ]),
-  ranks([{ manaCost: 8, cooldown: 30 }, { manaCost: 10, cooldown: 28 }, { manaCost: 12, cooldown: 26 }]),
+  ],
+  [{ manaCost: 8, cooldown: 30 }, { manaCost: 10, cooldown: 28 }, { manaCost: 12, cooldown: 26 }],
 ];
 
 export const ADVENTURER_V3_RUNTIME_SKILLS: readonly SkillDefinition[] = ADVENTURER_V3_SKILLS.map((definition, index) => ({
@@ -89,7 +87,7 @@ export const ADVENTURER_V3_RUNTIME_SKILLS: readonly SkillDefinition[] = ADVENTUR
   baseDamageMaxByRank: definition.baseDamageMaxByRank,
   skillPowerFactor: definition.skillPowerFactor,
   rankPowerFactorByRank: definition.rankPowerFactorByRank,
-  damageType: index === 2 ? 'physical' : 'physical',
+  damageType: 'physical',
   canCrit: index !== 2,
   range: definition.targeting?.range ?? 0,
   areaRadius: definition.targeting?.radius ?? 0,
@@ -113,8 +111,6 @@ export const ADVENTURER_V3_RUNTIME_SKILLS: readonly SkillDefinition[] = ADVENTUR
 export const ADVENTURER_V3_SKILL_MAP = Object.fromEntries(
   ADVENTURER_V3_SKILLS.map((skill) => [skill.id, skill]),
 ) as Record<string, SkillDefinitionV3>;
-
-export const ADVENTURER_V3_JOB = { id: 'adventurer', tier: 'adventurer' as const, parent: null };
 
 export function adventurerV3StartingState(): SkillProgressionV3State {
   return {

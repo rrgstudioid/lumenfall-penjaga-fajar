@@ -4,8 +4,6 @@ import type { SkillDefinitionV3, SkillProgressionV3State } from './skill-progres
 const twoHand = ['two_hand_sword'];
 const swords = ['one_hand_sword', 'two_hand_sword'];
 const motion = (motionArchetype: string, motionNotes: string, animationNoGo: string[]) => ({ motionArchetype, motionNotes, animationNoGo });
-const _rankValues = (coefficients: number[], str: number[], mana: number[], cooldown: number[], extra: Array<Record<string, number>> = []) =>
-  coefficients.map((physicalCoefficient, index) => ({ physicalCoefficient, statScaling: { str: str[index] }, manaCost: mana[index], cooldown: cooldown[index], ...extra[index] }));
 
 const makeDamage = (patch: Partial<SkillDefinitionV3> & Pick<SkillDefinitionV3, 'id' | 'name' | 'maxRank' | 'rankLevelRequirements' | 'damageProfile' | 'resourceCost' | 'cooldown' | 'presentation' | 'motion'>): SkillDefinitionV3 => ({
   jobId: 'berserker', jobTier: 'specialization', spCostPerRank: 3, skillType: 'ACTIVE_DAMAGE',
