@@ -44,7 +44,7 @@ export function configure(g, job = 'adventurer', underwater = true) {
   }
   h.characterName = `Local ${job} combat`;
   h.characterId = 'sunken-memory-combat';
-  h.currentField = underwater ? SUNKEN_ID : 'sunken-ruins';
+  h.currentField = underwater ? SUNKEN_ID : 'meteorfall-citadel';
   h.currentCity = 'jayantara';
   h.inCity = false;
   const center = underwater ? SUNKEN_ZONES[2] : { x: 18, z: 18 };

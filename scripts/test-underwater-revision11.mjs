@@ -155,7 +155,7 @@ try {
   assert.equal(report.deep.monsters, 335);
   assert.equal(report.deep.metrics.instances, 0);
   report.deepLabels = await minimap('deep-ocean-minimap');
-  assert.ok(report.deepLabels.some((p) => p.text === 'F1'));
+  assert.ok(report.deepLabels.some((p) => p.text === 'A6'));
   await checkMenu();
   report.depths = await page.evaluate(() => {
     const g = window.__sunkenQA.game;
@@ -213,7 +213,7 @@ try {
   assert.ok(report.movement.northLimit >= -499.56);
   await place(187.5, -434.5);
   await page
-    .getByRole('button', { name: 'Abysal Trench · F1', exact: true })
+    .getByRole('button', { name: 'Abysal Trench · A6', exact: true })
     .click();
   await ready();
   report.trench = await state();
@@ -307,7 +307,7 @@ try {
   assert.deepEqual([report.reload.x, report.reload.z], [130, -130]);
   await place(0, 347);
   await page
-    .getByRole('button', { name: 'Kembali ke Deep Ocean · F1', exact: true })
+    .getByRole('button', { name: 'Kembali ke Deep Ocean · A6', exact: true })
     .click();
   await ready();
   report.returnDeep = await state();

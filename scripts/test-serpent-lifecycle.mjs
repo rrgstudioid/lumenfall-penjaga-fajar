@@ -172,7 +172,7 @@ try {
   assert.ok(report.visits.at(-1).textures <= report.visits[0].textures + 2);
   assert.ok(report.visits.at(-1).geometries <= report.visits[0].geometries + 2);
   await travel(false);
-  await page.route('**/__sunken-dev/revision13/serpent-guardian.glb', (r) =>
+  await page.route('**/assets/maps/sunken-ruins/revision13/serpent-guardian.glb', (r) =>
     r.abort(),
   );
   await page.evaluate(() => {
@@ -189,7 +189,7 @@ try {
     return p.equals(g.actor.position);
   });
   assert.ok(report.loadingLocked);
-  await page.unroute('**/__sunken-dev/revision13/serpent-guardian.glb');
+  await page.unroute('**/assets/maps/sunken-ruins/revision13/serpent-guardian.glb');
   await page.evaluate(() => window.__sunkenQA.game.retryLocationLoad());
   await ready();
   report.retry = await page.evaluate(() =>

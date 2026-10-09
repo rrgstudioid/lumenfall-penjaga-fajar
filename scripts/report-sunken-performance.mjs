@@ -31,7 +31,7 @@ if (closure.at(-1)?.diagnostics.capturedAt < primaryEnd) closure = [];
 if (optimized.at(-1)?.diagnostics.capturedAt < primaryEnd) optimized = [];
 const rows = [
   ...primary.filter(
-    (r) => !optimized.length || r.map !== 'sunken-ruins-underwater-v1',
+    (r) => !optimized.length || r.map !== 'sunken-ruins',
   ),
   ...closure,
   ...optimized,
@@ -39,7 +39,7 @@ const rows = [
 const maps = [
   'verdant-plains-v2',
   'whispering-wilds-v2',
-  'sunken-ruins-underwater-v1',
+  'sunken-ruins',
 ];
 const qualities = ['office', 'light', 'balanced', 'high'];
 if (optimized.length) {

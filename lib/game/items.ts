@@ -824,7 +824,7 @@ const uniqueBossRunes:Array<{id:string;name:string;theme:RuneTheme;source:string
  {id:'rune-akar-purba',name:'Primordial Root Rune',theme:'vitality',source:'Ancient Treant · Padang Arunika',job:null,effect:'Pemulihan HP meningkat saat HP rendah.'},
  {id:'rune-bayangan-caroq',name:'Caroq Shadow Rune',theme:'shadows',source:'Field Boss Rimba Bisik',job:'rogue',effect:'Sinergi maksimum untuk Rogue dan serangan dari bayangan.'},
  {id:'rune-penjaga-langit',name:'Skywarden Rune',theme:'guardian',source:'Field Boss Tambang Selubung Besi',job:'warrior',effect:'Perfect guard memperkuat pertahanan singkat.'},
- {id:'rune-mata-jayantara',name:"Jayantara's Eye Rune",theme:'arcana',source:'Field Boss Reruntuhan Tenggelam',job:'wizard',effect:'Skill elemental memperoleh penetrasi ringan.'},
+ {id:'rune-mata-jayantara',name:"Jayantara's Eye Rune",theme:'arcana',source:'Field Boss Sunken Ruins',job:'wizard',effect:'Skill elemental memperoleh penetrasi ringan.'},
  {id:'rune-raja-meteor',name:'Meteor King Rune',theme:'might',source:'Meteorfall Overlord · Benteng Hujan Meteor',job:null,effect:'Peluang mengabaikan sebagian defense boss.'},
 ];
 for(const rune of uniqueBossRunes)ITEM_CATALOG[rune.id]=base({templateId:rune.id,name:rune.name,category:'rune',itemType:'socketRune',icon:'✺',rarity:'mythic',stackable:false,maxStack:1,sellValue:900,runeRarity:'ancient',runeQualityFixed:true,runeTheme:rune.theme,runeSource:rune.source,runeJobRequirement:rune.job,uniqueEffect:rune.effect,source:{type:'field_boss',sourceId:null,label:rune.source},description:`Rune unik Field Boss. Sumber: ${rune.source}.`});

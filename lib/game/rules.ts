@@ -1,7 +1,8 @@
 import { migrateIronveilSave } from './ironveil-mines-save-migration.ts';
 import { MINE_ID, MineNavigation } from './ironveil-interior-layout.ts';
 import { IRONVEIL_ID, IronveilNavigation } from './ironveil-mines-layout.ts';
-import { SUNKEN_ID, SUNKEN_DEVELOPMENT } from './sunken-ruins-layout.ts';
+import { SUNKEN_ID, SUNKEN_LAYOUT_VERSION } from './sunken-ruins-layout.ts';
+import { migrateSunkenSave } from './sunken-ruins-save-migration.ts';
 import { DEEP_OCEAN_ENTRY, ABYSAL_TRENCH_ID, ABYSAL_TRENCH_ENTRY, isUnderwaterSubmap } from './underwater-regions.ts';
 import { abysalTrenchWalkable } from './abysal-trench-layout.ts';
 import { deepOceanWalkable } from './deep-ocean-layout.ts';
@@ -356,6 +357,7 @@ export type Hero = PrimaryHotbarState & {
   currentField: string;
   interiorId?: typeof MINE_ID;
   frostfireLayoutVersion?: number;
+  sunkenLayoutVersion?: number;
   inCity: boolean;
   unlockedCities: string[];
   unlockedFields: string[];
@@ -599,6 +601,7 @@ export function freshHero(
     selectedAmmo: null,
     currentCity: 'arunika', currentField: PLAINS_ID, inCity: true,
     frostfireLayoutVersion: FROSTFIRE_LAYOUT_VERSION,
+    sunkenLayoutVersion: SUNKEN_LAYOUT_VERSION,
     unlockedCities: ['arunika'], unlockedFields: startingFieldIds(),
     completedQuests: [], acceptedQuests: [], activeQuests: [], questCooldowns: {}, cityProgress: {}, fieldProgress: {}, defeatedFieldBosses: [], defeatedBossTimestamp: {}, monsterRespawnState: {}, storage: [],
     characterId: `${slotId}-character`,
@@ -2574,6 +2577,7 @@ function normalizedHero(value: Record<string, unknown>, slotId = 'slot-1') {
   value = migrateFrostfireSave(value);
   value = migrateWildsSave(value);
   value = migrateIronveilSave(value);
+  value = migrateSunkenSave(value);
   const oldSave = value.version === 1 || value.version === 2;
   const id = typeof value.slotId === 'string' ? value.slotId : slotId;
   const name =
@@ -2880,8 +2884,6 @@ function normalizedHero(value: Record<string, unknown>, slotId = 'slot-1') {
   if(!h.inCity&&h.currentField===WILDS_ID)Object.assign(h,new WildsNavigation().restore(h));
   if(!h.inCity&&isUnderwaterSubmap(h.currentField))Object.assign(h,new SunkenNavigation(h.currentField===ABYSAL_TRENCH_ID?abysalTrenchWalkable:deepOceanWalkable,h.currentField===ABYSAL_TRENCH_ID?ABYSAL_TRENCH_ENTRY:DEEP_OCEAN_ENTRY).restore(h));
   if(!h.inCity&&h.currentField===SUNKEN_ID)Object.assign(h,new SunkenNavigation().restore(h));
-  // A development save opened in production returns to its city, retaining progression.
-  if(!SUNKEN_DEVELOPMENT&&value.inCity===false&&(value.currentField===SUNKEN_ID||isUnderwaterSubmap(String(value.currentField)))){h.inCity=true;h.currentCity='jayantara';h.currentField='sunken-ruins';h.x=0;h.z=8;}
   if(h.interiorId===MINE_ID)Object.assign(h,new MineNavigation().restore(h));
   else if(!h.inCity&&h.currentField===IRONVEIL_ID)Object.assign(h,new IronveilNavigation().restore(h));
   const terrain=!h.inCity?FIELD_TERRAINS[h.currentField]:undefined;

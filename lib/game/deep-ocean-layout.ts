@@ -7,13 +7,14 @@ import {
   DEEP_OCEAN_ENTRY,
   ABYSAL_TRENCH_ID,
   ABYSAL_TRENCH_GATE,
+  underwaterGridCoordinate,
 } from './underwater-regions.ts';
 export { DEEP_OCEAN_ENTRY } from './underwater-regions.ts';
 export const DEEP_OCEAN_PORTALS = [
   {
     ...ABYSAL_TRENCH_GATE,
     id: 'abysal-trench-f1',
-    name: 'Abysal Trench · F1',
+    name: `Abysal Trench · ${underwaterGridCoordinate(ABYSAL_TRENCH_GATE)}`,
     destination: ABYSAL_TRENCH_ID,
     yaw: 0,
   },
@@ -39,7 +40,7 @@ export function deepOceanGroundHeight(x: number, z: number) {
   // Arrive at abyssal depth, descend just 14 units, then reach a broad plain.
   const landingDescent = 14 * smooth(350 - z, 0, 170);
   // The trench begins beyond the playable
-  // north edge; its broad E/F lip and steep walls remain visible from F1.
+  // north edge; its broad lip and steep walls remain visible from A6.
   const trenchWidth = Math.exp(-(((x - 125) / 160) ** 4));
   const trench = 900 * trenchWidth * smooth(-z, 500, 720);
   const offshore = 120 * smooth(Math.max(Math.abs(x), Math.abs(z)), 500, 800);

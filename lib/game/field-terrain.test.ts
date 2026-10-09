@@ -52,7 +52,7 @@ await test('legacy invalid coordinates migrate without touching inventory, quest
       assert.deepEqual(comparable(loaded[key]),comparable(h[key]),key);
     }
   }
-  const h=freshHero();h.inCity=false;h.currentField='sunken-ruins';h.x=58;h.z=-56;
+  const h=freshHero();h.inCity=false;h.currentField='meteorfall-citadel';h.x=58;h.z=-56;
   const loaded=parseSave(JSON.stringify(h))!;assert.equal(loaded.x,58);assert.equal(loaded.z,-56);
 });
 await test('render geometry follows the boundary with bounded geometry and ground sample error',()=>{

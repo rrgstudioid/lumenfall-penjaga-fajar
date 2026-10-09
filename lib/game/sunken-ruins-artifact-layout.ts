@@ -91,4 +91,4 @@ export const SUNKEN_ARTIFACT_COLLIDERS = SUNKEN_ARTIFACTS.flatMap((p) => {
 });
 
 export const sunkenArtifactAsset = (name: string) =>
-  `/__sunken-dev/${name === 'neptune-statue' ? 'revision12' : 'revision6'}/${name}.glb`;
+  `/assets/maps/sunken-ruins/${name === 'neptune-statue' ? 'revision12' : 'revision6'}/${name}.glb`;

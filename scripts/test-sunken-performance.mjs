@@ -9,7 +9,7 @@ const { chromium } = await import(
 );
 const maps = (
   process.env.SUNKEN_MAPS ??
-  'verdant-plains-v2,whispering-wilds-v2,sunken-ruins-underwater-v1'
+  'verdant-plains-v2,whispering-wilds-v2,sunken-ruins'
 ).split(',');
 const qualities = (
   process.env.SUNKEN_QUALITIES ?? 'office,light,balanced,high'

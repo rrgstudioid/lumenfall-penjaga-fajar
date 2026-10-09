@@ -103,7 +103,7 @@ export function createSunkenMaterials(
     stoneTexture: T.Texture | undefined;
   async function load(sandOnly = false, tectonicPlates = false) {
     sandTexture = await new T.TextureLoader().loadAsync(
-      '/__sunken-dev/realism/sand-albedo.png',
+      '/assets/maps/sunken-ruins/realism/sand-albedo.png',
     );
     sandTexture.colorSpace = T.SRGBColorSpace;
     sandTexture.wrapS = sandTexture.wrapT = T.RepeatWrapping;
@@ -112,7 +112,7 @@ export function createSunkenMaterials(
     if (sandOnly && !tectonicPlates) return;
     if (!sandOnly) {
       coralTexture = await new T.TextureLoader().loadAsync(
-        '/__sunken-dev/realism/coral-albedo.png',
+        '/assets/maps/sunken-ruins/realism/coral-albedo.png',
       );
       coralTexture.colorSpace = T.SRGBColorSpace;
       coralTexture.wrapS = coralTexture.wrapT = T.RepeatWrapping;
@@ -120,7 +120,7 @@ export function createSunkenMaterials(
       textures.push(coralTexture);
     }
     stoneTexture = await new T.TextureLoader().loadAsync(
-      '/__sunken-dev/revision3/limestone-albedo.png',
+      '/assets/maps/sunken-ruins/revision3/limestone-albedo.png',
     );
     stoneTexture.colorSpace = T.SRGBColorSpace;
     stoneTexture.wrapS = stoneTexture.wrapT = T.RepeatWrapping;

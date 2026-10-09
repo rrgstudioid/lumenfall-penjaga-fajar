@@ -1,5 +1,5 @@
 'use client';
-import { isUnderwaterSubmap } from '@/lib/game/underwater-regions';
+import { isUnderwaterSubmap, UNDERWATER_GRID_SIZE } from '@/lib/game/underwater-regions';
 import { FROSTFIRE_ID } from '@/lib/game/frostfire-highlands-layout';
 import {
   memo,
@@ -195,9 +195,11 @@ const QuestTracker = memo(function QuestTracker({
     </section>
   );
 });
+// One Verdant coordinate frame for every map: letters left, numbers below.
+// Maps may set the cell count, but never swap axes or supply separate label styling.
 const RightHUDCluster = memo(function RightHUDCluster({
   mapRef,
-  mapDrawsGrid = false,
+  gridSize = 7,
   gold,
   weatherLabel = 'Pagi yang tenang',
   muted,
@@ -209,7 +211,7 @@ const RightHUDCluster = memo(function RightHUDCluster({
   onCamera,
 }: {
   mapRef: RefObject<HTMLCanvasElement | null>;
-  mapDrawsGrid?: boolean;
+  gridSize?: number;
   gold: number;
   weatherLabel?: string;
   muted: boolean;
@@ -220,17 +222,18 @@ const RightHUDCluster = memo(function RightHUDCluster({
   onFullscreen: () => void;
   onCamera: () => void;
 }) {
+  const gridIndices = Array.from({ length: gridSize }, (_, index) => index);
   return (
     <aside className="hud-right">
       <div className="hud-minimap-frame">
       <button className="hud-minimap" onClick={onMap} aria-label="Buka peta">
         <canvas ref={mapRef} width={240} height={240} />
-        {!mapDrawsGrid && <svg className="hud-map-grid" viewBox="0 0 240 240" aria-hidden="true">
-          {[1, 2, 3, 4, 5, 6].map(index => {
-            const offset = index * 240 / 7;
+        <svg className="hud-map-grid" viewBox="0 0 240 240" aria-hidden="true">
+          {gridIndices.slice(1).map(index => {
+            const offset = index * 240 / gridSize;
             return <path key={index} d={`M${offset} 0V240 M0 ${offset}H240`} />;
           })}
-        </svg>}
+        </svg>
         <svg
           className="hud-compass-rim"
           viewBox="0 0 240 240"
@@ -240,12 +243,12 @@ const RightHUDCluster = memo(function RightHUDCluster({
           <rect x="10" y="10" width="220" height="220" />
           <path d="M6 30V6H30 M210 6H234V30 M234 210V234H210 M30 234H6V210" />
         </svg>
-        {!mapDrawsGrid && <span className="hud-map-columns" aria-hidden="true">
-          {[1, 2, 3, 4, 5, 6, 7].map(column => <span key={column}>{column}</span>)}
-        </span>}
-        {!mapDrawsGrid && <span className="hud-map-rows" aria-hidden="true">
-          {['A', 'B', 'C', 'D', 'E', 'F', 'G'].map(row => <span key={row}>{row}</span>)}
-        </span>}
+        <span className="hud-map-columns" style={{ gridTemplateColumns: `repeat(${gridSize}, 1fr)` }} aria-hidden="true">
+          {gridIndices.map(index => <span key={index}>{index + 1}</span>)}
+        </span>
+        <span className="hud-map-rows" style={{ gridTemplateRows: `repeat(${gridSize}, 1fr)` }} aria-hidden="true">
+          {gridIndices.map(index => <span key={index}>{String.fromCharCode(65 + index)}</span>)}
+        </span>
         <span className="hud-cardinal hud-cardinal-n" aria-hidden="true">N</span>
         <span className="hud-cardinal hud-cardinal-w" aria-hidden="true">W</span>
         <span className="hud-cardinal hud-cardinal-e" aria-hidden="true">E</span>
@@ -439,7 +442,7 @@ export function GameplayHUD({
         </div>
         <HUDFrame id="right" label="Minimap">
           <RightHUDCluster
-            mapDrawsGrid={state.mapId === 'sunken-ruins-underwater-v1' || isUnderwaterSubmap(state.mapId)}
+            gridSize={state.mapId === 'sunken-ruins' || isUnderwaterSubmap(state.mapId) ? UNDERWATER_GRID_SIZE : 7}
             mapRef={mapRef}
             gold={state.hero.gold}
             weatherLabel={state.mapId==='ironveil-mines-interior-v1'?'Underground · Lantern light':state.mapId==='ironveil-mines-exterior-v1'?'Hot midday · Scattered clouds':state.mapId==='whispering-wilds-v2'?'Chaotic blue daylight':state.mapId===FROSTFIRE_ID?'Wind-driven snow':undefined}

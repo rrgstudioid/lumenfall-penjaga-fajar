@@ -1,4 +1,4 @@
-import { ABYSAL_TRENCH_ENTRY, DEEP_OCEAN_ID } from './underwater-regions.ts';
+import { ABYSAL_TRENCH_ENTRY, ABYSAL_TRENCH_GATE, DEEP_OCEAN_ID, underwaterGridCoordinate } from './underwater-regions.ts';
 export { ABYSAL_TRENCH_ENTRY } from './underwater-regions.ts';
 
 export const ABYSAL_TRENCH_PORTALS = [
@@ -6,7 +6,7 @@ export const ABYSAL_TRENCH_PORTALS = [
     x: 0,
     z: 350,
     id: 'return-deep-ocean-f1',
-    name: 'Kembali ke Deep Ocean · F1',
+    name: `Kembali ke Deep Ocean · ${underwaterGridCoordinate(ABYSAL_TRENCH_GATE)}`,
     destination: DEEP_OCEAN_ID,
     yaw: 0,
   },

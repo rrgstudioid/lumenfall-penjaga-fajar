@@ -305,7 +305,7 @@ try {
     };
   });
   assert.deepEqual(report.returned, {
-    field: 'sunken-ruins-underwater-v1',
+    field: 'sunken-ruins',
     x: 312.5,
     z: 322.5,
     portals: 4,

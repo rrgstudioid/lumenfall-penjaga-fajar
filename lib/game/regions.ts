@@ -3,7 +3,7 @@ import { PLAINS_ID, PLAINS_ENTRY, PLAINS_EXIT } from './verdant-plains-layout.ts
 import { WILDS_ID, WILDS_ENTRY, WILDS_LANDMARKS } from './whispering-wilds-layout.ts';
 import { FROSTFIRE_ID, FROSTFIRE_ENTRY, FROSTFIRE_ZONES } from './frostfire-highlands-layout.ts';
 import type { Hero } from './rules.ts';
-import { SUNKEN_ID, SUNKEN_DEVELOPMENT, SUNKEN_ENTRY, SUNKEN_PORTALS, SUNKEN_ZONES } from './sunken-ruins-layout.ts';
+import { SUNKEN_ID, SUNKEN_ENTRY, SUNKEN_PORTALS, SUNKEN_ZONES } from './sunken-ruins-layout.ts';
 import { DEEP_OCEAN_ID, DEEP_OCEAN_ENTRY, DEEP_OCEAN_RETURN, ABYSAL_TRENCH_ID, ABYSAL_TRENCH_ENTRY, ABYSAL_TRENCH_RETURN } from './underwater-regions.ts';
 import { DEEP_OCEAN_PORTALS } from './deep-ocean-layout.ts';
 import { ABYSAL_TRENCH_PORTALS } from './abysal-trench-layout.ts';
@@ -87,7 +87,7 @@ const seeds: Array<[string,string,string,number,number,string[],string[],number[
  ['ironveil-mines','Tambang Selubung Besi','Ironveil Mines',8,16,['Pos Tambang Barat','Lorong Bijih Dalam','Galeri Runtuh'],['Cave Bat','Ore Grub','Ironfang Bat','Tunnel Marauder','Ironhide Golem','Mine Tyrant'],[9,10,12,14,16,18],['iron','titanium'],'#685c51',[270,400,520,650,900,3820]],
  ['whispering-wilds','Rimba Bisik','Whispering Wilds',16,24,['Jalur Bambu','Hutan Kabut','Kanopi Leluhur'],['Moss Sprite','Thorn Wolf','Whispering Wisp','Vineshade Panther','Elder Vine','Forest Warden'],[16,17,20,22,24,26],['titanium'],'#315d50',[640,701,894,1030,1500,6630]],
  [FROSTFIRE_ID,'Frostfire Highlands','Frozen Highlands',24,32,FROSTFIRE_ZONES.map(z=>z.name),['Ember Yak','Frost Wolf','Magma Imp','Frostfire Wyrm','Cinderhorn','Twin Elemental Lord'],[24,25,28,30,32,34],['titanium','vibranium'],'#ccdfe9',[1180,1250,1490,1700,2300,9915]],
- ['sunken-ruins','Reruntuhan Tenggelam','Sunken Ruins',32,42,['Halaman Candi Terendam','Ruang Penjaga','Gudang Harta Banjir'],['Drowned Warrior','Drowned Soldier','Leech Wraith','Ruin Guardian','Sunken Sentinel','Leviathan'],[32,33,37,40,42,44],['vibranium'],'#316c7a',[1700,1896,2300,2700,3600,14595]],
+ [SUNKEN_ID,'Sunken Ruins','Underwater Hunting Field',32,42,SUNKEN_ZONES.map(z=>z.name),['Drowned Warrior','Drowned Soldier','Leech Wraith','Ruin Guardian','Sunken Sentinel','Abyssal Leviathan'],[32,33,37,40,42,42],['vibranium'],'#11647d',[1700,1896,2300,2700,3600,Math.round(14595*42/44)]],
  ['meteorfall-citadel','Benteng Hujan Meteor','Meteorfall Citadel',42,50,['Gerbang Bintang Jatuh','Padang Meteor','Inti Benteng Meteorfall'],['Meteor Wisp','Meteor Hound','Astral Golem','Void Knight','Meteor Titan','Meteorfall Overlord'],[42,43,46,48,49,50],['vibranium','meteorite-core'],'#584465',[2500,2820,3200,3700,4700,17680]],
 ];
 const fieldDefinitions: Record<string,FieldDefinition> = Object.fromEntries(seeds.map(([id,displayName,codename,minLevel,maxLevel,subAreas,names,levels,materials,color,expValues],index) => {
@@ -180,40 +180,35 @@ fieldDefinitions[IRONVEIL_ID] = {
  color:'#b4c2bd',entry:{...IRONVEIL_ENTRY},exit:{...IRONVEIL_ENTRANCE},regionType:'field',
 };
 CITIES.averion.connectedFields.push(IRONVEIL_ID);
-const sunkenLegacy=fieldDefinitions['sunken-ruins'];
-const sunkenBoss={...sunkenLegacy.fieldBoss!,name:'Abyssal Leviathan',level:42,
- maxHP:Math.round((30+42*16)*MONSTER_VARIANTS.boss.hpMultiplier),
- attack:Math.round((8+42*2.2)*MONSTER_VARIANTS.boss.damageMultiplier),
- defense:Math.round((4+42*1.1)*MONSTER_VARIANTS.boss.defenseMultiplier),
- magicDefense:Math.round((3+42)*MONSTER_VARIANTS.boss.defenseMultiplier),
- exp:Math.round(sunkenLegacy.fieldBoss!.exp*42/44)};
-if(SUNKEN_DEVELOPMENT)fieldDefinitions[SUNKEN_ID]={
+const sunkenContent=fieldDefinitions[SUNKEN_ID];
+// Permanent replacement: retain species/item identities, replace the old field layout.
+fieldDefinitions[SUNKEN_ID]={
  id:SUNKEN_ID,cityId:'jayantara',displayName:'Sunken Ruins',codename:'Underwater Hunting Field',contentFamilyId:'sunken-ruins',
  chapter:1,minLevel:32,maxLevel:42,recommendedLevel:'32–42',subAreas:SUNKEN_ZONES.map(z=>z.name),
- normalMonsters:[...sunkenLegacy.normalMonsters],eliteMonsters:[...sunkenLegacy.eliteMonsters],fieldBoss:sunkenBoss,
- dropTable:[...sunkenLegacy.dropTable],materialTable:sunkenLegacy.materialTable.map(m=>({...m})),questList:[],
- unlockQuest:null,previousField:null,nextMap:null,musicId:'',ambientId:'',isUnlocked:false,
+ normalMonsters:[...sunkenContent.normalMonsters],eliteMonsters:[...sunkenContent.eliteMonsters],fieldBoss:sunkenContent.fieldBoss,
+ dropTable:[...sunkenContent.dropTable],materialTable:sunkenContent.materialTable.map(m=>({...m})),questList:[],
+ unlockQuest:null,previousField:sunkenContent.previousField,nextMap:sunkenContent.nextMap,musicId:'',ambientId:'',isUnlocked:false,
  color:'#11647d',entry:{...SUNKEN_ENTRY},exit:{x:SUNKEN_PORTALS[0].x,z:SUNKEN_PORTALS[0].z},regionType:'field',
 };
 const oceanMonster=(slug:string,name:string,level:number,variant:MonsterVariant,scale=1):MonsterDefinition=>{
  const base=plainsMonster(slug,name,level,variant,Math.round((1700+(level-32)*145)*MONSTER_VARIANTS[variant].expMultiplier));
  return {...base,id:`${DEEP_OCEAN_ID}-${slug}`,visualScale:scale,lootTable:['health-potion-3','vibranium'],movementSpeed:variant==='boss'?2.4:2.8};
 };
-if(SUNKEN_DEVELOPMENT)fieldDefinitions[DEEP_OCEAN_ID]={
+fieldDefinitions[DEEP_OCEAN_ID]={
  ...fieldDefinitions[SUNKEN_ID], id:DEEP_OCEAN_ID, displayName:'Deep Ocean',codename:'Deep-ocean hunting field',
  recommendedLevel:'38–48',maxLevel:48,subAreas:['Descent Landing','Abyssal Sand Basin','Megalodon Grounds'],
  normalMonsters:[oceanMonster('goblin-shark','Goblin Shark',38,'normal'),oceanMonster('baracuda','Deep Baracuda',40,'normal'),oceanMonster('marlyn','Deep Marlyn',43,'normal'),oceanMonster('giant-squid','Giant Squid',46,'normal')],
  eliteMonsters:[oceanMonster('giant-squid-elite','Giant Squid · Elite',47,'elite',1.35)],
  fieldBoss:oceanMonster('megalodon','Megalodon',48,'boss',4),
- dropTable:[...sunkenLegacy.dropTable],materialTable:sunkenLegacy.materialTable.map(m=>({...m})),questList:[],
+ dropTable:[...sunkenContent.dropTable],materialTable:sunkenContent.materialTable.map(m=>({...m})),questList:[],previousField:null,nextMap:null,
  entry:{...DEEP_OCEAN_ENTRY},exit:{x:0,z:350},color:'#164e72',warpOnly:true,contentFamilyId:undefined,
 };
-if(SUNKEN_DEVELOPMENT)fieldDefinitions[ABYSAL_TRENCH_ID]={
+fieldDefinitions[ABYSAL_TRENCH_ID]={
  ...fieldDefinitions[DEEP_OCEAN_ID],id:ABYSAL_TRENCH_ID,displayName:'Abysal Trench',codename:'Tectonic passage and boss arena',
  normalMonsters:[],
  eliteMonsters:[{...oceanMonster('serpent-guardian','Sea Serpent "Guardian"',58,'elite'),id:SERPENT_GUARDIAN_ID,visualScale:1}],
  fieldBoss:{...oceanMonster('sea-serpent','Sea Serpent',60,'boss'),id:SERPENT_BOSS_ID,visualScale:1},
- dropTable:[...sunkenLegacy.dropTable],materialTable:sunkenLegacy.materialTable.map(m=>({...m})),recommendedLevel:'58–60',maxLevel:60,
+ dropTable:[...sunkenContent.dropTable],materialTable:sunkenContent.materialTable.map(m=>({...m})),recommendedLevel:'58–60',maxLevel:60,
  subAreas:['Trench Landing','Tectonic Maze','Tectonic Basin'],entry:{...ABYSAL_TRENCH_ENTRY},exit:{x:0,z:350},color:'#0b2943',
 };
 export const FIELDS: Record<string, FieldDefinition> = Object.fromEntries([
@@ -242,7 +237,6 @@ export function fieldContent(fieldId:string):FieldDefinition {
 }
 
 export const FIELD_NPCS: Record<string, NpcDefinition> = {
- 'sunken-ruins': {id:'field-npc-sunken',name:'Penjaga Reruntuhan',type:'merchant',service:'field-camp',services:['buy','sell','teleport','quest'],interactionRange:2.5,shopInventory:[],description:'Quest field, teleport, dan toko kebutuhan farming Reruntuhan Tenggelam.',x:-26,z:28,fieldId:'sunken-ruins'},
  'meteorfall-citadel': {id:'field-npc-meteor',name:'Penjaga Benteng Meteor',type:'merchant',service:'field-camp',services:['buy','sell','teleport','quest'],interactionRange:2.5,shopInventory:[],description:'Quest field, teleport, dan toko kebutuhan farming Benteng Hujan Meteor.',x:-26,z:28,fieldId:'meteorfall-citadel'},
 };
 

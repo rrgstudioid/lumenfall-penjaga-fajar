@@ -6,9 +6,10 @@ import {
   SUNKEN_ARTIFACTS,
   SUNKEN_ARTIFACT_COLLIDERS,
 } from './sunken-ruins-artifact-layout.ts';
-export const SUNKEN_ID = 'sunken-ruins-underwater-v1';
+export const SUNKEN_ID = 'sunken-ruins';
+export const SUNKEN_PREVIEW_ID = 'sunken-ruins-underwater-v1';
+export const SUNKEN_LAYOUT_VERSION = 2;
 export const SUNKEN_SIZE = 1000;
-export const SUNKEN_DEVELOPMENT = process.env.NODE_ENV !== 'production';
 export type SunkenPoint = { x: number; z: number };
 export const sunkenPoint = (u: number, v: number): SunkenPoint => ({
   x: u - 500,
@@ -482,9 +483,7 @@ for (let gz = -430; gz <= 430; gz += 30)
     }
   }
 // Register proxies into every overlapped cell, so query cost stays local to the actor.
-export const SUNKEN_WALL: ReturnType<typeof shelfContour> = SUNKEN_DEVELOPMENT
-  ? shelfContour(sunkenFloorDistance, SUNKEN_WALL_CONTOUR)
-  : { segments: [], openings: [] };
+export const SUNKEN_WALL: ReturnType<typeof shelfContour> = shelfContour(sunkenFloorDistance, SUNKEN_WALL_CONTOUR);
 export const SUNKEN_WALL_COLLIDERS = SUNKEN_WALL.segments.flatMap(
   ({ a, b }) => {
     const n = Math.max(1, Math.ceil(Math.hypot(a.x - b.x, a.z - b.z) / 2));

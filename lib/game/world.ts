@@ -3,7 +3,7 @@ import { MINE_ID, MINE_ENTRY, MINE_EXIT, MineNavigation, mineGroundHeight, mineL
 import { IRONVEIL_ID, IRONVEIL_TRANSITION, ironveilGroundHeight, ironveilWalkable } from './ironveil-mines-layout';
 import { IRONVEIL_DAYLIGHT } from './ironveil-mines-sky';
 import { moveIronveilMonster } from './ironveil-mines-population';
-import { SUNKEN_ID, SUNKEN_DEVELOPMENT, sunkenGroundHeight, sunkenWalkable } from './sunken-ruins-layout';
+import { SUNKEN_ID, sunkenGroundHeight, sunkenWalkable } from './sunken-ruins-layout';
 import { DEEP_OCEAN_ID, ABYSAL_TRENCH_ID, isUnderwaterSubmap } from './underwater-regions';
 import { isSeaSerpent, GUARDIAN_ATTACKS, BOSS_ATTACKS, serpentStrikeContains, type SerpentStrike } from './sea-serpent-combat';
 import { createSerpentBody, type SerpentVisual } from './sea-serpent-model';
@@ -352,7 +352,7 @@ export class Game {
   private readonly sunkenAbyssFog = new T.Color(SUNKEN_ABYSS_FOG);
   private readonly deepOceanTrenchFog = new T.Color(DEEP_OCEAN_TRENCH_VIEW.background);
   sunken: Awaited<ReturnType<typeof import('./sunken-ruins-map').buildSunkenRuins>> | null = null;
-  get isSunken() {return SUNKEN_DEVELOPMENT&&!this.hero.inCity&&(this.hero.currentField===SUNKEN_ID||isUnderwaterSubmap(this.hero.currentField));}
+  get isSunken() {return !this.hero.inCity&&(this.hero.currentField===SUNKEN_ID||isUnderwaterSubmap(this.hero.currentField));}
   get isWilds() {return !this.hero.inCity&&this.hero.currentField===WILDS_ID;}
   graphicsQuality: GraphicsQuality = loadGraphicsQuality();
   wilds: Awaited<ReturnType<typeof import('./whispering-wilds-map').buildWhisperingWilds>> | null = null;
@@ -1882,7 +1882,7 @@ export class Game {
       }).catch(error=>{if(!this.disposed&&buildToken===this.regionBuildToken)this.regionLoadError=error;throw error;}));
       void this.regionLoads.at(-1)!.catch(()=>{});return;
     }
-    if(process.env.NODE_ENV!=='production'&&this.isSunken) {
+    if(this.isSunken) {
       const abysalTrench=this.hero.currentField===ABYSAL_TRENCH_ID,deepOcean=isUnderwaterSubmap(this.hero.currentField),light=abysalTrench?ABYSAL_TRENCH_LIGHT:deepOcean?DEEP_OCEAN_LIGHT:SUNKEN_LIGHT;
       this.terrain.visible=false;this.shrine.visible=false;this.actor.visible=false;
       this.scene.background=new T.Color(light.background);this.scene.fog=new T.Fog(light.background,light.fogNear,light.fogFar);this.renderer.toneMappingExposure=light.exposure;
@@ -4699,7 +4699,9 @@ export class Game {
       ctx.fillStyle = '#93ddb8';
       ctx.fillRect(p(0) - 3, p(0) - 3, 6, 6);
     }
-    for (const e of this.enemies) {
+    // Enemy dots would reveal the trench's corridors and boss arena.
+    const minimapEnemies = this.isSunken && this.hero.currentField === ABYSAL_TRENCH_ID ? [] : this.enemies;
+    for (const e of minimapEnemies) {
       if (e.hp <= 0) continue;
       if(this.isMineInterior&&!e.group.visible)continue;
       if(this.isPlains&&!e.boss&&this.groundDistance(e.group.position,this.actor.position)>110)continue;

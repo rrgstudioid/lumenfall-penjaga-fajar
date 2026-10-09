@@ -45,7 +45,7 @@ import {
   sunkenCameraDistance,
 } from './sunken-ruins-camera.ts';
 import type { GraphicsQuality } from './graphics-quality.ts';
-import { UNDERWATER_GRID_SIZE } from './underwater-regions.ts';
+import { underwaterGridCoordinate } from './underwater-regions.ts';
 import {
   ABYSAL_TRENCH_ENTRY,
   ABYSAL_TRENCH_PORTALS,
@@ -162,7 +162,7 @@ export async function buildSunkenRuins(
   try {
     if (serpentKit) await serpentKit.load();
     if (!deep) {
-      const gltf = await new GLTFLoader().loadAsync('/__sunken-dev/kit.glb');
+      const gltf = await new GLTFLoader().loadAsync('/assets/maps/sunken-ruins/kit.glb');
       gltf.scene.updateMatrixWorld(true);
       const importedMaterials = new Set<T.Material>();
       gltf.scene.traverse((o) => {
@@ -178,7 +178,7 @@ export async function buildSunkenRuins(
       // Keep the original distant silhouettes and structures; replace marine prototypes nearby.
       kit.forEach((g, name) => distantKit.set(name, g));
       const marine = await new GLTFLoader().loadAsync(
-        '/__sunken-dev/realism/marine-kit.glb',
+        '/assets/maps/sunken-ruins/realism/marine-kit.glb',
       );
       marine.scene.updateMatrixWorld(true);
       marine.scene.traverse((o) => {
@@ -190,7 +190,7 @@ export async function buildSunkenRuins(
         );
       });
       const masonry = await new GLTFLoader().loadAsync(
-        '/__sunken-dev/revision3/ruins-reef-kit.glb',
+        '/assets/maps/sunken-ruins/revision3/ruins-reef-kit.glb',
       );
       masonry.scene.updateMatrixWorld(true);
       masonry.scene.traverse((o) => {
@@ -654,31 +654,11 @@ export async function buildSunkenRuins(
           ctx.stroke();
         }
       }
-      const cell = size / UNDERWATER_GRID_SIZE;
-      ctx.strokeStyle = 'rgba(224,243,246,.16)';
-      ctx.lineWidth = 0.5;
-      ctx.beginPath();
-      for (let i = 1; i < UNDERWATER_GRID_SIZE; i++) {
-        ctx.moveTo(i * cell, 0);
-        ctx.lineTo(i * cell, size);
-        ctx.moveTo(0, i * cell);
-        ctx.lineTo(size, i * cell);
-      }
-      ctx.stroke();
     }
     function drawMinimapLabels(ctx: CanvasRenderingContext2D, size: number) {
-      const p = (v: number) => ((v + 500) * size) / 1000,
-        cell = size / UNDERWATER_GRID_SIZE;
-      ctx.font = `${Math.max(8, size * 0.04)}px sans-serif`;
-      ctx.fillStyle = '#e3f4f3';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'top';
-      for (let i = 0; i < UNDERWATER_GRID_SIZE; i++)
-        ctx.fillText(String.fromCharCode(65 + i), (i + 0.5) * cell, 2);
-      ctx.textAlign = 'left';
+      // Coordinate labels use the shared HUD typography and frame placement.
+      const p = (v: number) => ((v + 500) * size) / 1000;
       ctx.textBaseline = 'middle';
-      for (let i = 0; i < UNDERWATER_GRID_SIZE; i++)
-        ctx.fillText(String(i + 1), 2, (i + 0.5) * cell);
       for (const gate of SUNKEN_PORTALS) {
         ctx.fillStyle = '#35beff';
         ctx.beginPath();
@@ -689,7 +669,7 @@ export async function buildSunkenRuins(
           ctx.textAlign = 'left';
           ctx.fillStyle = '#e1fbff';
           ctx.fillText(
-            gate.id === 'deep-ocean-g7' ? 'G7' : 'F1',
+            underwaterGridCoordinate(gate),
             p(gate.x) + 4,
             p(gate.z) + (gate.id === 'abysal-trench-f1' ? 10 : -4),
           );
@@ -713,6 +693,13 @@ export async function buildSunkenRuins(
       }
     }
     function drawMinimap(ctx: CanvasRenderingContext2D, size: number) {
+      // The trench is explored without revealing its maze, arena or portals.
+      // Grid, coordinates and compass are supplied by the shared HUD frame.
+      if (trench) {
+        ctx.fillStyle = '#000000';
+        ctx.fillRect(0, 0, size, size);
+        return;
+      }
       if (!minimapCache) {
         minimapCache = document.createElement('canvas');
         minimapCache.width = minimapCache.height = 384;

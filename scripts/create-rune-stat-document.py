@@ -132,7 +132,7 @@ SPECIAL_RUNES = [
     ("Primordial Root Rune", "Vitality", "Ancient Treant · Padang Arunika", "Tidak ada", "Pemulihan HP meningkat saat HP rendah."),
     ("Caroq Shadow Rune", "Shadows", "Field Boss Rimba Bisik", "Rogue", "Sinergi maksimum untuk Rogue dan serangan dari bayangan."),
     ("Skywarden Rune", "Guardian", "Field Boss Tambang Selubung Besi", "Warrior", "Perfect guard memperkuat pertahanan singkat."),
-    ("Jayantara's Eye Rune", "Arcana", "Field Boss Reruntuhan Tenggelam", "Wizard", "Skill elemental memperoleh penetrasi ringan."),
+    ("Jayantara's Eye Rune", "Arcana", "Field Boss Sunken Ruins", "Wizard", "Skill elemental memperoleh penetrasi ringan."),
     ("Meteor King Rune", "Might", "Meteorfall Overlord · Benteng Hujan Meteor", "Tidak ada", "Peluang mengabaikan sebagian defense boss."),
 ]
 

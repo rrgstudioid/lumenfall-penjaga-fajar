@@ -6,6 +6,8 @@ import type { Plugin } from 'vite';
 export function sunkenDevAssets(): Plugin {
   return {
     name: 'lumenfall-sunken-development-assets',
+    // Serve binary assets before the app's catch-all routes, including restarts.
+    enforce: 'pre',
     apply: 'serve',
     configureServer(server) {
       server.middlewares.use('/__sunken-dev/', async (req, res, next) => {

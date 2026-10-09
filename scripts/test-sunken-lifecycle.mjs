@@ -111,7 +111,7 @@ try {
     assert.equal(restored.swim, 0);
     assert.match(restored.native, /Run|Walk/);
     state.groundRecovery = restored;
-    await region('sunken-ruins-underwater-v1');
+    await region('sunken-ruins');
     await page.waitForTimeout(600);
     const memory = await page.evaluate(() => {
       const g = window.__sunkenQA.game;
@@ -131,9 +131,9 @@ try {
   );
   // A failed request must keep input locked; Retry rebuilds one clean map.
   await region('jayantara');
-  await page.route('**/__sunken-dev/kit.glb', (route) => route.abort());
+  await page.route('**/assets/maps/sunken-ruins/kit.glb', (route) => route.abort());
   await page.evaluate(() =>
-    window.__sunkenQA.game.changeRegion('sunken-ruins-underwater-v1'),
+    window.__sunkenQA.game.changeRegion('sunken-ruins'),
   );
   await page.waitForFunction(() => !!window.__sunkenQA.game.regionLoadError);
   await page.screenshot({ path: 'output/sunken-ruins/loading-retry.png' });
@@ -144,7 +144,7 @@ try {
     return before.equals(g.actor.position);
   });
   assert.ok(locked);
-  await page.unroute('**/__sunken-dev/kit.glb');
+  await page.unroute('**/assets/maps/sunken-ruins/kit.glb');
   await page.evaluate(() => window.__sunkenQA.game.retryLocationLoad());
   await ready();
   report.retry = true;

@@ -6,6 +6,7 @@ import { createSunkenVfx } from './sunken-ruins-vfx.ts';
 import { SUNKEN_HABITATS } from './sunken-ruins-marine-motion.ts';
 import {
   SUNKEN_ID,
+  SUNKEN_PREVIEW_ID,
   SUNKEN_ENTRY,
   SUNKEN_PATHS,
   SUNKEN_ZONES,
@@ -51,7 +52,7 @@ import {
   ABYSAL_TRENCH_PORTALS,
 } from './abysal-trench-layout.ts';
 import { sunkenCameraDistance } from './sunken-ruins-camera.ts';
-import { FIELDS, travel, unlockReason } from './regions.ts';
+import { FIELDS, FIELD_NPCS, travel, unlockReason } from './regions.ts';
 import { fieldSpawns } from './field-layout.ts';
 import {
   sunkenPopulation,
@@ -66,9 +67,9 @@ import {
   disposeCharacterModel,
 } from './character-model.ts';
 
-await test('production hides preview registration and returns development saves to Jayantara', () => {
+await test('production registers the underwater replacement and preserves its sub-map saves', () => {
   for (const mapId of [SUNKEN_ID, DEEP_OCEAN_ID, ABYSAL_TRENCH_ID]) {
-    const source = `import {FIELDS} from './lib/game/regions.ts';import {freshHero,parseSave} from './lib/game/rules.ts';const id='${mapId}',h=freshHero();Object.assign(h,{currentField:id,currentCity:'jayantara',inCity:false,level:32,x:45,z:-370});const p=parseSave(JSON.stringify(h));console.log(JSON.stringify({registered:!!FIELDS[id],field:p.currentField,city:p.currentCity,inCity:p.inCity,x:p.x,z:p.z,level:p.level}));`;
+    const source = `import {FIELDS} from './lib/game/regions.ts';import {freshHero,parseSave} from './lib/game/rules.ts';import {SUNKEN_WALL} from './lib/game/sunken-ruins-layout.ts';const id='${mapId}',h=freshHero();Object.assign(h,{currentField:id,currentCity:'jayantara',inCity:false,level:32,...FIELDS[id].entry});const p=parseSave(JSON.stringify(h));console.log(JSON.stringify({registered:!!FIELDS[id],previewRegistered:!!FIELDS['${SUNKEN_PREVIEW_ID}'],walls:SUNKEN_WALL.segments.length>0,field:p.currentField,city:p.currentCity,inCity:p.inCity,x:p.x,z:p.z,level:p.level}));`;
     const result = JSON.parse(
       execFileSync(
         process.execPath,
@@ -81,18 +82,19 @@ await test('production hides preview registration and returns development saves 
       ),
     );
     assert.deepEqual(result, {
-      registered: false,
-      field: 'sunken-ruins',
+      registered: true,
+      previewRegistered: false,
+      walls: true,
+      field: mapId,
       city: 'jayantara',
-      inCity: true,
-      x: 0,
-      z: 8,
+      inCity: false,
+      ...FIELDS[mapId].entry,
       level: 32,
     });
   }
 });
 
-await test('hunting field is separate and level 32 gated; legacy field is untouched', () => {
+await test('one canonical Sunken Ruins replaces the retired field and keeps the level 32 gate', () => {
   const field = FIELDS[SUNKEN_ID],
     hero = freshHero();
   hero.level = 31;
@@ -105,8 +107,19 @@ await test('hunting field is separate and level 32 gated; legacy field is untouc
   assert.equal(field.fieldBoss?.level, 42);
   assert.equal(field.questList.length, 0);
   assert.deepEqual(field.materialTable, FIELDS['sunken-ruins'].materialTable);
-  assert.equal(FIELDS['sunken-ruins'].displayName, 'Reruntuhan Tenggelam');
-  assert.equal(FIELDS['sunken-ruins'].fieldBoss?.level, 44);
+  assert.equal(SUNKEN_ID, 'sunken-ruins');
+  assert.equal(field.displayName, 'Sunken Ruins');
+  assert.equal(FIELDS[SUNKEN_PREVIEW_ID], undefined);
+  assert.equal(FIELD_NPCS[SUNKEN_ID], undefined);
+  assert.deepEqual(
+    field.subAreas,
+    SUNKEN_ZONES.map((z) => z.name),
+  );
+  assert.equal(
+    Object.values(FIELDS).filter((f) => f.displayName === 'Sunken Ruins')
+      .length,
+    1,
+  );
 });
 await test('all blueprint path cores and zone/gate anchors are connected and navigable', () => {
   const nav = new SunkenNavigation();
@@ -328,7 +341,7 @@ await test('hunting homes are stable, separated, safe and within the level band'
     assert.equal(isFieldSafe(SUNKEN_ID, p.x, p.z, 24), false);
     assert.notEqual(
       monsterRespawnKey(p.definition.id, p.id, SUNKEN_ID),
-      monsterRespawnKey(p.definition.id, p.id, 'sunken-ruins'),
+      `${p.definition.id}:spawn:${p.id}`,
     );
   }
   for (const p of sunkenPopulation())

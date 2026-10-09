@@ -38,30 +38,30 @@ await test('field quest journal progress increases after every monster kill',()=
   const hero=freshHero();
   hero.level=50;
   hero.inCity=false;
-  hero.currentField='sunken-ruins';
-  hero.fieldProgress['sunken-ruins']=12;
-  assert.equal(acceptRegionQuest(hero,'field-sunken-ruins-easy'),true);
+  hero.currentField='meteorfall-citadel';
+  hero.fieldProgress['meteorfall-citadel']=12;
+  assert.equal(acceptRegionQuest(hero,'field-meteorfall-citadel-easy'),true);
 
-  let entry=getAllQuestJournalEntries(hero).find(quest=>quest.id==='field-sunken-ruins-easy')!;
+  let entry=getAllQuestJournalEntries(hero).find(quest=>quest.id==='field-meteorfall-citadel-easy')!;
   assert.deepEqual(entry.progress,[{current:0,required:5}]);
   assert.equal(entry.status,'active');
 
-  hero.fieldProgress['sunken-ruins']+=1;
-  entry=getAllQuestJournalEntries(hero).find(quest=>quest.id==='field-sunken-ruins-easy')!;
+  hero.fieldProgress['meteorfall-citadel']+=1;
+  entry=getAllQuestJournalEntries(hero).find(quest=>quest.id==='field-meteorfall-citadel-easy')!;
   assert.deepEqual(entry.progress,[{current:1,required:5}]);
   assert.equal(entry.status,'active');
 
-  hero.fieldProgress['sunken-ruins']+=4;
-  entry=getAllQuestJournalEntries(hero).find(quest=>quest.id==='field-sunken-ruins-easy')!;
+  hero.fieldProgress['meteorfall-citadel']+=4;
+  entry=getAllQuestJournalEntries(hero).find(quest=>quest.id==='field-meteorfall-citadel-easy')!;
   assert.deepEqual(entry.progress,[{current:5,required:5}]);
   assert.equal(entry.status,'ready_to_complete');
 });
 
 await test('legacy field opening quests migrate to the new local Easy quest',()=>{
-  assert.equal(migrateFieldQuestId('story-sunken-ruins'),'field-sunken-ruins-easy');
-  const hero=freshHero();hero.activeQuests=['story-sunken-ruins'];hero.acceptedQuests=['story-sunken-ruins'];hero.completedQuests=['story-verdant-plains'];
+  assert.equal(migrateFieldQuestId('story-meteorfall-citadel'),'field-meteorfall-citadel-easy');
+  const hero=freshHero();hero.activeQuests=['story-meteorfall-citadel'];hero.acceptedQuests=['story-meteorfall-citadel'];hero.completedQuests=['story-verdant-plains'];
   const loaded=parseSave(JSON.stringify(hero))!;
-  assert.deepEqual(loaded.activeQuests,['field-sunken-ruins-easy']);
-  assert.deepEqual(loaded.acceptedQuests,['field-sunken-ruins-easy']);
+  assert.deepEqual(loaded.activeQuests,['field-meteorfall-citadel-easy']);
+  assert.deepEqual(loaded.acceptedQuests,['field-meteorfall-citadel-easy']);
   assert.deepEqual(loaded.completedQuests,['field-verdant-plains-easy']);
 });

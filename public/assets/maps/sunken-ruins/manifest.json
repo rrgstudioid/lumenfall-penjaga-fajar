@@ -1,0 +1,1286 @@
+{
+  "schemaVersion": 1,
+  "mapId": "sunken-ruins",
+  "replaces": [
+    "retired small sunken-ruins field",
+    "sunken-ruins-underwater-v1 preview registration"
+  ],
+  "runtimeOnly": true,
+  "assetCount": 13,
+  "assetBytes": 56206663,
+  "files": [
+    {
+      "file": "kit.glb",
+      "bytes": 388568,
+      "sha256": "7c980006f502fdf12c5d5056bc229b688704aba7eccde76d45b51394ecf2ec16"
+    },
+    {
+      "file": "realism/marine-kit.glb",
+      "bytes": 493732,
+      "sha256": "0dfe08a423dffb4d69d36e0380eac4454a6d9a86eecbcc4d192e4c61f95bd4dd"
+    },
+    {
+      "file": "realism/sand-albedo.png",
+      "bytes": 2735165,
+      "sha256": "fff5407ae8ecf7bedd12dd77d7dd8ef9ede4978f7f11987dc0f85d92372a25df"
+    },
+    {
+      "file": "realism/coral-albedo.png",
+      "bytes": 2160151,
+      "sha256": "01d4160e6fb86412f18ce7a832a537b583c322580252bfd833584370ecf9ea80"
+    },
+    {
+      "file": "revision3/ruins-reef-kit.glb",
+      "bytes": 4524052,
+      "sha256": "59b15b309f439a7e783f3488158afd2fd621620cdf8f203a960695ac6f73610b"
+    },
+    {
+      "file": "revision3/limestone-albedo.png",
+      "bytes": 2895267,
+      "sha256": "7b0de9fc2bf820d8e43e4fa02b0e8ae17ad7afb08846a38363614e43ad9e210b"
+    },
+    {
+      "file": "revision3/tripo-kit.glb",
+      "bytes": 13870832,
+      "sha256": "90c02e03d97fd61875e687406c1e7734fdbef1b44b6fd4e8ed197f5b1dc46307"
+    },
+    {
+      "file": "revision6/sunken-shipwreck.glb",
+      "bytes": 5354632,
+      "sha256": "9291d3239e009dcdffd03e660e1fee9791299743c0b6a54ae81e08e43dd66fe8"
+    },
+    {
+      "file": "revision6/ancient-amphora.glb",
+      "bytes": 2095616,
+      "sha256": "cfb37a503f2d3f3ab2a3f37c5584af3b5b3fc5ba17d6ee053e0eeee4c24e3234"
+    },
+    {
+      "file": "revision6/sunken-astrolabe.glb",
+      "bytes": 2199072,
+      "sha256": "b5a21b2b094b9c70bb77e370c5d1867d26bf82d02cd1efc2da4052d67a5546fa"
+    },
+    {
+      "file": "revision12/neptune-statue.glb",
+      "bytes": 6152192,
+      "sha256": "359e800a2ce785c672ff2e5bd70e1a071d9347f801632e5ed2d3db14b0208053"
+    },
+    {
+      "file": "revision13/serpent-guardian.glb",
+      "bytes": 6716804,
+      "sha256": "0a105040d4922eb0c0830cf0c95e0dbcc79a0a508e3a1323403c57e8eb74ba00"
+    },
+    {
+      "file": "revision13/sea-serpent-boss.glb",
+      "bytes": 6620580,
+      "sha256": "7710e6184880118c9a5b360012d42d3216051a1ea06091ded2f8f36f4535b1da"
+    }
+  ],
+  "provenance": {
+    "manifest.json": {
+      "schemaVersion": 1,
+      "mapId": "sunken-ruins-underwater-v1",
+      "author": "Original LUMENFALL procedural geometry authored for this task",
+      "source": "scripts/build-sunken-kit.py",
+      "externalAssets": [],
+      "sourceAssetsModified": false,
+      "file": "kit.glb",
+      "bytes": 388568,
+      "models": [
+        {
+          "name": "coral_branch",
+          "triangles": 528,
+          "dimensions": [
+            1.7853453159332275,
+            1.0708098411560059,
+            2.422377586364746
+          ]
+        },
+        {
+          "name": "coral_tube",
+          "triangles": 264,
+          "dimensions": [
+            1.1441525220870972,
+            1.0603301525115967,
+            1.2000000476837158
+          ]
+        },
+        {
+          "name": "coral_fan",
+          "triangles": 456,
+          "dimensions": [
+            2.1686556339263916,
+            0.15207749605178833,
+            1.850000023841858
+          ]
+        },
+        {
+          "name": "coral_plate",
+          "triangles": 320,
+          "dimensions": [
+            1.5698010921478271,
+            1.3599998950958252,
+            0.8100000023841858
+          ]
+        },
+        {
+          "name": "seaweed",
+          "triangles": 60,
+          "dimensions": [
+            0.8263857364654541,
+            0.15919938683509827,
+            1.9600000381469727
+          ]
+        },
+        {
+          "name": "kelp",
+          "triangles": 60,
+          "dimensions": [
+            0.9042161703109741,
+            0.15919938683509827,
+            3.9200000762939453
+          ]
+        },
+        {
+          "name": "reef_rock",
+          "triangles": 40,
+          "dimensions": [
+            2.325504779815674,
+            1.7012799978256226,
+            1.9499999284744263
+          ]
+        },
+        {
+          "name": "pillar",
+          "triangles": 204,
+          "dimensions": [
+            2.0,
+            2.0,
+            6.475000381469727
+          ]
+        },
+        {
+          "name": "broken_pillar",
+          "triangles": 136,
+          "dimensions": [
+            2.0,
+            2.0,
+            3.640000104904175
+          ]
+        },
+        {
+          "name": "arch",
+          "triangles": 572,
+          "dimensions": [
+            5.5,
+            1.600000023841858,
+            6.149999618530273
+          ]
+        },
+        {
+          "name": "slab",
+          "triangles": 44,
+          "dimensions": [
+            4.0,
+            3.0,
+            0.4399999976158142
+          ]
+        },
+        {
+          "name": "broken_wall",
+          "triangles": 176,
+          "dimensions": [
+            5.0,
+            0.8500000238418579,
+            2.4000000953674316
+          ]
+        },
+        {
+          "name": "ocean_statue",
+          "triangles": 292,
+          "dimensions": [
+            2.7280831336975098,
+            2.299999952316284,
+            4.599999904632568
+          ]
+        },
+        {
+          "name": "trident",
+          "triangles": 168,
+          "dimensions": [
+            1.616991400718689,
+            0.14811958372592926,
+            4.300000190734863
+          ]
+        },
+        {
+          "name": "fish",
+          "triangles": 101,
+          "dimensions": [
+            1.2555289268493652,
+            0.29402559995651245,
+            0.5600000023841858
+          ]
+        },
+        {
+          "name": "jellyfish",
+          "triangles": 304,
+          "dimensions": [
+            1.2363752126693726,
+            1.2999998331069946,
+            1.9803239107131958
+          ]
+        },
+        {
+          "name": "ray",
+          "triangles": 20,
+          "dimensions": [
+            2.200000047683716,
+            2.350362777709961,
+            0.25403445959091187
+          ]
+        }
+      ],
+      "license": "Original project work; no third-party asset license. Distribution terms remain with the project owner.",
+      "modifications": "Blender primitives, bevels, vertex colors, joined prototypes; glTF export. Runtime supplies instancing, shaders and placement."
+    },
+    "realism/manifest.json": {
+      "revision": 2,
+      "source": "scripts/build-sunken-realism.py",
+      "author": "Original LUMENFALL geometry authored for this revision",
+      "license": "Original project work; distribution terms remain with project owner.",
+      "modifications": "Organic surfaces, smooth normals, tissue vertex albedo, reduced detail meshes; runtime supplies PBR detail and marine deformation.",
+      "referenceImage": {
+        "provider": "Higgsfield",
+        "model": "gpt_image_2_5",
+        "job": "f3278113-7245-488e-a3c8-b6d692576d17",
+        "use": "Visual reference for original procedural coral geometry, not a reconstructed mesh"
+      },
+      "sandAlbedo": {
+        "provider": "Higgsfield",
+        "model": "gpt_image_2_5",
+        "job": "4b1a4f6a-b44d-4eb5-9f89-468786901c09",
+        "file": "sand-albedo.png",
+        "license": "Generated through the project owner account; subject to provider terms, not represented as CC0."
+      },
+      "file": "marine-kit.glb",
+      "bytes": 493732,
+      "sha256": "0dfe08a423dffb4d69d36e0380eac4454a6d9a86eecbcc4d192e4c61f95bd4dd",
+      "models": [
+        {
+          "name": "coral_branch",
+          "triangles": 3136
+        },
+        {
+          "name": "coral_tube",
+          "triangles": 1596
+        },
+        {
+          "name": "coral_plate",
+          "triangles": 1920
+        },
+        {
+          "name": "coral_fan",
+          "triangles": 3292
+        },
+        {
+          "name": "reef_rock",
+          "triangles": 1152
+        },
+        {
+          "name": "seaweed",
+          "triangles": 528
+        },
+        {
+          "name": "kelp",
+          "triangles": 336
+        },
+        {
+          "name": "fish",
+          "triangles": 720
+        },
+        {
+          "name": "jellyfish",
+          "triangles": 2112
+        },
+        {
+          "name": "ray",
+          "triangles": 540
+        },
+        {
+          "name": "coral_branch_lod",
+          "triangles": 752
+        },
+        {
+          "name": "coral_tube_lod",
+          "triangles": 382
+        },
+        {
+          "name": "coral_plate_lod",
+          "triangles": 459
+        },
+        {
+          "name": "coral_fan_lod",
+          "triangles": 786
+        },
+        {
+          "name": "reef_rock_lod",
+          "triangles": 276
+        }
+      ],
+      "originalSourceAssetsModified": false,
+      "coralAlbedo": {
+        "provider": "Higgsfield",
+        "model": "gpt_image_2_5",
+        "job": "c891573f-7319-4771-b6a6-6843ce28cd7f",
+        "file": "coral-albedo.png",
+        "license": "Generated through the project owner account; subject to provider terms, not represented as CC0."
+      },
+      "generatedAssetTerms": {
+        "checked": "2026-10-09",
+        "url": "https://higgsfield.ai/creator-hub/help-center/account/who-owns-my-generations-and-can-i-use-them-commercially",
+        "note": "Provider states it does not claim output ownership or restrict commercial output use, subject to its terms."
+      }
+    },
+    "revision3/manifest.json": {
+      "revision": 3,
+      "mapId": "sunken-ruins-underwater-v1",
+      "source": "scripts/build-sunken-revision3.py",
+      "author": "Original LUMENFALL geometry authored for this revision",
+      "license": "Original project work; distribution terms remain with the project owner.",
+      "modifications": "Eroded fluted columns and carved capitals; rounded bonded masonry, voussoir arch, continuous reef colonies; three local geometry LODs. Runtime supplies material detail, instancing and collision.",
+      "originalSourceAssetsModified": false,
+      "file": "ruins-reef-kit.glb",
+      "bytes": 4524052,
+      "sha256": "59b15b309f439a7e783f3488158afd2fd621620cdf8f203a960695ac6f73610b",
+      "models": [
+        {
+          "name": "pillar",
+          "triangles": 14000,
+          "dimensions": [
+            1.9803237915039062,
+            1.9901585578918457,
+            6.541468143463135
+          ],
+          "includedInRuntime": false
+        },
+        {
+          "name": "broken_pillar",
+          "triangles": 8000,
+          "dimensions": [
+            1.858562707901001,
+            1.856336236000061,
+            3.111715316772461
+          ],
+          "includedInRuntime": true
+        },
+        {
+          "name": "broken_wall",
+          "triangles": 12000,
+          "dimensions": [
+            4.8769941329956055,
+            1.3975701332092285,
+            2.3103301525115967
+          ],
+          "includedInRuntime": true
+        },
+        {
+          "name": "arch",
+          "triangles": 12000,
+          "dimensions": [
+            5.475526809692383,
+            1.4944367408752441,
+            6.122842788696289
+          ],
+          "includedInRuntime": true
+        },
+        {
+          "name": "slab",
+          "triangles": 1000,
+          "dimensions": [
+            3.9825267791748047,
+            2.970278739929199,
+            0.37626874446868896
+          ],
+          "includedInRuntime": true
+        },
+        {
+          "name": "reef_cluster",
+          "triangles": 11999,
+          "dimensions": [
+            1.9676458835601807,
+            1.6956806182861328,
+            1.6500903367996216
+          ],
+          "includedInRuntime": false
+        },
+        {
+          "name": "pillar_lod",
+          "triangles": 4200,
+          "dimensions": [
+            1.976540207862854,
+            1.9879299402236938,
+            6.538687705993652
+          ],
+          "includedInRuntime": false
+        },
+        {
+          "name": "pillar_far",
+          "triangles": 1400,
+          "dimensions": [
+            1.9781544208526611,
+            1.9817054271697998,
+            6.514226913452148
+          ],
+          "includedInRuntime": false
+        },
+        {
+          "name": "broken_pillar_lod",
+          "triangles": 2400,
+          "dimensions": [
+            1.851845145225525,
+            1.845408320426941,
+            3.114992141723633
+          ],
+          "includedInRuntime": true
+        },
+        {
+          "name": "broken_pillar_far",
+          "triangles": 800,
+          "dimensions": [
+            1.8469223976135254,
+            1.8391644954681396,
+            3.1160337924957275
+          ],
+          "includedInRuntime": true
+        },
+        {
+          "name": "broken_wall_lod",
+          "triangles": 3600,
+          "dimensions": [
+            4.871732711791992,
+            1.3942508697509766,
+            2.307643175125122
+          ],
+          "includedInRuntime": true
+        },
+        {
+          "name": "broken_wall_far",
+          "triangles": 1200,
+          "dimensions": [
+            4.8619465827941895,
+            1.3891329765319824,
+            2.3046958446502686
+          ],
+          "includedInRuntime": true
+        },
+        {
+          "name": "arch_lod",
+          "triangles": 3600,
+          "dimensions": [
+            5.473239421844482,
+            1.4918489456176758,
+            6.114287376403809
+          ],
+          "includedInRuntime": true
+        },
+        {
+          "name": "arch_far",
+          "triangles": 1200,
+          "dimensions": [
+            5.46388053894043,
+            1.490365982055664,
+            6.098653316497803
+          ],
+          "includedInRuntime": true
+        },
+        {
+          "name": "slab_lod",
+          "triangles": 300,
+          "dimensions": [
+            3.9769649505615234,
+            2.969491481781006,
+            0.3691202402114868
+          ],
+          "includedInRuntime": true
+        },
+        {
+          "name": "slab_far",
+          "triangles": 100,
+          "dimensions": [
+            3.971348285675049,
+            2.9592366218566895,
+            0.3646842837333679
+          ],
+          "includedInRuntime": true
+        },
+        {
+          "name": "reef_cluster_lod",
+          "triangles": 3598,
+          "dimensions": [
+            1.9704573154449463,
+            1.698573112487793,
+            1.6495800018310547
+          ],
+          "includedInRuntime": false
+        },
+        {
+          "name": "reef_cluster_far",
+          "triangles": 1199,
+          "dimensions": [
+            1.9657599925994873,
+            1.6962153911590576,
+            1.6307082176208496
+          ],
+          "includedInRuntime": false
+        }
+      ],
+      "references": [
+        {
+          "provider": "Higgsfield",
+          "model": "gpt_image_2_5",
+          "job": "f92fe60c-7b94-4f5e-8400-8fba119344a1",
+          "use": "Visual design reference for original authored column, not photogrammetry reconstruction"
+        },
+        {
+          "provider": "Higgsfield",
+          "model": "gpt_image_2_5",
+          "job": "4e46eb9f-97f0-44b2-9d59-31ddd78d873d",
+          "file": "limestone-albedo.png",
+          "use": "Generated tiling albedo, subject to provider terms; not represented as CC0"
+        }
+      ],
+      "tripo": {
+        "manifest": "tripo-manifest.json",
+        "runtimeUsesTripo": true,
+        "note": "Hero pillar and reef are separate approved Tripo assets; authored duplicates excluded from the PBR runtime export."
+      }
+    },
+    "revision3/tripo-manifest.json": {
+      "file": "tripo-kit.glb",
+      "bytes": 13870832,
+      "sha256": "90c02e03d97fd61875e687406c1e7734fdbef1b44b6fd4e8ed197f5b1dc46307",
+      "sources": [
+        {
+          "name": "pillar",
+          "source": "work\\sunken-ruins\\revision3\\tripo-out\\sunken-eroded-column-0eb40cc4\\model.glb",
+          "sourceSha256": "21107a7fa41fca1c5b5cbece3636d313faa80d535701c5fd57d4eadf6bf6accd",
+          "taskId": "0eb40cc4-1dc5-4cac-b184-5af7cd45b512",
+          "status": "success",
+          "creditsConsumed": 50,
+          "model": "v3.1-20260211",
+          "createdAt": "2026-10-09T12:59:13.023877Z",
+          "removedArtifactVertices": 0,
+          "normalization": {
+            "height": 6.475,
+            "maxHorizontalRadius": 1.49,
+            "scaleXY": 6.475,
+            "scaleZ": 6.475
+          },
+          "reference": {
+            "provider": "Higgsfield",
+            "job": "f92fe60c-7b94-4f5e-8400-8fba119344a1",
+            "file": "work\\sunken-ruins\\revision3\\ruin-reference.png",
+            "sha256": "b3c995a15c1fee1f61b7b7cdf848457b61784c1c4849b088f65cd1b84ec1956d"
+          },
+          "approvedRequest": {
+            "endpoint": "/v3/generation/image-to-model",
+            "cliModel": "tripo-v3.1",
+            "model": "v3.1-20260211",
+            "smart_low_poly": true,
+            "face_limit": 16000,
+            "texture": true,
+            "pbr": true,
+            "texture_quality": "detailed"
+          }
+        },
+        {
+          "name": "reef_cluster",
+          "source": "work\\sunken-ruins\\revision3\\tripo-out\\sunken-living-reef-ca2a927e\\model.glb",
+          "sourceSha256": "b43cdf03fa0fddad925313d4c22f32af504b1ef676b26baefac0c3bc5f2c658b",
+          "taskId": "ca2a927e-d68d-44ee-a635-5c6d5402504a",
+          "status": "success",
+          "creditsConsumed": 50,
+          "model": "v3.1-20260211",
+          "createdAt": "2026-10-09T13:08:23.293534Z",
+          "removedArtifactVertices": 2025,
+          "normalization": {
+            "height": 1.65,
+            "maxHorizontalRadius": 1.0,
+            "scaleXY": 1.8917818428332986,
+            "scaleZ": 1.828958753561964
+          },
+          "reference": {
+            "provider": "Higgsfield",
+            "job": "f3278113-7245-488e-a3c8-b6d692576d17",
+            "file": "work\\sunken-ruins\\coral-reference-higgsfield.png",
+            "sha256": "b39f681d6cf093a7fa4bc78c6cd336e29b42f04bce9db0d5ad7ad8e7790f5ed7"
+          },
+          "approvedRequest": {
+            "endpoint": "/v3/generation/image-to-model",
+            "cliModel": "tripo-v3.1",
+            "model": "v3.1-20260211",
+            "smart_low_poly": true,
+            "face_limit": 14000,
+            "texture": true,
+            "pbr": true,
+            "texture_quality": "detailed"
+          }
+        }
+      ],
+      "meshes": [
+        {
+          "name": "pillar_surface_0",
+          "triangles": 15999,
+          "materials": 1
+        },
+        {
+          "name": "pillar_lod_surface_0",
+          "triangles": 5119,
+          "materials": 1
+        },
+        {
+          "name": "pillar_far_surface_0",
+          "triangles": 1598,
+          "materials": 1
+        },
+        {
+          "name": "reef_cluster_surface_0",
+          "triangles": 14000,
+          "materials": 1
+        },
+        {
+          "name": "reef_cluster_lod_surface_0",
+          "triangles": 4480,
+          "materials": 1
+        },
+        {
+          "name": "reef_cluster_far_surface_0",
+          "triangles": 1400,
+          "materials": 1
+        }
+      ],
+      "modifications": "Copies normalized to shared collision footprints; local decimation LODs retain source PBR materials and UVs. Raw files unchanged. One reconstruction needle removed from the staged reef. Albedo/ORM encoded locally as JPEG quality 94; normal maps remain lossless.",
+      "author": "Tripo v3.1 generation from Higgsfield references in the project owner account; local staging for LUMENFALL",
+      "license": "Generated outputs subject to Tripo and Higgsfield terms; not represented as CC0.",
+      "sourceAssetsModified": false,
+      "creditsConsumed": 100,
+      "textureLimit": 2048,
+      "licenseReferences": [
+        "https://www.tripo3d.ai/blog/commercial-use-ai-3d-models",
+        "https://higgsfield.ai/creator-hub/help-center/account/who-owns-my-generations-and-can-i-use-them-commercially"
+      ],
+      "licenseChecked": "2026-10-09",
+      "textures": [
+        {
+          "name": "NormalGL_0eb40cc4-1dc5-4cac-b184-5af7cd45b512",
+          "size": [
+            2048,
+            2048
+          ],
+          "bytes": 3380727,
+          "mimeType": "image/png"
+        },
+        {
+          "name": "Color_0eb40cc4-1dc5-4cac-b184-5af7cd45b512",
+          "size": [
+            2048,
+            2048
+          ],
+          "bytes": 1901851,
+          "mimeType": "image/jpeg"
+        },
+        {
+          "name": "ORM_0eb40cc4-1dc5-4cac-b184-5af7cd45b512",
+          "size": [
+            2048,
+            2048
+          ],
+          "bytes": 696950,
+          "mimeType": "image/jpeg"
+        },
+        {
+          "name": "NormalGL_ca2a927e-d68d-44ee-a635-5c6d5402504a",
+          "size": [
+            2048,
+            2048
+          ],
+          "bytes": 1920487,
+          "mimeType": "image/png"
+        },
+        {
+          "name": "Color_ca2a927e-d68d-44ee-a635-5c6d5402504a",
+          "size": [
+            2048,
+            2048
+          ],
+          "bytes": 2087067,
+          "mimeType": "image/jpeg"
+        },
+        {
+          "name": "ORM_ca2a927e-d68d-44ee-a635-5c6d5402504a",
+          "size": [
+            2048,
+            2048
+          ],
+          "bytes": 1564898,
+          "mimeType": "image/jpeg"
+        }
+      ]
+    },
+    "revision6/sunken-shipwreck.json": {
+      "name": "sunken-shipwreck",
+      "source": "work\\sunken-ruins\\revision6\\tripo-out\\sunken-shipwreck-48619da9\\model.glb",
+      "sourceSha256": "19fb85db0218e6df148861a896431ee036f61a1e02168b19a6aa853bf7a42e17",
+      "taskId": "48619da9-357f-47db-9fa0-7377bacaaaec",
+      "creditsConsumed": 40,
+      "model": "v3.1-20260211",
+      "prompt": "A realistic ancient wooden merchant shipwreck resting upright on its keel, long complete hull with one broken side exposing ribs, collapsed short mast, rotted dark oak planks, weathered bronze fittings, sparse barnacles and algae. Single coherent ship, no seabed base, no water, no sails, no people. High fidelity physically based game environment prop, neutral lighting.",
+      "author": "Tripo v3.1 from project prompt",
+      "license": "Generated with the owner-authorized Tripo account; subject to that account service terms, no third-party asset download.",
+      "removedDebrisVertices": 7431,
+      "bounds": {
+        "x": [
+          -27.0,
+          27.0
+        ],
+        "z": [
+          -11.136821746826172,
+          11.136821746826172
+        ],
+        "y": [
+          0.0,
+          22.056339263916016
+        ]
+      },
+      "footprint": {
+        "x": [
+          -22.97987937927246,
+          19.937625885009766
+        ],
+        "z": [
+          -8.637826919555664,
+          8.637826919555664
+        ]
+      },
+      "meshes": [
+        {
+          "name": "sunken-shipwreck_surface_0",
+          "triangles": 17254
+        },
+        {
+          "name": "sunken-shipwreck_lod_surface_0",
+          "triangles": 5521
+        },
+        {
+          "name": "sunken-shipwreck_far_surface_0",
+          "triangles": 1725
+        }
+      ],
+      "modifications": "Staged copy centered at seabed, uniformly scaled, ship long axis along X; 2048px PBR images and local 32%/10% LODs. Original source unchanged. Albedo/ORM encoded as JPEG quality 94; normals retained losslessly.",
+      "bytes": 5354632,
+      "sha256": "9291d3239e009dcdffd03e660e1fee9791299743c0b6a54ae81e08e43dd66fe8",
+      "textures": [
+        {
+          "name": "NormalGL_48619da9-357f-47db-9fa0-7377bacaaaec",
+          "size": [
+            2048,
+            2048
+          ],
+          "bytes": 1373574,
+          "mimeType": "image/png"
+        },
+        {
+          "name": "Color_48619da9-357f-47db-9fa0-7377bacaaaec",
+          "size": [
+            2048,
+            2048
+          ],
+          "bytes": 1550037,
+          "mimeType": "image/jpeg"
+        },
+        {
+          "name": "ORM_48619da9-357f-47db-9fa0-7377bacaaaec",
+          "size": [
+            2048,
+            2048
+          ],
+          "bytes": 1067982,
+          "mimeType": "image/jpeg"
+        }
+      ],
+      "operation": "text_to_model"
+    },
+    "revision6/ancient-amphora.json": {
+      "name": "ancient-amphora",
+      "source": "work\\sunken-ruins\\revision6\\tripo-out\\ancient-amphora-3d3ffbb1\\model.glb",
+      "sourceSha256": "b7f7f2ba800b1d50e3198b752137a737559e68176e7c799c8c908b497985065f",
+      "taskId": "3d3ffbb1-ed2b-47af-9bae-cfc53ec92040",
+      "creditsConsumed": 40,
+      "model": "v3.1-20260211",
+      "prompt": "A single realistic ancient Greek terracotta amphora recovered from a shipwreck, two thick curved handles, narrow neck and rounded body, worn geometric bands, aged reddish clay, subtle sand deposits and tiny barnacles. Intact stable vessel, no stand, no scenery, no water, neutral lighting, detailed physically based material.",
+      "author": "Tripo v3.1 from project prompt",
+      "license": "Generated with the owner-authorized Tripo account; subject to that account service terms, no third-party asset download.",
+      "removedDebrisVertices": 0,
+      "sourceTriangles": 8590,
+      "faceBudget": 6000,
+      "bounds": {
+        "x": [
+          -0.9764243364334106,
+          0.9764243364334106
+        ],
+        "z": [
+          -0.9956778287887573,
+          0.9956778287887573
+        ],
+        "y": [
+          0.0,
+          2.7980868816375732
+        ]
+      },
+      "footprint": {
+        "x": [
+          -0.9764243364334106,
+          0.9764243364334106
+        ],
+        "z": [
+          -0.9956778287887573,
+          0.9956778287887573
+        ]
+      },
+      "meshes": [
+        {
+          "name": "ancient-amphora_surface_0",
+          "triangles": 5996
+        },
+        {
+          "name": "ancient-amphora_lod_surface_0",
+          "triangles": 1918
+        },
+        {
+          "name": "ancient-amphora_far_surface_0",
+          "triangles": 598
+        }
+      ],
+      "modifications": "Staged copy centered at seabed, uniformly scaled, ship long axis along X; 1024px PBR images, enforced face budget and local 32%/10% LODs. Original source unchanged. Albedo/ORM encoded as JPEG quality 94; normals retained losslessly.",
+      "bytes": 2095616,
+      "sha256": "cfb37a503f2d3f3ab2a3f37c5584af3b5b3fc5ba17d6ee053e0eeee4c24e3234",
+      "textures": [
+        {
+          "name": "NormalGL_3d3ffbb1-ed2b-47af-9bae-cfc53ec92040",
+          "size": [
+            1024,
+            1024
+          ],
+          "bytes": 893707,
+          "mimeType": "image/png"
+        },
+        {
+          "name": "Color_3d3ffbb1-ed2b-47af-9bae-cfc53ec92040",
+          "size": [
+            1024,
+            1024
+          ],
+          "bytes": 400730,
+          "mimeType": "image/jpeg"
+        },
+        {
+          "name": "ORM_3d3ffbb1-ed2b-47af-9bae-cfc53ec92040",
+          "size": [
+            1024,
+            1024
+          ],
+          "bytes": 386482,
+          "mimeType": "image/jpeg"
+        }
+      ],
+      "operation": "text_to_model"
+    },
+    "revision6/sunken-astrolabe.json": {
+      "name": "sunken-astrolabe",
+      "source": "work\\sunken-ruins\\revision6\\tripo-out\\sunken-astrolabe-26e7a1b2\\model.glb",
+      "sourceSha256": "cd920a5fbcf43d8333e0971662e1b368f2a0856e25362e37a499c506583a82c3",
+      "taskId": "26e7a1b2-0288-48e1-8a6b-e6d8f93db863",
+      "creditsConsumed": 40,
+      "model": "v3.1-20260211",
+      "prompt": "A realistic ancient bronze armillary sphere artifact on a short heavy stone pedestal, thick intersecting engraved astronomical rings around a central sphere, aged oxidized bronze and turquoise verdigris, restrained barnacles. Solid coherent archaeological relic, robust thick rings suitable for real time rendering, no text labels, no scenery, no water, neutral lighting, detailed physically based materials.",
+      "author": "Tripo v3.1 from project prompt",
+      "license": "Generated with the owner-authorized Tripo account; subject to that account service terms, no third-party asset download.",
+      "removedDebrisVertices": 0,
+      "sourceTriangles": 10534,
+      "faceBudget": 8000,
+      "bounds": {
+        "x": [
+          -1.8974300622940063,
+          1.8921568393707275
+        ],
+        "z": [
+          -1.9313726425170898,
+          1.9317693710327148
+        ],
+        "y": [
+          -0.0186588317155838,
+          5.004857063293457
+        ]
+      },
+      "footprint": {
+        "x": [
+          -1.3698490858078003,
+          1.3039216995239258
+        ],
+        "z": [
+          -1.8431370258331299,
+          1.5392158031463623
+        ]
+      },
+      "meshes": [
+        {
+          "name": "sunken-astrolabe_surface_0",
+          "triangles": 7996
+        },
+        {
+          "name": "sunken-astrolabe_lod_surface_0",
+          "triangles": 2558
+        },
+        {
+          "name": "sunken-astrolabe_far_surface_0",
+          "triangles": 799
+        }
+      ],
+      "modifications": "Staged copy centered at seabed, uniformly scaled, ship long axis along X; 1024px PBR images, enforced face budget and local 32%/10% LODs. Original source unchanged. Albedo/ORM encoded as JPEG quality 94; normals retained losslessly.",
+      "bytes": 2199072,
+      "operation": "text_to_model",
+      "sha256": "b5a21b2b094b9c70bb77e370c5d1867d26bf82d02cd1efc2da4052d67a5546fa",
+      "textures": [
+        {
+          "name": "NormalGL_26e7a1b2-0288-48e1-8a6b-e6d8f93db863",
+          "size": [
+            1024,
+            1024
+          ],
+          "bytes": 654557,
+          "mimeType": "image/png"
+        },
+        {
+          "name": "Color_26e7a1b2-0288-48e1-8a6b-e6d8f93db863",
+          "size": [
+            1024,
+            1024
+          ],
+          "bytes": 480497,
+          "mimeType": "image/jpeg"
+        },
+        {
+          "name": "ORM_26e7a1b2-0288-48e1-8a6b-e6d8f93db863",
+          "size": [
+            1024,
+            1024
+          ],
+          "bytes": 382668,
+          "mimeType": "image/jpeg"
+        }
+      ]
+    },
+    "revision12/neptune-statue.json": {
+      "name": "neptune-statue",
+      "source": "work\\sunken-ruins\\revision12\\tripo-out\\neptune-statue-v12-f58b2e89\\model.glb",
+      "sourceSha256": "4a2897e586e74226cda9986c58d2a7d6efcc2eea1788da85daeb93fe06ec68f8",
+      "taskId": "f58b2e89-508c-4169-8cf5-12e3e87cceee",
+      "creditsConsumed": 50,
+      "model": "v3.1-20260211",
+      "author": "Tripo v3.1 from the project-generated reference image",
+      "license": "Generated with the owner-authorized Tripo account; subject to that account service terms, no third-party asset download.",
+      "removedDebrisVertices": 0,
+      "sourceTriangles": 25191,
+      "faceBudget": 16000,
+      "bounds": {
+        "x": [
+          -2.9275929927825928,
+          2.9275929927825928
+        ],
+        "z": [
+          -3.084148645401001,
+          3.084148645401001
+        ],
+        "y": [
+          -0.002962827915325761,
+          16.005029678344727
+        ]
+      },
+      "footprint": {
+        "x": [
+          -2.9275929927825928,
+          2.9275929927825928
+        ],
+        "z": [
+          -3.084148645401001,
+          2.7710368633270264
+        ]
+      },
+      "meshes": [
+        {
+          "name": "neptune-statue_surface_0",
+          "triangles": 15995
+        },
+        {
+          "name": "neptune-statue_lod_surface_0",
+          "triangles": 5118
+        },
+        {
+          "name": "neptune-statue_far_surface_0",
+          "triangles": 1598
+        }
+      ],
+      "modifications": "Staged copy centered at seabed, uniformly scaled, ship long axis along X; 2048px PBR images, enforced face budget and local 32%/10% LODs. Original source unchanged. Albedo/ORM encoded as JPEG quality 94; normals retained losslessly.",
+      "bytes": 6152192,
+      "operation": "image_to_model",
+      "reference": "work/sunken-ruins/revision12/neptune-reference.png",
+      "sha256": "359e800a2ce785c672ff2e5bd70e1a071d9347f801632e5ed2d3db14b0208053",
+      "textures": [
+        {
+          "name": "NormalGL_f58b2e89-508c-4169-8cf5-12e3e87cceee",
+          "size": [
+            2048,
+            2048
+          ],
+          "bytes": 2233127,
+          "mimeType": "image/png"
+        },
+        {
+          "name": "Color_f58b2e89-508c-4169-8cf5-12e3e87cceee",
+          "size": [
+            2048,
+            2048
+          ],
+          "bytes": 1627280,
+          "mimeType": "image/jpeg"
+        },
+        {
+          "name": "ORM_f58b2e89-508c-4169-8cf5-12e3e87cceee",
+          "size": [
+            2048,
+            2048
+          ],
+          "bytes": 1074073,
+          "mimeType": "image/jpeg"
+        }
+      ]
+    },
+    "revision13/serpent-guardian.json": {
+      "name": "serpent-guardian",
+      "source": "work\\sunken-ruins\\revision13\\tripo-out\\serpent-guardian-cd547c2c\\model.glb",
+      "sourceSha256": "7e69ab832977f6085df78b9ffb74a2c96a06325dd03afa55e0cf3b670f1c1ff0",
+      "taskId": "cd547c2c-ed76-48e2-a3b9-20e682fca833",
+      "creditsConsumed": 50,
+      "author": "Higgsfield reference + Tripo mesh; local LUMENFALL rig, weights, LOD and animation authoring",
+      "license": "Owner-authorized generations, subject to service account terms; no third-party downloaded model.",
+      "length": 14,
+      "bones": 18,
+      "sourceTriangles": 14298,
+      "triangles": [
+        11995,
+        3838,
+        1199
+      ],
+      "animations": [
+        {
+          "name": "idle",
+          "duration": 3.2,
+          "maximumClearanceLift": 0.3483716577291489
+        },
+        {
+          "name": "swim",
+          "duration": 1.8,
+          "maximumClearanceLift": 0.3474638491868973
+        },
+        {
+          "name": "guardian-bite",
+          "duration": 3.1,
+          "maximumClearanceLift": 0.8766960382461548
+        },
+        {
+          "name": "guardian-tail",
+          "duration": 3.466666666666667,
+          "maximumClearanceLift": 0.24390124082565312
+        }
+      ],
+      "emissiveMaskPixels": 0,
+      "modifications": "Normalize head forward (-Z), center, locally decimate, 2K PBR, 18-bone skin, eight distinct combat clips across two models, two locomotion clips each, two local LODs, baked visual-only seabed clearance; original GLB unchanged. Albedo/ORM encoded as JPEG quality 94; normals retained losslessly.",
+      "bytes": 6716804,
+      "sha256": "0a105040d4922eb0c0830cf0c95e0dbcc79a0a508e3a1323403c57e8eb74ba00",
+      "textures": [
+        {
+          "name": "NormalGL_cd547c2c-ed76-48e2-a3b9-20e682fca833",
+          "size": [
+            2048,
+            2048
+          ],
+          "bytes": 2345803,
+          "mimeType": "image/png"
+        },
+        {
+          "name": "Color_cd547c2c-ed76-48e2-a3b9-20e682fca833",
+          "size": [
+            2048,
+            2048
+          ],
+          "bytes": 1834899,
+          "mimeType": "image/jpeg"
+        },
+        {
+          "name": "ORM_cd547c2c-ed76-48e2-a3b9-20e682fca833",
+          "size": [
+            2048,
+            2048
+          ],
+          "bytes": 918875,
+          "mimeType": "image/jpeg"
+        }
+      ]
+    },
+    "revision13/sea-serpent-boss.json": {
+      "name": "sea-serpent-boss",
+      "source": "work\\sunken-ruins\\revision13\\tripo-out\\sea-serpent-boss-406848ee\\model.glb",
+      "sourceSha256": "1ff0640c03acced0d2fedb0caaeab3370137675fb108ecf8c279ee964ef171df",
+      "taskId": "406848ee-665f-42c3-bc20-c5532a2a36d5",
+      "creditsConsumed": 50,
+      "author": "Higgsfield reference + Tripo mesh; local LUMENFALL rig, weights, LOD and animation authoring",
+      "license": "Owner-authorized generations, subject to service account terms; no third-party downloaded model.",
+      "length": 42,
+      "bones": 18,
+      "sourceTriangles": 26984,
+      "triangles": [
+        19994,
+        6397,
+        1999
+      ],
+      "animations": [
+        {
+          "name": "idle",
+          "duration": 3.2,
+          "maximumClearanceLift": 0.7270470440387726
+        },
+        {
+          "name": "swim",
+          "duration": 1.8,
+          "maximumClearanceLift": 0.9256804466247559
+        },
+        {
+          "name": "serpent-bite",
+          "duration": 3.7,
+          "maximumClearanceLift": 4.582344341278076
+        },
+        {
+          "name": "serpent-tail",
+          "duration": 4.1,
+          "maximumClearanceLift": 0.4021783351898194
+        },
+        {
+          "name": "serpent-slam",
+          "duration": 4.2,
+          "maximumClearanceLift": 9.685996818542481
+        },
+        {
+          "name": "serpent-coil",
+          "duration": 4.3,
+          "maximumClearanceLift": 4.367730665206909
+        },
+        {
+          "name": "serpent-pressure",
+          "duration": 5.4,
+          "maximumClearanceLift": 0.18125506043434148
+        },
+        {
+          "name": "serpent-pulse",
+          "duration": 5.8,
+          "maximumClearanceLift": 1.6378119468688965
+        }
+      ],
+      "emissiveMaskPixels": 185,
+      "modifications": "Normalize head forward (-Z), center, locally decimate, 2K PBR, 18-bone skin, eight distinct combat clips across two models, two locomotion clips each, two local LODs, baked visual-only seabed clearance; original GLB unchanged. Albedo/ORM encoded as JPEG quality 94; normals retained losslessly.",
+      "bytes": 6620580,
+      "sha256": "7710e6184880118c9a5b360012d42d3216051a1ea06091ded2f8f36f4535b1da",
+      "textures": [
+        {
+          "name": "sea-serpent-boss-red-eyes",
+          "size": [
+            2048,
+            2048
+          ],
+          "bytes": 51310,
+          "mimeType": "image/jpeg"
+        },
+        {
+          "name": "NormalGL_406848ee-665f-42c3-bc20-c5532a2a36d5",
+          "size": [
+            2048,
+            2048
+          ],
+          "bytes": 1928305,
+          "mimeType": "image/png"
+        },
+        {
+          "name": "Color_406848ee-665f-42c3-bc20-c5532a2a36d5",
+          "size": [
+            2048,
+            2048
+          ],
+          "bytes": 1631106,
+          "mimeType": "image/jpeg"
+        },
+        {
+          "name": "ORM_406848ee-665f-42c3-bc20-c5532a2a36d5",
+          "size": [
+            2048,
+            2048
+          ],
+          "bytes": 565062,
+          "mimeType": "image/jpeg"
+        }
+      ]
+    },
+    "revision12/reference-provenance.json": [
+      {
+        "name": "neptune-statue",
+        "faces": 16000,
+        "reference": "work/sunken-ruins/revision12/neptune-reference.png",
+        "prompt": "One complete freestanding Neptune sea-god statue, game environment hero prop, photorealistic weathered limestone with subtle teal patina and mineral erosion. Full body elderly bearded ocean king, dignified face and complete head clearly separated from broad shoulders, wearing heavy sculpted drapery from waist to ankles, standing firmly on a low circular stone pedestal. Right arm holds a robust straight trident with THREE thick intact prongs, trident tip LOWER than the top of the head, shaft connected to pedestal for structural support. Left hand rests near waist, arms close to torso, compact strong silhouette without thin floating pieces. All geometry including head, hair, fingers, trident prongs, feet and entire pedestal must be wholly visible with generous blank margins above and below. Single object, three-quarter front view at chest height, neutral gray studio background, soft even lighting, no underwater scene, no coral, no text, no crop, no collage. Highly readable sculpted face and anatomical detail, production asset reference.",
+        "higgsfield": {
+          "jobId": "d7743e18-045b-4c6f-b62c-5a64a157e699",
+          "model": "gpt_image_2_5",
+          "estimatedCredits": 0.25
+        },
+        "tripoApprovedCredits": 50
+      }
+    ],
+    "revision13/reference-provenance.json": {
+      "references": [
+        {
+          "index": 0,
+          "params": {
+            "model": "gpt_image_2_5",
+            "count": 1,
+            "aspect_ratio": "16:9",
+            "prompt": "Ultra realistic physically based game creature reference, one entire living deep-sea serpent, isolated on plain neutral gray background, soft even studio illumination, razor sharp wet scale detail and realistic anatomy. Limbless long muscular eel-like body extended HORIZONTALLY from left head to right tail, relaxed shallow S wave in the horizontal plane, NO tight coil, NO overlapping body, NO circular pose. Single continuous spine suitable for serpentine skeletal rigging. Three-quarter SIDE view, complete head and long tapered tail entirely visible with generous margins, mouth slightly open showing small sharp teeth, no prey, no blood. Two small lateral fins just behind the head and a low flexible dorsal crest; no legs, no wings, no humanoid features. A single creature, no platform, no water, no environment, no text or montage. Elite Sea Serpent Guardian: steel teal and jade armored scales, pale silver underside, restrained pale amber eyes, sleek menacing broad reptilian head, paired short swept-back bone horns, finely layered gill plates, recognizable noble abyssal guardian. Natural subdued bioluminescent teal flecks, believable marine skin."
+          }
+        },
+        {
+          "index": 1,
+          "params": {
+            "model": "gpt_image_2_5",
+            "count": 1,
+            "aspect_ratio": "16:9",
+            "prompt": "Ultra realistic physically based game creature reference, one entire living deep-sea serpent, isolated on plain neutral gray background, soft even studio illumination, razor sharp wet scale detail and realistic anatomy. Limbless long muscular eel-like body extended HORIZONTALLY from left head to right tail, relaxed shallow S wave in the horizontal plane, NO tight coil, NO overlapping body, NO circular pose. Single continuous spine suitable for serpentine skeletal rigging. Three-quarter SIDE view, complete head and long tapered tail entirely visible with generous margins, mouth slightly open showing small sharp teeth, no prey, no blood. Two small lateral fins just behind the head and a low flexible dorsal crest; no legs, no wings, no humanoid features. A single creature, no platform, no water, no environment, no text or montage. Ancient Sea Serpent field boss: immense thick muscular body, obsidian navy armored scales with sparse dark burgundy seams, bone ivory belly, broader crown of rugged backward horns and neck armor, heavier jaw. BOTH eyes have clearly visible BLAZING CRIMSON RED irises that emit red light, without hiding eyeball detail. Intimidating primordial ocean predator, real wet reptile scale microdetail, highly realistic, not a cartoon or toy."
+          }
+        }
+      ],
+      "jobIds": [
+        "827fbfa7-6b23-4b5d-9976-3b4349d7e8dc",
+        "ac59ac44-1649-41c1-80f0-4f6b9f9f2304"
+      ],
+      "tripoBudget": 100,
+      "animationAuthoring": "local skeletal clips, no paid animation API"
+    }
+  },
+  "licenseNote": "Original procedural project work and owner-authorized Higgsfield/Tripo generations. Generated assets remain subject to provider/account terms; not represented as CC0. Source assets are unchanged.",
+  "modifications": "Copies of already validated runtime kits with existing local PBR, LOD, rig and animation modifications; unused models, sources, previews, placements and fixtures excluded."
+}

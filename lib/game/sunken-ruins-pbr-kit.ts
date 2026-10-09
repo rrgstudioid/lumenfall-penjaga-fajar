@@ -29,7 +29,7 @@ export function createSunkenPbrKit(adapt: (m: T.MeshStandardMaterial) => void) {
     textures.clear();
   }
   async function load(
-    url = '/__sunken-dev/revision3/tripo-kit.glb',
+    url = '/assets/maps/sunken-ruins/revision3/tripo-kit.glb',
     names = ['pillar', 'reef_cluster'],
   ) {
     try {

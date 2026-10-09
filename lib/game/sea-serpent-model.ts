@@ -72,7 +72,7 @@ export function createSerpentKit() {
     async load() {
       for (const name of ['serpent-guardian', 'sea-serpent-boss']) {
         const gltf = await new GLTFLoader().loadAsync(
-          `/__sunken-dev/revision13/${name}.glb`,
+          `/assets/maps/sunken-ruins/revision13/${name}.glb`,
         );
         assets.set(name, gltf);
         const required =

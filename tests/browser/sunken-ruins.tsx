@@ -54,7 +54,7 @@ const params = new URLSearchParams(location.search);
 const hero = rules.createV3AdventurerHero('slot-1');
 hero.characterName = 'Sunken Review';
 hero.level = Number(params.get('level')) || 32;
-const mapId = params.get('map') ?? 'sunken-ruins-underwater-v1';
+const mapId = params.get('map') ?? 'sunken-ruins';
 if (!FIELDS[mapId]) throw Error(`Review map unavailable: ${mapId}`);
 hero.currentField = mapId;
 hero.currentCity = FIELDS[mapId].cityId;
