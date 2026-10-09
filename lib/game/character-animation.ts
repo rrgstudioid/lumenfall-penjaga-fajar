@@ -1,4 +1,5 @@
 import type { Object3D } from 'three';
+import { applyUnderwaterPose } from './underwater-motion.ts';
 
 export type CharacterRig = Record<
   'root' | 'hips' | 'spine' | 'chest' | 'neck' | 'head' |
@@ -7,17 +8,19 @@ export type CharacterRig = Record<
   'rightUpperLeg' | 'rightLowerLeg' | 'rightFoot' |
   'leftUpperLeg' | 'leftLowerLeg' | 'leftFoot', Object3D>;
 export type CharacterAction = 'basic_attack' | 'ranged_attack' | 'magic_cast' | 'dash' | 'hit';
-export type CharacterMotion = { moving?: boolean; sprinting?: boolean; blocking?: boolean; dead?: boolean; speed?:number };
+export type CharacterMotion = { moving?: boolean; sprinting?: boolean; blocking?: boolean; dead?: boolean; speed?:number;
+  movementMode?: 'ground'|'underwater'; localForward?:number; localRight?:number; turn?:number };
 
 // The joints are Object3D pivots, not Bones or a SkinnedMesh skeleton.
 // All pose offsets are local to the visual root; gameplay owns actor movement.
 export function createProceduralAnimator(rig: CharacterRig) {
   const rest = Object.values(rig).map(joint => ({ joint, position: joint.position.clone(), rotation: joint.rotation.clone() }));
-  const state = { time: 0, phase: 0, walk: 0, run: 0, death: 0, action: null as CharacterAction | null, actionTime: 0, duration: .3 };
+  const state = { time: 0, phase: 0, walk: 0, run: 0, death: 0, swim:0, action: null as CharacterAction | null, actionTime: 0, duration: .3 };
   function update(dt: number, motion: CharacterMotion = {}) {
     dt = Math.max(0, dt);
     state.time += dt;
     const alpha = 1 - Math.exp(-12 * dt);
+    state.swim += Math.max(-dt*5,Math.min(dt*5,(motion.movementMode==='underwater'?1:0)-state.swim));
     state.walk += ((motion.moving && !motion.dead ? 1 : 0) - state.walk) * alpha;
     state.run += ((motion.sprinting ? 1 : 0) - state.run) * alpha;
     state.death += ((motion.dead ? 1 : 0) - state.death) * (1 - Math.exp(-5 * dt));
@@ -26,22 +29,23 @@ export function createProceduralAnimator(rig: CharacterRig) {
     if (state.actionTime >= state.duration) state.action = null;
     for (const { joint, position, rotation } of rest) { joint.position.copy(position); joint.rotation.copy(rotation); }
 
-    const stride = Math.sin(state.phase) * state.walk * (.5 + state.run * .18);
+    const groundWalk=state.walk*(1-state.swim),groundRun=state.run*(1-state.swim);
+    const stride = Math.sin(state.phase) * groundWalk * (.5 + groundRun * .18);
     const alive = 1 - state.death;
     rig.rightUpperLeg.rotation.x += stride * alive;
     rig.leftUpperLeg.rotation.x -= stride * alive;
-    rig.rightLowerLeg.rotation.x -= Math.max(0, -Math.sin(state.phase)) * state.walk * (.55 + state.run * .3) * alive;
-    rig.leftLowerLeg.rotation.x -= Math.max(0, Math.sin(state.phase)) * state.walk * (.55 + state.run * .3) * alive;
+    rig.rightLowerLeg.rotation.x -= Math.max(0, -Math.sin(state.phase)) * groundWalk * (.55 + groundRun * .3) * alive;
+    rig.leftLowerLeg.rotation.x -= Math.max(0, Math.sin(state.phase)) * groundWalk * (.55 + groundRun * .3) * alive;
     rig.rightFoot.rotation.x -= rig.rightLowerLeg.rotation.x * .35;
     rig.leftFoot.rotation.x -= rig.leftLowerLeg.rotation.x * .35;
     rig.rightUpperArm.rotation.x -= stride * .65 * alive;
     rig.leftUpperArm.rotation.x += stride * .65 * alive;
-    rig.rightLowerArm.rotation.x += .12 + state.run * .45;
-    rig.leftLowerArm.rotation.x += .12 + state.run * .45;
-    rig.hips.position.y += (Math.sin(state.time * 2.2) * .008 + (1 - Math.cos(state.phase * 2)) * .018 * state.walk) * alive;
+    rig.rightLowerArm.rotation.x += .12 + groundRun * .45;
+    rig.leftLowerArm.rotation.x += .12 + groundRun * .45;
+    rig.hips.position.y += (Math.sin(state.time * 2.2) * .008 + (1 - Math.cos(state.phase * 2)) * .018 * groundWalk) * alive;
     rig.hips.rotation.z += Math.sin(state.phase) * .025 * state.walk * alive;
     rig.chest.rotation.y -= stride * .08;
-    rig.spine.rotation.x += .06 * state.run * state.walk;
+    rig.spine.rotation.x += .06 * groundRun * groundWalk;
     rig.chest.scale.y = 1 + Math.sin(state.time * 2.2) * .006 * alive;
     if (motion.blocking) {
       rig.leftUpperArm.rotation.x += 1.1;
@@ -86,6 +90,7 @@ export function createProceduralAnimator(rig: CharacterRig) {
     rig.leftLowerLeg.rotation.x -= state.death * 1.1;
     rig.spine.rotation.x += state.death * .65;
     rig.head.rotation.x += state.death * .3;
+    applyUnderwaterPose(rig,motion,state.time,state.swim,state.walk,state.death,state.action,state.actionTime/state.duration);
   }
   return {
     update,
@@ -93,7 +98,7 @@ export function createProceduralAnimator(rig: CharacterRig) {
       if (action === 'hit' && state.action) return;
       state.action = action; state.actionTime = 0; state.duration = Math.max(.1, duration);
     },
-    reset() { Object.assign(state, { time: 0, phase: 0, walk: 0, run: 0, death: 0, action: null, actionTime: 0, duration: .3 }); update(0); },
+    reset() { Object.assign(state, { time: 0, phase: 0, walk: 0, run: 0, death: 0, swim:0, action: null, actionTime: 0, duration: .3 }); update(0); },
     snapshot: () => ({ ...state }),
     restore(saved: typeof state) { Object.assign(state, saved); update(0); },
   };

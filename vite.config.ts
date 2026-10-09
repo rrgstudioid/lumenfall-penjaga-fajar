@@ -3,6 +3,7 @@ import tailwindcss from '@tailwindcss/postcss';
 import vinext from 'vinext';
 import { defineConfig } from 'vite';
 import hostingConfig from './.openai/hosting.json';
+import { sunkenDevAssets } from './scripts/sunken-dev-assets';
 
 const SITE_CREATOR_PLACEHOLDER_DATABASE_ID =
   '00000000-0000-4000-8000-000000000000';
@@ -34,7 +35,7 @@ const localBindingConfig = {
     : [],
 };
 
-export default defineConfig(async () => {
+export default defineConfig(async ({ command }) => {
   const isVercelBuild = process.env.VERCEL === '1' || process.env.LUMENFALL_DEPLOY_TARGET === 'vercel';
 
   const plugins = isVercelBuild
@@ -58,6 +59,8 @@ export default defineConfig(async () => {
       })();
 
   return {
+    // Keep build optimization from invalidating dependencies of a live dev tab.
+    cacheDir: command === 'serve' ? 'node_modules/.vite-lumenfall-dev' : 'node_modules/.vite-lumenfall-build',
     ...(isVercelBuild ? {} : { css: { postcss: { plugins: [tailwindcss()] } } }),
     // Unreal's staging project writes locked Intermediate files while the
     // editor exports assets. Keep those editor artifacts out of Vite HMR so
@@ -73,6 +76,6 @@ export default defineConfig(async () => {
         ...(isCodexSeatbeltSandbox ? { useFsEvents: false, usePolling: true } : {}),
       },
     },
-    plugins,
+    plugins: [...plugins, sunkenDevAssets()],
   };
 });

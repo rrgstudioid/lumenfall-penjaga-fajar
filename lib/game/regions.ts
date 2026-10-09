@@ -3,6 +3,11 @@ import { PLAINS_ID, PLAINS_ENTRY, PLAINS_EXIT } from './verdant-plains-layout.ts
 import { WILDS_ID, WILDS_ENTRY, WILDS_LANDMARKS } from './whispering-wilds-layout.ts';
 import { FROSTFIRE_ID, FROSTFIRE_ENTRY, FROSTFIRE_ZONES } from './frostfire-highlands-layout.ts';
 import type { Hero } from './rules.ts';
+import { SUNKEN_ID, SUNKEN_DEVELOPMENT, SUNKEN_ENTRY, SUNKEN_PORTALS, SUNKEN_ZONES } from './sunken-ruins-layout.ts';
+import { DEEP_OCEAN_ID, DEEP_OCEAN_ENTRY, DEEP_OCEAN_RETURN, ABYSAL_TRENCH_ID, ABYSAL_TRENCH_ENTRY, ABYSAL_TRENCH_RETURN } from './underwater-regions.ts';
+import { DEEP_OCEAN_PORTALS } from './deep-ocean-layout.ts';
+import { ABYSAL_TRENCH_PORTALS } from './abysal-trench-layout.ts';
+import { SERPENT_GUARDIAN_ID, SERPENT_BOSS_ID } from './sea-serpent-combat.ts';
 import { getVisibleJobArchitecture, showJobQuest } from './job-presentation.ts';
 import { STAMINA_ENABLED } from './gameplay-config.ts';
 import { VERDANT_TERRAIN, EAST_GATE_TERRAIN } from './field-terrain.ts';
@@ -17,7 +22,7 @@ export const MONSTER_VARIANTS: Record<MonsterVariant, { hpMultiplier:number; dam
 export type MonsterDefinition = { id: string; name: string; level: number; rank: MonsterVariant; variant: MonsterVariant; exp: number; maxHP:number; attack:number; defense:number; magicDefense:number; attackSpeed:number; movementSpeed:number; attackRange:number; dropRate:number; lootTable:string[]; respawnTime:number; visualScale:number; nameColor:string; statusLabel:string; respawn:number };
 export type NpcDefinition = { id: string; name: string; type: string; service: string; services: string[]; description: string; interactionRange: number; shopInventory: string[]; x: number; z: number; fieldId?: string };
 export type CityDefinition = { id: string; displayName: string; chapter: number; minLevel: number; recommendedLevel: string; npcList: NpcDefinition[]; connectedFields: string[]; unlockQuest: string | null; musicId: string; ambientId: string };
-export type FieldDefinition = { id: string; cityId: string; displayName: string; codename: string; chapter: number; minLevel: number; recommendedLevel: string; maxLevel: number; subAreas: string[]; normalMonsters: MonsterDefinition[]; eliteMonsters: MonsterDefinition[]; fieldBoss: MonsterDefinition | null; dropTable: string[]; materialTable: { id: string; chance: number }[]; unlockQuest: string | null; previousField: string | null; nextMap: string | null; musicId: string; ambientId: string; isUnlocked: boolean; color: string; questList: string[]; entry: {x:number;z:number}; exit: {x:number;z:number}; contentFamilyId?:string; cityDirection?:'north'|'east'; regionType?:'field' };
+export type FieldDefinition = { id: string; cityId: string; displayName: string; codename: string; chapter: number; minLevel: number; recommendedLevel: string; maxLevel: number; subAreas: string[]; normalMonsters: MonsterDefinition[]; eliteMonsters: MonsterDefinition[]; fieldBoss: MonsterDefinition | null; dropTable: string[]; materialTable: { id: string; chance: number }[]; unlockQuest: string | null; previousField: string | null; nextMap: string | null; musicId: string; ambientId: string; isUnlocked: boolean; color: string; questList: string[]; entry: {x:number;z:number}; exit: {x:number;z:number}; contentFamilyId?:string; cityDirection?:'north'|'east'; regionType?:'field'; warpOnly?:boolean };
 export type RegionQuestStatus = 'locked'|'active'|'ready_to_complete'|'completed'|'cooldown'|'available';
 export type QuestReward = { xp: number; gold: number; items: Array<{ templateId: string; quantity: number }> };
 export type QuestJournalEntry = {
@@ -175,6 +180,42 @@ fieldDefinitions[IRONVEIL_ID] = {
  color:'#b4c2bd',entry:{...IRONVEIL_ENTRY},exit:{...IRONVEIL_ENTRANCE},regionType:'field',
 };
 CITIES.averion.connectedFields.push(IRONVEIL_ID);
+const sunkenLegacy=fieldDefinitions['sunken-ruins'];
+const sunkenBoss={...sunkenLegacy.fieldBoss!,name:'Abyssal Leviathan',level:42,
+ maxHP:Math.round((30+42*16)*MONSTER_VARIANTS.boss.hpMultiplier),
+ attack:Math.round((8+42*2.2)*MONSTER_VARIANTS.boss.damageMultiplier),
+ defense:Math.round((4+42*1.1)*MONSTER_VARIANTS.boss.defenseMultiplier),
+ magicDefense:Math.round((3+42)*MONSTER_VARIANTS.boss.defenseMultiplier),
+ exp:Math.round(sunkenLegacy.fieldBoss!.exp*42/44)};
+if(SUNKEN_DEVELOPMENT)fieldDefinitions[SUNKEN_ID]={
+ id:SUNKEN_ID,cityId:'jayantara',displayName:'Sunken Ruins',codename:'Underwater Hunting Field',contentFamilyId:'sunken-ruins',
+ chapter:1,minLevel:32,maxLevel:42,recommendedLevel:'32–42',subAreas:SUNKEN_ZONES.map(z=>z.name),
+ normalMonsters:[...sunkenLegacy.normalMonsters],eliteMonsters:[...sunkenLegacy.eliteMonsters],fieldBoss:sunkenBoss,
+ dropTable:[...sunkenLegacy.dropTable],materialTable:sunkenLegacy.materialTable.map(m=>({...m})),questList:[],
+ unlockQuest:null,previousField:null,nextMap:null,musicId:'',ambientId:'',isUnlocked:false,
+ color:'#11647d',entry:{...SUNKEN_ENTRY},exit:{x:SUNKEN_PORTALS[0].x,z:SUNKEN_PORTALS[0].z},regionType:'field',
+};
+const oceanMonster=(slug:string,name:string,level:number,variant:MonsterVariant,scale=1):MonsterDefinition=>{
+ const base=plainsMonster(slug,name,level,variant,Math.round((1700+(level-32)*145)*MONSTER_VARIANTS[variant].expMultiplier));
+ return {...base,id:`${DEEP_OCEAN_ID}-${slug}`,visualScale:scale,lootTable:['health-potion-3','vibranium'],movementSpeed:variant==='boss'?2.4:2.8};
+};
+if(SUNKEN_DEVELOPMENT)fieldDefinitions[DEEP_OCEAN_ID]={
+ ...fieldDefinitions[SUNKEN_ID], id:DEEP_OCEAN_ID, displayName:'Deep Ocean',codename:'Deep-ocean hunting field',
+ recommendedLevel:'38–48',maxLevel:48,subAreas:['Descent Landing','Abyssal Sand Basin','Megalodon Grounds'],
+ normalMonsters:[oceanMonster('goblin-shark','Goblin Shark',38,'normal'),oceanMonster('baracuda','Deep Baracuda',40,'normal'),oceanMonster('marlyn','Deep Marlyn',43,'normal'),oceanMonster('giant-squid','Giant Squid',46,'normal')],
+ eliteMonsters:[oceanMonster('giant-squid-elite','Giant Squid · Elite',47,'elite',1.35)],
+ fieldBoss:oceanMonster('megalodon','Megalodon',48,'boss',4),
+ dropTable:[...sunkenLegacy.dropTable],materialTable:sunkenLegacy.materialTable.map(m=>({...m})),questList:[],
+ entry:{...DEEP_OCEAN_ENTRY},exit:{x:0,z:350},color:'#164e72',warpOnly:true,contentFamilyId:undefined,
+};
+if(SUNKEN_DEVELOPMENT)fieldDefinitions[ABYSAL_TRENCH_ID]={
+ ...fieldDefinitions[DEEP_OCEAN_ID],id:ABYSAL_TRENCH_ID,displayName:'Abysal Trench',codename:'Tectonic passage and boss arena',
+ normalMonsters:[],
+ eliteMonsters:[{...oceanMonster('serpent-guardian','Sea Serpent "Guardian"',58,'elite'),id:SERPENT_GUARDIAN_ID,visualScale:1}],
+ fieldBoss:{...oceanMonster('sea-serpent','Sea Serpent',60,'boss'),id:SERPENT_BOSS_ID,visualScale:1},
+ dropTable:[...sunkenLegacy.dropTable],materialTable:sunkenLegacy.materialTable.map(m=>({...m})),recommendedLevel:'58–60',maxLevel:60,
+ subAreas:['Trench Landing','Tectonic Maze','Tectonic Basin'],entry:{...ABYSAL_TRENCH_ENTRY},exit:{x:0,z:350},color:'#0b2943',
+};
 export const FIELDS: Record<string, FieldDefinition> = Object.fromEntries([
  [PLAINS_ID, fieldDefinitions[PLAINS_ID]],
  ...Object.entries(fieldDefinitions).filter(([id])=>id!==PLAINS_ID&&id!=='verdant-plains'&&id!==WILDS_ID&&id!==IRONVEIL_ID)
@@ -220,13 +261,22 @@ export function refreshUnlocks(hero:Hero) {
  for(const id of Object.keys(CITIES)) if(!unlockReason(hero,id)&&!hero.unlockedCities.includes(id)) hero.unlockedCities.push(id);
  for(const id of Object.keys(FIELDS)) if(!unlockReason(hero,id)&&!hero.unlockedFields.includes(id)) hero.unlockedFields.push(id);
 }
-export function travel(hero:Hero,id:string) {
+export function travel(hero:Hero,id:string,portalId?:string) {
  if(hero.interiorId) return {ok:false,reason:'Walk back to the mine entrance to leave.'};
  if(id==='ironveil-mines-interior-v1') return {ok:false,reason:'Enter through the Ironveil Mines doorway.'};
+ if(FIELDS[id]?.warpOnly){
+  const portals=hero.currentField===SUNKEN_ID?SUNKEN_PORTALS:hero.currentField===DEEP_OCEAN_ID?DEEP_OCEAN_PORTALS:hero.currentField===ABYSAL_TRENCH_ID?ABYSAL_TRENCH_PORTALS:[];
+  const gate=portals.find(p=>p.id===portalId&&p.destination===id);
+  if(hero.inCity||!gate||Math.hypot(hero.x-gate.x,hero.z-gate.z)>4.5)return {ok:false,reason:'Gunakan warp yang terhubung untuk memasuki sub-map ini.'};
+ }
+ const returningFromTrench=!hero.inCity&&hero.currentField===ABYSAL_TRENCH_ID&&id===DEEP_OCEAN_ID;
+ const returningFromDeepOcean=!hero.inCity&&hero.currentField===DEEP_OCEAN_ID&&id===SUNKEN_ID;
  const reason=unlockReason(hero,id); if(reason) return {ok:false,reason};
  refreshUnlocks(hero);
  if(CITIES[id]) {hero.currentCity=id;hero.inCity=true;hero.x=0;hero.z=8;}
  else {hero.currentField=id;hero.currentCity=FIELDS[id].cityId;hero.inCity=false;hero.x=FIELDS[id].entry.x;hero.z=FIELDS[id].entry.z;}
+ if(returningFromDeepOcean)Object.assign(hero,DEEP_OCEAN_RETURN);
+ if(returningFromTrench)Object.assign(hero,ABYSAL_TRENCH_RETURN);
  return {ok:true,reason:`Tiba di ${(CITIES[id]??FIELDS[id]).displayName}.`};
 }
 export function acceptRegionQuest(hero:Hero,id:string) {

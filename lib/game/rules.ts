@@ -1,6 +1,11 @@
 import { migrateIronveilSave } from './ironveil-mines-save-migration.ts';
 import { MINE_ID, MineNavigation } from './ironveil-interior-layout.ts';
 import { IRONVEIL_ID, IronveilNavigation } from './ironveil-mines-layout.ts';
+import { SUNKEN_ID, SUNKEN_DEVELOPMENT } from './sunken-ruins-layout.ts';
+import { DEEP_OCEAN_ENTRY, ABYSAL_TRENCH_ID, ABYSAL_TRENCH_ENTRY, isUnderwaterSubmap } from './underwater-regions.ts';
+import { abysalTrenchWalkable } from './abysal-trench-layout.ts';
+import { deepOceanWalkable } from './deep-ocean-layout.ts';
+import { SunkenNavigation } from './sunken-ruins-navigation.ts';
 import { WILDS_ID } from './whispering-wilds-layout.ts';
 import { migrateWildsSave } from './whispering-wilds-save-migration.ts';
 import { WildsNavigation } from './whispering-wilds-navigation.ts';
@@ -2656,8 +2661,8 @@ function normalizedHero(value: Record<string, unknown>, slotId = 'slot-1') {
     weapon: integer(value.weapon, 0, 20, 0),
     questClaimed: value.questClaimed === true,
     bossDefeated: value.bossDefeated === true,
-    x: value.inCity===false&&(value.currentField===PLAINS_ID||value.currentField===FROSTFIRE_ID||value.currentField===WILDS_ID||value.currentField===IRONVEIL_ID) ? (typeof value.x==='number'?value.x:NaN) : integer(value.x, 1-regionHalfExtent(value.inCity !== false), regionHalfExtent(value.inCity !== false)-1, 0),
-    z: value.inCity===false&&(value.currentField===PLAINS_ID||value.currentField===FROSTFIRE_ID||value.currentField===WILDS_ID||value.currentField===IRONVEIL_ID) ? (typeof value.z==='number'?value.z:NaN) : integer(value.z, 1-regionHalfExtent(value.inCity !== false), regionHalfExtent(value.inCity !== false)-1, 7),
+    x: value.inCity===false&&(value.currentField===PLAINS_ID||value.currentField===FROSTFIRE_ID||value.currentField===WILDS_ID||value.currentField===IRONVEIL_ID||value.currentField===SUNKEN_ID||isUnderwaterSubmap(String(value.currentField))) ? (typeof value.x==='number'?value.x:NaN) : integer(value.x, 1-regionHalfExtent(value.inCity !== false), regionHalfExtent(value.inCity !== false)-1, 0),
+    z: value.inCity===false&&(value.currentField===PLAINS_ID||value.currentField===FROSTFIRE_ID||value.currentField===WILDS_ID||value.currentField===IRONVEIL_ID||value.currentField===SUNKEN_ID||isUnderwaterSubmap(String(value.currentField))) ? (typeof value.z==='number'?value.z:NaN) : integer(value.z, 1-regionHalfExtent(value.inCity !== false), regionHalfExtent(value.inCity !== false)-1, 7),
     skillPoints: integer(value.skillPoints, 0, 500, Math.max(0, level - 1)),
     statPoints: integer(value.statPoints, 0, 999, Math.max(0, level - 1) * STAT_POINTS_PER_LEVEL),
     allocatedStats,
@@ -2873,6 +2878,10 @@ function normalizedHero(value: Record<string, unknown>, slotId = 'slot-1') {
   if(!h.inCity&&h.currentField===PLAINS_ID)Object.assign(h,restorePlainsPosition(h));
   if(!h.inCity&&h.currentField===FROSTFIRE_ID)Object.assign(h,new FrostNavigation().restore(h));
   if(!h.inCity&&h.currentField===WILDS_ID)Object.assign(h,new WildsNavigation().restore(h));
+  if(!h.inCity&&isUnderwaterSubmap(h.currentField))Object.assign(h,new SunkenNavigation(h.currentField===ABYSAL_TRENCH_ID?abysalTrenchWalkable:deepOceanWalkable,h.currentField===ABYSAL_TRENCH_ID?ABYSAL_TRENCH_ENTRY:DEEP_OCEAN_ENTRY).restore(h));
+  if(!h.inCity&&h.currentField===SUNKEN_ID)Object.assign(h,new SunkenNavigation().restore(h));
+  // A development save opened in production returns to its city, retaining progression.
+  if(!SUNKEN_DEVELOPMENT&&value.inCity===false&&(value.currentField===SUNKEN_ID||isUnderwaterSubmap(String(value.currentField)))){h.inCity=true;h.currentCity='jayantara';h.currentField='sunken-ruins';h.x=0;h.z=8;}
   if(h.interiorId===MINE_ID)Object.assign(h,new MineNavigation().restore(h));
   else if(!h.inCity&&h.currentField===IRONVEIL_ID)Object.assign(h,new IronveilNavigation().restore(h));
   const terrain=!h.inCity?FIELD_TERRAINS[h.currentField]:undefined;

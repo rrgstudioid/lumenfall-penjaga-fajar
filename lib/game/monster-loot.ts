@@ -22,6 +22,8 @@ export const RUNE_DROP_RARITIES:Record<MonsterVariant,Weighted<RuneRarity>[]> = 
 };
 export const BOSS_RUNE_DROPS:Record<string,string> = {'verdant-plains':'rune-akar-purba','ironveil-mines':'rune-penjaga-langit','whispering-wilds':'rune-bayangan-caroq','frostfire-highlands':'rune-inti-bara','sunken-ruins':'rune-mata-jayantara','meteorfall-citadel':'rune-raja-meteor'};
 BOSS_RUNE_DROPS['verdant-plains-v2']='rune-akar-purba';
+BOSS_RUNE_DROPS['deep-ocean-underwater-v1']='rune-mata-jayantara';
+BOSS_RUNE_DROPS['abysal-trench-underwater-v1']='rune-mata-jayantara';
 export function weightedPick<T>(entries:Weighted<T>[],rng:()=>number=Math.random):T {
   const total=entries.reduce((sum,entry)=>sum+Math.max(0,entry.weight),0);
   if(!entries.length||total<=0)throw new Error('Empty loot pool');

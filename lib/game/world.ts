@@ -3,6 +3,13 @@ import { MINE_ID, MINE_ENTRY, MINE_EXIT, MineNavigation, mineGroundHeight, mineL
 import { IRONVEIL_ID, IRONVEIL_TRANSITION, ironveilGroundHeight, ironveilWalkable } from './ironveil-mines-layout';
 import { IRONVEIL_DAYLIGHT } from './ironveil-mines-sky';
 import { moveIronveilMonster } from './ironveil-mines-population';
+import { SUNKEN_ID, SUNKEN_DEVELOPMENT, sunkenGroundHeight, sunkenWalkable } from './sunken-ruins-layout';
+import { DEEP_OCEAN_ID, ABYSAL_TRENCH_ID, isUnderwaterSubmap } from './underwater-regions';
+import { isSeaSerpent, GUARDIAN_ATTACKS, BOSS_ATTACKS, serpentStrikeContains, type SerpentStrike } from './sea-serpent-combat';
+import { createSerpentBody, type SerpentVisual } from './sea-serpent-model';
+import { abysalTrenchGroundHeight, abysalTrenchWalkable } from './abysal-trench-layout';
+import { deepOceanGroundHeight, deepOceanWalkable } from './deep-ocean-layout';
+import { SUNKEN_LIGHT, DEEP_OCEAN_LIGHT, ABYSAL_TRENCH_LIGHT, SUNKEN_ABYSS_FOG, DEEP_OCEAN_TRENCH_VIEW } from './sunken-ruins-quality';
 import { WILDS_ID, WILDS_PORTALS, wildsGroundHeight, wildsWalkable } from './whispering-wilds-layout';
 import { type WildsQuality } from './whispering-wilds-quality';
 import { loadGraphicsQuality, saveGraphicsQuality, type GraphicsQuality } from './graphics-quality';
@@ -40,6 +47,7 @@ import { FOLLOW_CAMERA, createFollowCamera, followWheelDistance, stepFollowCamer
 import { CITY_SCALE, regionScale, fieldSpawns, isFieldSafe, regionHalfExtent, monsterRespawnKey, restoreRespawnDeadline } from './field-layout';
 import { getNpcServiceLabel, forgeAccessReason } from './regions';
 import { createMonsterBody } from './monster-models';
+import { oceanContactPoint } from './deep-ocean-monster-models';
 import { commitDrop, getInventorySlots, type DragSource, type DropTarget } from './drag-drop';
 import { BgmPlayer, loadAudioSettings, saveAudioSettings, resolveBgmTrack, type AudioSettings, type BgmStatus } from './bgm';
 import { createCharacterModel, disposeCharacterModel, updateCharacterAura, updateCharacterBillboards, type CharacterModel } from './character-model';
@@ -241,6 +249,10 @@ export type CombatFeedbackSnapshot = {
   event?: { label: string; tone: 'block' | 'parry' | 'break' | 'payoff'; remaining: number };
 };
 type Enemy = {
+  serpentStrike?:SerpentStrike;
+  serpentAttackIndex?:number;
+  serpentTell?:T.Mesh;
+  rewardless?: boolean;
   spawnGeneration?:number;
   pickBounds?:T.Box3;
   statusEffects?: Record<string,number>;
@@ -337,6 +349,10 @@ export class Game {
   get isIronveil() {return !this.hero.inCity&&this.hero.currentField===IRONVEIL_ID&&!this.hero.interiorId;}
   mineInterior: Awaited<ReturnType<typeof import('./ironveil-interior-map').buildIronveilInterior>> | null = null;
   ironveil: Awaited<ReturnType<typeof import('./ironveil-mines-map').buildIronveilMines>> | null = null;
+  private readonly sunkenAbyssFog = new T.Color(SUNKEN_ABYSS_FOG);
+  private readonly deepOceanTrenchFog = new T.Color(DEEP_OCEAN_TRENCH_VIEW.background);
+  sunken: Awaited<ReturnType<typeof import('./sunken-ruins-map').buildSunkenRuins>> | null = null;
+  get isSunken() {return SUNKEN_DEVELOPMENT&&!this.hero.inCity&&(this.hero.currentField===SUNKEN_ID||isUnderwaterSubmap(this.hero.currentField));}
   get isWilds() {return !this.hero.inCity&&this.hero.currentField===WILDS_ID;}
   graphicsQuality: GraphicsQuality = loadGraphicsQuality();
   wilds: Awaited<ReturnType<typeof import('./whispering-wilds-map').buildWhisperingWilds>> | null = null;
@@ -348,11 +364,12 @@ export class Game {
   private averionCameraDistance = 9;
   get isAverion() { return this.hero.inCity && this.hero.currentCity === 'averion'; }
   get fieldTerrain() { return this.hero.inCity ? undefined : FIELD_TERRAINS[this.hero.currentField]; }
-  get nearSanctuary() {if(this.isAverion||this.isPlains||this.isFrostfire||this.isWilds||this.isIronveil||this.isMineInterior)return false;const p=this.fieldTerrain?.sanctuary??{x:0,z:0};return Math.hypot(this.hero.x-p.x,this.hero.z-p.z)<5.3;}
+  get nearSanctuary() {if(this.isAverion||this.isPlains||this.isFrostfire||this.isWilds||this.isSunken||this.isIronveil||this.isMineInterior)return false;const p=this.fieldTerrain?.sanctuary??{x:0,z:0};return Math.hypot(this.hero.x-p.x,this.hero.z-p.z)<5.3;}
   groundHeight(x:number,z:number) {
     if(this.isMineInterior)return mineGroundHeight(x,z);
     if(this.isIronveil)return ironveilGroundHeight(x,z);
     if(this.isWilds)return wildsGroundHeight(x,z);
+    if(this.isSunken)return this.hero.currentField===ABYSAL_TRENCH_ID?abysalTrenchGroundHeight(x,z):this.hero.currentField===DEEP_OCEAN_ID?deepOceanGroundHeight(x,z):sunkenGroundHeight(x,z);
     if(this.isFrostfire)return frostHeight(x,z);
     if(this.isPlains)return plainsGroundHeight(x,z);
     if(this.isAverion)return this.averion?.groundHeight(x,z)??this.actor.position.y;
@@ -360,9 +377,16 @@ export class Game {
   }
   groundDistance(a:T.Vector3,b:T.Vector3) {
     // Preserve the old flat-ground combat ranges when actors stand on different elevations.
-    return this.fieldTerrain||this.isAverion||this.isPlains||this.isFrostfire||this.isWilds||this.isIronveil||this.isMineInterior?Math.hypot(a.x-b.x,a.z-b.z):a.distanceTo(b);
+    return this.fieldTerrain||this.isAverion||this.isPlains||this.isFrostfire||this.isWilds||this.isSunken||this.isIronveil||this.isMineInterior?Math.hypot(a.x-b.x,a.z-b.z):a.distanceTo(b);
+  }
+  enemyContact(enemy:Enemy,origin:{x:number;z:number}=this.actor.position) {
+    return oceanContactPoint(origin,enemy.group.position,enemy.group.rotation.y,enemy.group.children[0]?.userData.combatShape);
+  }
+  enemyRange(enemy:Enemy,origin:{x:number;z:number}=this.actor.position) {
+    return targetDistance(origin,this.enemyContact(enemy,origin));
   }
   placeActor() {
+    if(this.isSunken){this.actor.visible=!!this.sunken;if(!this.sunken)return;Object.assign(this.hero,this.sunken.navigation.restore(this.hero));}
     if(this.isMineInterior){this.actor.visible=!!this.mineInterior;if(!this.mineInterior)return;Object.assign(this.hero,this.mineInterior.navigation.restore(this.hero));}
     if(this.isIronveil){this.actor.visible=!!this.ironveil;if(!this.ironveil)return;Object.assign(this.hero,this.ironveil.navigation.restore(this.hero));}
     if(this.isWilds){this.actor.visible=!!this.wilds;if(!this.wilds)return;Object.assign(this.hero,this.wilds.navigation.restore(this.hero));}
@@ -379,12 +403,18 @@ export class Game {
   }
   moveEnemy(e:Enemy,dx:number,dz:number) {
     const t=this.fieldTerrain;
-    const radius=e.boss?1.8:.55;
+    const radius=e.group.children[0]?.userData.navigationRadius??(e.boss?1.8:.55);
     if(this.isMineInterior){if(!this.mineInterior)return;const p=moveMineMonster(e.group.position,dx,dz,radius);e.group.position.set(p.x,this.groundHeight(p.x,p.z),p.z);return;}
     if(this.isIronveil){
       if(!this.ironveil)return;
       const p=moveIronveilMonster(e.group.position,dx,dz,radius);
       e.group.position.set(p.x,this.groundHeight(p.x,p.z),p.z);return;
+    }
+    if(this.isSunken){
+      if(!this.sunken)return;
+      const p=this.sunken.navigationForMonster(e.boss).move(e.group.position,dx,dz,radius);
+      if(!isFieldSafe(this.hero.currentField,p.x,p.z,e.group.children[0]?.userData.navigationRadius??1))e.group.position.set(p.x,this.groundHeight(p.x,p.z),p.z);
+      return;
     }
     if(this.isWilds){
       if(!this.wilds)return;
@@ -411,8 +441,14 @@ export class Game {
     e.group.position.set(p.x,this.groundHeight(p.x,p.z),p.z);
   }
   followTerrain(e:Enemy,target:GroundPoint,speed:number,dt:number) {
-    const t=this.fieldTerrain,radius=e.boss?1.8:.55;
+    const t=this.fieldTerrain,radius=e.group.children[0]?.userData.navigationRadius??(e.boss?1.8:.55);
     let waypoint=target;
+    if(this.isSunken&&this.sunken){
+      if(!e.navigation||e.navigation.until<this.elapsed||Math.hypot(e.navigation.target.x-target.x,e.navigation.target.z-target.z)>3)
+        e.navigation={route:this.sunken.navigationForMonster(e.boss).route(e.group.position,target,radius),until:this.elapsed+.7,target:{x:target.x,z:target.z}};
+      while(e.navigation.route.length&&Math.hypot(e.navigation.route[0].x-e.group.position.x,e.navigation.route[0].z-e.group.position.z)<.45)e.navigation.route.shift();
+      waypoint=e.navigation.route[0]??target;
+    }
     if(t) {
       if(!e.navigation||e.navigation.until<this.elapsed) {
         const direct=moveOnTerrain(t,e.group.position,target.x-e.group.position.x,target.z-e.group.position.z,radius,true);
@@ -585,14 +621,18 @@ export class Game {
   registerTargetEnemy(enemy:Enemy){
     this.targetEntities??=new Map();
     this.targetEntities.set(enemy.id,enemy);
-    enemy.group.updateWorldMatrix(true,true);
+    // SkinnedMesh.updateMatrixWorld also refreshes bindMatrixInverse. Without
+    // it, deep map Y offsets can be baked a second time into picking bounds.
+    enemy.group.updateMatrixWorld(true);
+    enemy.group.traverse(o=>{if(o instanceof T.SkinnedMesh)o.computeBoundingBox();});
     const body=enemy.group.children[0];
     const box=body?new T.Box3().setFromObject(body):new T.Box3();
     if(box.isEmpty())box.set(new T.Vector3(-.6,0,-.6),new T.Vector3(.6,2.4,.6)).translate(enemy.group.position);
     box.translate(enemy.group.position.clone().negate());
     const size=box.getSize(new T.Vector3()),center=box.getCenter(new T.Vector3());
     size.x=Math.max(.9,size.x);size.y=Math.max(1.5,size.y);size.z=Math.max(.9,size.z);
-    enemy.pickBounds=box.setFromCenterAndSize(center,size).expandByVector(new T.Vector3(.15,.1,.15));
+    enemy.pickBounds=box.setFromCenterAndSize(center,size).expandByVector(new T.Vector3(.15,this.isSunken?.35:.1,.15));
+    if(isSeaSerpent(enemy.definition?.id))enemy.pickBounds.expandByVector(new T.Vector3(enemy.boss?8:3,enemy.boss?9:3,enemy.boss?4:2));
     this.validateCurrentTarget();
   }
   unregisterTargetEnemy(enemy:Enemy){
@@ -640,7 +680,7 @@ export class Game {
   resolveCurrentTarget(range:number):{target?:Enemy;reason?:TargetFailure}{
     const had=!!this.currentTarget,target=this.getCurrentTarget();
     if(!target)return {reason:had?'TARGET_INVALID':'NO_TARGET'};
-    if(targetDistance(this.actor.position,target.group.position)>range)return {reason:'TARGET_OUT_OF_RANGE'};
+    if(this.enemyRange(target)>range)return {reason:'TARGET_OUT_OF_RANGE'};
     return {target};
   }
   failTarget(reason:TargetFailure|'ACTION_LOCKED'|'TEMPO_REQUIRED'){
@@ -1306,6 +1346,7 @@ export class Game {
     const model=createCharacterModel(this.hero,{renderer:this.renderer});
     this.characterModel = model;
     this.actor=model.actor;this.arm=model.arm;this.legs=model.legs;this.aura=model.aura;
+    model.animator.update(0,{movementMode:this.isSunken?'underwater':'ground'});
     this.scene.add(this.actor);
     if (this.isPlains) this.setPlainsCharacterShadows(true);
     void model.ready.then(() => {
@@ -1427,7 +1468,9 @@ export class Game {
     g.position.set(x, this.groundHeight(x,z), z);
     this.scene.add(g);
     const variant = definition?.variant ?? (boss ? 'boss' : 'normal');
-    const body = createMonsterBody(definition ?? {id:'verdant-plains-0',variant,visualScale:boss?2.35:1});
+    const body = isSeaSerpent(definition?.id) ? createSerpentBody(definition!.id) : createMonsterBody(definition ?? {id:'verdant-plains-0',variant,visualScale:boss?2.35:1});
+    if(isSeaSerpent(definition?.id)&&!this.transitioning)this.sunken?.attachSerpent(body);
+    if(this.isSunken)body.position.y=.65;
     g.add(body);
     if (variant !== 'normal') {
       const aura = this.mesh(new T.RingGeometry(boss?2.5:1.1,boss?2.65:1.22,24),
@@ -1435,7 +1478,7 @@ export class Game {
       aura.rotation.x=-Math.PI/2;aura.castShadow=false;aura.receiveShadow=false;
     }
     const ring = this.mesh(
-      new T.RingGeometry(0.1, variant === 'boss' ? 5.6 : variant === 'elite' ? 2.2 : 1.4, 40),
+      new T.RingGeometry(0.1, body.userData.combatShape ? definition!.attackRange+body.userData.combatShape.radius : variant === 'boss' ? 5.6 : variant === 'elite' ? 2.2 : 1.4, 40),
       new T.MeshBasicMaterial({
         color: definition?.nameColor ?? (boss ? '#d3a5e8' : '#ecaa78'),
         transparent: true,
@@ -1764,6 +1807,7 @@ export class Game {
     if(this.ironveil){this.ironveil.dispose();this.ironveil=null;}
     if(this.mineInterior){this.mineInterior.dispose();this.mineInterior=null;}
     if(this.wilds){this.wilds.dispose();this.wilds=null;}
+    if(this.sunken){this.sunken.dispose();this.sunken=null;}
     this.renderer.shadowMap.enabled=true;this.renderer.setPixelRatio(Math.min(devicePixelRatio,1.25));
     if(this.averion){this.averion.root.removeFromParent();this.averion.dispose();this.averion=null;}
     this.regionLoads = [];
@@ -1778,7 +1822,7 @@ export class Game {
     this.scene.remove(this.regionDecor);
     this.regionDecor.traverse(object => { if(object instanceof T.Mesh){object.geometry.dispose(); const materials=Array.isArray(object.material)?object.material:[object.material]; materials.forEach(material=>material.dispose());} });
     this.regionDecor = new T.Group(); this.scene.add(this.regionDecor);
-    this.followCamera.far=this.freeCamera.far=this.isPlains||this.isFrostfire||this.isWilds||this.isIronveil||this.isMineInterior?1400:this.isAverion?650:160;
+    this.followCamera.far=this.freeCamera.far=this.isPlains||this.isFrostfire||this.isWilds||this.isSunken||this.isIronveil||this.isMineInterior?1400:this.isAverion?650:160;
     this.followCamera.updateProjectionMatrix();this.freeCamera.updateProjectionMatrix();
     this.worldLightRig.traverse(o=>{
       if(o instanceof T.HemisphereLight){o.intensity=this.isPlains?PLAINS_DAYLIGHT.ambientIntensity:this.isAverion?1.2:2.2;o.color.set(this.isPlains?PLAINS_DAYLIGHT.ambientSky:this.isAverion?'#eef5ff':'#f2f8d6');o.groundColor.set(this.isPlains?PLAINS_DAYLIGHT.ambientGround:this.isAverion?'#687b55':'#3f5d45');}
@@ -1835,6 +1879,29 @@ export class Game {
         const badge=document.createElement('button');badge.type='button';badge.className='npc-service-badge';badge.textContent=IRONVEIL_TRANSITION.label;badge.style.pointerEvents='auto';badge.style.cursor='pointer';badge.title='Approach the doorway and click to enter the mines.';badge.addEventListener('click',()=>this.interactIronveilEntrance());element.appendChild(badge);this.labelHost.appendChild(element);
         this.portalLabels.push({...IRONVEIL_TRANSITION.anchor,element,name:'Mine entrance',labelHeight:6});
         this.placeActor();this.cameraFocus.copy(this.actor.position);map.update(this.camera);this.drawMap();
+      }).catch(error=>{if(!this.disposed&&buildToken===this.regionBuildToken)this.regionLoadError=error;throw error;}));
+      void this.regionLoads.at(-1)!.catch(()=>{});return;
+    }
+    if(process.env.NODE_ENV!=='production'&&this.isSunken) {
+      const abysalTrench=this.hero.currentField===ABYSAL_TRENCH_ID,deepOcean=isUnderwaterSubmap(this.hero.currentField),light=abysalTrench?ABYSAL_TRENCH_LIGHT:deepOcean?DEEP_OCEAN_LIGHT:SUNKEN_LIGHT;
+      this.terrain.visible=false;this.shrine.visible=false;this.actor.visible=false;
+      this.scene.background=new T.Color(light.background);this.scene.fog=new T.Fog(light.background,light.fogNear,light.fogFar);this.renderer.toneMappingExposure=light.exposure;
+      this.worldLightRig.traverse(o=>{
+        if(o instanceof T.HemisphereLight){o.color.set(light.sky);o.groundColor.set(light.ground);o.intensity=light.ambientIntensity;}
+        if(o instanceof T.DirectionalLight){o.color.set(light.sun);o.intensity=light.sunIntensity;}
+      });
+      this.regionLoads.push(import('./sunken-ruins-map').then(m=>m.buildSunkenRuins(this.graphicsQuality,{deepOcean,abysalTrench})).then(map=>{
+        if(this.disposed||buildToken!==this.regionBuildToken){map.dispose();return;}
+        this.sunken=map;this.regionDecor.add(map.root);this.setGraphicsQuality(this.graphicsQuality,false);
+        for(const p of map.portals){
+          const element=document.createElement('div');element.className='npc-label';
+          const badge=document.createElement('button');badge.type='button';badge.className='npc-service-badge';badge.textContent=p.name;
+          badge.style.pointerEvents='auto';badge.style.cursor='pointer';
+          badge.addEventListener('click',()=>{if(this.transitioning||this.regionLoadError||this.dead)return;if(Math.hypot(this.hero.x-p.x,this.hero.z-p.z)>4.5)this.message('Dekati portal untuk berpindah wilayah.');else void this.changeRegion(p.destination,p.id);});
+          element.appendChild(badge);this.labelHost.appendChild(element);this.portalLabels.push({...p,element,labelHeight:3.8});
+        }
+        for(const e of this.enemies)if(isSeaSerpent(e.definition?.id)){map.attachSerpent(e.group.children[0] as T.Mesh);this.registerTargetEnemy(e);}
+        this.placeActor();this.cameraFocus.copy(this.actor.position);map.update(this.camera,this.hero,0);this.drawMap();
       }).catch(error=>{if(!this.disposed&&buildToken===this.regionBuildToken)this.regionLoadError=error;throw error;}));
       void this.regionLoads.at(-1)!.catch(()=>{});return;
     }
@@ -1997,11 +2064,11 @@ export class Game {
       }
     }));
   }
-  changeRegion(id:string) {
+  changeRegion(id:string,portalId?:string) {
     if(this.transitioning) return false;
     const fromWilds=this.isWilds;
     const ironveilTravel=this.isIronveil||id===IRONVEIL_ID;
-    const result=travel(this.hero,id); if(!result.ok){this.message(fromWilds?`Requires level ${(CITIES[id]??FIELDS[id])?.minLevel??1}.`:result.reason);return false;}
+    const result=travel(this.hero,id,portalId); if(!result.ok){this.message(fromWilds?`Requires level ${(CITIES[id]??FIELDS[id])?.minLevel??1}.`:result.reason);return false;}
     if(fromWilds||id===WILDS_ID)result.reason=`Arrived at ${id===WILDS_ID?'Whispering Wilds':WILDS_PORTALS.find(p=>p.destination===id)?.name??id}.`;
     if(ironveilTravel)result.reason=`Arrived at ${CITIES[id]?.displayName??FIELDS[id]?.displayName??id}.`;
     const destinationLabel = CITIES[id]?.displayName ?? FIELDS[id]?.displayName ?? 'Area baru';
@@ -2021,7 +2088,7 @@ export class Game {
     void (async () => {
       try {
         this.clearGroundLoot();
-        for(const enemy of this.enemies){this.scene.remove(enemy.group);enemy.group.traverse(object=>{if(object instanceof T.Mesh){object.geometry.dispose();const materials=Array.isArray(object.material)?object.material:[object.material];materials.forEach(material=>material.dispose());}});}
+        for(const enemy of this.enemies)this.disposeEnemyVisual(enemy);
         this.enemyLabels.forEach(label=>label.remove());this.enemyLabels.clear();this.enemies=[];this.targetEntities.clear();this.bossSpawned=false;
         this.buildEnemies();
         this.buildRegionDecor();
@@ -2194,8 +2261,7 @@ export class Game {
     this.skillCooldowns = {};
     this.clearInput();
     for (const enemy of this.enemies) {
-      this.scene.remove(enemy.group);
-      enemy.group.traverse(object=>{if(object instanceof T.Mesh){object.geometry.dispose();const materials=Array.isArray(object.material)?object.material:[object.material];materials.forEach(material=>material.dispose());}});
+      this.disposeEnemyVisual(enemy);
       this.enemyLabels.get(enemy.id)?.remove();
     }
     this.enemies = [];
@@ -2233,6 +2299,7 @@ export class Game {
       if (!Number.isFinite(position.x) || !Number.isFinite(position.z)) return false;
       if(this.isIronveil)return ironveilWalkable(position);
       if(this.isWilds)return this.wilds?.navigation.valid(position)??wildsWalkable(position);
+      if(this.isSunken)return this.sunken?.navigation.valid(position)??(this.hero.currentField===ABYSAL_TRENCH_ID?abysalTrenchWalkable(position):isUnderwaterSubmap(this.hero.currentField)?deepOceanWalkable(position):sunkenWalkable(position));
       if(this.isFrostfire)return frostWalkable(position);
       if(this.isPlains)return plainsWalkable(position);
       const extent = regionHalfExtent(this.hero.inCity);
@@ -2321,7 +2388,7 @@ export class Game {
     else this.keys.delete(key);
   }
   save() {
-    if (!this.started || this.dead || this.transitioning || this.regionLoadError || ((this.isAverion&&!this.averion)||(this.isPlains&&!this.plains)||(this.isFrostfire&&!this.frostfire)||(this.isWilds&&!this.wilds)||(this.isIronveil&&!this.ironveil)||(this.isMineInterior&&!this.mineInterior))) return;
+    if (!this.started || this.dead || this.transitioning || this.regionLoadError || ((this.isAverion&&!this.averion)||(this.isPlains&&!this.plains)||(this.isFrostfire&&!this.frostfire)||(this.isWilds&&!this.wilds)||(this.isSunken&&!this.sunken)||(this.isIronveil&&!this.ironveil)||(this.isMineInterior&&!this.mineInterior))) return;
     this.hero.stamina = this.stamina;
     this.hero.lastPlayedAt = Date.now();
     this.hero.lastSafePosition = { x: this.hero.x, z: this.hero.z };
@@ -2337,7 +2404,7 @@ export class Game {
     this.hero.hp = maxHP(this.hero);
     this.hero.x = 0;
     this.hero.z = this.hero.inCity ? 7 : 26;
-    if(this.fieldTerrain||this.isPlains||this.isFrostfire||this.isWilds||this.isIronveil||this.isMineInterior)Object.assign(this.hero,FIELDS[this.hero.currentField].entry);
+    if(this.fieldTerrain||this.isPlains||this.isFrostfire||this.isWilds||this.isSunken||this.isIronveil||this.isMineInterior)Object.assign(this.hero,FIELDS[this.hero.currentField].entry);
     if(this.isMineInterior)Object.assign(this.hero,MINE_ENTRY);
     this.placeActor();
     this.cameraFocus.copy(this.actor.position);
@@ -2350,15 +2417,16 @@ export class Game {
     this.clearInput();
     for (const e of this.enemies) {
       e.group.position.copy(e.home);
+      this.clearSerpentAttack(e);
       e.windup = 0;
       e.cooldown = 2;
-      if((this.isPlains||this.isMineInterior)&&e.hp<=0){e.group.visible=false;continue;}
+      if((this.isPlains||this.isMineInterior||isSeaSerpent(e.definition?.id))&&e.hp<=0){e.group.visible=false;continue;}
       e.hp = e.max;
       e.group.visible = true;
       e.respawn = 0;
     }
     this.save();
-    this.message(this.isMineInterior?'You returned to the mine entrance. Progress is preserved.':this.isPlains?'Kamu kembali di Arunika Rest. Progresmu tetap tersimpan.':'Kamu kembali di Kuil Fajar. Progresmu tetap tersimpan.');
+    this.message(this.isSunken?`Kamu kembali di ${this.hero.currentField===ABYSAL_TRENCH_ID?'Trench Landing':this.hero.currentField===DEEP_OCEAN_ID?'Descent Landing':'Coral Entrance'}. Progresmu tetap tersimpan.`:this.isMineInterior?'You returned to the mine entrance. Progress is preserved.':this.isPlains?'Kamu kembali di Arunika Rest. Progresmu tetap tersimpan.':'Kamu kembali di Kuil Fajar. Progresmu tetap tersimpan.');
   }
   chooseCoreJob(coreJob: CoreJobId | 'thief') {
     if (!this.atJobTrainer('core')) return false;
@@ -2747,7 +2815,7 @@ export class Game {
   private queueAssasinProjectile(target:TargetIdentity,origin:T.Vector3,delay:number,duration:number,off:boolean) {
     const mesh=new T.Mesh(new T.OctahedronGeometry(1,0),new T.MeshBasicMaterial({color:'#b1c791'}));
     mesh.scale.set(.055,.32,.035);
-    const launch=origin.clone().add(new T.Vector3(off ? -.2 : .2,1.1,0));
+    const launch=this.isSunken?(off?this.characterModel.sockets.leftHand:this.characterModel.sockets.rightHand).getWorldPosition(new T.Vector3()):origin.clone().add(new T.Vector3(off ? -.2 : .2,1.1,0));
     mesh.position.copy(launch); mesh.visible=false; this.scene.add(mesh);
     this.assasinDaggers.push({mesh,origin:launch,target,age:0,delay,duration});
   }
@@ -2763,7 +2831,7 @@ export class Game {
         p.mesh.removeFromParent(); p.mesh.geometry.dispose(); p.mesh.material.dispose(); return false;
       }
       if (p.age<p.delay) return true;
-      const destination=target.group.position.clone().add(new T.Vector3(0,1,0));
+      const destination=target.group.position.clone().add(new T.Vector3(0,1+(this.isSunken?target.group.children[0].position.y:0),0));
       p.mesh.visible=true; p.mesh.position.lerpVectors(p.origin,destination,(p.age-p.delay)/p.duration);
       p.mesh.quaternion.setFromUnitVectors(new T.Vector3(0,1,0),destination.sub(p.origin).normalize());
       return true;
@@ -2839,12 +2907,12 @@ export class Game {
     // frontal/area/self behavior and never auto-approach anything.
     const selection=requiresSelectedTarget?this.resolveCurrentTarget(Infinity):{};
     if(selection.reason)return this.failTarget(selection.reason);
-    if (skill.assasin && selection.target && this.groundDistance(this.actor.position,selection.target.group.position)>preview.range) return this.failTarget('TARGET_OUT_OF_RANGE');
+    if (skill.assasin && selection.target && this.enemyRange(selection.target)>preview.range) return this.failTarget('TARGET_OUT_OF_RANGE');
     const rogueInput = skill.rogueMovement === 'INPUT_REPOSITION' ? this.moveVector() : undefined;
     if (rogueInput && rogueInput.lengthSq() < 1e-8) { this.message('Pilih arah gerak untuk Slipstep.'); return false; }
-    if (skill.tags?.includes('v3-rogue') && !skill.nonDamaging && selection.target && this.groundDistance(this.actor.position, selection.target.group.position) > preview.range)
+    if (skill.tags?.includes('v3-rogue') && !skill.nonDamaging && selection.target && this.enemyRange(selection.target) > preview.range)
       return this.failTarget('TARGET_OUT_OF_RANGE');
-    if (skill.tags?.includes('v3-thief') && selection.target && this.groundDistance(this.actor.position, selection.target.group.position) > preview.range)
+    if (skill.tags?.includes('v3-thief') && selection.target && this.enemyRange(selection.target) > preview.range)
       return this.failTarget('TARGET_OUT_OF_RANGE');
     if (isIronCharge) this.traceDevelopment('target_snapshot', {
       targetId: selection.target?.id ?? null,
@@ -2972,7 +3040,7 @@ export class Game {
       const reposition = skill.rogueMovement === 'INPUT_REPOSITION';
       const direction = reposition ? rogueInput : target.group.position.clone().sub(this.actor.position).setY(0).normalize();
       if (!direction || direction.lengthSq() < 1e-8) return;
-      const distance = reposition ? skill.movementDistance ?? 0 : Math.min(skill.movementDistance ?? 5, Math.max(0, this.groundDistance(this.actor.position, target.group.position) - 1.2));
+      const distance = reposition ? skill.movementDistance ?? 0 : Math.min(skill.movementDistance ?? 5, Math.max(0, this.enemyRange(target) - 1.2));
       this.startThiefMovement(direction, distance,
         () => this.started && !this.dead && !this.disposed && this.hero.characterId === actorId && region === this.regionBuildToken &&
           thiefJobCapabilities(this.hero).canUseRogueSkills && this.getCastTarget(skill.targetIdentity) === target && skillWeaponAllowed(this.hero, definition),
@@ -2993,7 +3061,7 @@ export class Game {
       const target = this.getCastTarget(skill.targetIdentity);
       if (!target) return;
       const direction = target.group.position.clone().sub(this.actor.position).setY(0).normalize();
-      const distance = Math.min(skill.range, Math.max(0, this.groundDistance(this.actor.position, target.group.position) - 1.2));
+      const distance = Math.min(skill.range, Math.max(0, this.enemyRange(target) - 1.2));
       this.startThiefMovement(direction, distance,
         () => !this.dead && !this.disposed && this.getCastTarget(skill.targetIdentity) === target && target.hp > 0 && skillWeaponAllowed(this.hero, definition),
         () => { this.actionLock.start(this.combatTime, skill.actionLockDuration ?? .3, false); this.applySkill(definition, level, mastery, skill, stats, consumedWindows, true); });
@@ -3047,7 +3115,7 @@ export class Game {
     const targetCandidate = target ? {
       target,
       id: String(target.id),
-      position: { x: target.group.position.x, z: target.group.position.z },
+      position: this.enemyContact(target),
       alive: target.hp > 0,
     } : null;
     const acquireTargets = () => selectSkillTargets({
@@ -3057,7 +3125,7 @@ export class Game {
       candidates: this.enemies.map((enemy) => ({
         target: enemy,
         id: String(enemy.id),
-        position: { x: enemy.group.position.x, z: enemy.group.position.z },
+        position: this.enemyContact(enemy),
         alive: enemy.hp > 0 && (!isEarthSplitter || this.getCastTarget(targetIdentity(enemy, this.regionBuildToken)) === enemy),
       })),
       selected: targetCandidate,
@@ -3119,7 +3187,7 @@ export class Game {
       if (skill.skillId === 'v3-blade-master-blade-rush') bladeRushPassDirection = dir.clone();
       if(skill.dash){
         // Small steps reuse terrain/tree collision; never teleport through blockers.
-        let remaining=Math.max(0,this.groundDistance(target.group.position,this.actor.position)-skill.dash.stopDistance);
+        let remaining=Math.max(0,this.enemyRange(target)-skill.dash.stopDistance);
         remaining=Math.min(remaining,skill.range);
         while(remaining>0){const step=Math.min(.25,remaining);this.move(dir.x*step,dir.z*step);remaining-=step;}
       }else this.move(dir.x*Math.min(4,skill.range),dir.z*Math.min(4,skill.range));
@@ -3181,8 +3249,8 @@ export class Game {
           targetIdentityValid: this.getCastTarget(castTargetIdentity) === enemy,
           attackerCanAct: !(thief || rogue || skill.assasin) || !isStunned(this.hero, this.combatTime),
           lineageJobValid: !(thief || rogue || skill.assasin) || (this.hero.characterId ?? this.hero.slotId)===castOwner && thiefSkillJobAllowed(this.hero,definition.specialization ?? definition.job) && isSkillUnlocked(this.hero,definition),
-          impactRangeValid: skill.assasin ? this.groundDistance(launchOrigin,enemy.group.position)<=skill.range && skillWeaponAllowed(this.hero,definition) : rogue ? this.hasClearDashImpact(enemy.group.position, skill.rogueMovement === 'APPROACH' ? 3.5 : skill.range) && skillWeaponAllowed(this.hero, definition)
-            : thief ? this.hasClearDashImpact(enemy.group.position, thief.mechanics.movement?.approach ? 3.5 : skill.range) && skillWeaponAllowed(this.hero, definition) : !skill.dash || this.hasClearDashImpact(enemy.group.position, dashImpactRange),
+          impactRangeValid: skill.assasin ? this.enemyRange(enemy,launchOrigin)<=skill.range && skillWeaponAllowed(this.hero,definition) : rogue ? this.hasClearDashImpact(this.enemyContact(enemy), skill.rogueMovement === 'APPROACH' ? 3.5 : skill.range) && skillWeaponAllowed(this.hero, definition)
+            : thief ? this.hasClearDashImpact(this.enemyContact(enemy), thief.mechanics.movement?.approach ? 3.5 : skill.range) && skillWeaponAllowed(this.hero, definition) : !skill.dash || this.hasClearDashImpact(this.enemyContact(enemy), dashImpactRange),
         };
         const valid = Object.values(checks).every(Boolean);
         if (isIronCharge && !valid && !impactInvalidReported) {
@@ -3605,7 +3673,7 @@ export class Game {
     const isBow=equippedWeapon?.equipmentType==='bow'||equippedWeapon?.attackType==='ranged';
     const hard=usesHardTargeting(this.hero);
     const selection=hard?this.resolveCurrentTarget(Infinity):{};
-    if(selection.target&&targetDistance(this.actor.position,selection.target.group.position)>(isBow?Math.max(11,combatProfile(this.hero).range):selection.target.boss?4.3:combatProfile(this.hero).range))selection.reason='TARGET_OUT_OF_RANGE';
+    if(selection.target&&this.enemyRange(selection.target)>(isBow?Math.max(11,combatProfile(this.hero).range):selection.target.boss?4.3:combatProfile(this.hero).range))selection.reason='TARGET_OUT_OF_RANGE';
     if(selection.reason)return this.failTarget(selection.reason);
     this.lastActionFailure=null;
     if(isBow){
@@ -3618,7 +3686,7 @@ export class Game {
     else if (autoAim || !this.pointerActive) this.targetNearest();
     else {
       this.raycaster.setFromCamera(this.pointer, this.camera);
-      const hit=this.isMineInterior&&this.mineInterior ? this.raycaster.intersectObject(this.mineInterior.surfaces,true)[0]?.point : this.isIronveil&&this.ironveil ? this.raycaster.intersectObject(this.ironveil.surfaces,true)[0]?.point : this.isWilds&&this.wilds ? this.raycaster.intersectObject(this.wilds.surfaces,true).find(h=>h.object.visible||h.object.userData.bridge)?.point : this.isFrostfire&&this.frostfire ? this.raycaster.intersectObject(this.frostfire.surfaces,true)[0]?.point : this.isPlains&&this.plains ? this.raycaster.intersectObject(this.plains.root,true).find(h=>h.object.visible)?.point : this.terrainSurface?this.raycaster.intersectObject(this.terrainSurface)[0]?.point:this.raycaster.ray.intersectPlane(this.ground,this.aim);
+      const hit=this.isSunken&&this.sunken ? this.raycaster.intersectObject(this.sunken.surfaces,true).find(h=>h.object.visible)?.point : this.isMineInterior&&this.mineInterior ? this.raycaster.intersectObject(this.mineInterior.surfaces,true)[0]?.point : this.isIronveil&&this.ironveil ? this.raycaster.intersectObject(this.ironveil.surfaces,true)[0]?.point : this.isWilds&&this.wilds ? this.raycaster.intersectObject(this.wilds.surfaces,true).find(h=>h.object.visible||h.object.userData.bridge)?.point : this.isFrostfire&&this.frostfire ? this.raycaster.intersectObject(this.frostfire.surfaces,true)[0]?.point : this.isPlains&&this.plains ? this.raycaster.intersectObject(this.plains.root,true).find(h=>h.object.visible)?.point : this.terrainSurface?this.raycaster.intersectObject(this.terrainSurface)[0]?.point:this.raycaster.ray.intersectPlane(this.ground,this.aim);
       if (hit) {
         this.aim.copy(hit);
         const d = this.aim.clone().sub(this.actor.position).setY(0);
@@ -3662,7 +3730,7 @@ export class Game {
       if (e.hp <= 0) continue;
       if(hard){const damage=resolveBasicDamage(e);if(damage===null)continue;this.hurtEnemy(e,Math.round(damage),this.hero.skillArchitectureVersion===3?0:.8,'physical');continue;}
       const v = e.group.position.clone().sub(this.actor.position);
-      if(this.fieldTerrain||this.isPlains||this.isFrostfire||this.isWilds||this.isIronveil||this.isMineInterior)v.y=0;
+      if(this.fieldTerrain||this.isPlains||this.isFrostfire||this.isWilds||this.isSunken||this.isIronveil||this.isMineInterior)v.y=0;
       const d = v.length();
       if (
         d < (isBow?Math.max(11,profile.range):(e.boss ? 4.3 : profile.range)) &&
@@ -3715,11 +3783,11 @@ export class Game {
     }
     e.flash = 0.14;
     const v = e.group.position.clone().sub(this.actor.position);
-    if(this.fieldTerrain||this.isPlains||this.isFrostfire||this.isWilds||this.isIronveil||this.isMineInterior)v.y=0;
+    if(this.fieldTerrain||this.isPlains||this.isFrostfire||this.isWilds||this.isSunken||this.isIronveil||this.isMineInterior)v.y=0;
     v.normalize();
     const knockDistance=e.boss?knock*.15:knock;
     this.moveEnemy(e,v.x*knockDistance,v.z*knockDistance);
-    if(!this.fieldTerrain&&!this.isPlains&&!this.isFrostfire&&!this.isWilds&&!this.isIronveil&&!this.isMineInterior) {
+    if(!this.fieldTerrain&&!this.isPlains&&!this.isFrostfire&&!this.isWilds&&!this.isSunken&&!this.isIronveil&&!this.isMineInterior) {
       const extent=regionHalfExtent(false);
       e.group.position.x=T.MathUtils.clamp(e.group.position.x,-extent,extent);
       e.group.position.z=T.MathUtils.clamp(e.group.position.z,-extent,extent);
@@ -3730,6 +3798,8 @@ export class Game {
       e.group.visible = false;
       e.respawn = e.definition?.respawnTime ?? (e.boss ? 120 : 25);
       e.respawnDeadline = Date.now() + e.respawn * 1000;
+      // Only explicitly isolated fixture actors suppress rewards.
+      if(e.rewardless){this.emit();return;}
       this.hero.monsterRespawnState[e.respawnKey] = e.respawnDeadline;
       if (e.boss && e.definition) this.hero.defeatedBossTimestamp[this.hero.currentField] = Date.now();
       const rewardStats=derivedStats(this.hero);
@@ -3804,7 +3874,7 @@ export class Game {
     if(this.hero.hp>0&&displacement){const factor=receivedMultiplier(modifiers,context,'knockbackMultiplier');this.move(displacement.x*factor,displacement.z*factor);}
     if (damage > 0) this.characterModel.animator.play('hit', .24);
     this.invincible = 0.45;
-    this.float(this.actor.position, `−${damage}`, 'hurt');
+    this.float(this.actor.position, `−${Math.round(damage)}`, 'hurt');
     this.sound(95, 0.13);
     if (this.hero.hp === 0) {
       this.dead = true;
@@ -3830,7 +3900,7 @@ export class Game {
     ).normalize();
   }
   move(dx: number, dz: number) {
-    if(this.transitioning||this.regionLoadError||((this.isAverion&&!this.averion)||(this.isPlains&&!this.plains)||(this.isFrostfire&&!this.frostfire)||(this.isWilds&&!this.wilds)||(this.isIronveil&&!this.ironveil)||(this.isMineInterior&&!this.mineInterior)))return;
+    if(this.transitioning||this.regionLoadError||((this.isAverion&&!this.averion)||(this.isPlains&&!this.plains)||(this.isFrostfire&&!this.frostfire)||(this.isWilds&&!this.wilds)||(this.isSunken&&!this.sunken)||(this.isIronveil&&!this.ironveil)||(this.isMineInterior&&!this.mineInterior)))return;
     if(isStunned(this.hero,this.combatTime))return;
     const p=moveWithTreeCollisions(this.hero,dx,dz,this.treeColliders,(from,mx,mz)=>this.moveHeroOnGround(from,mx,mz),(x,z)=>this.groundHeight(x,z));
     this.hero.x=p.x;this.hero.z=p.z;
@@ -3841,7 +3911,8 @@ export class Game {
   /** Move the player into range for a selected-target active skill only. */
   autoApproachTarget(target: Enemy, range: number) {
     const desiredRange = Math.max(0, Number.isFinite(range) ? range : 0);
-    const direction = target.group.position.clone().sub(this.actor.position).setY(0);
+    const contact=this.enemyContact(target);
+    const direction = new T.Vector3(contact.x-this.actor.position.x,0,contact.z-this.actor.position.z);
     let remaining = Math.max(0, direction.length() - desiredRange);
     if (remaining <= 1e-6) return true;
     direction.normalize();
@@ -3852,12 +3923,13 @@ export class Game {
       if (progressed <= 1e-7) break;
       remaining -= progressed;
     }
-    return this.groundDistance(this.actor.position, target.group.position) <= desiredRange + 1e-4;
+    return this.enemyRange(target) <= desiredRange + 1e-4;
   }
   moveHeroOnGround(from:GroundPoint,dx:number,dz:number):GroundPoint {
     if(this.isMineInterior)return this.mineInterior?this.mineInterior.move(from,dx,dz):{...from};
     if(this.isIronveil)return this.ironveil?this.ironveil.move(from,dx,dz):{...from};
     if(this.isWilds)return this.wilds?this.wilds.move(from,dx,dz):{...from};
+    if(this.isSunken)return this.sunken?this.sunken.move(from,dx,dz):{...from};
     if(this.isFrostfire)return this.frostfire?this.frostfire.move(from,dx,dz):{...from};
     if(this.isPlains)return this.plains?this.plains.move(from,dx,dz):{...from};
     if(this.isAverion)return this.averion?this.averion.move(from,dx,dz):{...from};
@@ -3885,7 +3957,7 @@ export class Game {
   tick = (time: number) => {
     const frameStarted = performance.now();
     if (this.disposed || !this.started) { this.frame = 0; return; }
-    if(this.transitioning||this.regionLoadError||((this.isAverion&&!this.averion)||(this.isPlains&&!this.plains)||(this.isFrostfire&&!this.frostfire)||(this.isWilds&&!this.wilds)||(this.isIronveil&&!this.ironveil)||(this.isMineInterior&&!this.mineInterior))) {
+    if(this.transitioning||this.regionLoadError||((this.isAverion&&!this.averion)||(this.isPlains&&!this.plains)||(this.isFrostfire&&!this.frostfire)||(this.isWilds&&!this.wilds)||(this.isSunken&&!this.sunken)||(this.isIronveil&&!this.ironveil)||(this.isMineInterior&&!this.mineInterior))) {
       this.renderPerformance.suspend();
       this.lastTime=time;this.frame=requestAnimationFrame(this.tick);return;
     }
@@ -3896,6 +3968,7 @@ export class Game {
     this.crystal.rotation.y += dt * 0.6;
     this.crystal.position.y = 2.6 + Math.sin(this.elapsed * 1.5) * 0.2;
     let moving = false;
+    const swimFrame={x:this.actor.position.x,z:this.actor.position.z,yaw:this.actor.rotation.y};
     let running = false;
     let animationMoveSpeed=0;
     if (!this.paused) {
@@ -3966,7 +4039,10 @@ export class Game {
       }
     }
     if (!this.paused) {
-      this.characterModel.animator.update(dt, { moving, sprinting: running, blocking: this.blocking, dead: this.dead, speed:animationMoveSpeed });
+      const dx=this.actor.position.x-swimFrame.x,dz=this.actor.position.z-swimFrame.z,d=Math.hypot(dx,dz)||1,yaw=this.actor.rotation.y;
+      this.characterModel.animator.update(dt, { moving, sprinting: running, blocking: this.blocking, dead: this.dead, speed:animationMoveSpeed,
+        movementMode:this.isSunken?'underwater':'ground',localForward:(-Math.sin(yaw)*dx-Math.cos(yaw)*dz)/d,localRight:(Math.cos(yaw)*dx-Math.sin(yaw)*dz)/d,
+        turn:Math.atan2(Math.sin(yaw-swimFrame.yaw),Math.cos(yaw-swimFrame.yaw))/Math.max(.001,dt) });
       this.characterModel.updateVisual(this.camera, this.renderer.domElement.clientHeight);
       updateCharacterAura(this.aura, this.elapsed, dt);
     }
@@ -4018,9 +4094,14 @@ export class Game {
         this.beams.splice(i, 1);
       }
     }
+    // Underwater focus follows the seabed at its damped X/Z, rather than a
+    // delayed height from another position. Fast uphill travel otherwise puts
+    // the focus under the slope and repeatedly retracts the collision camera.
+    if(this.isSunken)this.actor.position.y=this.groundHeight(this.actor.position.x,this.actor.position.z);
     this.cameraFocus.lerp(this.actor.position, 1 - Math.exp(-dt * 6));
+    if(this.isSunken)this.cameraFocus.y=this.groundHeight(this.cameraFocus.x,this.cameraFocus.z);
     const targetGroundY = this.groundHeight(this.actor.position.x, this.actor.position.z);
-    this.actor.position.y = this.isPlains||this.isFrostfire||this.isWilds||this.isIronveil||this.isMineInterior?targetGroundY:T.MathUtils.lerp(this.actor.position.y, targetGroundY, 0.18);
+    this.actor.position.y = this.isPlains||this.isFrostfire||this.isWilds||this.isSunken||this.isIronveil||this.isMineInterior?targetGroundY:T.MathUtils.lerp(this.actor.position.y, targetGroundY, 0.18);
     this.updateCamera(dt);
     if(this.isMineInterior&&this.mineInterior){
       this.camera.position.copy(this.mineInterior.constrainCamera(this.cameraOrbitTarget,this.camera.position,dt));
@@ -4033,6 +4114,27 @@ export class Game {
       this.camera.position.y=Math.max(this.camera.position.y,ironveilGroundHeight(this.camera.position.x,this.camera.position.z)+1.2);this.camera.updateMatrixWorld();
       this.ironveil.update(this.camera,time/1000);
       this.worldLightRig.traverse(o=>{if(o instanceof T.DirectionalLight){o.position.set(this.actor.position.x+IRONVEIL_DAYLIGHT.sun[0]*80,this.actor.position.y+IRONVEIL_DAYLIGHT.sun[1]*80,this.actor.position.z+IRONVEIL_DAYLIGHT.sun[2]*80);o.target.position.copy(this.actor.position);o.target.updateMatrixWorld();}});
+    }
+    if(this.isSunken&&this.sunken){
+      if(this.hero.currentField===DEEP_OCEAN_ID&&this.scene.fog instanceof T.Fog&&this.scene.background instanceof T.Color){
+        const north=T.MathUtils.smoothstep(-this.hero.z,50,400);
+        this.scene.fog.color.set(DEEP_OCEAN_LIGHT.background).lerp(this.deepOceanTrenchFog,north);
+        this.scene.fog.far=T.MathUtils.lerp(DEEP_OCEAN_LIGHT.fogFar,DEEP_OCEAN_TRENCH_VIEW.fogFar,north);
+        this.scene.background.copy(this.scene.fog.color);
+      }
+      if(!isUnderwaterSubmap(this.hero.currentField)&&this.scene.fog instanceof T.Fog&&this.scene.background instanceof T.Color){
+        const depth=T.MathUtils.smoothstep(-this.actor.position.y,25,95);
+        this.scene.fog.color.set(SUNKEN_LIGHT.background).lerp(this.sunkenAbyssFog,depth);
+        const deepVisibility=T.MathUtils.smoothstep(-this.actor.position.y,20,65);
+        this.scene.fog.near=T.MathUtils.lerp(SUNKEN_LIGHT.fogNear,12,deepVisibility);
+        this.scene.fog.far=T.MathUtils.lerp(SUNKEN_LIGHT.fogFar,105,deepVisibility);
+        this.scene.background.copy(this.scene.fog.color);
+      }
+      const focus=this.cameraFocusScratch.copy(this.cameraOrbitTarget);
+      this.camera.position.copy(this.sunken.constrainCamera(focus,this.camera.position,dt));
+      this.camera.position.y=Math.max(this.camera.position.y,this.groundHeight(this.camera.position.x,this.camera.position.z)+1.2);this.camera.updateMatrixWorld();
+      this.sunken.update(this.camera,this.hero,this.paused||document.hidden?0:dt);
+      this.worldLightRig.traverse(o=>{if(o instanceof T.DirectionalLight){o.position.set(this.actor.position.x-25,this.actor.position.y+60,this.actor.position.z+20);o.target.position.copy(this.actor.position);o.target.updateMatrixWorld();}});
     }
     if(this.isWilds&&this.wilds){
       this.camera.position.y=Math.max(this.camera.position.y,wildsGroundHeight(this.camera.position.x,this.camera.position.z)+1.2);this.camera.updateMatrixWorld();
@@ -4126,7 +4228,7 @@ export class Game {
     // Reduce follow lag in the portrait so movement cannot leave the face off-center.
     const x = T.MathUtils.lerp(this.cameraFocus.x, this.actor.position.x, view.framing),
       z = T.MathUtils.lerp(this.cameraFocus.z, this.actor.position.z, view.framing);
-    const targetY = this.actor.position.y + view.targetHeight;
+    const targetY = (this.isSunken?this.groundHeight(x,z):this.actor.position.y) + view.targetHeight;
     const finalPitch = T.MathUtils.clamp(this.pitch + view.pitchOffset, 0.08, 1.38);
     const horizontalDistance = Math.cos(finalPitch) * view.distance;
     const verticalDistance = Math.sin(finalPitch) * view.distance;
@@ -4140,17 +4242,83 @@ export class Game {
     this.camera.lookAt(this.cameraOrbitTarget);
     this.updateCameraProjection();
   }
+  disposeEnemyVisual(e:Enemy) {
+    this.clearSerpentAttack(e);
+    (e.group.children[0]?.userData.serpentVisual as SerpentVisual|undefined)?.dispose();
+    e.group.removeFromParent();
+    e.group.traverse(o=>{if(o instanceof T.Mesh){o.geometry.dispose();for(const m of Array.isArray(o.material)?o.material:[o.material])m.dispose();}});
+  }
+  clearSerpentAttack(e:Enemy) {
+    if(e.serpentTell){e.serpentTell.removeFromParent();e.serpentTell.geometry.dispose();(e.serpentTell.material as T.Material).dispose();e.serpentTell=undefined;}
+    e.serpentStrike=undefined;
+  }
+  updateSerpentCombat(e:Enemy,dt:number,safe:boolean,dist:number,movementFactor:number) {
+    const body=e.group.children[0] as T.Mesh, visual=body.userData.serpentVisual as SerpentVisual|undefined;
+    const detail=this.groundDistance(e.group.position,this.actor.position)+(this.graphicsQuality==='office'?45:0);
+    if(e.stun>0||e.root>0){this.clearSerpentAttack(e);e.windup=0;visual?.update(dt,'idle',undefined,detail);return;}
+    const s=e.serpentStrike;
+    if(s){
+      s.elapsed+=dt;e.windup=Math.max(0,s.attack.windup-s.elapsed);
+      visual?.update(dt,s.attack.id,s.elapsed,detail);
+      if(e.serpentTell)(e.serpentTell.material as T.MeshBasicMaterial).opacity=.12+.15*Math.pow(Math.sin(s.elapsed*9),2);
+      if(!s.hit&&s.elapsed>=s.attack.windup){
+        s.hit=true;
+        if(e.serpentTell)e.serpentTell.visible=false;
+        const shape=body.userData.combatShape;
+        if(!safe&&serpentStrikeContains(s,this.actor.position,shape.halfLength+shape.radius)&&this.sunken?.navigation.clear(e.group.position,this.actor.position,.3))this.hurtHero(e.attack*s.attack.damage,String(e.id));
+        const impact=new T.Vector3(s.targetX,this.groundHeight(s.targetX,s.targetZ),s.targetZ);
+        this.ring(s.attack.shape==='target'?impact:e.group.position,s.attack.color,s.attack.shape==='target'?s.attack.width:s.attack.reach,.55);
+        if(s.attack.skill){
+          this.effect(impact,s.attack.color,16);
+          if(s.attack.shape==='line'){
+            const reach=shape.halfLength+shape.radius;
+            const origin=new T.Vector3(s.x-Math.sin(s.yaw)*reach,e.group.position.y+body.userData.labelHeight*.45,s.z-Math.cos(s.yaw)*reach);
+            const end=origin.clone().add(new T.Vector3(-Math.sin(s.yaw)*s.attack.reach,0,-Math.cos(s.yaw)*s.attack.reach));
+            const line=new T.Line(new T.BufferGeometry().setFromPoints([origin,end]),new T.LineBasicMaterial({color:s.attack.color,transparent:true}));this.scene.add(line);this.beams.push({line,life:.55,total:.55});
+          }
+        }
+      }
+      if(s.elapsed>=s.attack.windup+s.attack.recovery){this.clearSerpentAttack(e);e.cooldown=.15;e.windup=0;}
+      return;
+    }
+    const atHome=this.groundDistance(e.group.position,e.home), aggro=e.boss?48:14;
+    if(!safe&&dist<aggro&&atHome<(e.boss?60:24)){
+      e.group.rotation.y=Math.atan2(e.group.position.x-this.actor.position.x,e.group.position.z-this.actor.position.z);
+      const attacks=e.boss?BOSS_ATTACKS:GUARDIAN_ATTACKS,attack=attacks[(e.serpentAttackIndex??0)%attacks.length];
+      const startRange=attack.skill?attack.reach:Math.max(e.attackRange,attack.shape==='target'?12:0);
+      if(this.enemyRange(e)>startRange){this.followTerrain(e,this.actor.position,e.movementSpeed*movementFactor,dt);visual?.update(dt,'swim',undefined,detail);}
+      else if(e.cooldown<=0&&this.sunken?.navigation.clear(e.group.position,this.actor.position,.3)){
+        e.serpentAttackIndex=(e.serpentAttackIndex??0)+1;
+        const p=e.group.position,shape=body.userData.combatShape,bodyReach=shape.halfLength+shape.radius;
+        e.serpentStrike={attack,elapsed:0,hit:false,x:p.x,z:p.z,yaw:e.group.rotation.y,targetX:this.actor.position.x,targetZ:this.actor.position.z};e.windup=attack.windup;
+        const radius=attack.shape==='target'?attack.width:attack.reach;
+        let geo:T.BufferGeometry;
+        if(attack.shape==='line'||attack.shape==='bite'){
+          const reach=attack.reach+bodyReach;geo=new T.PlaneGeometry(attack.shape==='bite'?attack.width*2:attack.width,reach);geo.rotateX(-Math.PI/2);geo.translate(0,0,-reach/2);
+        }else{geo=new T.CircleGeometry(radius,64);geo.rotateX(-Math.PI/2);}
+        const tell=new T.Mesh(geo,new T.MeshBasicMaterial({color:attack.color,transparent:true,opacity:.22,side:T.DoubleSide,depthWrite:false}));
+        const target=attack.shape==='target';tell.position.set(target?this.actor.position.x:p.x,this.groundHeight(target?this.actor.position.x:p.x,target?this.actor.position.z:p.z)+.14,target?this.actor.position.z:p.z);tell.rotation.y=e.group.rotation.y;
+        this.scene.add(tell);e.serpentTell=tell;
+        if(e.boss)this.float(p,attack.label,attack.skill?'crit':'damage');
+        visual?.update(dt,attack.id,0,detail);
+      }else visual?.update(dt,'idle',undefined,detail);
+    }else{
+      if(atHome>1){this.followTerrain(e,e.home,Math.max(1.6,e.movementSpeed)*movementFactor,dt);e.group.rotation.y=Math.atan2(e.group.position.x-e.home.x,e.group.position.z-e.home.z);visual?.update(dt,'swim',undefined,detail);}
+      else visual?.update(dt,'idle',undefined,detail);
+    }
+  }
   updateEnemy(e: Enemy, dt: number) {
-    if((this.isPlains||this.isFrostfire||this.isWilds||this.isIronveil||this.isMineInterior)&&e.hp>0){
+    if((this.isPlains||this.isFrostfire||this.isWilds||this.isSunken||this.isIronveil||this.isMineInterior)&&e.hp>0){
       const nearby=this.groundDistance(e.group.position,this.actor.position)<(e.boss?160:110);
       e.group.visible=nearby && (!this.isMineInterior || mineLineOfSight(e.group.position,this.hero));
       // Only sleep healthy, idle actors at home. Death timers, damage-over-time,
       // control effects and returning combatants still use the existing update.
       if(!nearby&&e.hp===e.max&&this.groundDistance(e.group.position,e.home)<1&&
-        e.windup<=0&&e.flash<=0&&e.poison<=0&&e.stun<=0&&e.slow<=0&&e.root<=0&&e.defenseDown<=0&&
+        e.windup<=0&&!e.serpentStrike&&e.flash<=0&&e.poison<=0&&e.stun<=0&&e.slow<=0&&e.root<=0&&e.defenseDown<=0&&
         !Object.keys(e.statusEffects??{}).length&&!Object.keys(e.sourceOwnedStatuses??{}).length&&!this.assasinPoison.hasPending(e)&&!this.assasinCombat.hasPending(e))return;
     }
     if (e.hp <= 0) {
+      if(isSeaSerpent(e.definition?.id))this.clearSerpentAttack(e);
       this.assasinPoison.clearTarget(e);
       this.assasinCombat.clearTarget(e);
       if(this.currentTarget?.instanceId===e.group.uuid)this.clearCurrentTarget();
@@ -4174,14 +4342,20 @@ export class Game {
       }
       return;
     }
+    // Aquatic bodies are long capsules: face the target before evaluating their
+    // reach, then use the same range for starting and resolving an attack.
+    const aquatic = !!e.group.children[0]?.userData.combatShape;
+    if (aquatic && !e.serpentStrike && e.windup <= 0 && e.stun <= 0 && e.root <= 0)
+      e.group.rotation.y = Math.atan2(e.group.position.x-this.actor.position.x, e.group.position.z-this.actor.position.z);
     const dx = this.actor.position.x - e.group.position.x,
       dz = this.actor.position.z - e.group.position.z,
-      dist = Math.hypot(dx, dz),
+      dist = this.enemyRange(e),
       safe = this.hero.inCity || (this.isMineInterior ? mineSafe(this.hero) || !mineLineOfSight(e.group.position,this.hero) : isFieldSafe(this.hero.currentField,this.hero.x,this.hero.z));
     e.cooldown -= dt;
     e.flash = Math.max(0, e.flash - dt);
     const body = e.group.children[0] as T.Mesh;
     const material = body.material as T.MeshStandardMaterial;
+    if(body.userData.swimTime)body.userData.swimTime.value=this.elapsed+e.id*.17;
     material.emissiveIntensity = e.flash > 0 ? 1.7 : 0.12;
     clearExpiredStun(e, this.combatTime);
     clearExpiredSourceStatuses(e, this.combatTime);
@@ -4210,6 +4384,7 @@ export class Game {
     if (e.hp <= 0) return;
     const poisonSlow = this.assasinPoison.getStrongestTargetPoisonSlow(e, this.poisonTime) / 100;
     const movementFactor = 1 - Math.max(e.slow > 0 ? e.slowPotency ?? .58 : 0, poisonSlow);
+    if(isSeaSerpent(e.definition?.id)){this.updateSerpentCombat(e,dt,safe,dist,movementFactor);return;}
     if (e.stun > 0 || e.root > 0) {
       (e.ring.material as T.MeshBasicMaterial).opacity = 0.28;
       return;
@@ -4238,20 +4413,22 @@ export class Game {
       dist < (e.boss ? 15 : e.definition?.variant === 'elite' ? 12 : 10) &&
       this.groundDistance(e.group.position,e.home) < 20
     ) {
-      if (dist > (e.boss ? 3.7 : 1.4)) {
-        if(this.fieldTerrain)this.followTerrain(e,this.actor.position,e.movementSpeed*movementFactor,dt);
+      // The land approach threshold can be unreachable for a large aquatic
+      // collision hull even while the player is already within attack range.
+      if (aquatic ? dist >= e.attackRange : dist > (e.boss ? 3.7 : 1.4)) {
+        if(this.fieldTerrain||this.isSunken)this.followTerrain(e,this.actor.position,e.movementSpeed*movementFactor,dt);
         else {const step=dt*e.movementSpeed*movementFactor;this.moveEnemy(e,dx/dist*step,dz/dist*step);}
         e.group.rotation.y = Math.atan2(-dx, -dz);
       } else if (e.cooldown <= 0) e.windup = e.boss ? 1.1 : e.definition?.attackSpeed ?? 0.65;
     } else if (this.groundDistance(e.group.position,e.home) > 1) {
-      if(this.fieldTerrain)this.followTerrain(e,e.home,1.6*(1-poisonSlow),dt);
+      if(this.fieldTerrain||this.isSunken)this.followTerrain(e,e.home,1.6*(1-poisonSlow),dt);
       else {
         const homeX=e.home.x-e.group.position.x,homeZ=e.home.z-e.group.position.z;
         const homeDistance=Math.hypot(homeX,homeZ),step=dt*1.6*(1-poisonSlow);
         if(homeDistance>0)this.moveEnemy(e,homeX/homeDistance*step,homeZ/homeDistance*step);
       }
     }
-    body.position.y =
+    body.position.y = (this.isSunken ? .65 : 0) +
       Math.abs(Math.sin(this.elapsed * (e.boss ? 2 : 4) + e.id)) *
         (e.boss ? 0.12 : 0.22);
   }
@@ -4288,7 +4465,7 @@ export class Game {
         new T.MeshBasicMaterial({ color }),
         this.scene,
         position.x,
-        this.groundHeight(position.x,position.z)+1,
+        this.groundHeight(position.x,position.z)+1+(this.isSunken?.65:0),
         position.z,
       );
       const life = 0.35 + this.rand() * 0.4;
@@ -4330,7 +4507,7 @@ export class Game {
     this.labelHost.appendChild(element);
     this.floating.push({
       element,
-      position: position.clone().add(new T.Vector3(0, 2, 0)),
+      position: position.clone().add(new T.Vector3(0, 2+(this.isSunken?.65:0), 0)),
       life: 1.4,
     });
   }
@@ -4428,7 +4605,7 @@ export class Game {
       label.style.display = visible ? 'block' : 'none';
       if (visible) {
         const p = this.frameProjection.copy(e.group.position);
-        p.y += e.group.children[0].userData.labelHeight ?? 1.8;
+        p.y += (e.group.children[0].userData.labelHeight ?? 1.8)+(this.isSunken?e.group.children[0].position.y:0);
         p.project(this.camera);
         label.style.left = `${(p.x * 0.5 + 0.5) * 100}%`;
         label.style.top = `${(-p.y * 0.5 + 0.5) * 100}%`;
@@ -4476,11 +4653,12 @@ export class Game {
       return;
     }
 
-    const mapScale = this.isPlains||this.isFrostfire||this.isWilds||this.isIronveil ? 1000/106 : this.isAverion ? 250/106 : this.fieldTerrain?.id === 'verdant-plains' ? 2 : regionScale(this.hero.inCity);
+    const mapScale = this.isPlains||this.isFrostfire||this.isWilds||this.isSunken||this.isIronveil ? 1000/106 : this.isAverion ? 250/106 : this.fieldTerrain?.id === 'verdant-plains' ? 2 : regionScale(this.hero.inCity);
     const p = (v: number) => size / 2 + (v * size) / (106 * mapScale);
 
     if(this.isIronveil&&this.ironveil){this.ironveil.drawMinimap(ctx,size);}
     else if(this.isWilds&&this.wilds) {this.wilds.drawMinimap(ctx,size);}
+    else if(this.isSunken&&this.sunken) {this.sunken.drawMinimap(ctx,size);}
     else if(this.isFrostfire&&this.frostfire) {this.frostfire.drawMinimap(ctx,size);}
     else if(this.isPlains&&this.plains) {this.plains.drawMinimap(ctx,size);}
     else if(this.isAverion&&this.averion) {
@@ -4531,7 +4709,7 @@ export class Game {
       ctx.arc(
         enemyPoint.x,
         enemyPoint.y,
-        e.boss ? 4 : 2,
+        this.isSunken ? (e.boss ? 2.5 : e.definition?.variant==='elite' ? 1.3 : 0.8) : e.boss ? 4 : 2,
         0,
         Math.PI * 2,
       );
@@ -4598,7 +4776,7 @@ export class Game {
     this.cameraFocus.copy(this.actor.position);
     this.updateCamera(0);
     this.camera.updateMatrixWorld();
-    this.message(this.isWilds||this.isIronveil ? (mode==='follow'?'Follow Camera - right-drag to orbit, scroll to zoom.':'Free Camera - free movement enabled.') : mode === 'follow'
+    this.message(this.isWilds||this.isSunken||this.isIronveil ? (mode==='follow'?'Follow Camera - right-drag to orbit, scroll to zoom.':'Free Camera - free movement enabled.') : mode === 'follow'
       ? 'Follow Camera · klik kanan-drag untuk orbit, scroll untuk zoom.'
       : 'Free Camera · kontrol kamera bebas aktif.');
     this.emit();
@@ -4635,6 +4813,7 @@ export class Game {
     this.characterModel?.setQuality(quality);
     this.plains?.setQuality(quality);
     this.wilds?.setQuality(quality);
+    this.sunken?.setQuality(quality);
     this.ironveil?.setQuality(quality);
     this.mineInterior?.setQuality(quality);
     const profile=PLAINS_QUALITY[quality];
@@ -4669,6 +4848,7 @@ export class Game {
       plains: this.plains?.metrics(),
       frostfire: this.frostfire?.metrics(),
       whisperingWilds: this.wilds?.metrics(),
+      sunkenRuins: this.sunken?.metrics(),
       ironveilMines: this.ironveil?.metrics(),
       ironveilInterior: this.mineInterior?.metrics(),
     };
@@ -4772,10 +4952,10 @@ export class Game {
           return true;
         }
         if(typeof object.userData.npcId==='string') {this.openNpc(object.userData.npcId);return true;}
-        if((this.fieldTerrain||this.isPlains||this.isWilds)&&typeof object.userData.destination==='string') {
+        if((this.fieldTerrain||this.isPlains||this.isWilds||this.isSunken)&&typeof object.userData.destination==='string') {
           const destinationPosition=this.isPlains?new T.Vector3(PLAINS_EXIT.x,0,PLAINS_EXIT.z):object.getWorldPosition(new T.Vector3());
           if(Math.hypot(this.hero.x-destinationPosition.x,this.hero.z-destinationPosition.z)>4.5)this.message(this.isWilds?'Move closer to the portal to travel.':'Dekati gerbang untuk berpindah wilayah.');
-          else this.changeRegion(object.userData.destination);
+          else this.changeRegion(object.userData.destination,object.userData.portalId);
           return true;
         }
         object=object.parent;
@@ -4913,6 +5093,7 @@ export class Game {
     if(this.ironveil){this.ironveil.dispose();this.ironveil=null;}
     if(this.mineInterior){this.mineInterior.dispose();this.mineInterior=null;}
     if(this.wilds){this.wilds.dispose();this.wilds=null;}
+    if(this.sunken){this.sunken.dispose();this.sunken=null;}
     setArunikaShrineMaterials(this.shrine,null);
     this.arunikaMaterials?.dispose();this.arunikaMaterials=null;
     this.treeColliders=[];

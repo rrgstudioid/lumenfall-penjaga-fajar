@@ -307,6 +307,7 @@ export function createCharacterModel(hero: Hero, options: { aura?: boolean; asse
   const nativeLocomotionNames = new Set(['Walk', 'Run', 'Run_Start', 'Run_Stop']);
   let nativeComboIndex = 0;
   let nativeComboIdleTime = 0;
+  let underwater = false;
   let nativeReleasing: T.AnimationAction | undefined;
   let nativeReleaseRemaining = 0;
   const releaseNative = (duration: number) => {
@@ -342,8 +343,16 @@ export function createCharacterModel(hero: Hero, options: { aura?: boolean; asse
   const animator = {
     ...procedural,
     update(dt: number, motion?: Parameters<typeof procedural.update>[1]) {
-      procedural.update(dt, motion);
+      if(motion?.movementMode)underwater=motion.movementMode==='underwater';
+      const suppressNative=underwater||procedural.snapshot().swim>0;
+      if(suppressNative&&(nativeActive||nativeReleasing)) {
+        nativeActions.forEach(action=>action.stop());
+        nativeActive=undefined;nativeActiveName='';nativeReleasing=undefined;nativeReleaseRemaining=0;
+      }
+      procedural.update(dt, {...motion,movementMode:underwater?'underwater':'ground'});
       binding.update();
+      actor.userData.movementMode=underwater?'underwater':'ground';
+      if(suppressNative){actor.userData.activeNativeAnimation='';return;}
       if (!nativeMixer) return;
       nativeComboIdleTime += Math.max(0, dt);
       if (nativeReleasing) {
@@ -400,7 +409,7 @@ export function createCharacterModel(hero: Hero, options: { aura?: boolean; asse
     },
     play(action: Parameters<typeof procedural.play>[0], duration?: number) {
       procedural.play(action, duration);
-      if (action === 'basic_attack') {
+      if (action === 'basic_attack' && !underwater && procedural.snapshot().swim===0) {
         if (nativeComboIdleTime > 1) nativeComboIndex = 0;
         const attackName = nativeAttackNames[nativeComboIndex] ?? nativeAttackNames[0];
         nativeComboIndex = (nativeComboIndex + 1) % nativeAttackNames.length;

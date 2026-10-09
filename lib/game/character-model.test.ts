@@ -138,11 +138,13 @@ await test('all sword-like equipment uses the owning hand and points forward, in
   for (const templateId of swordTemplates) {
     const hero = freshHero();
     const item = createItem(templateId);
+    const dagger=item.equipmentType==='dagger';
+    if(dagger){hero.coreJob='thief';hero.job='thief';}
     hero.inventory.push(item);
     hero.equipment.mainHand = item.id;
-    if (item.offHand) hero.equipment.offHand = item.id;
+    if(dagger){const off=createItem(templateId);hero.inventory.push(off);hero.equipment.offHand=off.id;}
     const model = createCharacterModel(hero, { aura: false });
-    const slots = item.offHand ? ['mainHand', 'offHand'] as const : ['mainHand'] as const;
+    const slots = dagger ? ['mainHand', 'offHand'] as const : ['mainHand'] as const;
     for (const slot of slots) {
       const holder = model.actor.getObjectByName(`equipment:${slot}`)!;
       const grip = holder.getObjectByName(item.equipmentType === 'one_hand_sword' || item.equipmentType === 'two_hand_sword' ? 'SwordGrip' : 'DaggerGrip')!;

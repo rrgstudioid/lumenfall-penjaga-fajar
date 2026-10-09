@@ -5,7 +5,7 @@ import { freshHero, parseSave } from './rules.ts';
 
 await test('all Chapter 1 maps travel by level without former quest or boss unlocks',()=>{
   const hero=freshHero(); hero.level=50; hero.completedQuests=[]; hero.defeatedFieldBosses=[]; hero.unlockedFields=[]; hero.unlockedCities=[];
-  for(const field of Object.values(FIELDS)){ assert.equal(unlockReason(hero,field.id),''); assert.equal(travel(hero,field.id).ok,true); assert.ok(hero.unlockedFields.includes(field.id)); }
+  for(const field of Object.values(FIELDS)){ assert.equal(unlockReason(hero,field.id),''); assert.equal(travel(hero,field.id).ok,!field.warpOnly); if(!field.warpOnly)assert.ok(hero.unlockedFields.includes(field.id)); }
   for(const cityId of ['arunika','jayantara'])assert.equal(travel(hero,cityId).ok,true);
 });
 

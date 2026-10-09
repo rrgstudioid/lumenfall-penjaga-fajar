@@ -4,6 +4,8 @@ import { IronveilInteriorLocalMap } from '@/components/game/ironveil-interior-lo
 
 import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { IRONVEIL_ID } from '@/lib/game/ironveil-mines-layout';
+import { DEEP_OCEAN_ID, isUnderwaterSubmap } from '@/lib/game/underwater-regions';
+import { SUNKEN_ID } from '@/lib/game/sunken-ruins-layout';
 import { WILDS_ID } from '@/lib/game/whispering-wilds-layout';
 import { FROSTFIRE_ID } from '@/lib/game/frostfire-highlands-layout';
 import { isDaggerItem } from '@/lib/game/dagger';
@@ -585,7 +587,8 @@ export default function Home() {
     }
   };
   const startSelectedCharacter = () => {
-    const selected = roster.find(slot => slot.id === selectedSlot)?.hero;
+    // New Game saves synchronously, before React applies refreshRoster's state.
+    const selected = listCharacters().find(slot => slot.id === selectedSlot)?.hero;
     if (!isCompatibleCharacterSave(selected)) {
       setError('Karakter ini dibuat dengan development build lama dan sudah tidak kompatibel. Buat karakter baru.');
       setFlow('selection');
@@ -706,7 +709,7 @@ export default function Home() {
       <InterfaceSettingsRuntime />
       <div ref={host} className="world" data-world-surface />
       <div className="vignette" />
-      <div ref={labels} className="world-labels" aria-hidden={(state.mapId===IRONVEIL_ID||state.mapId===MINE_ID)?undefined:true} />
+      <div ref={labels} className="world-labels" aria-hidden={(state.mapId===IRONVEIL_ID||state.mapId===MINE_ID||state.mapId===SUNKEN_ID||isUnderwaterSubmap(state.mapId))?undefined:true} />
       <GameplayHUD state={state} game={engine} mapRef={map} visible={flow === 'world'} active={active} panel={panel} modalOpen={Boolean(panel || activeNpcMenu)} fullscreen={isFullscreen} quest={activeJournalQuest} onOpen={open} onSound={toggleSound} onFullscreen={toggleFullscreen} onEditHotbar={index => {
         setHotbarEditSlot(index);
         open('hotbar');
@@ -2446,7 +2449,7 @@ export default function Home() {
               </div>
               <span className="eyebrow">FIELD MAP</span>
               <div className="region-grid">
-                {Object.values(FIELDS).map((field) => {
+                {Object.values(FIELDS).filter(field => !field.warpOnly).map((field) => {
                   const unlocked = hero.unlockedFields.includes(field.id) && !unlockReason(hero, field.id);
                   return (
                     <article
@@ -2456,7 +2459,7 @@ export default function Home() {
                       <span className="eyebrow">{field.codename}</span>
                       <h3>{field.displayName}</h3>
                       <p>
-                        {field.id===IRONVEIL_ID ? <>Lv. {field.recommendedLevel} · Mine Tyrant · Entry Lv. {field.minLevel}+</> : field.id===WILDS_ID ? <>Lv. {field.recommendedLevel} · Forest Warden · Entry Lv. {field.minLevel}+</> : field.id===FROSTFIRE_ID ? <>Lv. {field.recommendedLevel} · Snowfields · Frozen lakes</> : <>Lv. {field.recommendedLevel} ·{' '}
+                        {field.id===DEEP_OCEAN_ID ? <>Lv. 32+ · Exploration · Sunken Ruins G7</> : field.id===SUNKEN_ID ? <>Lv. 32–42 · Elite · Abyssal Leviathan</> : field.id===IRONVEIL_ID ? <>Lv. {field.recommendedLevel} · Mine Tyrant · Entry Lv. {field.minLevel}+</> : field.id===WILDS_ID ? <>Lv. {field.recommendedLevel} · Forest Warden · Entry Lv. {field.minLevel}+</> : field.id===FROSTFIRE_ID ? <>Lv. {field.recommendedLevel} · Snowfields · Frozen lakes</> : <>Lv. {field.recommendedLevel} ·{' '}
                         {field.cityId === hero.currentCity
                           ? 'wilayah terhubung'
                           : 'frontier'}</>}
@@ -2467,7 +2470,7 @@ export default function Home() {
                         onClick={() => game.current?.changeRegion(field.id)}
                       >
                         {unlocked
-                          ? field.id===IRONVEIL_ID?'Enter Ironveil Mines':field.id===WILDS_ID?'Enter Whispering Wilds':'Teleport field'
+                          ? field.id===DEEP_OCEAN_ID?'Enter Deep Ocean':field.id===SUNKEN_ID?'Enter Sunken Ruins':field.id===IRONVEIL_ID?'Enter Ironveil Mines':field.id===WILDS_ID?'Enter Whispering Wilds':'Teleport field'
                           : unlockReason(hero, field.id)}
                       </button>
                     </article>

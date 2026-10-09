@@ -1,4 +1,5 @@
 'use client';
+import { isUnderwaterSubmap } from '@/lib/game/underwater-regions';
 import { FROSTFIRE_ID } from '@/lib/game/frostfire-highlands-layout';
 import {
   memo,
@@ -196,6 +197,7 @@ const QuestTracker = memo(function QuestTracker({
 });
 const RightHUDCluster = memo(function RightHUDCluster({
   mapRef,
+  mapDrawsGrid = false,
   gold,
   weatherLabel = 'Pagi yang tenang',
   muted,
@@ -207,6 +209,7 @@ const RightHUDCluster = memo(function RightHUDCluster({
   onCamera,
 }: {
   mapRef: RefObject<HTMLCanvasElement | null>;
+  mapDrawsGrid?: boolean;
   gold: number;
   weatherLabel?: string;
   muted: boolean;
@@ -222,12 +225,12 @@ const RightHUDCluster = memo(function RightHUDCluster({
       <div className="hud-minimap-frame">
       <button className="hud-minimap" onClick={onMap} aria-label="Buka peta">
         <canvas ref={mapRef} width={240} height={240} />
-        <svg className="hud-map-grid" viewBox="0 0 240 240" aria-hidden="true">
+        {!mapDrawsGrid && <svg className="hud-map-grid" viewBox="0 0 240 240" aria-hidden="true">
           {[1, 2, 3, 4, 5, 6].map(index => {
             const offset = index * 240 / 7;
             return <path key={index} d={`M${offset} 0V240 M0 ${offset}H240`} />;
           })}
-        </svg>
+        </svg>}
         <svg
           className="hud-compass-rim"
           viewBox="0 0 240 240"
@@ -237,12 +240,12 @@ const RightHUDCluster = memo(function RightHUDCluster({
           <rect x="10" y="10" width="220" height="220" />
           <path d="M6 30V6H30 M210 6H234V30 M234 210V234H210 M30 234H6V210" />
         </svg>
-        <span className="hud-map-columns" aria-hidden="true">
+        {!mapDrawsGrid && <span className="hud-map-columns" aria-hidden="true">
           {[1, 2, 3, 4, 5, 6, 7].map(column => <span key={column}>{column}</span>)}
-        </span>
-        <span className="hud-map-rows" aria-hidden="true">
+        </span>}
+        {!mapDrawsGrid && <span className="hud-map-rows" aria-hidden="true">
           {['A', 'B', 'C', 'D', 'E', 'F', 'G'].map(row => <span key={row}>{row}</span>)}
-        </span>
+        </span>}
         <span className="hud-cardinal hud-cardinal-n" aria-hidden="true">N</span>
         <span className="hud-cardinal hud-cardinal-w" aria-hidden="true">W</span>
         <span className="hud-cardinal hud-cardinal-e" aria-hidden="true">E</span>
@@ -436,6 +439,7 @@ export function GameplayHUD({
         </div>
         <HUDFrame id="right" label="Minimap">
           <RightHUDCluster
+            mapDrawsGrid={state.mapId === 'sunken-ruins-underwater-v1' || isUnderwaterSubmap(state.mapId)}
             mapRef={mapRef}
             gold={state.hero.gold}
             weatherLabel={state.mapId==='ironveil-mines-interior-v1'?'Underground · Lantern light':state.mapId==='ironveil-mines-exterior-v1'?'Hot midday · Scattered clouds':state.mapId==='whispering-wilds-v2'?'Chaotic blue daylight':state.mapId===FROSTFIRE_ID?'Wind-driven snow':undefined}
