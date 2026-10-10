@@ -1,4 +1,5 @@
 import { resolveHeroSkill, skillLevel, type Hero } from './rules.ts';
+import { statDisplayLabel, statDisplayValue } from './stat-presentation.ts';
 import type { SkillDefinition } from './skills.ts';
 import type { SkillDefinitionV3 } from './skill-progression-v3.ts';
 import { weaponRequirementLabel } from './weapon-style.ts';
@@ -61,7 +62,7 @@ const jobLabels: Record<string, string> = {
 };
 
 const titleCase = (value: string) => value.replaceAll('_', ' ').replace(/\b\w/g, (letter) => letter.toUpperCase());
-const effectLabel = (value: string) => effectLabels[value] ?? titleCase(value);
+const effectLabel = (value: string) => effectLabels[value] ?? statDisplayLabel(value);
 const coefficient = (value: number, precise = false) => `×${value.toFixed(precise && Math.abs(value * 100 - Math.round(value * 100)) > 1e-8 ? 3 : 2)}`;
 const percentage = (value: number) => `${value % 1 === 0 ? value : value.toFixed(1)}%`;
 const rankIndex = (rank: number, maxRank: number) => Math.min(Math.max(1, rank), maxRank) - 1;
@@ -93,7 +94,7 @@ function rowsForEffects(definition: SkillDefinitionV3, runtime: SkillDefinition,
     ] : []),
     ...(assasin.distance !== undefined ? [{label:'Backward Movement',value:`${assasin.distance} m · collision-safe, no iframe / invulnerability`}] : []),
     ...(assasin.duration !== undefined ? [{label:'Concealment Duration',value:`${assasin.duration}s`}] : []),
-    ...(assasin.mechanics?.crippling ? [{label:'Crippling Slow',value:`+${assasin.mechanics.crippling.bonusPPByRank[rankIndex(rank,definition.maxRank)]} pp · ${assasin.mechanics.crippling.duration}s`},
+    ...(assasin.mechanics?.crippling ? [{label:'Additional Movement Slow',value:`+${assasin.mechanics.crippling.bonusPPByRank[rankIndex(rank,definition.maxRank)]}% · ${assasin.mechanics.crippling.duration}s`},
       {label:'Slow Caps',value:`PvE ${POISON_SLOW_CAP.pve}% / PvP ${POISON_SLOW_CAP.pvp}%`}] : []),
     ...(assasin.eclipse ? [
       {label:'Eclipse Base Damage / Tick',value:`${assasin.eclipse.min} – ${assasin.eclipse.max}`},
@@ -104,7 +105,7 @@ function rowsForEffects(definition: SkillDefinitionV3, runtime: SkillDefinition,
   ];
   const rogue = rogueSkillDetails(definition.id, rank);
   if (rogue) return [
-    ...(rogue.accuracy !== undefined ? [{ label: 'Accuracy', value: `+${rogue.accuracy}` }, { label: 'Critical Rate', value: `+${rogue.crit} pp` }] : []),
+    ...(rogue.accuracy !== undefined ? [{ label: 'Accuracy', value: `+${rogue.accuracy}` }, { label: 'Critical Rate', value: `+${rogue.crit}%` }] : []),
     ...(rogue.distance !== undefined ? [{ label: 'Movement Distance', value: `${rogue.distance} m` }] : []),
     ...(rogue.duration !== undefined ? [{ label: 'Concealment Duration', value: `${rogue.duration}s` }] : []),
     ...(rogue.ambush?.interaction?.mode === 'POSITION_OVERRIDE' ? [{ label: 'Front', value: 'Normal damage' }, ...positionalEffectRows(runtime, rank)] : []),
@@ -115,14 +116,14 @@ function rowsForEffects(definition: SkillDefinitionV3, runtime: SkillDefinition,
     const fields = [
       ['Accuracy', v.accuracy, ''], ['Skill Accuracy', v.skillAccuracy, ''],
       ['Core Thief Mana Reduction', v.coreThiefManaReductionPercent, '%'],
-      ['Attack Speed', v.attackSpeedPercent, '%'], ['Critical Rate', v.criticalRatePercentagePoints, ' pp'],
-      ['Evasion', v.evasion, ' pp'], ['Movement Speed', v.movementSpeedPercent, '%'],
-      ['Duration', v.durationSeconds, 's'], ['Your Weakpoint Critical Rate', v.weakpointCritPercentagePoints, ' pp'],
+      ['Attack Speed', v.attackSpeedPercent, '%'], ['Critical Rate', v.criticalRatePercentagePoints, '%'],
+      ['Evasion', v.evasion, ''], ['Movement Speed', v.movementSpeedPercent, '%'],
+      ['Duration', v.durationSeconds, 's'], ['Critical Rate against target', v.weakpointCritPercentagePoints, '%'],
       ['Your Weakpoint Final Damage Payoff', v.ownWeakpointFinalDamagePercent, '%'],
       ['Flank Final Damage', v.flankFinalDamagePercent, '%'], ['Rear Final Damage', v.rearFinalDamagePercent, '%'],
       ['Reposition Distance', v.repositionDistanceMeters, ' m'],
     ] as const;
-    return fields.filter(([, value]) => value !== undefined).map(([label, value, unit]) => ({ label, value: `${value}${unit}` }));
+    return fields.filter(([, value]) => value !== undefined).map(([label, value, unit]) => ({ label, value: `${unit === 's' || unit === ' m' || value! < 0 ? '' : '+'}${value}${unit}` }));
   }
   if (definition.id === 'v3-blade-master-twin-blade-mastery') {
     const accuracy = runtime.rankEffects?.[rankIndex(rank, runtime.maxLevel)]?.modifiers?.[0]?.stats?.flat?.accuracy ?? 0;
@@ -144,7 +145,7 @@ function rowsForEffects(definition: SkillDefinitionV3, runtime: SkillDefinition,
   const buffs = rankEffect?.temporaryBuffs ?? [];
   for (const buff of buffs) {
     const stats = buff.modifier.stats;
-    for (const [key, value] of Object.entries(stats?.flat ?? {})) rows.push({ label: effectLabel(key), value: `+${value}` });
+    for (const [key, value] of Object.entries(stats?.flat ?? {})) rows.push({ label: effectLabel(key), value: statDisplayValue(key, value!) });
     for (const [key, value] of Object.entries(stats?.percent ?? {})) rows.push({ label: effectLabel(key), value: `+${value}%` });
     if (buff.modifier.action?.damagePercent !== undefined) rows.push({ label: 'Physical Damage', value: `+${buff.modifier.action.damagePercent}%` });
   }
@@ -153,6 +154,16 @@ function rowsForEffects(definition: SkillDefinitionV3, runtime: SkillDefinition,
 
 function rowsForMechanics(definition: SkillDefinitionV3, runtime: SkillDefinition, rank: number) {
   const rows: SkillPresentationRow[] = [];
+  if (runtime.vanish) return [
+    { label: 'Duration', value: 'No Time Limit' },
+    { label: 'Cooldown Begins', value: 'When Vanish Ends' },
+    { label: 'Breaks On', value: 'Offensive Action / Successful Direct Damage' },
+    { label: 'Stealth', value: 'Miss / Evade and periodic DoT do not break Vanish. No cleanse or invulnerability. Death, job change and explicit Reveal end Vanish.' },
+    ...(runtime.vanish.job === 'rogue' ? [
+      { label: 'Effect', value: 'Opening offensive action grants Ambush before the attack snapshots its effects.' },
+      { label: 'Ambush', value: '4s · +15% Final Damage for eligible Rogue attacks; Backpierce uses Rear only. Consumed on first successful damaging impact.' },
+    ] : []),
+  ];
   const assasin=assasinSkillDetails(definition.id,rank);
   if (assasin) {
     const config=assasin.mechanics;
@@ -163,7 +174,6 @@ function rowsForMechanics(definition: SkillDefinitionV3, runtime: SkillDefinitio
       ...(config?.normalPoison ? [{label:'Your Poison',value:config.normalPoison==='REFRESH_OR_APPLY'
         ? 'Successful hit: 0 own stacks → apply 1; existing own Poison → refresh only, no extra stack.'
         : `+1 stack per successful hit; maximum +${config.maxPoisonStacksGrantedPerExecution} per execution. At 5: refresh only. Evade grants none.`}] : []),
-      ...(config?.vanish ? [{label:'Break Conditions',value:'Direct attack, meaningful direct incoming damage, or expiry. Incoming/outgoing DoT does not break Vanish. No cleanse, invulnerability, or Ambush.'}] : []),
       ...(config?.execution ? [{label:'Requires',value:`Target HP ≤${EXECUTION_HP_THRESHOLD*100}% and your normal Poison`},
         {label:'Own Poison Final Damage',value:EXECUTION_PAYOFF.map((value,i)=>`${i+1}: +${Math.round(value*100)}%`).join(' / ')},
         {label:'Consumption',value:'Successful damaging hit consumes all YOUR normal Poison; Evade consumes none. Venom Eclipse remains.'}] : []),
@@ -177,11 +187,11 @@ function rowsForMechanics(definition: SkillDefinitionV3, runtime: SkillDefinitio
   if (rogue) return [
     ...(rogue.hands.length ? [{ label: 'Sequence', value: rogue.hands.map(hand => hand === 'MAIN' ? 'Main Hand' : hand === 'OFF' ? 'Off Hand' : 'Both Daggers').join(' → ') },
       { label: 'Hit Distribution', value: rogue.weights.map(weight => `${Math.round(weight * 100)}%`).join(' / ') }] : []),
-    ...(rogue.ambush?.requiresAmbush ? [{ label: 'Requires Ambush', value: 'Must be ACTIVE before casting' }] : []),
+    ...(rogue.ambush?.requiresAmbush ? [{ label: 'Requires Ambush', value: 'Active Ambush or an offensive opening from Rogue Vanish' }] : []),
     ...(rogue.ambush?.ambushEligible ? [{ label: 'Ambush Interaction', value: rogue.ambush.interaction?.mode === 'POSITION_OVERRIDE'
       ? `Counts as ${titleCase(rogue.ambush.interaction.position === 'side' ? 'flank' : rogue.ambush.interaction.position)}; uses that positional bonus only, with no additional default Ambush multiplier. Consumed on first successful damaging hit.`
       : `+${percentage(Math.round((AMBUSH_FINAL_DAMAGE - 1) * 100))} Final Damage for the execution; consumed on first successful damaging hit` }] : []),
-    ...(rogue.ambush?.generator ? [{ label: 'Ambush Generation', value: rogue.ambush.generator.source === 'SLIPSTEP' ? `Finish movement at Flank / Rear of selected target → Ambush ${AMBUSH_DURATION}s` : `Successful activation → Ambush ${AMBUSH_DURATION}s; attacks/direct damage end concealment` }] : []),
+    ...(rogue.ambush?.generator ? [{ label: 'Ambush Generation', value: rogue.ambush.generator.source === 'SLIPSTEP' ? `Finish movement at Flank / Rear of selected target → Ambush ${AMBUSH_DURATION}s` : `Configured successful effect → Ambush ${AMBUSH_DURATION}s` }] : []),
   ];
   const thief = resolveThiefCanonicalRank(definition.id, rank);
   if (thief) {
@@ -214,7 +224,7 @@ function rowsForMechanics(definition: SkillDefinitionV3, runtime: SkillDefinitio
   const armor = tags.find((tag) => tag.startsWith('armor-break-payoff:'));
   if (armor) rows.push({ label: 'Your Armor Break', value: `Final Damage +${armor.split(':')[1]}%` });
   if (runtime.armorBreakStrengthByRank) {
-    rows.push({ label: 'Defense Reduction', value: `${runtime.armorBreakStrengthByRank[rankIndex(rank, runtime.maxLevel)]}%` });
+    rows.push({ label: 'Defense', value: `-${runtime.armorBreakStrengthByRank[rankIndex(rank, runtime.maxLevel)]}%` });
     rows.push({ label: 'Duration', value: `${runtime.statuses?.[0]?.duration ?? 0}s` });
   }
   if (tags.includes('fury-harvest-recovery')) {

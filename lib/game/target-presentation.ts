@@ -71,7 +71,7 @@ export class TargetPresentation {
     if (view.poison) statuses.push(view.poison.ownStacks > 0 ? `Your Poison ×${view.poison.ownStacks}` : 'Poison · other source');
     if (view.eclipse) statuses.push(`${view.eclipse.label} · ${view.eclipse.remaining.toFixed(1)}s`);
     this.status.title = view.poison
-      ? `Poison DoT · Your stacks: ${view.poison.ownStacks}/5 · Sources: ${view.poison.sources} · Movement Slow: ${view.poison.slowPercent}%`
+      ? `Poison DoT · Your stacks: ${view.poison.ownStacks}/5 · Sources: ${view.poison.sources} · Movement Speed -${view.poison.slowPercent}%`
       : '';
     this.status.textContent = statuses.join('  ·  ');
     this.status.hidden = statuses.length === 0;

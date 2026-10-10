@@ -7,6 +7,7 @@
  */
 
 import type { WeaponContributionMode } from './dual-wield.ts';
+import { migrateVanishSkillMap } from './vanish-migration.ts';
 import { familyPurchaseBlock, getFamilyPath, normalizeSkillFamilyState, reconcileSkillFamilies, resolveSkillFamily, type SkillFamilyMetadata, type SkillFamilyState } from './skill-family.ts';
 export type SkillTierV3 = 'adventurer' | 'core' | 'specialization' | 'advanced';
 export type SkillTypeV3 =
@@ -228,8 +229,8 @@ export function normalizeSkillProgressionV3(
     totalEarnedSP: typeof source.totalEarnedSP === 'number' && Number.isFinite(source.totalEarnedSP)
       ? Math.max(0, Math.floor(source.totalEarnedSP))
       : 0,
-    skillRanks,
-    grantedRanks,
+    skillRanks: migrateVanishSkillMap(skillRanks),
+    grantedRanks: migrateVanishSkillMap(grantedRanks),
     ...(source.skillFamilies ? { skillFamilies: normalizeSkillFamilyState(source.skillFamilies) } : {}),
     chosenCoreJob: typeof source.chosenCoreJob === 'string' ? source.chosenCoreJob : null,
     chosenSpecialization: typeof source.chosenSpecialization === 'string' ? source.chosenSpecialization : null,

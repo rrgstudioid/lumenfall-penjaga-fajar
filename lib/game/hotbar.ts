@@ -16,6 +16,7 @@ import type { Hero } from './rules.ts';
 import { heroFamilyHotbarBinding, heroFamilySkillActive, heroFamilySkillReference, heroFamilyContext } from './skill-family-runtime.ts';
 import { isFamilyBinding } from './skill-family.ts';
 import { thiefJobCapabilities } from './thief-job-capabilities.ts';
+import { canonicalVanishSkillId } from './vanish-migration.ts';
 
 export const PRIMARY_HOTBAR_SIZE = 10;
 const v3HotbarSkills = (hero: Hero) => [
@@ -126,7 +127,8 @@ function entryId(value: unknown): string | null {
   return null;
 }
 export function canonicalHotbarId(hero: Hero, value: unknown): string | null {
-  const raw = entryId(value)?.replace(/^(skill|item|action):/, '');
+  const input = entryId(value)?.replace(/^(skill|item|action):/, '');
+  const raw = input && hero.skillArchitectureVersion === 3 ? canonicalVanishSkillId(input) : input;
   if (!raw) return null;
   if (raw === 'dodge') return null;
   if (heroFamilyContext(hero)?.skills[raw]?.familyId) return heroFamilyHotbarBinding(hero, raw);

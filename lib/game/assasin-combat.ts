@@ -11,23 +11,10 @@ const owner = (actor:PoisonActor) => actor.characterId ?? actor.slotId;
  * store remains the sole authority for its stacks, cadence and strongest Slow. */
 export class AssasinCombatState<T extends Target> {
   private eclipses = new WeakMap<T,Map<string,EclipseRecord>>();
-  private vanish?: { owner:string; expiresAt:number };
   constructor(readonly poison:AssasinPoisonState<T>, private dealTick:(target:T,tick:EclipseTick)=>void, private rng:()=>number=Math.random) {}
-  clearSelf() { this.vanish=undefined; }
-  clear() { this.clearSelf(); this.eclipses=new WeakMap(); }
+  clear() { this.eclipses=new WeakMap(); }
   clearTarget(target:T) { this.eclipses.delete(target); }
   hasPending(target:T) { return !!this.eclipses.get(target)?.size; }
-  conceal(actor:PoisonActor, now:number, duration:number) {
-    if (!canApplyAssasinPoison(actor) || !Number.isFinite(now) || !(duration>0) || !Number.isFinite(duration)) return false;
-    this.vanish={owner:owner(actor),expiresAt:now+duration}; return true;
-  }
-  concealed(actor:PoisonActor,now:number) {
-    if (!canApplyAssasinPoison(actor) || this.vanish?.owner!==owner(actor) || (this.vanish?.expiresAt ?? 0)<=now) this.clearSelf();
-    return this.vanish ? { remaining:this.vanish.expiresAt-now } : null;
-  }
-  breakConcealment(kind:'attack'|'direct'|'dot', damage=0) {
-    if (kind==='attack' || kind==='direct' && damage>0) this.clearSelf();
-  }
   requirement(actor:PoisonActor, config:AssasinSkillConfig, target:T|undefined, now:number) {
     if (!canApplyAssasinPoison(actor)) return {ok:false,reason:'Assasin required.'};
     if (config.execution && (!target || target.hp<=0 || target.max<=0 || target.hp>target.max*EXECUTION_HP_THRESHOLD || this.poison.getPoisonStacks(owner(actor),target,now)<1))

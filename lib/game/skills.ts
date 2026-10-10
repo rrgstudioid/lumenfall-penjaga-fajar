@@ -133,6 +133,7 @@ export type SkillDefinition = SkillFamilyMetadata & {
   rogueMovement?: 'APPROACH' | 'INPUT_REPOSITION';
   /** Explicit Rogue-only opt-in; inherited skills do not acquire this mechanic. */
   rogueAmbush?: RogueAmbushConfig;
+  vanish?: import('./vanish.ts').VanishConfig;
   /** Optional replaceable presentation cue, never the authority for hit timing. */
   motionArchetype?: string;
   /** Opt-in utility/passive action: resources and effects only, no damage hits. */
@@ -345,7 +346,7 @@ export const SPECIALIZATIONS: Record<
   rogue: {
     ...CORE_JOBS.rogue, name: 'Rogue', role: 'High-Burst Backline Diver', coreJob: 'thief', weapon: 'dual_dagger',
     specializations: ['rogue'], passiveName: 'Dual Dagger Mastery', passiveId: 'v3-rogue-dual-dagger-mastery',
-    description: 'Single-target positional burst, Ambush, dan short concealment.',
+    description: 'Single-target positional burst, Ambush, dan Vanish.',
   },
   gatotkaca: {
     ...CORE_JOBS.warrior,

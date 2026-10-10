@@ -1,4 +1,5 @@
 'use client';
+import { statBonusText } from '@/lib/game/stat-presentation';
 import { JobText } from './job-presentation-context';
 import { presentJobText } from '@/lib/game/job-presentation';
 import { useState, type CSSProperties, type ReactNode } from 'react';
@@ -307,7 +308,7 @@ export function CharacterScreen({
                     {socket.rune.affixes
                       .map(
                         (a) =>
-                          `${a.label} +${a.value}${a.unit === 'percent' ? '%' : ''}`,
+                          statBonusText(a.stat, a.value),
                       )
                       .join(' · ')}
                   </small>

@@ -38,6 +38,7 @@ import { canPurchaseSkillRank, normalizeSkillProgressionV3, purchaseSkillRankV3,
 import { heroFamilyContext, heroFamilyHotbarBinding, heroFamilyNodeStates, heroFamilySkillActive, heroFamilySkillReference, heroSkillCooldownRemaining, reconcileHeroSkillFamilies, skillFamilyDefinitions } from './skill-family-runtime.ts';
 import { isFamilyBinding } from './skill-family.ts';
 import { reconcileFamilyHotbarBindings } from './hotbar.ts';
+import { migrateVanishSkillMap } from './vanish-migration.ts';
 import { meetsWeaponRequirement, resolveWeaponStyle } from './weapon-style.ts';
 import { isDaggerItem, resolveDaggerEquipment, reconcileDaggerEquipment, validateDaggerEquip } from './dagger.ts';
 import {
@@ -445,7 +446,7 @@ export function combatProfile(hero: Hero): CombatProfile {
   }
   if (hero.skillArchitectureVersion === 3 && hero.coreJob === 'thief' && hero.specialization === 'rogue') {
     return { ...combatProfile({ ...hero, specialization: null }), label: 'Rogue', title: 'High-Burst Backline Diver',
-      description: 'Dual Dagger, positional burst, Ambush, dan short concealment.', weapon: 'dual_dagger' };
+      description: 'Dual Dagger, positional burst, Ambush, dan Vanish.', weapon: 'dual_dagger' };
   }
   if (hero.skillArchitectureVersion === 3 && hero.coreJob === 'thief' && !hero.specialization) {
     // Preserve the existing foundation's baseline numbers; identity is not a balance change.
@@ -1207,7 +1208,7 @@ export function getSkillManaCost(hero:Hero, skillId:string) {
   if(!skill)return 0;
   return resolveHeroSkill(hero,skill).manaCost;
 }
-export function canCastSkill(hero:Hero,skillId:string,cooldowns:Record<string,number>={},weapon?:WeaponType,resolvedManaCost?:number, combat?: { ambush: RogueAmbushState; now: number; assasinRequirement?: (skill: SkillDefinition) => { ok: boolean; reason: string } }) {
+export function canCastSkill(hero:Hero,skillId:string,cooldowns:Record<string,number>={},weapon?:WeaponType,resolvedManaCost?:number, combat?: { ambush: RogueAmbushState; vanish?: import('./vanish.ts').VanishState; now: number; assasinRequirement?: (skill: SkillDefinition) => { ok: boolean; reason: string } }) {
   skillId = heroFamilySkillReference(hero, skillId) ?? '';
   const skill=activeSkills(hero).find(entry=>entry.id===skillId);
   if(!skill)return {ok:false,reason:'Skill tidak terdaftar.'};
@@ -1216,6 +1217,7 @@ export function canCastSkill(hero:Hero,skillId:string,cooldowns:Record<string,nu
   if (!heroFamilySkillActive(hero, skill.id)) return { ok: false, reason: 'Skill telah digantikan oleh anggota family aktif.' };
   if(hero.hp<=0)return {ok:false,reason:'Karakter harus hidup untuk menggunakan skill.'};
   if(!isSkillUnlocked(hero,skill))return {ok:false,reason:`${skill.name} terbuka pada level ${skill.unlockLevel} dan harus dipelajari.`};
+  if (skill.vanish && combat?.vanish?.status(hero)) return {ok:false,reason:'Vanish sudah aktif.'};
   if (skill.assasin) {
     if (!thiefJobCapabilities(hero).canUseAssasinSkills) return {ok:false,reason:'ASSASIN_REQUIRED'};
     if (skill.assasin.normalPoison && venomMasteryRank(hero) < 1) return {ok:false,reason:'Requires Venom Mastery R1.'};
@@ -1225,7 +1227,7 @@ export function canCastSkill(hero:Hero,skillId:string,cooldowns:Record<string,nu
     }
   }
   if (skill.rogueAmbush) {
-    const requirement = (combat?.ambush ?? new RogueAmbushState()).requirement(hero, skill, combat?.now ?? 0);
+    const requirement = (combat?.ambush ?? new RogueAmbushState()).requirement(hero, skill, combat?.now ?? 0, combat?.vanish?.rogueOpeningAvailable(hero) ?? false);
     if (!requirement.ok) return requirement;
   }
   if (skill.assasinPoison) {
@@ -2670,7 +2672,7 @@ function normalizedHero(value: Record<string, unknown>, slotId = 'slot-1') {
     skillPoints: integer(value.skillPoints, 0, 500, Math.max(0, level - 1)),
     statPoints: integer(value.statPoints, 0, 999, Math.max(0, level - 1) * STAT_POINTS_PER_LEVEL),
     allocatedStats,
-    skillLevels: recordNumbers(value.skillLevels),
+    skillLevels: value.skillArchitectureVersion === 3 ? migrateVanishSkillMap(recordNumbers(value.skillLevels)) : recordNumbers(value.skillLevels),
     passiveLevels: recordNumbers(value.passiveLevels),
     jobHistory: value.jobHistory && typeof value.jobHistory === 'object' ? Object.fromEntries(Object.entries(value.jobHistory).filter(([,entry])=>entry && typeof entry === 'object' && Number.isFinite((entry as {level:number}).level)).map(([id,entry])=>{const record=entry as {level:number;chapter:number;acquiredAt:number};return [id,{level:integer(record.level,1,progressionRules({progressionArchitecture:architecture}).contentCap,1),chapter:integer(record.chapter,1,WORLD_CONFIG.chapterCap,1),acquiredAt:integer(record.acquiredAt,0,Number.MAX_SAFE_INTEGER,0)}];})) : {},
     masteryChoices:
@@ -2836,6 +2838,8 @@ function normalizedHero(value: Record<string, unknown>, slotId = 'slot-1') {
         : skill.tree?.architecture==='v2' ? 0 : skill.slot === 4 && level < 45 ? 0 : 1,
     );
   }
+  if (h.skillArchitectureVersion === 3 && h.rankOwnership?.active)
+    h.rankOwnership = { ...h.rankOwnership, active: migrateVanishSkillMap(h.rankOwnership.active) };
   h.rankOwnership=normalizedRankOwnership(h);
   h.hp = integer(value.hp, 1, maxHP(h), maxHP(h));
   h.maxMana = derivedStats(h).maxMana;

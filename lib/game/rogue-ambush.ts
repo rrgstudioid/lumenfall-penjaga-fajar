@@ -15,7 +15,6 @@ export type RogueAmbushConfig = {
   requiresAmbush?: boolean;
   interaction?: AmbushInteraction;
   generator?:
-    | { source: 'SMOKE_VEIL' }
     | { source: 'SLIPSTEP' }
     | { source: 'OTHER_CONFIGURED_SOURCE'; eventId: string };
 };
@@ -29,7 +28,7 @@ export type AmbushActor = {
   skillProgressionV3?: { chosenCoreJob: string | null; chosenSpecialization: string | null; chosenAdvancedJob?: string | null };
 };
 type AmbushSkill = { id: string; targetType: string; nonDamaging?: boolean; rogueAmbush?: RogueAmbushConfig };
-type Opportunity = { actorId: string; sourceId: string; source: NonNullable<RogueAmbushConfig['generator']>['source']; expiresAt: number; consumedBy?: number };
+type Opportunity = { actorId: string; sourceId: string; source: NonNullable<RogueAmbushConfig['generator']>['source'] | 'VANISH_OPENING'; expiresAt: number; consumedBy?: number };
 export type AmbushRequirement = { ok: boolean; reason: string; code?: 'ROGUE_REQUIRED' | 'AMBUSH_REQUIRED' | 'AMBUSH_CONFIGURATION_INVALID' };
 // Do not confuse the legacy CoreJobId "rogue" with the V3 Thief specialization.
 export const isRogueActor = (actor: AmbushActor) => actor.hp > 0 && thiefJobCapabilities(actor).canGenerateAmbush;
@@ -41,33 +40,34 @@ type SpecialInteraction = (hit: ResolvedSkillHit, context: ImpactContext) => Res
 /** Actor-owned simulation state. Never attach to Hero, activeBuffs or save data. */
 export class RogueAmbushState {
   private opportunity: Opportunity | null = null;
-  private concealment: { actorId: string; sourceId: string; expiresAt: number } | null = null;
   private ownerId: string | null = null;
   private epoch = 0;
   private executionId = 0;
   private special = new Map<string, SpecialInteraction>();
 
-  clear() { this.opportunity = null; this.concealment = null; this.ownerId = null; this.epoch++; }
+  clear() { this.opportunity = null; this.ownerId = null; this.epoch++; }
   update(actor: AmbushActor, now: number) {
     if (!isRogueActor(actor) || !Number.isFinite(now) || this.ownerId !== null && this.ownerId !== identity(actor)) { this.clear(); return; }
     this.ownerId = identity(actor);
     if (this.opportunity && this.opportunity.expiresAt <= now) this.opportunity = null;
-    if (this.concealment && this.concealment.expiresAt <= now) this.concealment = null;
   }
   status(actor: AmbushActor, now: number) {
     this.update(actor, now);
     return this.opportunity ? { active: true as const, actorId: this.opportunity.actorId, sourceId: this.opportunity.sourceId,
       source: this.opportunity.source, expiresAt: this.opportunity.expiresAt, remaining: this.opportunity.expiresAt - now } : null;
   }
-  concealed(actor: AmbushActor, now: number) { this.update(actor, now); return this.concealment ? { ...this.concealment } : null; }
-  breakConcealment(reason: 'ATTACK' | 'DIRECT_DAMAGE', damage = 0) {
-    if (reason === 'ATTACK' || Number.isFinite(damage) && damage > 0) this.concealment = null;
+  /** Called only by the committed offensive Vanish break, never activation or damage. */
+  grantVanishOpening(actor: AmbushActor, sourceId: string, now: number) {
+    this.update(actor, now);
+    if (!isRogueActor(actor) || !Number.isFinite(now)) return false;
+    this.opportunity = { actorId: identity(actor), sourceId, source: 'VANISH_OPENING', expiresAt: now + AMBUSH_DURATION };
+    return true;
   }
   registerSpecialInteraction(id: string, resolve: SpecialInteraction) {
     if (!id || this.special.has(id)) throw new Error('Ambush interaction must have a unique stable ID.');
     this.special.set(id, resolve);
   }
-  requirement(actor: AmbushActor, skill: AmbushSkill, now: number): AmbushRequirement {
+  requirement(actor: AmbushActor, skill: AmbushSkill, now: number, vanishOpeningAvailable = false): AmbushRequirement {
     const config = skill.rogueAmbush;
     if (!config) return { ok: true, reason: '' };
     this.update(actor, now);
@@ -75,22 +75,18 @@ export class RogueAmbushState {
     if (config.ambushEligible && !eligible(skill) || config.interaction && !config.ambushEligible ||
       config.interaction?.mode === 'SPECIAL' && !this.special.has(config.interaction.handlerId))
       return { ok: false, code: 'AMBUSH_CONFIGURATION_INVALID', reason: 'Konfigurasi Ambush skill belum valid.' };
-    if ((config.requiresAmbush || config.interaction?.mode === 'REQUIRES_AMBUSH') && !this.opportunity)
+    if ((config.requiresAmbush || config.interaction?.mode === 'REQUIRES_AMBUSH') && !this.opportunity && !(vanishOpeningAvailable && eligible(skill)))
       return { ok: false, code: 'AMBUSH_REQUIRED', reason: 'Ambush harus aktif.' };
     return { ok: true, reason: '' };
   }
   /** Call only after the configured activation/movement/effect has succeeded. */
   generate(actor: AmbushActor, skill: AmbushSkill, now: number, event:
-    | { type: 'ACTIVATED'; concealmentDuration: number }
     | { type: 'REPOSITION_COMPLETE'; moved: boolean; position?: PositionContext }
     | { type: 'CONFIGURED_EFFECT'; eventId: string }) {
     this.update(actor, now);
     const source = skill.rogueAmbush?.generator;
     if (!isRogueActor(actor) || !source || !Number.isFinite(now)) return false;
-    if (source.source === 'SMOKE_VEIL') {
-      if (event.type !== 'ACTIVATED' || !skill.nonDamaging || !Number.isFinite(event.concealmentDuration) || event.concealmentDuration <= 0) return false;
-      this.concealment = { actorId: identity(actor), sourceId: skill.id, expiresAt: now + event.concealmentDuration };
-    } else if (source.source === 'SLIPSTEP') {
+    if (source.source === 'SLIPSTEP') {
       if (event.type !== 'REPOSITION_COMPLETE' || !event.moved || !event.position) return false;
       const relation = relativePosition(event.position);
       if (relation !== 'side' && relation !== 'rear') return false;

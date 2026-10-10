@@ -31,7 +31,7 @@ export const COMBAT_STATS: CharacterStat[] = [
   { id: 'criticalRate', label: 'Critical Rate', unit: '%' },
   { id: 'criticalDamage', label: 'Critical Damage', unit: '%' },
   { id: 'attackSpeed', label: 'Attack Speed', unit: '%' },
-  { id: 'movementSpeed', label: 'Move Speed', unit: '%' },
+  { id: 'movementSpeed', label: 'Movement Speed', unit: '%' },
   { id: 'accuracy', label: 'Accuracy' },
   { id: 'evasion', label: 'Evasion' },
 ];
@@ -58,7 +58,7 @@ export const ADVANCED_STATS: CharacterStat[] = [
 ];
 export const CHARACTER_STAT_ROWS: CharacterStat[] = [
   { id: 'maxHP', label: 'Max HP' },
-  { id: 'maxMana', label: 'Max MP' },
+  { id: 'maxMana', label: 'Max Mana' },
   ...COMBAT_STATS,
   ...SURVIVAL_STATS,
   ...ADVANCED_STATS,

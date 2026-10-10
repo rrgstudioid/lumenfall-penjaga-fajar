@@ -71,6 +71,8 @@ export const SKILL_VISUALS = {
   'rogue-step': ['footprints', 'moon'],
   'rogue-flurry': ['daggers', 'speed'],
   'rogue-vanish': ['vanish', 'moon'],
+  'v3-rogue-vanish': ['vanish', 'moon'],
+  'v3-assasin-vanish': ['vanish', 'moon'],
   'rogue-awakening': ['swords', 'moon'],
   'hunter-aim': ['target', 'arrow'],
   'hunter-volley': ['arrows', 'leaf'],
