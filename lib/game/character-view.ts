@@ -32,7 +32,7 @@ export const CHARACTER_SLOTS: Array<{
 }> = [
   { id: 'head', label: 'Head', side: 'left' },
   { id: 'chest', label: 'Body Armor', side: 'left' },
-  { id: 'gloves', label: 'Gloves', side: 'left' },
+  { id: 'legs', label: 'Legs', side: 'left' },
   { id: 'boots', label: 'Boots', side: 'left' },
   { id: 'necklace', label: 'Necklace', side: 'left' },
   { id: 'earring1', label: 'Earring 1', side: 'left' },

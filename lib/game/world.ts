@@ -1349,6 +1349,9 @@ export class Game {
     model.animator.update(0,{movementMode:this.isSunken?'underwater':'ground'});
     this.scene.add(this.actor);
     if (this.isPlains) this.setPlainsCharacterShadows(true);
+    void model.equipmentReady.then(ok => {
+      if (!ok && !this.disposed && this.characterModel === model) this.message('Model Dragon Veil gagal dimuat. Lepas lalu pakai kembali equipment untuk mencoba lagi.');
+    });
     void model.ready.then(() => {
       if (!this.disposed && this.characterModel === model && this.isPlains)
         this.setPlainsCharacterShadows(true);

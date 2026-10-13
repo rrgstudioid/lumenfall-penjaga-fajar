@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import * as T from 'three';
 import { createItem } from './items.ts';
 import { shopStock, buyShopItem } from './city-services.ts';
-import { createNewCharacter, derivedStats, equipItem, unequipItem, parseSave, characterStatBreakdown } from './rules.ts';
+import { createNewCharacter, derivedStats, equipItem, unequipItem, parseSave, characterStatBreakdown, enhancementPreview, enhanceItem } from './rules.ts';
 import { createCharacterModel, disposeCharacterModel } from './character-model.ts';
 import { fitDragonVeilWings } from './dragon-veil-wings.ts';
 import { equipmentDropPool } from './monster-loot.ts';
@@ -19,7 +19,7 @@ await test('developer NPC gives Dragon Veil Wings; exact +500% speed works and p
   assert.equal(hero.gold, 0);
   const wings = hero.inventory.find(i => i.templateId === 'dragon-veil-wings')!;
   assert.equal(wings.baseStats.movementSpeed, 500);
-  assert.equal(wings.maxEnhancementLevel, 0);
+  assert.equal(wings.maxEnhancementLevel, 12);
   assert.equal(equipItem(hero, wings.id, 'chest').ok, false);
   assert.equal(equipItem(hero, wings.id, 'accessory').ok, true);
   assert.equal(derivedStats(hero).movementSpeed, baseline + 500);
@@ -33,6 +33,44 @@ await test('developer NPC gives Dragon Veil Wings; exact +500% speed works and p
   const normal = createItem('arunika-boots', {levelRequirement:1, baseStats:{movementSpeed:500}});
   restored.inventory.push(normal); equipItem(restored, normal.id);
   assert.equal(derivedStats(restored).movementSpeed, 135);
+});
+
+await test('old Wings migrate to +12 and use standard Forge costs, caps, locks and failure handling', () => {
+  const hero = createNewCharacter('slot-1', 'Wings Forge');
+  const wings = createItem('dragon-veil-wings', { id: 'owned-wings', maxEnhancementLevel: 0 });
+  hero.inventory.push(wings);
+  assert(equipItem(hero, wings.id).ok);
+  hero.storage.push({ ...wings, id: 'stored-wings', enhancementLevel: 3 });
+  hero.pendingLoot.push({ ...wings, id: 'pending-wings', enhancementLevel: 4 });
+  const loaded = parseSave(JSON.stringify(hero))!;
+  for (const location of ['inventory', 'storage', 'pendingLoot'] as const) {
+    const restored = loaded[location].find(i => i.templateId === 'dragon-veil-wings')!;
+    assert.equal(restored.maxEnhancementLevel, 12);
+    assert.equal(restored.enhancementLevel, hero[location].find(i => i.id === restored.id)!.enhancementLevel);
+  }
+  for (const id of ['iron', 'titanium', 'vibranium', 'meteorite-core']) loaded.inventory.push(createItem(id, { quantity: 99 }));
+  for (let level = 0; level < 12; level++) {
+    const preview = enhancementPreview(loaded, wings.id)!;
+    assert.equal(preview.materialId, ['iron', 'titanium', 'vibranium', 'meteorite-core'][Math.floor(level / 3)]);
+    assert.equal(preview.materialRequired, 1 + Math.floor(level / 3));
+    assert(enhanceItem(loaded, wings.id, 0, level).ok);
+    assert(derivedStats(loaded).movementSpeed <= 635, 'existing movement cap remains enforced');
+  }
+  assert.equal(enhancementPreview(loaded, wings.id), null);
+  assert.equal(enhanceItem(loaded, wings.id, 0).attempted, false);
+  const restored = parseSave(JSON.stringify(loaded))!;
+  assert.equal(restored.equipment.accessory, wings.id);
+  assert.equal(restored.inventory.find(i => i.id === wings.id)!.enhancementLevel, 12);
+  assert.equal(derivedStats(restored).movementSpeed, 635);
+  const failure = createNewCharacter('slot-2', 'Wings failure');
+  const risk = createItem('dragon-veil-wings', { enhancementLevel: 8, isLocked: true });
+  failure.inventory.push(risk, createItem('vibranium', { quantity: 3 }));
+  assert(equipItem(failure, risk.id).ok);
+  assert.equal(enhanceItem(failure, risk.id, 1).attempted, false);
+  failure.inventory.find(i => i.id === risk.id)!.isLocked = false;
+  assert.equal(enhanceItem(failure, risk.id, 1).attempted, true);
+  assert.equal(failure.equipment.accessory, null);
+  assert(!failure.inventory.some(i => i.id === risk.id));
 });
 
 function meshSource() {

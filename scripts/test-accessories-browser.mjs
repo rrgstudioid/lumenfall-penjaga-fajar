@@ -9,7 +9,7 @@ const out = 'work/accessories';
 await mkdir(out, { recursive: true });
 const hero = createNewCharacter('slot-1', 'Astra');
 hero.level = 35;
-for (const id of ['arunika-head', 'arunika-gloves', 'arunika-legs', 'arunika-boots', 'arunika-ring1', 'arunika-ring2', 'arunika-earring1', 'arunika-earring2']) {
+for (const id of ['arunika-head', 'arunika-legs', 'arunika-boots', 'arunika-ring1', 'arunika-ring2', 'arunika-earring1', 'arunika-earring2']) {
   const item = createItem(id);
   hero.inventory.push(item);
   equipItem(hero, item.id);

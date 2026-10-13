@@ -10,7 +10,7 @@ void test('Kota Arunika has one developer material NPC with a complete active ma
   assert.equal(developerNpcs.length, 1);
   assert.deepEqual(developerNpcs[0].services, ['buy', 'sell']);
 
-  const materials = Object.values(ITEM_CATALOG).filter(item => item.category === 'material' || item.itemType === 'eternalSeal' || item.templateId === 'dragon-veil-wings');
+  const materials = Object.values(ITEM_CATALOG).filter(item => item.category === 'material' || item.itemType === 'eternalSeal' || item.source.sourceId === 'aruna-developer-materials');
   const stock = shopStock('developer-materials');
   assert.ok(materials.length > 0);
   assert.deepEqual(stock.map(item => item.templateId), materials.map(item => item.templateId));

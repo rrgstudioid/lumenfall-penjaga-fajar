@@ -15,7 +15,7 @@ for (const [id, item] of Object.entries(ITEM_CATALOG)) {
   if (!Object.hasOwn(ITEM_ICON_MANIFEST, id)) { fail('Missing canonical mapping'); continue; }
   if (paths.has(path)) fail('Another item uses this artwork path');
   paths.add(path);
-  const local = resolve(root, `public${path}`);
+  const local = resolve(root, `public${new URL(path, 'https://assets.invalid').pathname}`);
   if (!existsSync(local)) { fail('Asset missing'); continue; }
   const bytes = readFileSync(local);
   const isWebP = bytes.toString('ascii',0,4) === 'RIFF' && bytes.toString('ascii',8,12) === 'WEBP';
