@@ -1,0 +1,34 @@
+LUMENFALL — OWNER ACC: SEPARATE OFFENSE DIAGNOSTIC + ORIGINAL CP RECOVERY
+Dicatat Garda, 9 Oktober 2026. Authority percakapan, bukan implementation report.
+
+KONTEKS DAN JAWABAN
+Garda mereview Adventurer Training + Iron Diagnostic Full Stack dan menyatakan:
+"Rekomendasiku: pertahankan diagnostik ofensif terpisah dahulu, lalu pulihkan
+spesifikasi CP asli sebelum mengunci total CP. Benchmark dengan Evasion 0 perlu
+dipertimbangkan karena kurang membedakan manfaat Accuracy."
+Garda juga menegaskan angka30s, mix60/25/15 dan bobot skor masih proposal.
+OWNER menjawab tepat: "ok aku setuju rekomendasimu".
+
+APPROVED DIRECTION
+- Diagnostik ofensif tetap terpisah dari total/player Combat Power.
+- Pulihkan dan reconcile spesifikasi CP asli dengan CLASS DI LUMENFALL/descendants
+  dan koreksi owner terbaru sebelum mengunci kontrak total CP.
+- Tinjau benchmark Evasion0 serta kemampuan membedakan actual Accuracy, tanpa
+  mengarang nilai alternatif atau otomatis memilih bank baru.
+- Siapkan satu paket recovery/kontrak yang terkait, mengikuti preferensi scope
+  lebih besar, bukan menambah fondasi atau readiness berulang.
+
+NOT APPROVED BY THIS ANSWER
+Tidak mengesahkan formula targetDEF, Evasion alternatif, weights60/25/15,
+horizon30, fullMana/allReady, Power->Quick->Basic, learned-vs-loadout policy,
+weight1/scale1/display2dec, full O+D+S+U+X atau Q6 numeric.
+Recovered original data harus diperiksa provenance/approval/supersession, bukan
+dianggap final hanya karena nama file mengandung FINAL.
+Tidak aktivasi CP/UI production, perubahan gameplay, commit/push atau publish.
+
+EVIDENCE BASIS
+outputs/gameplay-migration/adventurer-cp-diagnostic-full-stack/run-01/REPORT.txt
+dan CP_DECISION_PACKAGE_V2.txt; bounded engineering sudah selesai.
+Source historical pointer: docs/COMBAT_POWER_IMPLEMENTATION.md menunjuk
+LUMENFALL_Combat_Power_System_Specification_FINAL.docx, belum recovered pada
+coverage pencarian sebelumnya. Absence lokal bukan bukti owner tak pernah ACC.

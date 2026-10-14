@@ -1,0 +1,17 @@
+OPTIONAL AUTHORING / HISTORICAL BROWSER TOOLS
+
+Exact per-tool paths/imports/environment expressions and source excerpts are in
+OPTIONAL_TOOL_PREREQUISITES.json. These tools are not application/build dependencies.
+No whole-repository typecheck or all authoring tools portability is claimed.
+
+The three legacy Cena comparison files and their optional build-male-assets.mjs
+orchestrator are excluded from this bounded candidate and preserved locally.
+No required package script calls them. Production male-v2 assets are retained.
+Terrain prototype source is retained as historical optional tooling, requiring
+the separately supplied original prototype manifest and height/roadMask files.
+Whispering tools require their external Playwright module; male packing requires
+GLTF Transform/meshoptimizer tools. Other browser tools require the exact module
+path/environment setting and installed browser shown per entry. Machine-specific
+fallback paths are not portable defaults. Do not run authoring tools just to
+validate runtime; they may regenerate assets and need a separate authorized scope.
+No work/output/dependency caches or original source assets are bundled.

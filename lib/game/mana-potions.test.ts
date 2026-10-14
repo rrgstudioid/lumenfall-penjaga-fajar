@@ -50,8 +50,8 @@ await test('resourceEfficiency is not treated as flat Max MP when equipment or R
   hero.mana = hero.maxMana = 140;
   assert.ok(unequipItem(hero, 'mainHand').ok);
   main = hero.inventory.find((item) => item.id === main.id)!;
-  assert.equal(hero.mana, 140);
-  assert.equal(hero.maxMana, 145);
+  assert.equal(hero.mana, 62);
+  assert.equal(hero.maxMana, 62);
   hero.equipment.mainHand = main.id;
   main.sockets = [
     {
@@ -85,9 +85,9 @@ await test('resourceEfficiency is not treated as flat Max MP when equipment or R
   hero.inCity = true;
   const forge=CITIES.arunika.npcList.find(n=>n.id==='aruna-3')!;hero.x=forge.x;hero.z=forge.z;
   assert.ok(removeSocketedRune(hero, main.id, 0,'aruna-3').ok);
-  assert.equal(hero.maxMana, 145);
-  assert.equal(hero.mana, 145);
-  assert.equal(parseSave(JSON.stringify(hero))!.mana, 145);
+  assert.equal(hero.maxMana, 62);
+  assert.equal(hero.mana, 62);
+  assert.equal(parseSave(JSON.stringify(hero))!.mana, 62);
 });
 
 await test('all 64 registered active skills use Mana, and all jobs expose the same resource', () => {
@@ -160,6 +160,7 @@ await test('Mana Cost Reduction from INT and equipment is shared and capped at 5
   );
 });
 await test('six potion prices, tiers, effects, sell values and merchant stock use the item registry', () => {
+  const hero = freshHero();
   const prices = [25, 50, 75, 20, 40, 60];
   assert.equal(POTION_IDS.length, 6);
   POTION_IDS.forEach((id, index) => {
@@ -172,11 +173,11 @@ await test('six potion prices, tiers, effects, sell values and merchant stock us
     assert.equal(item.useCooldown, 3);
   });
   assert.equal(
-    shopStock('consumable').filter((item) => item.potionType).length,
+    shopStock(hero, 'consumable').filter((item) => item.potionType).length,
     6,
   );
   assert.equal(
-    shopStock('equipment').filter((item) => item.potionType).length,
+    shopStock(hero, 'equipment').filter((item) => item.potionType).length,
     0,
   );
   for (const field of Object.keys(FIELDS))
@@ -213,7 +214,7 @@ await test('insufficient GOLD and full inventory reject purchase atomically', ()
   assert.equal(buyShopItem(hero, 'mana-potion-1', 'consumable').ok, false);
   assert.equal(JSON.stringify(hero), before);
   hero.gold = 1000;
-  hero.inventoryCapacity = hero.inventory.length;
+  hero.inventoryCapacity=hero.inventory.filter(item=>!item.isEquipped).length;
   before = JSON.stringify(hero);
   assert.equal(
     buyShopItem(hero, 'mana-potion-2', 'consumable').reason,
@@ -444,17 +445,17 @@ await test('flat Max MP includes maxMana sources while resourceEfficiency remain
       },
     },
   ];
-  assert.equal(derivedStats(hero).maxMana, 155);
+  assert.equal(derivedStats(hero).maxMana, 72);
   const breakdown = characterStatBreakdown(hero);
   assert.equal(
     breakdown.base.maxMana +
       breakdown.columns.reduce((sum, column) => sum + column.stats.maxMana, 0),
-    155,
+    72,
   );
   hero.mana = 137;
   restoreMana(hero, 1000);
-  assert.equal(hero.mana, 155);
-  assert.equal(parseSave(JSON.stringify(hero))!.mana, 155);
+  assert.equal(hero.mana, 72);
+  assert.equal(parseSave(JSON.stringify(hero))!.mana, 72);
 });
 await test('city healer restores Mana and HP through existing service without touching GOLD or inventory', () => {
   const hero = freshHero();

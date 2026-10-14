@@ -1,0 +1,46 @@
+LUMENFALL — CP V3 PROTOCOL / CONDITIONAL B / REGION READMISSION
+LOCAL RECORD OF DIRECT OWNER APPROVAL — 9 Oktober 2026
+
+Jawaban langsung OWNER dalam percakapan Garda: "ok lanjut".
+Konteks langsung: Garda merekomendasikan Paket A V3, struktur Paket B dengan
+numeric HOLD, serta scope validasi ulang sesudah perpindahan map. Garda menjelaskan
+Evasion10 sebagai benchmark baru, model nominal30s/fullMana/readyCD, dan best-of
+empat protokol bukan rotasi optimal; kenaikan rank tidak dijamin monotonic DPS.
+OWNER kemudian meminta melanjutkan tanpa revisi field.
+
+Ini catatan lokal percakapan, bukan hasil retrieval chat lain atau kutipan OWNER
+yang diperluas. Tidak mengklaim OWNER mengetik sendiri seluruh kalimat paket ACC.
+
+ACC TERARAH
+1. Paket A V3 sesuai proposal teridentifikasi di bawah, termasuk bank/nominal
+   workload/selection/units/display untuk development diagnostic Training/newIron.
+2. Struktur Paket B bersyarat; semua numeric HOLD tetap null/unapproved.
+   Geometric core dan offense terpisah tetap keputusan terdahulu, bukan ACC baru.
+3. Implementasi dan pembuktian region-transaction readmission sempit sesudah
+   successful legal travel untuk policy development existing yang sebelumnya aktif,
+   dengan validasi actual current identity/sources penuh, tanpa reset cooldown.
+4. Satu checkpoint gabungan provider/protocol, diagnostic/pure preview/lifecycle,
+   scoped offline checks dan actual Full Home browser pada final source post-main.
+
+SUMBER PROPOSAL YANG DISETUJUI
+Root: outputs/gameplay-migration/cp-remaining-design-decision-package/run-01/
+CP_DESIGN_PROPOSAL_V3.txt
+SHA256 06a36744795a6f253d72c2db0a8912da3125387e43ac396f5012e54e8b24e35b
+CP_DESIGN_PROPOSAL_V3.json
+SHA256 549eba1afc530b865b6731d63412218cab6a0ac15a7946138719803149a2c687
+OWNER_REVIEW_SUMMARY.txt
+SHA256 9d3d4262770f65fd6670ec1e0abb4d17e646852d0008e51acd11d65cac08c250
+NEXT_IMPLEMENTATION_PLAN.txt
+SHA256 6f209d9fca4194535b44bb043c1b731dc1ba87b5feca5b75baf061189e383a1b
+
+BATAS
+Tidak mengubah current playerCP/live CP config, combat balance, skill/rank/range,
+catalog, save schema, full defensive/sustain/utility numeric atau default rollout.
+Tidak menyetujui alternative Evasion0/5/20, horizon60, roster lain, score transform,
+atau nilai historical HOLD hanya karena ikut dijelaskan proposal.
+Tidak mengaktifkan hypothetical magic combat, semua class/gear atau unsupported
+legacy item. Development opt-in tetap nonpersistent/defaultOFF new Game/load.
+Tidak mengotorisasi Git write/merge/push/commit/deploy/publish atau chat messaging.
+Historical proposal/report dipertahankan; catatan ini menutup approval applicability
+Paket A dan scope berikutnya saja, bukan mengubah bukti historical menjadi run baru.
+Phase14 tetap BELUM LULUS / BELUM RELEASE-READY.

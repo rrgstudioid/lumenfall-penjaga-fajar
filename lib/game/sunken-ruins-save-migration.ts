@@ -5,6 +5,10 @@ import {
   SUNKEN_PREVIEW_ID,
 } from './sunken-ruins-layout.ts';
 
+export class SunkenQuestMigrationHold extends Error {
+  constructor() { super('SUNKEN_QUEST_PROGRESS_CONFLICT: original character retained; quest baseline requires review'); }
+}
+
 /** Replace the retired field and preview identity, retaining character progression. */
 export function migrateSunkenSave(
   saved: Record<string, unknown>,
@@ -47,13 +51,17 @@ export function migrateSunkenSave(
     }
     result.monsterRespawnState = timers;
   }
-  const retiredQuest = (id: unknown) =>
-    id === 'story-sunken-ruins' ||
-    (typeof id === 'string' &&
-      /^field-sunken-ruins-(easy|veteran|elite)$/.test(id));
-  for (const key of ['activeQuests', 'acceptedQuests'] as const)
-    if (Array.isArray(saved[key]))
-      result[key] = saved[key].filter((id) => !retiredQuest(id));
+  // OWNER: retain quests/rewards and acceptance progress across layout replacement.
+  // The existing parser canonicalizes story -> easy; carry its baseline too.
+  const alias='story-sunken-ruins', easy='field-sunken-ruins-easy';
+  const completed=Array.isArray(saved.completedQuests)?saved.completedQuests:[];
+  const active=[...(Array.isArray(saved.activeQuests)?saved.activeQuests:[]),...(Array.isArray(saved.acceptedQuests)?saved.acceptedQuests:[])];
+  if(active.includes(alias)&&!completed.includes(alias)&&!completed.includes(easy)) {
+    const progress=saved.cityProgress && typeof saved.cityProgress==='object'&&!Array.isArray(saved.cityProgress)?saved.cityProgress as Record<string,unknown>:{};
+    const legacy=progress[`baseline-${alias}`]??0, current=progress[`baseline-${easy}`];
+    if(typeof legacy!=='number'||!Number.isFinite(legacy)||legacy<0 || current!==undefined&&current!==legacy)throw new SunkenQuestMigrationHold();
+    result.cityProgress={...progress,[`baseline-${easy}`]:legacy};
+  }
   if (saved.inCity === false && result.currentField === SUNKEN_ID) {
     result.currentCity = 'jayantara';
     if (

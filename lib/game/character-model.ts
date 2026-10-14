@@ -1,4 +1,3 @@
-import { dragonVeilLoadout, isDragonVeil, resolveDragonVeilTemplateId } from './dragon-veil.ts';
 import * as T from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { RARITY_META, type ItemData } from './items.ts';
@@ -6,8 +5,7 @@ import type { Hero } from './rules.ts';
 import { getCharacterEquipmentLayers } from './character-view.ts';
 import { createProceduralAnimator } from './character-animation.ts';
 import { createRevision02Binding } from './revision02-character.ts';
-import { loadCenaCharacter } from './cena-character.ts';
-import { loadModularMaleCharacter, MODULAR_MALE_ENABLED } from './modular-male-character.ts';
+import { loadModularMaleCharacter } from './modular-male-character.ts';
 import { loadPlainsQuality, type PlainsQuality } from './verdant-plains-quality.ts';
 import { characterLOD, type CharacterLOD } from './character-quality.ts';
 import { armyRunningCadence } from './army-running.ts';
@@ -15,13 +13,12 @@ import {loadFemaleCharacter,FEMALE_CHARACTER_TRIANGLES} from './female-character
 import { attachSwordAura, fitSwordAuraToBlade, updateSwordAuras } from './sword-aura.ts';
 import { alignCrimsonSword, setCrimsonSwordGripRoll, setupCrimsonSwordGlow, updateCrimsonSwordGlow } from './special-sword-model.ts';
 import { DRAGON_VEIL_WINGS_MODEL, fitDragonVeilWings } from './dragon-veil-wings.ts';
-import { applyEquipmentEmissiveToObject, cloneEquipmentEmissive } from './equipment-emissive.ts';
 
 const specialSwordLoader = new GLTFLoader();
 // Keep the existing asset URL; item assignment is independent of its original folder.
 const CRIMSON_SWORD_MODEL = '/assets/equipment/jayantara-two-hand-sword/altiverse_crimson_sword_optimized.glb';
 
-function loadCrimsonSword(holder: T.Group, placeholder: T.Object3D[], actor: T.Group, targetLength: number, enhancementLevel: number, onVisualChange?:()=>void) {
+function loadCrimsonSword(holder: T.Group, placeholder: T.Object3D[], actor: T.Group, targetLength: number, onVisualChange?:()=>void) {
   specialSwordLoader.load(CRIMSON_SWORD_MODEL, gltf => {
     if (!holder.parent || actor.userData.disposed) {
       disposeCharacterModel(gltf.scene);
@@ -30,7 +27,6 @@ function loadCrimsonSword(holder: T.Group, placeholder: T.Object3D[], actor: T.G
     try {
       const model = alignCrimsonSword(gltf.scene, targetLength, actor.userData.importedSwordGripRoll);
       setupCrimsonSwordGlow(model);
-      applyEquipmentEmissiveToObject(model, enhancementLevel);
       const glowingWeapons = (actor.userData.glowingWeapons ??= []) as T.Object3D[];
       glowingWeapons.push(model);
       for (const object of placeholder) {
@@ -95,7 +91,7 @@ export function createCharacterModel(hero: Hero, options: { aura?: boolean; asse
   const female=hero.gender==='female';
   const actor = new T.Group();
   actor.name = 'LUMENFALL_Character';
-  actor.userData = { assetKind: female?'female-rpg-loading':MODULAR_MALE_ENABLED?'male-v2-loading':'cena-loading', gender:female?'female':'male', animationType: 'skinned-procedural-retarget' };
+  actor.userData = { assetKind: female?'female-rpg-loading':'male-v2-loading', gender:female?'female':'male', animationType: 'skinned-procedural-retarget' };
   const root = new T.Group(); root.name = 'Root'; actor.add(root);
   const hips = new T.Group(); hips.name = 'Hips'; hips.position.y = 0.95; root.add(hips);
   const spine = new T.Group(); spine.name = 'Spine'; spine.position.y = 0.12; hips.add(spine);
@@ -120,29 +116,15 @@ export function createCharacterModel(hero: Hero, options: { aura?: boolean; asse
 
   const layers = getCharacterEquipmentLayers(hero);
   const bySlot = (slot: string) => layers.find((layer) => layer.slot === slot)?.item;
-  const dragonVeil = female ? {} : dragonVeilLoadout(layers);
-  const dragonVeilEnhancements = Object.fromEntries(layers.map(layer => [layer.slot, layer.item.enhancementLevel]));
-  const genericSlot = (slot: string) => { const item = bySlot(slot); return item && !isDragonVeil(resolveDragonVeilTemplateId(item)) ? item : undefined; };
-  actor.userData.equipmentStatus = Object.keys(dragonVeil).length ? 'loading' : 'ready';
   const material = (color: string, metal = false) => new T.MeshStandardMaterial({ color, roughness: metal ? 0.45 : 0.84, metalness: metal ? 0.6 : 0 });
   const leather = material('#35423d'), metal = material('#d8dfd0', true), gold = material('#d5b96c', true);
   const equipmentMaterials = new Map<string, T.MeshStandardMaterial>();
-  const enhancedMaterials = new Map<string, T.Material>();
-  // Includes enhanced placeholders replaced asynchronously by an imported weapon.
-  actor.userData.enhancementMaterials = enhancedMaterials;
   const rarityMaterial = (item: ItemData) => {
     let mat = equipmentMaterials.get(item.id);
     if (!mat) { mat = new T.MeshStandardMaterial({ color: RARITY_META[item.rarity].color, emissive: RARITY_META[item.rarity].color, emissiveIntensity: 0.12, metalness: 0.5, roughness: 0.4 }); equipmentMaterials.set(item.id, mat); }
     return mat;
   };
   function mesh(geometry: T.BufferGeometry, mat: T.Material, parent: T.Object3D, x = 0, y = 0, z = 0) {
-    const item = bySlot(parent.userData.slot);
-    if (item && item.enhancementLevel > 0 && mat instanceof T.MeshStandardMaterial) {
-      const key = `${item.id}:${mat.uuid}`;
-      let enhanced = enhancedMaterials.get(key);
-      if (!enhanced) { enhanced = cloneEquipmentEmissive(mat, item.enhancementLevel); enhancedMaterials.set(key, enhanced); }
-      mat = enhanced;
-    }
     const object = new T.Mesh(geometry, mat); object.name = `${parent.name || 'Body'}:mesh-${parent.children.length}`; object.position.set(x, y, z); object.castShadow = true; object.receiveShadow = true; parent.add(object); return object;
   }
   const capsule = (radius: number, length: number, mat: T.Material, parent: T.Object3D, x = 0, y = 0, z = 0) => mesh(new T.CapsuleGeometry(radius, length, 4, 8), mat, parent, x, y, z);
@@ -152,15 +134,19 @@ export function createCharacterModel(hero: Hero, options: { aura?: boolean; asse
   // retired blue procedural body while the asset is loading.
   actor.userData.heightMeters = 2.4;
 
-  const headLayer = layerFor('head', head); if (genericSlot('head')) mesh(new T.SphereGeometry(0.31, 10, 7), rarityMaterial(bySlot('head')!), headLayer, 0, 0.02, 0);
-  const armor = layerFor('chest', chest); if (genericSlot('chest')) capsule(0.38, 0.5, rarityMaterial(bySlot('chest')!), armor, 0, 0.02, 0);
-  for (const [side, upper, , , thigh, shin, foot] of [
+  const headLayer = layerFor('head', head); if (bySlot('head')) mesh(new T.SphereGeometry(0.31, 10, 7), rarityMaterial(bySlot('head')!), headLayer, 0, 0.02, 0);
+  const armor = layerFor('chest', chest); if (bySlot('chest')) capsule(0.38, 0.5, rarityMaterial(bySlot('chest')!), armor, 0, 0.02, 0);
+  for (const [side, upper, lower, hand, thigh, shin, foot] of [
     ['right', rightUpperArm, rightLowerArm, rightHand, rightUpperLeg, rightLowerLeg, rightFoot],
     ['left', leftUpperArm, leftLowerArm, leftHand, leftUpperLeg, leftLowerLeg, leftFoot],
   ] as const) {
-    if (genericSlot('chest')) mesh(new T.SphereGeometry(.17, 8, 6), metal, layerFor('chest', upper, side), 0, .02, 0);
-    if (genericSlot('boots')) mesh(new T.BoxGeometry(.3, .18, .52), rarityMaterial(bySlot('boots')!), layerFor('boots', foot, side), 0, -.02, -.1);
-    if (genericSlot('legs')) {
+    if (bySlot('chest')) mesh(new T.SphereGeometry(.17, 8, 6), metal, layerFor('chest', upper, side), 0, .02, 0);
+    if (bySlot('gloves')) {
+      mesh(new T.SphereGeometry(.13, 8, 6), rarityMaterial(bySlot('gloves')!), layerFor('gloves', hand, side));
+      capsule(.113, .12, rarityMaterial(bySlot('gloves')!), layerFor('gloves', lower, `${side}-cuff`), 0, -.3, 0);
+    }
+    if (bySlot('boots')) mesh(new T.BoxGeometry(.3, .18, .52), rarityMaterial(bySlot('boots')!), layerFor('boots', foot, side), 0, -.02, -.1);
+    if (bySlot('legs')) {
       capsule(.17, .35, rarityMaterial(bySlot('legs')!), layerFor('legs', thigh, side), 0, -.23, 0);
       capsule(.13, .32, rarityMaterial(bySlot('legs')!), layerFor('legs', shin, `${side}-shin`), 0, -.22, 0);
     }
@@ -178,7 +164,7 @@ export function createCharacterModel(hero: Hero, options: { aura?: boolean; asse
       : undefined);
     accessoryReady = load ? load().then(scene => {
       if (actor.userData.disposed) { disposeCharacterModel(scene); return false; }
-      try { holder.add(fitDragonVeilWings(scene, wings.enhancementLevel)); }
+      try { holder.add(fitDragonVeilWings(scene)); }
       catch (error) { disposeCharacterModel(scene); throw error; }
       actor.userData.accessoryStatus = 'ready';
       options.onVisualChange?.();
@@ -227,7 +213,7 @@ export function createCharacterModel(hero: Hero, options: { aura?: boolean; asse
       }
       if (type === 'one_hand_sword' && item.templateId === 'field-meteorfall-citadel-sword') {
         // Fit around the calibrated grip; aura follows the resulting blade size.
-        loadCrimsonSword(holder, holder.children.slice(), actor, length * 2.25, item.enhancementLevel, options.onVisualChange);
+        loadCrimsonSword(holder, holder.children.slice(), actor, length * 2.25, options.onVisualChange);
       }
       if (sword && item.enhancementLevel >= 5) swordFlames.push(attachSwordAura(holder, length, guardY));
     }
@@ -439,14 +425,13 @@ export function createCharacterModel(hero: Hero, options: { aura?: boolean; asse
   let quality=options.quality??loadPlainsQuality();
   let visualLOD:CharacterLOD=quality==='office'?1:0;
   let lodCheck=0;
-  const source = options.assetSource ?? (typeof window !== 'undefined' ? female?loadFemaleCharacter:MODULAR_MALE_ENABLED?()=>loadModularMaleCharacter(currentAppearance,visualLOD,options.renderer,!options.preview,dragonVeil,dragonVeilEnhancements):loadCenaCharacter : undefined);
+  const source = options.assetSource ?? (typeof window !== 'undefined' ? female?loadFemaleCharacter:()=>loadModularMaleCharacter(currentAppearance,visualLOD,options.renderer,!options.preview) : undefined);
   actor.visible = !source;
   actor.userData.modelStatus = source ? 'loading' : 'fallback';
   const ready = source ? source().then(scene => {
     if (actor.userData.disposed) { disposeCharacterModel(scene); return false; }
     try {
       visualScene=scene;
-      actor.userData.equipmentStatus='ready';
       applyCharacterAppearance(scene, hero);
       binding.attach(scene);
       actor.userData.importedSwordGripRoll = scene.userData.importedSwordGripRoll;
@@ -475,7 +460,6 @@ export function createCharacterModel(hero: Hero, options: { aura?: boolean; asse
   }).catch(error => {
     if (!actor.userData.disposed) {
       actor.userData.modelStatus = 'fallback';
-      if (Object.keys(dragonVeil).length) actor.userData.equipmentStatus='error';
       actor.visible = true;
       console.warn('Model karakter gagal dimuat.', error);
     }
@@ -498,8 +482,7 @@ export function createCharacterModel(hero: Hero, options: { aura?: boolean; asse
     const previous=visualLOD;visualLOD=next;
     void setAppearance(currentAppearance).catch(error=>{visualLOD=previous;console.warn('Character LOD unavailable',error);});
   };
-  const equipmentReady = ready.then(loaded => !Object.keys(dragonVeil).length || (loaded && actor.userData.equipmentStatus === 'ready'));
-  return { equipmentReady, actor, arm, legs: [leftUpperLeg, rightUpperLeg], aura, rig, animator, ready, accessoryReady, setAppearance, updateVisual,
+  return { actor, arm, legs: [leftUpperLeg, rightUpperLeg], aura, rig, animator, ready, accessoryReady, setAppearance, updateVisual,
     setVisualLOD:async(value:CharacterLOD)=>{visualLOD=value;await setAppearance(currentAppearance);},
     setQuality:(value:PlainsQuality)=>{quality=value;lodCheck=0;},
     sockets: { rightHand: arm, leftHand: leftSocket, back: backSocket, accessory: accessorySocket } };
@@ -517,12 +500,8 @@ export function disposeCharacterModel(model: T.Object3D) {
   const geometries = new Set<T.BufferGeometry>();
   const skeletons = new Set<T.Skeleton>();
   const disposers=new Set<()=>void>();
-  model.traverse(object => {
-    const owned = object.userData.enhancementMaterials;
-    if (owned instanceof Map) { for (const material of owned.values()) materials.add(material); owned.clear(); }
-  });
   model.traverse(object=>{if(typeof object.userData.disposeCharacterResources==='function')disposers.add(object.userData.disposeCharacterResources);});
-  model.traverse(object => { if (object instanceof T.SkinnedMesh && !object.userData.dragonVeil) skeletons.add(object.skeleton); });
+  model.traverse(object => { if (object instanceof T.SkinnedMesh) skeletons.add(object.skeleton); });
   skeletons.forEach(skeleton => skeleton.dispose());
   model.traverse((object) => { if (object instanceof T.Mesh || object instanceof T.Line) { geometries.add(object.geometry); for (const mat of Array.isArray(object.material) ? object.material : [object.material]) materials.add(mat); } });
   materials.forEach(material => { for (const value of Object.values(material)) if (value instanceof T.Texture) textures.add(value); });

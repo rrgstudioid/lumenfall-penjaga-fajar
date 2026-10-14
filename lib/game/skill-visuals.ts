@@ -1,5 +1,10 @@
 /** Presentation metadata only; progression and effects remain in the skill registry. */
 export const SKILL_VISUALS = {
+  // Existing legacy passive records; presentation only, no job activation.
+  'berserker-fury': ['flame', 'pulse'],
+  'blade-master-tempo': ['parry', 'pulse'],
+  'berserker-capstone': ['hammer', 'crown'],
+  'blade_master-capstone': ['swords', 'crown'],
   'v2-thief-quick-stab':['dagger','steel'],
   'v2-thief-slipstep':['dash','dagger'],
   'v2-thief-mark-prey':['target','dagger'],
@@ -71,6 +76,8 @@ export const SKILL_VISUALS = {
   'rogue-step': ['footprints', 'moon'],
   'rogue-flurry': ['daggers', 'speed'],
   'rogue-vanish': ['vanish', 'moon'],
+  'v3-rogue-vanish': ['vanish', 'moon'],
+  'v3-assasin-vanish': ['vanish', 'moon'],
   'rogue-awakening': ['swords', 'moon'],
   'hunter-aim': ['target', 'arrow'],
   'hunter-volley': ['arrows', 'leaf'],

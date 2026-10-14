@@ -1,0 +1,46 @@
+{
+  "UTC": "2026-10-11T11:42:28.278Z",
+  "original": {
+    "path": "C:\\Users\\USER\\Documents\\LUMENFALL_Warrior_V3_Final.docx.docx",
+    "sha256": "b91775f71c17a7acd23836be5f2a79e021a5713f4f3a3d0a83a3e71de0a919d6",
+    "metadata": {
+      "docProps/core.xml": "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>\r\n<cp:coreProperties xmlns:cp=\"http://schemas.openxmlformats.org/package/2006/metadata/core-properties\" xmlns:dc=\"http://purl.org/dc/elements/1.1/\" xmlns:dcterms=\"http://purl.org/dc/terms/\" xmlns:dcmitype=\"http://purl.org/dc/dcmitype/\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"><dc:title>LUMENFALL Warrior Lineage V3 Source of Truth Final</dc:title><dc:subject>Canonical design and runtime reconciliation for Warrior Lineage V3</dc:subject><dc:creator>LUMENFALL Design</dc:creator><cp:keywords></cp:keywords><dc:description>Revised from the prior source-of-truth document; original retained unchanged.</dc:description><cp:lastModifiedBy>USER</cp:lastModifiedBy><cp:revision>3</cp:revision><dcterms:created xsi:type=\"dcterms:W3CDTF\">2026-09-23T10:12:00Z</dcterms:created><dcterms:modified xsi:type=\"dcterms:W3CDTF\">2026-09-23T10:21:00Z</dcterms:modified><cp:category></cp:category></cp:coreProperties>",
+      "docProps/app.xml": "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>\r\n<Properties xmlns=\"http://schemas.openxmlformats.org/officeDocument/2006/extended-properties\" xmlns:vt=\"http://schemas.openxmlformats.org/officeDocument/2006/docPropsVTypes\"><Template>Normal.dotm</Template><TotalTime>12</TotalTime><Pages>14</Pages><Words>5624</Words><Characters>32063</Characters><Application>Microsoft Office Word</Application><DocSecurity>0</DocSecurity><Lines>267</Lines><Paragraphs>75</Paragraphs><ScaleCrop>false</ScaleCrop><HeadingPairs><vt:vector size=\"2\" baseType=\"variant\"><vt:variant><vt:lpstr>Title</vt:lpstr></vt:variant><vt:variant><vt:i4>1</vt:i4></vt:variant></vt:vector></HeadingPairs><TitlesOfParts><vt:vector size=\"1\" baseType=\"lpstr\"><vt:lpstr></vt:lpstr></vt:vector></TitlesOfParts><Manager></Manager><Company></Company><LinksUpToDate>false</LinksUpToDate><CharactersWithSpaces>37612</CharactersWithSpaces><SharedDoc>false</SharedDoc><HyperlinkBase></HyperlinkBase><HyperlinksChanged>false</HyperlinksChanged><AppVersion>16.0000</AppVersion></Properties>"
+    },
+    "extraction": "ORIGINAL_WARRIOR_TEXT.json"
+  },
+  "master": {
+    "thread": "6abd07da-8704-83ec-9dae-2ba72181c973",
+    "turn": "8ba280ce-f6b6-42ad-a5ca-dcc5946e3ce2",
+    "UTC": "2026-10-05T09:20:52.219Z",
+    "messageId": "795758f3-ea7d-47bf-a30f-3b8863dc5bf2",
+    "excerpt": "# B. PROVISIONAL — desainnya benar, angkanya masih harus diuji\n\n| System | Kandidat sekarang |\n|---|---|\n| Heavy Armor | 115% PDEF / 90% MDEF |\n| Light Armor | 95% / 95% |\n| Robe | 80% / 105% |\n| 2H Hammer | ~130% weapon power |\n| Knuckle | ~85% |\n| 1H Spear | ~100–105% |\n| 1H Axe | ~105–110% |\n| 2H Spear | ~125% |\n| 2H Axe | ~130% |\n| VCT | `(BonusDEX×2 + BonusINT)/4` |\n| Stat VCT cap | 80% |\n| Global VCT | 100% |\n| FCT Reduction cap | ~50% |\n| CDR cap | ~40% |\n| Crit Rate cap | ~80% |\n| Enhancement +15 weapon | ~+47% |\n| Enhancement +15 armor | ~+35% |\n| PvP Damage Modifier | ~70% |\n| PvP Healing | ~70% |\n| PvP Shield | ~80% |\n| PvP penetration cap | ~40% |\n| Block cap | ~60% |\n| Boss/monster TTK | target ranges yang sudah kita buat |\n| Job HP profiles | kandidat Mage→Knight yang sudah dihitung |\n| Job Mana factors | kandidat 0.50–1.35 |\n| Semua exact skill coefficients | masih balance target |\n| Semua exact set bonuses | masih design target |\n\nJadi Astra nanti **jangan hard-code angka provisional sebagai final immutable constant** tanpa checkpoint.\n\n---\n\n"
+  },
+  "adjacentOwner": [
+    {
+      "threadTitle": "Branch · CLASS DI LUMENFALL",
+      "threadId": "6abd07da-8704-83ec-9dae-2ba72181c973",
+      "turnId": "45b290a7-be20-43ad-9341-a1199adace27",
+      "startedAtUTC": "2026-10-05T09:36:59.846Z",
+      "items": [
+        {
+          "type": "userMessage",
+          "id": "45b290a7-be20-43ad-9341-a1199adace27",
+          "content": [
+            {
+              "type": "text",
+              "text": "Ok aku setuju, lanjutkan"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "limits": "Selected recovered evidence, not full CLASS history; owner agreement retains explicit provisional classification; FINAL filename/assistant LOCK alone is not numeric approval.",
+  "closedCore": {
+    "source": "C:/Users/USER/.codex/attachments/4a8304b3-06dc-4d76-aeb3-8844d1fdbf2d/Pasted text.txt",
+    "sha256": "267020a89b58744c5bb9e21fa8e490c6a68a7b79414648094d2a9f3aa46e79f2",
+    "section": 4,
+    "scope": "first Core returns allocated primary; base15/+2 per level preserved. Latest SP199 and grant/purchase rules take precedence over old150."
+  }
+}

@@ -65,10 +65,10 @@ export function CharacterPreview({ hero, presentation = 'equipment' }: { hero: H
         const model = buildModel(createCharacterModel,renderer);
         setLoading(true);
         setUnavailable(false);
-        void Promise.all([model.ready, model.equipmentReady]).then(([loaded, equipmentLoaded]) => {
+        void model.ready.then(loaded => {
           if (cancelled) return;
           setLoading(false);
-          setUnavailable(!loaded || !equipmentLoaded);
+          setUnavailable(!loaded);
           invalidateRef.current();
         });
         model.actor.rotation.y = rotation.current.y;

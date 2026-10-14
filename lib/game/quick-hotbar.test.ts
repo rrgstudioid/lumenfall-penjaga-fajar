@@ -177,9 +177,9 @@ await test('job change and reset cannot leave inaccessible skill grants in quick
   adventurer.skillLevels['fajar-step'] = 2;
   adventurer.gold = 500;
   const reset = resetSkillPoints(adventurer);
-  assert.equal(reset.ok, true);
+  assert.equal(reset.ok, false); assert.deepEqual(reset.hero, adventurer);
   assert.equal(reset.hero.quickHotbars.q.assignment, 'fajar-step');
-  assert.equal(reset.hero.skillLevels['fajar-step'], 1);
+  assert.equal(reset.hero.skillLevels['fajar-step'], 2);
 });
 await test('quick save migration drops invalid IDs/duplicates and invalid positions, never inventory', () => {
   const hero = freshHero();

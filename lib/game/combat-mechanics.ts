@@ -11,16 +11,26 @@ export const COMBAT_MECHANICS = Object.freeze({
   poisonInterval: .6,
   poisonAttackCoefficient: .08,
   poisonMinimumDamage: 2,
+  accuracyBase: 90,
+  accuracyPressurePerPoint: .1,
+  mitigationBase: 500,
+  mitigationPerLevel: 10,
+  manualGuardMultiplier: .3,
 });
 export const barrierAmount = (maxHP: number) => 35 + maxHP * .18;
 export function mitigateDamage(rawDamage: number, defense: number, attackerLevel: number, penetration = 0) {
   const effectiveDefense = Math.max(0, defense * (1 - Math.max(0, penetration) / 100));
-  const reduction = effectiveDefense / (effectiveDefense + 500 + Math.max(1, attackerLevel) * 10);
+  const reduction = effectiveDefense / (effectiveDefense + COMBAT_MECHANICS.mitigationBase + Math.max(1, attackerLevel) * COMBAT_MECHANICS.mitigationPerLevel);
   return Math.max(0, rawDamage * (1 - reduction));
 }
 export const criticalChance = (rate: number) => Math.min(COMBAT_MECHANICS.criticalChanceCap, rate / 100);
 export const evasionChance = (rate: number) => Math.min(COMBAT_MECHANICS.evasionChanceCap, rate / 100);
 export const blockChance = (rate: number) => Math.min(COMBAT_MECHANICS.blockChanceCap, rate / 100);
+/** Live passive Block scope. CP's chance cap is independently versioned. */
+export function passiveBlockChance(rate: number, policy: {damageType:DamageType;damageKind:'direct'|'dot';blockable:boolean}) {
+  if (policy.damageType !== 'physical' || policy.damageKind !== 'direct' || !policy.blockable || !Number.isFinite(rate)) return 0;
+  return Math.max(0,blockChance(rate));
+}
 
 export type HitResolutionResult = 'HIT' | 'EVADED';
 export type HitAgainstEvasion = {
@@ -43,10 +53,10 @@ export function resolveHitAgainstEvasion({
   targetEvasion: number;
   rng?: () => number;
 }): HitAgainstEvasion {
-  const accuracy = Number.isFinite(attackerAccuracy) ? attackerAccuracy : 90;
+  const accuracy = Number.isFinite(attackerAccuracy) ? attackerAccuracy : COMBAT_MECHANICS.accuracyBase;
   const evasion = Number.isFinite(targetEvasion) ? Math.max(0, targetEvasion) : 0;
-  const accuracyPressure = (accuracy - 90) * 0.1;
-  const effectiveEvasion = Math.min(50, Math.max(0, evasion - accuracyPressure));
+  const accuracyPressure = (accuracy - COMBAT_MECHANICS.accuracyBase) * COMBAT_MECHANICS.accuracyPressurePerPoint;
+  const effectiveEvasion = Math.min(COMBAT_MECHANICS.evasionChanceCap * 100, Math.max(0, evasion - accuracyPressure));
   const hitChance = 1 - effectiveEvasion / 100;
   const rawRoll = rng();
   const roll = Number.isFinite(rawRoll) ? Math.min(1, Math.max(0, rawRoll)) : 1;

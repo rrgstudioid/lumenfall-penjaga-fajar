@@ -19,11 +19,13 @@ export type PoisonTarget = { hp: number };
  * Stats/profile are snapshotted on application and replaced on a valid refresh.
  * There are no fallback potency coefficients. */
 export type AssasinPoisonProfile = {
+  critException?: 'assassin_skill_poison';
   id: string; baseDamageMin: number; baseDamageMax: number;
   patkCoefficient: number; dexCoefficient: number; rank: number; skillPowerFactor: 8;
   baseRollPolicy: 'PER_TICK' | 'APPLICATION_SNAPSHOT';
 };
 export type PoisonSnapshot = {
+  criticalRate?: number; criticalDamage?: number;
   physicalAttack: number; effectiveDex: number; level: number;
   physicalPenetration: number; bossDamage: number; eliteDamage: number;
 };
@@ -39,7 +41,7 @@ export type NormalPoisonRecord = {
   baseRoll?: number; crippling?: Crippling;
 };
 export type PoisonTick = {
-  kind: 'assasin_normal_poison'; damageKind: 'dot'; damageType: 'physical'; canCrit: false;
+  kind: 'assasin_normal_poison'; damageKind: 'dot'; damageType: 'physical'; canCrit: boolean; critException?: 'assassin_skill_poison';
   casterActorId: string; targetActorId: string; sourceSkillId: string;
   at: number; stacks: number; baseRoll: number; rawDamage: number; snapshot: PoisonSnapshot;
 };
@@ -105,7 +107,7 @@ export class AssasinPoisonState<T extends PoisonTarget = PoisonTarget> {
       const at = due.nextTickAt;
       due.nextTickAt += POISON_TICK_INTERVAL; // Advance before callback: no duplicate/reentrant tick.
       const roll = due.baseRoll ?? this.roll(due.profile);
-      this.dealTick(target, { kind: 'assasin_normal_poison', damageKind: 'dot', damageType: 'physical', canCrit: false,
+      this.dealTick(target, { kind: 'assasin_normal_poison', damageKind: 'dot', damageType: 'physical', canCrit: due.profile.critException === 'assassin_skill_poison', critException: due.profile.critException,
         casterActorId: due.casterActorId, targetActorId: due.targetActorId, sourceSkillId: due.sourceSkillId,
         at, stacks: due.stackCount, baseRoll: roll, rawDamage: poisonTickRaw(due.profile, due.snapshot, due.stackCount, roll), snapshot: { ...due.snapshot } });
       if (target.hp <= 0) { this.clearTarget(target); return; }

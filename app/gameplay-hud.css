@@ -73,7 +73,7 @@
 .hud-hotbar-layer {
   z-index: 30;
 }
-.hud-hotbar-layer.hud-binding-layer:not(:has([hidden])) {
+body[data-game-dragging] .hud-hotbar-layer.hud-binding-layer:not(:has([hidden])) {
   z-index: calc(var(--lumenfall-window-top-z, 1000) + 2);
 }
 body:has([role='alertdialog']) .hud-hotbar-layer {
@@ -83,32 +83,6 @@ body:has([role='alertdialog']) .hud-hotbar-layer {
   position: absolute;
   transform-origin: top left;
   pointer-events: auto;
-}
-.hud-fps .hud-text-handle,
-.hud-fps .hud-text-handle:hover,
-.hud-fps .hud-text-handle:disabled {
-  display: flex;
-  align-items: center;
-  width: 100%;
-  height: 100%;
-  margin: 0;
-  padding: 0;
-  border: 0;
-  border-radius: 0;
-  background: transparent;
-  box-shadow: none;
-  color: #fff;
-  opacity: 1;
-  cursor: grab;
-  touch-action: none;
-  user-select: none;
-}
-.hud-fps[data-hud-gesture] .hud-text-handle { cursor: grabbing; }
-.hud-fps-text {
-  font: 600 18px/1.4 ui-monospace, Consolas, monospace;
-  font-variant-numeric: tabular-nums;
-  text-shadow: 0 1px 2px #000, 0 0 4px #000;
-  white-space: nowrap;
 }
 .hud-panel {
   background: linear-gradient(115deg, #09241eed, #071b16ee);
@@ -804,7 +778,7 @@ body:has([role='alertdialog']) .hud-hotbar-layer {
 .hud-theme .hud-embedded-hotbar.primary-hotbar-panel {
   position: relative;
   inset: auto;
-  transform: none !important;
+  transform: none;
   scale: 1;
   width: 100%;
   padding: 0;

@@ -1,0 +1,33 @@
+CURRENT INTEGRATION BOUNDARIES — RECORDED OWNER DIRECTIONS, NOT NEW ACC
+Provenance: selected source copies and statuses in PROVENANCE.json; latest direct
+OWNER corrections in the active LUMENFALL conversation. Summary is not evidence
+that all future specialization decisions have been implemented or approved.
+
+Keep approved shared stats, 22 resource profiles, absolute currentHP/currentMana
+then clamp on max changes, existing level-up/respawn fills, legal SP/grants and
+once-only first Core refund. Latest stat closure supersedes earlier proposed
+casting/defense values. Live Block50/30 and diagnostic-only Block60/30 are distinct.
+Keep Training/newIron ranges, oldIron grandfather, exact ownership and separate
+Adventurer/Warrior admission. Selected routes and diagnostics remain defaultOFF.
+Do not restore selected BaseRoll factors, second rank factor, Basic finisher1.65,
+double archetype reference or scalar/range hybrids. Authorized legacy compatibility
+outside selected routes remains; this is not permission for global deletion.
+
+Keep male-v2, incoming maps/map UI, local Character/hotbar, Wings and developer
+test potions. Incoming main is not automatic numeric authority. Sunken replaces
+old layout on the same regionID; detected old-layout saves relocate once, while
+new-layout positions persist. Preserve all three old quests/progress/completions/
+rewards and old NPC at safe entry. No repeated reward, silent quest reset/deletion
+or compensation. Incoming monster/boss data remain prototype main.
+
+Later specialization OWNER corrections, outside this packaging implementation:
+dual Basic uses core+MAIN(u)+.50OFF(u), one shared u/impact and C1/scaling0 for all
+combo indices. Legal single-weapon remains core+MAIN. Earth has four stomps and
+Major Stun eligibility only on the fourth; other status parameters separately
+gated. New-version Jayantara requirementLv45 direction is not range approval or
+permission to convert oldLv24 instances. SB mastery/skills/rollout not autoapproved.
+
+STAT -> CLASS -> ITEMISASI continuity; compositeCP and unapproved expansion remain
+deferred. Preserve four main checks: required latest rules, prohibited superseded
+rules, actual-source comparison, and joint feature proof with explicit limitations.
+Current packaging only changes test portability and durable evidence placement.

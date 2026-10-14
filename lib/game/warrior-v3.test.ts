@@ -1,3 +1,5 @@
+import { getTotalSkillPointsForLevel } from './rules.ts';
+import { promoteFixture } from './gameplay-test-fixtures.ts';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
@@ -17,7 +19,7 @@ import { resolveTargetHit } from './combat-modifiers.ts';
 
 const rank = (hero: ReturnType<typeof createV3AdventurerHero>, id: string, level: number) => {
   hero.level = level;
-  hero.skillProgressionV3!.totalEarnedSP = 200;
+  hero.skillProgressionV3!.totalEarnedSP = getTotalSkillPointsForLevel(hero.level);
   assert.equal(learnSkill(hero, id), true);
 };
 
@@ -26,7 +28,7 @@ await test('Lv15 Adventurer transitions to V3 Warrior without auto-purchasing Wa
   hero.level = 15;
   hero.skillProgressionV3!.totalEarnedSP = 10;
   assert.equal(learnSkill(hero, 'v3-adventurer-power-strike'), true);
-  assert.equal(chooseV3Warrior(hero), true);
+  assert.equal(promoteFixture(hero, chooseV3Warrior), true);
   assert.equal(hero.skillArchitectureVersion, 3);
   assert.equal(hero.coreJob, 'warrior');
   assert.equal(hero.job, 'warrior');
@@ -38,7 +40,7 @@ await test('Lv15 Adventurer transitions to V3 Warrior without auto-purchasing Wa
 });
 
 await test('Warrior V3 exposes exactly eleven canonical skills and no Rising Slash/V2 duplicates', () => {
-  const hero = createV3AdventurerHero(); hero.level = 15; assert(chooseV3Warrior(hero));
+  const hero = createV3AdventurerHero(); hero.level = 15; assert(promoteFixture(hero, chooseV3Warrior));
   const ids = activeSkills(hero).filter((skill) => skill.job === 'warrior').map((skill) => skill.id);
   assert.deepEqual(ids, WARRIOR_V3_SKILLS.map((skill) => skill.id));
   assert.equal(ids.includes('rising-slash'), false);
@@ -46,7 +48,7 @@ await test('Warrior V3 exposes exactly eleven canonical skills and no Rising Sla
 });
 
 await test('Warrior gates enforce levels and declared prerequisites', () => {
-  const hero = createV3AdventurerHero(); hero.level = 15; assert(chooseV3Warrior(hero)); hero.skillProgressionV3!.totalEarnedSP = 200;
+  const hero = createV3AdventurerHero(); hero.level = 15; assert(promoteFixture(hero, chooseV3Warrior)); hero.skillProgressionV3!.totalEarnedSP = getTotalSkillPointsForLevel(hero.level);
   assert.equal(learnSkill(hero, 'v3-warrior-strike'), true);
   assert.equal(learnSkill(hero, 'v3-warrior-sweeping-slash'), false);
   hero.level = 20; assert.equal(learnSkill(hero, 'v3-warrior-sweeping-slash'), false);
@@ -57,7 +59,7 @@ await test('Warrior gates enforce levels and declared prerequisites', () => {
 });
 
 await test('all damaging Warrior V3 skills accept 1H and 2H sword, but not unarmed or dual wield', () => {
-  const hero = createV3AdventurerHero(); hero.level = 59; assert(chooseV3Warrior(hero)); hero.skillProgressionV3!.totalEarnedSP = 200;
+  const hero = createV3AdventurerHero(); hero.level = 59; assert(promoteFixture(hero, chooseV3Warrior)); hero.skillProgressionV3!.totalEarnedSP = getTotalSkillPointsForLevel(hero.level);
   for (const definition of WARRIOR_V3_SKILLS.filter((skill) => skill.skillType === 'ACTIVE_DAMAGE')) {
     hero.skillProgressionV3!.skillRanks[definition.id] = 1;
     hero.skillLevels[definition.id] = 1;
@@ -74,7 +76,7 @@ await test('all damaging Warrior V3 skills accept 1H and 2H sword, but not unarm
 });
 
 await test('Warrior stances and buffs are castable and do not add raw damage to Battle Focus', () => {
-  const hero = createV3AdventurerHero(); hero.level = 59; assert(chooseV3Warrior(hero)); hero.skillProgressionV3!.totalEarnedSP = 200;
+  const hero = createV3AdventurerHero(); hero.level = 59; assert(promoteFixture(hero, chooseV3Warrior)); hero.skillProgressionV3!.totalEarnedSP = getTotalSkillPointsForLevel(hero.level);
   hero.skillProgressionV3!.skillRanks['v3-warrior-guard-stance'] = 3;
   hero.skillLevels['v3-warrior-guard-stance'] = 3;
   for (const id of ['v3-warrior-guard-stance','v3-warrior-battle-cry','v3-warrior-battle-focus','v3-warrior-unbroken-stance']) {
@@ -102,7 +104,7 @@ await test('Armor Break is one refreshable status and Finale has a fixed 10% pay
 });
 
 await test('Counter Slash has no damage before a defense context and a single payoff modifier after it', () => {
-  const hero = createV3AdventurerHero(); hero.level = 59; assert(chooseV3Warrior(hero)); hero.skillProgressionV3!.totalEarnedSP = 200;
+  const hero = createV3AdventurerHero(); hero.level = 59; assert(promoteFixture(hero, chooseV3Warrior)); hero.skillProgressionV3!.totalEarnedSP = getTotalSkillPointsForLevel(hero.level);
   rank(hero, 'v3-warrior-guard-stance', 30);
   rank(hero, 'v3-warrior-guard-stance', 30);
   rank(hero, 'v3-warrior-counter-slash', 31);
@@ -115,7 +117,7 @@ await test('Counter Slash has no damage before a defense context and a single pa
 });
 
 await test('V3 Warrior save reload keeps lineage, ranks and hotbar-safe references', () => {
-  const hero = createV3AdventurerHero(); hero.level = 20; assert(chooseV3Warrior(hero)); hero.skillProgressionV3!.totalEarnedSP = 20;
+  const hero = createV3AdventurerHero(); hero.level = 20; assert(promoteFixture(hero, chooseV3Warrior)); hero.skillProgressionV3!.totalEarnedSP = 20;
   assert(learnSkill(hero, 'v3-warrior-strike'));
   hero.primaryHotbar[0] = 'v3-warrior-strike';
   const loaded = parseSave(JSON.stringify(hero));
@@ -131,7 +133,7 @@ await test('Warrior V3 damage sanity matrix uses CFV3 attack and explicit stat s
   const ids = ['v3-warrior-strike', 'v3-warrior-sweeping-slash', 'v3-warrior-armor-breaker', 'v3-warrior-counter-slash', 'v3-warrior-ground-breaker', 'v3-warrior-crushing-finale'];
   for (const level of [15, 30, 45, 59]) {
     for (const weapon of ['one_hand_sword', 'two_hand_sword'] as const) {
-      const hero = createV3AdventurerHero(); hero.level = level; assert(chooseV3Warrior(hero));
+      const hero = createV3AdventurerHero(); hero.level = level; assert(promoteFixture(hero, chooseV3Warrior));
       const mainId = hero.equipment.mainHand!;
       hero.inventory = hero.inventory.map((item) => item.id === mainId ? {
         ...item,

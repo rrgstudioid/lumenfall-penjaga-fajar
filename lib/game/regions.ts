@@ -1,3 +1,4 @@
+import { CHARACTER_RULES } from './canonical-config.ts';
 import { IRONVEIL_ID, IRONVEIL_ENTRY, IRONVEIL_ENTRANCE, IRONVEIL_POCKETS } from './ironveil-mines-layout.ts';
 import { PLAINS_ID, PLAINS_ENTRY, PLAINS_EXIT } from './verdant-plains-layout.ts';
 import { WILDS_ID, WILDS_ENTRY, WILDS_LANDMARKS } from './whispering-wilds-layout.ts';
@@ -12,7 +13,7 @@ import { getVisibleJobArchitecture, showJobQuest } from './job-presentation.ts';
 import { STAMINA_ENABLED } from './gameplay-config.ts';
 import { VERDANT_TERRAIN, EAST_GATE_TERRAIN } from './field-terrain.ts';
 
-export const WORLD_CONFIG = { levelCap: 50, chapterCap: 1, inventoryCapacity: 60, storageCapacity: 120, cityScale: 1.5 };
+export const WORLD_CONFIG = { levelCap: CHARACTER_RULES.maxLevel, chapterCap: 1, inventoryCapacity: 60, storageCapacity: 120, cityScale: 1.5 };
 export type MonsterVariant = 'normal' | 'elite' | 'boss';
 export const MONSTER_VARIANTS: Record<MonsterVariant, { hpMultiplier:number; damageMultiplier:number; defenseMultiplier:number; expMultiplier:number; respawnTime:number; visualScale:number; nameColor:string; statusLabel:string }> = {
  normal:{hpMultiplier:1,damageMultiplier:1,defenseMultiplier:1,expMultiplier:1,respawnTime:25,visualScale:1,nameColor:'#d6e5bd',statusLabel:'Normal'},
@@ -186,7 +187,7 @@ fieldDefinitions[SUNKEN_ID]={
  id:SUNKEN_ID,cityId:'jayantara',displayName:'Sunken Ruins',codename:'Underwater Hunting Field',contentFamilyId:'sunken-ruins',
  chapter:1,minLevel:32,maxLevel:42,recommendedLevel:'32–42',subAreas:SUNKEN_ZONES.map(z=>z.name),
  normalMonsters:[...sunkenContent.normalMonsters],eliteMonsters:[...sunkenContent.eliteMonsters],fieldBoss:sunkenContent.fieldBoss,
- dropTable:[...sunkenContent.dropTable],materialTable:sunkenContent.materialTable.map(m=>({...m})),questList:[],
+ dropTable:[...sunkenContent.dropTable],materialTable:sunkenContent.materialTable.map(m=>({...m})),questList:[...sunkenContent.questList],
  unlockQuest:null,previousField:sunkenContent.previousField,nextMap:sunkenContent.nextMap,musicId:'',ambientId:'',isUnlocked:false,
  color:'#11647d',entry:{...SUNKEN_ENTRY},exit:{x:SUNKEN_PORTALS[0].x,z:SUNKEN_PORTALS[0].z},regionType:'field',
 };
@@ -237,6 +238,7 @@ export function fieldContent(fieldId:string):FieldDefinition {
 }
 
 export const FIELD_NPCS: Record<string, NpcDefinition> = {
+ 'sunken-ruins': {id:'field-npc-sunken',name:'Penjaga Reruntuhan',type:'merchant',service:'field-camp',services:['buy','sell','teleport','quest'],interactionRange:2.5,shopInventory:[],description:'Quest field, teleport, dan toko kebutuhan farming Reruntuhan Tenggelam.',x:SUNKEN_ENTRY.x+3,z:SUNKEN_ENTRY.z,fieldId:SUNKEN_ID},
  'meteorfall-citadel': {id:'field-npc-meteor',name:'Penjaga Benteng Meteor',type:'merchant',service:'field-camp',services:['buy','sell','teleport','quest'],interactionRange:2.5,shopInventory:[],description:'Quest field, teleport, dan toko kebutuhan farming Benteng Hujan Meteor.',x:-26,z:28,fieldId:'meteorfall-citadel'},
 };
 

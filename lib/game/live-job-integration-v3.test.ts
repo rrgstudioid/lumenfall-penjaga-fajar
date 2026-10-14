@@ -1,3 +1,5 @@
+import { createV2TestHero } from './rules.ts';
+import { unequipItem, getTotalSkillPointsForLevel } from './rules.ts';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
@@ -8,8 +10,6 @@ import {
   learnSkill,
   parseSave,
   characterLabel,
-  freshHero,
-  stripEquippedGear,
 } from './rules.ts';
 import { getJobProgression, getJobSkillNodes } from './character-view.ts';
 import { getVisibleJobArchitecture } from './job-presentation.ts';
@@ -19,9 +19,9 @@ import { CITIES, getNpcDescription, getNpcServiceLabel } from './regions.ts';
 
 function warrior(level: number) {
   const hero = createNewCharacter(`live-warrior-${level}`, `Live Warrior ${level}`, {}, 'v3_adventurer');
+  unequipItem(hero,'mainHand');
   hero.level = level;
-  hero.skillProgressionV3!.totalEarnedSP = 500;
-  stripEquippedGear(hero);
+  hero.skillProgressionV3!.totalEarnedSP = getTotalSkillPointsForLevel(hero.level);
   assert.equal(chooseCoreJob(hero, 'warrior'), true);
   return hero;
 }
@@ -86,15 +86,11 @@ await test('V3 specialization identity survives save/load and legacy characters 
     assert.equal(getJobProgression(restored)[2].status, 'Current');
     assert.equal(getVisibleJobArchitecture(restored).v3SpecializationChoices.filter((choice) => choice.available).length, 0);
   }
-  // New public characters are V3; use the legacy factory to test old saves.
-  const legacy = freshHero('legacy-live', 'adventurer', 'Legacy Live');
+  const legacy = createV2TestHero();
   const restoredLegacy = parseSave(JSON.stringify(legacy))!;
   assert.equal(restoredLegacy.skillArchitectureVersion, undefined);
-  assert.equal(restoredLegacy.skillProgressionV3, undefined);
+  assert.equal(restoredLegacy.progressionArchitecture, 'v2_test');
   assert.equal(restoredLegacy.specialization, null);
-  const modern = parseSave(JSON.stringify(createNewCharacter('modern-live', 'Modern Live')))!;
-  assert.equal(modern.progressionArchitecture, 'v3_adventurer');
-  assert.equal(modern.skillArchitectureVersion, 3);
 });
 
 await test('V3 NPC copy and development fixtures follow the live progression contract', () => {

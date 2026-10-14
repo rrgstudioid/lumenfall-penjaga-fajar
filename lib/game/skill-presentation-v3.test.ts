@@ -1,3 +1,4 @@
+import { promoteFixture } from './gameplay-test-fixtures.ts';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { createV3AdventurerHero, chooseV3Warrior, chooseV3Berserker, chooseV3BladeMaster } from './rules.ts';
@@ -36,8 +37,8 @@ await test('presentation exposes canonical Warrior mechanics and buff wording', 
   const hero = jobHero('warrior');
   const armor = resolveSkillPresentation(hero, WARRIOR_V3_SKILL_MAP['v3-warrior-armor-breaker'], WARRIOR_V3_RUNTIME_MAP['v3-warrior-armor-breaker']);
   const cry = resolveSkillPresentation(hero, WARRIOR_V3_SKILL_MAP['v3-warrior-battle-cry'], WARRIOR_V3_RUNTIME_MAP['v3-warrior-battle-cry']);
-  assert.equal(armor.specialMechanics.find((row) => row.label === 'Defense Reduction')?.value, '6%');
-  assert.equal(cry.specialMechanics.find((row) => row.label === 'Physical Damage')?.value, '+3%');
+  assert.equal(armor.specialMechanics.find((row) => row.label === 'Defense')?.value, '-6%');
+  assert.equal(cry.effects.find((row) => row.label === 'Physical Damage' && row.value === '+3%')?.value, '+3%');
   assert.equal(cry.damage.length, 0);
 });
 
@@ -78,8 +79,8 @@ await test('mastery presentation exposes canonical Accuracy and Mana reduction b
 function jobHero(job: 'warrior' | 'blade_master' | 'berserker'): Hero {
   const hero = createV3AdventurerHero();
   hero.level = 60;
-  assert(chooseV3Warrior(hero));
-  if (job === 'blade_master') assert(chooseV3BladeMaster(hero));
-  if (job === 'berserker') assert(chooseV3Berserker(hero));
+  assert(promoteFixture(hero, chooseV3Warrior));
+  if (job === 'blade_master') assert(promoteFixture(hero, chooseV3BladeMaster));
+  if (job === 'berserker') assert(promoteFixture(hero, chooseV3Berserker));
   return hero;
 }

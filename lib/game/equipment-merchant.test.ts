@@ -5,12 +5,16 @@ import { buyShopItem, sellInventoryItem, shopStock, shopItemPrice } from './city
 import { freshHero, unlockUniqueStats } from './rules.ts';
 
 const catalogEquipment = Object.values(ITEM_CATALOG).filter((item) =>
-  ['weapon', 'armor', 'accessory'].includes(item.category) && item.source.sourceId !== 'aruna-developer-materials' && item.equipmentType !== 'gloves',
+  ['weapon', 'armor', 'accessory'].includes(item.category),
 );
 
-await test('Equipment Merchant lists every regular catalog weapon, armor, and accessory', () => {
+await test('Equipment Merchant lists every catalog weapon, armor, and accessory for every job', () => {
   const expected = catalogEquipment.map((item) => item.templateId);
-  assert.deepEqual(shopStock('equipment').map((item) => item.templateId), expected);
+  for (const coreJob of [null, 'warrior', 'rogue', 'hunter', 'wizard', 'acolyte'] as const) {
+    const hero = freshHero();
+    hero.coreJob = coreJob;
+    assert.deepEqual(shopStock(hero, 'equipment').map((item) => item.templateId), expected);
+  }
 });
 
 await test('buying equipment ignores job restriction while equipping still enforces it', () => {

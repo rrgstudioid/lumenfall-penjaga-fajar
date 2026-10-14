@@ -3,7 +3,6 @@ import tailwindcss from '@tailwindcss/postcss';
 import vinext from 'vinext';
 import { defineConfig } from 'vite';
 import hostingConfig from './.openai/hosting.json';
-import { sunkenDevAssets } from './scripts/sunken-dev-assets';
 
 const SITE_CREATOR_PLACEHOLDER_DATABASE_ID =
   '00000000-0000-4000-8000-000000000000';
@@ -59,7 +58,7 @@ export default defineConfig(async ({ command }) => {
       })();
 
   return {
-    // Keep build optimization from invalidating dependencies of a live dev tab.
+    // A production compilation must not invalidate dependencies of a live dev tab.
     cacheDir: command === 'serve' ? 'node_modules/.vite-lumenfall-dev' : 'node_modules/.vite-lumenfall-build',
     ...(isVercelBuild ? {} : { css: { postcss: { plugins: [tailwindcss()] } } }),
     // Unreal's staging project writes locked Intermediate files while the
@@ -76,6 +75,6 @@ export default defineConfig(async ({ command }) => {
         ...(isCodexSeatbeltSandbox ? { useFsEvents: false, usePolling: true } : {}),
       },
     },
-    plugins: [...plugins, sunkenDevAssets()],
+    plugins,
   };
 });

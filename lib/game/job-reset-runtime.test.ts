@@ -1,39 +1,11 @@
+import { legalJobResetFixture } from './gameplay-test-fixtures.ts';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { createV3AdventurerHero, gainXP, resetJobToAdventurer, unequipItem } from './rules.ts';
+import { resetJobToAdventurer } from './rules.ts';
 
 await test('job reset runtime preserves earned level progression and clears job selection', () => {
-  const hero = createV3AdventurerHero();
-  gainXP(hero, 90000);
-  hero.gold = 1500;
-  hero.allocatedStats = { str: 7, vit: 5, dex: 3, int: 2 };
-  hero.statPoints = 12;
-  hero.skillPoints = 5;
-  hero.coreJob = 'warrior';
-  hero.job = 'warrior';
-  hero.jobTier = 'core';
-  hero.specialization = 'berserker';
-  hero.skillProgressionV3 = {
-    skillArchitectureVersion: 3,
-    totalEarnedSP: 18,
-    skillRanks: {
-      'v3-adventurer-quick-slash': 1,
-      'v3-adventurer-power-strike': 1,
-      'v3-warrior-strike': 2,
-      'v3-warrior-guard-stance': 1,
-    },
-    grantedRanks: {
-      'v3-adventurer-quick-slash': 1,
-      'v3-adventurer-power-strike': 1,
-    },
-    chosenCoreJob: 'warrior',
-    chosenSpecialization: 'berserker',
-    chosenAdvancedJob: null,
-  };
-
-  for (const slot of Object.keys(hero.equipment) as Array<keyof typeof hero.equipment>)
-    if (hero.equipment[slot]) assert.equal(unequipItem(hero, slot).ok, true);
+  const hero = legalJobResetFixture();
   const result = resetJobToAdventurer(hero);
   assert.equal(result.ok, true);
   assert.equal(result.hero.job, 'adventurer');
@@ -41,7 +13,7 @@ await test('job reset runtime preserves earned level progression and clears job 
   assert.equal(result.hero.specialization, null);
   assert.equal(result.hero.jobTier, 'adventurer');
   assert.equal(result.hero.gold, 1000);
-  assert.equal(result.hero.skillProgressionV3?.totalEarnedSP, 18);
+  assert.equal(result.hero.skillProgressionV3?.totalEarnedSP, 119);
   assert.equal(result.hero.skillProgressionV3?.chosenCoreJob, null);
   assert.equal(result.hero.skillProgressionV3?.chosenSpecialization, null);
 });

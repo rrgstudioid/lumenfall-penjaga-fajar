@@ -1,0 +1,15 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "incremental": false
+  },
+  "include": [
+    "output/**/*.ts",
+    "output/**/*.tsx",
+    "output/**/*.mts",
+    "sites-reconcile-v2/**/*.ts",
+    "sites-reconcile-v2/**/*.tsx",
+    "sites-reconcile-v2/**/*.mts"
+  ],
+  "exclude": ["node_modules"]
+}

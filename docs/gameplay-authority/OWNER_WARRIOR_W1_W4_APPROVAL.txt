@@ -1,0 +1,79 @@
+LUMENFALL — APPROVED WARRIOR 11-SKILL DEVELOPMENT IMPLEMENTATION
+
+OWNER menyetujui paket W1–W4 pada warrior-final-input-package/run-01, dengan batas berikut. Kerjakan satu checkpoint gabungan, lalu berhenti untuk OWNER REVIEW.
+
+1. AUTHORITY DAN ANGKA YANG DISETUJUI
+
+Baca AGENTS.md, OWNER_REVIEW_PACKAGE.txt, WARRIOR_RANK_TABLE.txt, WARRIOR_FINAL_INPUT_PACKAGE.json dan NEXT_IMPLEMENTATION_PLAN.txt pada checkpoint tersebut, serta authority terkait.
+
+Approval ini mencakup:
+- Seluruh 11 skill dan 61 baris rank dalam paket: coefficient, BonusSTR/BonusDEX scaling, Mana, cooldown, gates, prerequisites, biaya2SP/rank, radius/cap, durasi dan efek sebagaimana dirinci.
+- Perilaku W3/W4, termasuk Crit, Counter, Armor Break/Finale, tambahan poin DR, Charge dan AoE.
+- Konteks senjata W1 di bawah.
+
+Catat approval human ini secara jujur. Jangan membuat messageID/timestamp yang tidak tersedia. Proposal historis tetap historical; jangan menimpanya.
+
+Stat shared,22 profil HP/Mana, first-Core refund, SP199 dan aturan resource sudah disetujui. Jangan meminta approval ulang atau mengganti angka tersebut.
+
+2. ACTOR DAN WEAPON
+
+Gunakan Warrior legal dari progression/Core asli dengan uniquely owned newIron Sword+0 MAIN, BASE32–36, exact authored version yang sudah ada; OFF/gear lain kosong sesuai paket.
+
+Buat admission Warrior tersendiri, development-only, defaultOFF dan nonpersistent. Jangan memperluas token Adventurer atau mengadmit OldIron berdasarkan templateID saja.
+
+Level/gates/prerequisites/SP wajib legal melalui consumer asli. OWNER mengizinkan unspecialized Warrior Lv61 khusus proof seluruh61 rank maksimum: earned123/spent122/available1, primary budget120. Ini bukan perubahan stage, unlock specialization atau tambahan SP.
+
+3. FORMULA DAN ANGGARAN DAMAGE
+
+Reuse foundation/range, queue, hit/Crit, mitigation, HP/feedback/death existing.
+
+Raw=(BasePhysical+BonusSTR+sampleIron32–36)*C
+    +BonusSTR*S+BonusDEX*D.
+
+Satu attack sample kontinu per cast. Satu physical DIRECT MAIN hit bobot1 per target; AoE memakai budget penuh per target terpilih dengan cap, bukan membagi coefficient. Hit/Crit independen per target.
+
+Tidak ada BaseRoll, factor6, pengali rank kedua, scalarIron14 tambahan, double reference.90, early rounding atau compensation. Final rounding mengikuti kontrak selected yang sudah disetujui.
+
+Tujuh skill damage boleh Crit; empat selfbuff tidak menghasilkan damage/attack draw.
+
+4. BUFF, STATUS DAN MOVEMENT
+
+Implementasikan detail W3/W4 tanpa memperluasnya:
+- Counter: Block/Parry physicalDIRECT sah milik caster, usia<=2.5s, sekali pakai saat commitment; tanpa trigger reject sebelum cost/draw/movement/queue.
+- Armor Break: damage dahulu, status sesudah landed hit; ownership, strongest-active, refresh dan expiry sesuai paket.
+- Finale: bonus10% hanya dari own active Armor Break; foreign-only tidak memberi payoff.
+- Guard/Unbroken: tambahan poin DR, bukan relative-percent. Kedua buff berbeda dapat menjumlah sesuai paket; sameID tidak stack. Pertahankan capDR existing dan liveBlock50/30.
+- Battle Cry/Focus, durasi dan displacement resistance mengikuti paket; jangan menghidupkan Stagger, Tenacity atau immunity baru.
+- Charge memakai movement/collision asli, preflight aman dan syarat actual travel/Stun yang disetujui.
+- AoE memakai selector/radius/cap existing dengan target lifecycle sah.
+- castingTime metadata tidak otomatis menjadi wind-up atau lock baru.
+
+Admit buff Warrior yang sah melalui source/owner/lifecycle proof penuh. Jangan membuang bonus dari input agar validasi lolos.
+
+5. INTEGRASI DAN VERIFIKASI
+
+Selesaikan dalam satu scope:
+admission → formula → original consumer → buff/status/movement → static selected UI → lifecycle/save → affected tests → final-source Full Home browser.
+
+Offline actual Game:
+- Seluruh61 rank dengan pembelian legal, oracle independen dan resource/SP checks.
+- Crit/Evade/lethal, Counter invalid/expired/consumed, own/foreign/expired Armor Break, buff stacking/expiry, Charge collision dan AoE cap.
+- Frozen attacker/live target, malformed/stale identity, death/respawn/travel/equip/allocation/learn, Save/Continue defaultOFF.
+- No refill, cooldown reset, duplicate cost/hit/status atau fallback legacy saat selected admission gagal.
+
+Browser original Full Home:
+native purchase/allocation/equip/hotbar/cast; representative tujuh damage dan empat buff, Charge/AoE serta lifecycle/save/travel. Pisahkan fixture setup, native input, offline proof dan bagian yang belum diuji. Jangan memaksa RNG browser untuk membuat PASS.
+
+Tampilkan formula/rank/resource/status selected yang benar. Jangan mengubah playerCP atau mengklaim production activation.
+
+6. PRESERVASI DAN HANDOFF
+
+Ambil baseline dirty aktual sebelum edit. Pertahankan male-v2, maps, UI lokal, Wings/developer potions, Adventurer, Iron grandfather, resource/stat approved dan pekerjaan OWNER.
+
+Jalankan empat main checks terhadap source final. Simpan failures/interim revisions; jangan melemahkan assertion atau melabel ulang proof lama sebagai run baru. Verifikasi type/lint/tests sesuai delta dan source final yang benar-benar served.
+
+Tidak membuat item/weapon baru, migrasi kit Berserker/Blade Master, PvP rollout, compositeCP atau global legacy deletion. Tidak mengakses personal save, mengubah original assets/.blend, commit/push/merge/deploy/publish.
+
+Laporan akhir: hasil per scope, delta terhadap baseline, evidence final, limitations, cleanup own resources dan keputusan yang benar-benar masih terbuka.
+
+STOP FOR OWNER REVIEW. Jangan menyatakan seluruh CLASS atau Phase14 release-ready.

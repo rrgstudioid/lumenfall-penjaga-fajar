@@ -73,7 +73,7 @@ await test('material descriptions agree with current enhancement tiers and craft
   );
   assert.match(
     ITEM_CATALOG['eternal-seal'].description,
-    /hanya terpakai ketika gagal/,
+    /tidak terpakai/,
   );
 });
 
@@ -92,7 +92,7 @@ await test('Rune descriptions distinguish possible rolls from granted stats, job
   }
   assert.match(
     createRuneItem('might', 'ancient').description,
-    /Physical Damage, Strength, Critical Damage, Damage terhadap Boss/,
+    /Physical Damage, STR, Critical Damage, Boss Damage/,
   );
   assert.match(
     createRuneItem('vitality', 'cracked').description,
@@ -115,11 +115,11 @@ await test('Optimizer descriptions explain Forge-only full Rune rerolls and comm
 await test('equipment descriptions contain the compact gameplay metadata', () => {
   assert.match(
     ITEM_CATALOG['field-sunken-ruins-bow'].description,
-    /Main Weapon/,
+    /Main Hand/,
   );
   assert.match(
     ITEM_CATALOG['field-sunken-ruins-bow'].description,
-    /Attack \+33\.0/,
+    /Attack \+33(?= \u00b7)/,
   );
   assert.match(
     ITEM_CATALOG['ironveil-shield'].description,
@@ -137,7 +137,7 @@ await test('equipment descriptions contain the compact gameplay metadata', () =>
   assert.match(ITEM_CATALOG['arunika-head'].description, /Slot: Head/);
   assert.match(
     ITEM_CATALOG['arunika-head'].description,
-    /Defense \+3\.0/,
+    /Defense \+3(?= \u00b7)/,
   );
 });
 

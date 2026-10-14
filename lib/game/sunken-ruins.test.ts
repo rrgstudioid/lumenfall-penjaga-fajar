@@ -105,12 +105,12 @@ await test('one canonical Sunken Ruins replaces the retired field and keeps the 
   assert.deepEqual({ x: hero.x, z: hero.z }, SUNKEN_ENTRY);
   assert.equal(fieldSpawns(field).length, 324);
   assert.equal(field.fieldBoss?.level, 42);
-  assert.equal(field.questList.length, 0);
+  assert.deepEqual(field.questList,['field-sunken-ruins-easy','field-sunken-ruins-veteran','field-sunken-ruins-elite']);
   assert.deepEqual(field.materialTable, FIELDS['sunken-ruins'].materialTable);
   assert.equal(SUNKEN_ID, 'sunken-ruins');
   assert.equal(field.displayName, 'Sunken Ruins');
   assert.equal(FIELDS[SUNKEN_PREVIEW_ID], undefined);
-  assert.equal(FIELD_NPCS[SUNKEN_ID], undefined);
+  assert.equal(FIELD_NPCS[SUNKEN_ID].id, 'field-npc-sunken');
   assert.deepEqual(
     field.subAreas,
     SUNKEN_ZONES.map((z) => z.name),

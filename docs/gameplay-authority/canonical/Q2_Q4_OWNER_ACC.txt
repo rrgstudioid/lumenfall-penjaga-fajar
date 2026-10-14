@@ -1,0 +1,32 @@
+LUMENFALL — Q2+Q4 DESIGN PROPOSAL V1: OWNER ACC
+Dicatat Garda, 8 Oktober 2026, dari percakapan langsung ini.
+
+Proposal:
+outputs/gameplay-migration/canonical-decision-handoff/Q2_Q4_DESIGN_PROPOSAL_V1.txt
+SHA256: c8a5f1ae6a3fe066a5f9c80604d5dade3d273e5c42f627970409ee92beee2c6f
+File proposal asli dipertahankan sebagai dokumen historis berlabel PROPOSED;
+addendum ACC ini mencatat keputusan terbaru tanpa menimpa sejarahnya.
+
+OWNER semula menyatakan:
+"Ok aku setuju sama yang kamu ajukan, tapi aku pingin tanya sesuatu, kamu taukan untuk Main/off pada senjata itu punya penalty damage?"
+Sesudah pembahasan penalty dan angka mastery yang belum final, OWNER menegaskan:
+"Ohh okeh , untuk sementara aku setuju jawabanmu, untuk Design Proposal tadi sudah ACC ya, mari lanjutkan"
+
+KEPUTUSAN
+Design Proposal Q2+Q4 V1 sudah ACC sebagai kontrak architecture/formula/sampling/
+rounding, dengan seluruh scope dan pengecualian numeric data gate di proposal.
+Persetujuan ini bukan tabel angka item/skill/job-level yang belum tersedia.
+
+PENEGASAN MAIN/OFF
+Main memakai kontribusi weapon tanpa penalty dual-wield Off Hand.
+Penalty Off Hand hanya mengenai raw weapon contribution, bukan seluruh hit damage,
+character primary stats, Rune/Unique atau coefficient skill.
+Baseline .5 tetap acuan konfigurasi provisional yang sudah tercatat; tidak menjadi
+ACC otomatis untuk mastery .6/.75/.80 atau kurva per rank baru.
+Foundation memakai efficiency/config input eksplisit tanpa mengaktifkan angka baru.
+
+LANGKAH BERIKUTNYA
+Checkpoint A: pure range contract/composer/sampler/raw skill budget terisolasi,
+fixture sintetis dan laporan. Belum integrasi live V3/world/UI/CP/save atau potency DoT.
+Tidak ada commit/push/merge/publish yang diminta. R7 tetap selesai pada scope metadata.
+Q3/Q5/Q6 dan tabel numeric yang belum lengkap tidak otomatis disetujui oleh ACC ini.

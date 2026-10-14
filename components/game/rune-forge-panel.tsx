@@ -1,4 +1,5 @@
 'use client';
+import { statDisplayLabel, statDisplayValue } from '@/lib/game/stat-presentation';
 import { JobText } from './job-presentation-context';
 
 import { useRef, useState, type CSSProperties } from 'react';
@@ -195,12 +196,11 @@ export function RuneForgePanel({
   const installPreview = chosenRune?.affixes
     .map(
       (a) =>
-        a.label +
+        statDisplayLabel(a.stat) +
         ' ' +
-        Number(before[a.stat] ?? 0).toFixed(1) +
+        statDisplayValue(a.stat, before[a.stat] ?? 0, false) +
         ' → ' +
-        Number(after[a.stat] ?? 0).toFixed(1) +
-        (a.unit === 'percent' ? '%' : ''),
+        statDisplayValue(a.stat, after[a.stat] ?? 0, false),
     )
     .join(' · ');
 

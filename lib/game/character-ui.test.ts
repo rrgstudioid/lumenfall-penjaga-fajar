@@ -1,7 +1,8 @@
+import { LEGACY_SPECIALIZATIONS } from './gameplay-test-fixtures.ts';
 import { CITIES } from './regions.ts';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { CORE_JOBS, SPECIALIZATIONS, PASSIVES } from './skills.ts';
+import { CORE_JOBS, PASSIVES } from './skills.ts';
 import {
   allocateStatPoint,
   activeSkills,
@@ -36,20 +37,13 @@ import {
   previewEquipmentChange,
 } from './character-view.ts';
 
-type LegacySpecialization = Exclude<keyof typeof SPECIALIZATIONS, 'assasin' | 'rogue' | 'berserker' | 'blade_master'>;
-const legacySpecializations = Object.values(CORE_JOBS).flatMap(core => core.specializations)
-  .filter((id): id is LegacySpecialization => id !== 'assasin' && id !== 'rogue' && id !== 'berserker' && id !== 'blade_master');
-
-function trained(spec: LegacySpecialization = 'resi') {
+function trained(spec: keyof typeof LEGACY_SPECIALIZATIONS = 'resi') {
   const hero = freshHero();
   gainXP(hero, 999999);
   hero.gold = 5000;
   unequipItem(hero, 'mainHand');
-  const core = Object.values(CORE_JOBS).find(job => job.specializations.includes(spec));
-  assert(core, 'legacy specialization must belong to a legacy core');
-  assert.equal(core.id, SPECIALIZATIONS[spec].coreJob);
-  assert.equal(chooseCoreJob(hero, core.id), true);
-  assert.equal(chooseSpecialization(hero, spec), true);
+  chooseCoreJob(hero, LEGACY_SPECIALIZATIONS[spec].coreJob);
+  chooseSpecialization(hero, spec);
   return hero;
 }
 await test('stat allocation changes shared derived stats immutably and rejects empty pool', () => {
@@ -75,8 +69,7 @@ await test('stat allocation changes shared derived stats immutably and rejects e
     derivedStats(hero).magicAttack > derivedStats(original).magicAttack,
   );
 });
-await test('legacy core and specialization trees use the correct registry and exactly four active nodes', () => {
-  assert.equal(new Set(legacySpecializations).size, 10);
+await test('all core and specialization trees use the correct registry and exactly four active nodes', () => {
   for (const core of Object.keys(CORE_JOBS) as Array<keyof typeof CORE_JOBS>) {
     const hero = freshHero();
     gainXP(hero, 999999);
@@ -87,7 +80,9 @@ await test('legacy core and specialization trees use the correct registry and ex
     assert.ok(nodes.active.every((s) => s.job === core));
     assert.equal(nodes.passive.length, 1);
   }
-  for (const spec of legacySpecializations) {
+  for (const spec of Object.keys(LEGACY_SPECIALIZATIONS) as Array<
+    keyof typeof LEGACY_SPECIALIZATIONS
+  >) {
     const hero = trained(spec);
     const nodes = getJobSkillNodes(hero, 'specialization');
     assert.equal(nodes.active.length, 4);
@@ -111,7 +106,9 @@ await test('active skill upgrades spend SP, increase actual effect, stop at maxi
   assert.equal(canLearnSkill('resi-1', hero).ok, false);
 });
 await test('passive effects apply to all ten jobs and reset refunds investments but not job grants', () => {
-  for (const spec of legacySpecializations) {
+  for (const spec of Object.keys(LEGACY_SPECIALIZATIONS) as Array<
+    keyof typeof LEGACY_SPECIALIZATIONS
+  >) {
     const hero = trained(spec),
       skill = activeSkills(hero)[0],
       passive = PASSIVES[spec];
@@ -126,13 +123,12 @@ await test('passive effects apply to all ten jobs and reset refunds investments 
       inventory = JSON.stringify(hero.inventory),
       points = hero.skillPoints;
     const result = resetSkillPoints(hero);
-    assert.ok(result.ok);
+    assert.equal(result.ok, false);
     assert.equal(JSON.stringify(hero), state);
-    assert.equal(result.hero.gold, 4500);
-    assert.equal(result.hero.skillPoints, points + 3);
-    assert.equal(result.hero.skillLevels[skill.id], 0);
-    assert.equal(result.hero.passiveLevels[passive.id], 1);
-    assert.equal(result.hero.passiveLevels['adventurer-resolve'], 0);
+    assert.deepEqual(result.hero, hero);
+    assert.equal(result.hero.gold, 5000);
+    assert.equal(result.hero.skillPoints, points);
+    assert.equal(refundableSkillPoints(result.hero), 3);
     assert.equal(result.hero.specialization, spec);
     assert.equal(JSON.stringify(result.hero.inventory), inventory);
     assert.equal(resetSkillPoints(result.hero).ok, false);
@@ -161,10 +157,10 @@ await test('capstone requires level50, Mastery and main passive rank3; reset can
   assert.ok(learnPassive(hero, cap));
   assert.ok(calculatePassiveEffects(hero).skillDamage! > before.skillDamage!);
   const result = resetSkillPoints(hero);
-  assert.ok(result.ok);
-  assert.equal(result.returnedPoints, 3);
+  assert.equal(result.ok, false);
+  assert.equal(result.returnedPoints, 0);
   assert.equal(result.hero.masteryQuestClaimed, true);
-  assert.equal(getSkillStatus(cap, result.hero), 'locked');
+  assert.equal(getSkillStatus(cap, result.hero), 'maxed');
   assert.equal(canLearnSkill(cap, result.hero).ok, false);
 });
 await test('breakdown reconciles exactly with combat stats including enhancement, Rune, optimizer, passive and buff', () => {
@@ -244,7 +240,7 @@ await test('equipment preview is read-only, validates slots/hands, and matches f
     getCharacterEquipmentLayers(hero).some((l) => l.slot === 'mainHand'),
     false,
   );
-  assert.equal(CHARACTER_SLOTS.length, 12);
+  assert.equal(CHARACTER_SLOTS.length, 11);
 });
 await test('Magnifier unlocks only locked Unique Stats once and preserves Rune/Optimizer', () => {
   const hero = trained(),

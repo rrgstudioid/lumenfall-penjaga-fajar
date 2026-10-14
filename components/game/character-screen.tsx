@@ -1,7 +1,8 @@
 'use client';
+import { statBonusText } from '@/lib/game/stat-presentation';
 import { JobText } from './job-presentation-context';
 import { presentJobText } from '@/lib/game/job-presentation';
-import { useState, type CSSProperties, type ReactNode } from 'react';
+import { useId, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { Tooltip } from '@base-ui/react/tooltip';
 import { Popover } from '@base-ui/react/popover';
 import {
@@ -19,6 +20,7 @@ import {
   Gem,
   PawPrint,
   Feather,
+  Hand,
   Shirt,
   Footprints,
   Columns2,
@@ -44,7 +46,6 @@ import {
 import {
   RARITY_META,
   RUNE_RARITY_RULES,
-  calculateEnhancedBaseStats,
   type EquipSlot,
   type ItemData,
 } from '@/lib/game/items';
@@ -66,6 +67,8 @@ import {
   attributeEffects,
   characterNumber as fmt,
   readCharacterPower,
+  characterStatNote,
+  characterResourceBreakdown,
   type CharacterStat,
   type CombatPowerCalculator,
 } from '@/lib/game/character-screen';
@@ -75,6 +78,7 @@ import { CharacterPreview } from './character-preview';
 import { CombatPowerComparison, AttributeCombatPowerPreview } from './combat-power-preview';
 import { StatBlockList } from './stat-block-list';
 import { ItemIcon } from './entry-icon';
+import { SelectedItemBaseStats } from './item-hover';
 import { SkillIcon } from './skill-icon';
 import { useGameDrag } from './drag-drop-provider';
 
@@ -88,25 +92,39 @@ function Tip({
   children,
   content,
   disabled = false,
+  side = 'top',
 }: {
   children: ReactNode;
   content: ReactNode | (() => ReactNode);
   disabled?: boolean;
+  side?: 'top' | 'right';
 }) {
   const [visible, setVisible] = useState(false);
+  const tooltipId = useId();
+  const triggerRef = useRef<HTMLSpanElement>(null);
   return (
-    <Tooltip.Root disabled={disabled} onOpenChange={setVisible}>
+    <Tooltip.Root disabled={disabled} onOpenChange={(open, details) => {
+      // Scrolling under a stationary pointer must not replace keyboard stat help.
+      const focused = triggerRef.current?.ownerDocument.activeElement;
+      if (open && details.reason === 'trigger-hover' && focused !== triggerRef.current
+        && focused?.matches('.cs-tip-target:focus-visible')) {
+        details.cancel();
+        return;
+      }
+      setVisible(open);
+    }}>
       <Tooltip.Trigger
+        aria-describedby={visible && !disabled ? tooltipId : undefined}
         render={
           // oxlint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- Keyboard access to stat help without nesting equipment buttons.
-          <span className="cs-tip-target" tabIndex={0} />
+          <span ref={triggerRef} className="cs-tip-target" tabIndex={0} />
         }
       >
         {children}
       </Tooltip.Trigger>
       <Tooltip.Portal>
-        <Tooltip.Positioner sideOffset={9} className="cs-floating-layer">
-          <Tooltip.Popup className="cs-surface cs-tooltip">
+        <Tooltip.Positioner side={side} sideOffset={9} className="cs-floating-layer">
+          <Tooltip.Popup id={tooltipId} role="tooltip" className="cs-surface cs-tooltip">
             {typeof content === 'function'
               ? visible && !disabled
                 ? content()
@@ -153,9 +171,13 @@ export function CharacterScreen({
   const [equipConfirm, setEquipConfirm] = useState<ItemData | null>(null);
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const drag = useGameDrag();
+  const range=game?.getDevelopmentAdventurerRange();
+  const rangeSelected=range!==null && range!==undefined;
+  const main=range?.ok ? range.value : null;
   const breakdown = characterStatBreakdown(hero),
     final = breakdown.final;
   const profile = combatProfile(hero);
+  const resourceBreakdown = characterResourceBreakdown(hero);
   const power = readCharacterPower(hero, combatPowerCalculator);
   const jobEmblem =
     ALL_PASSIVES.find(
@@ -172,6 +194,15 @@ export function CharacterScreen({
   };
 
   function statDetail(stat: CharacterStat) {
+    if(stat.id==='physicalAttack' && rangeSelected)return <>
+      <strong>Physical Attack</strong>
+      {main ? <dl><div><dt>Base Physical Attack</dt><dd>{main.base}</dd></div>
+        <div><dt>Bonus STR</dt><dd>{main.bonusSTR}</dd></div>
+        <div><dt>Main-hand weapon</dt><dd>{main.weapon.min}–{main.weapon.max}</dd></div>
+        <div><dt>Total</dt><dd>{main.MAIN.min}–{main.MAIN.max}</dd></div></dl>
+        : <p>Range unavailable for the current equipment or character context.</p>}
+      <small>Physical Attack range; skill coefficients are applied separately.</small>
+    </>;
     const sources = [
       { label: 'Base + attributes', stats: breakdown.base },
       ...breakdown.columns,
@@ -179,7 +210,7 @@ export function CharacterScreen({
     return (
       <>
         <strong>{stat.label}</strong>
-        <p>Nilai efektif dari perhitungan karakter saat ini.</p>
+        <p>{characterStatNote(stat.id, final) ?? 'Nilai hasil resolver karakter saat ini.'}</p>
         <dl>
           {sources
             .filter((source) => source.stats[stat.id] !== 0)
@@ -201,19 +232,19 @@ export function CharacterScreen({
           </div>
         </dl>
         <small>
-          Bonus, pengali, dan batas stat sudah diterapkan. Tidak ada formula
-          terpisah di UI.
+          Breakdown mengikuti resolver sumber. Batas dan eligibility pada impact
+          tetap mengikuti consumer; tidak ada formula damage terpisah di UI.
         </small>
       </>
     );
   }
-  function statRows(rows: CharacterStat[]) {
+  function statRows(rows: CharacterStat[], tooltipSide: 'top' | 'right' = 'top') {
     return rows.map((stat) => (
-      <Tip key={stat.id} disabled={drag.isDragging} content={statDetail(stat)}>
+      <Tip key={stat.id} disabled={drag.isDragging} content={statDetail(stat)} side={tooltipSide}>
         <span className="cs-stat-row" data-character-stat={stat.id}>
           <span>{stat.label}</span>
           <b>
-            {fmt(final[stat.id])}
+            {stat.id==='physicalAttack' && rangeSelected ? main ? `${main.MAIN.min}–${main.MAIN.max}` : '—' : fmt(final[stat.id])}
             <small>{stat.unit}</small>
           </b>
         </span>
@@ -252,7 +283,7 @@ export function CharacterScreen({
             ? `Base stats after enhancement (+${item.enhancementLevel})`
             : 'Base stats (+0)'}
         </h4>
-        <StatBlockList value={calculateEnhancedBaseStats(item)} />
+        <SelectedItemBaseStats item={item} game={game}/>
         <h4>Unique stats</h4>
         {item.uniqueStatsLocked ? (
           <>
@@ -306,7 +337,7 @@ export function CharacterScreen({
                     {socket.rune.affixes
                       .map(
                         (a) =>
-                          `${a.label} +${a.value}${a.unit === 'percent' ? '%' : ''}`,
+                          statBonusText(a.stat, a.value),
                       )
                       .join(' · ')}
                   </small>
@@ -476,11 +507,12 @@ export function CharacterScreen({
                   : preview.validation.reason}
               </p>
               <CombatPowerComparison comparison={preview.combatPower} />
+              {rangeSelected && <p>Legacy CP comparison. Physical Attack range is shown after validated equipment is applied.</p>}
               {preview.validation.ok && (
                 <dl>
                   {CHARACTER_STAT_ROWS.filter(
                     (stat) =>
-                      preview.after[stat.id] !== preview.before[stat.id],
+                      (!rangeSelected || stat.id!=='physicalAttack') && preview.after[stat.id] !== preview.before[stat.id],
                   ).map((stat) => (
                     <div key={stat.id}>
                       <dt>{stat.label}</dt>
@@ -508,7 +540,7 @@ export function CharacterScreen({
               )}
               {preview.validation.ok &&
                 CHARACTER_STAT_ROWS.every(
-                  (stat) => preview.after[stat.id] === preview.before[stat.id],
+                  (stat) => (!rangeSelected || stat.id!=='physicalAttack') && preview.after[stat.id] === preview.before[stat.id],
                 ) && <small>Tidak mengubah statistik efektif.</small>}
               <details>
                 <summary>Item details</summary>
@@ -584,7 +616,7 @@ export function CharacterScreen({
                     Combat Power tidak tersedia untuk data karakter ini.
                   </p>
                 )}
-                <small>Dinilai dari damage, kemampuan bertahan, dan skill yang aktif. Bukan rarity equipment.</small>
+                <small>{rangeSelected ? 'Combat Power uses the legacy calculation; it does not evaluate this Physical Attack range.' : 'Dinilai dari damage, kemampuan bertahan, dan skill yang aktif. Bukan rarity equipment.'}</small>
               </>
             }
           >
@@ -593,6 +625,7 @@ export function CharacterScreen({
               <div>
                 <span>COMBAT POWER</span>
                 <b>{power ? fmt(power.total) : '—'}</b>
+                {rangeSelected && <small>Legacy calculation</small>}
                 {!power && <small>Belum tersedia</small>}
               </div>
               <CircleHelp size={13} />
@@ -624,9 +657,10 @@ export function CharacterScreen({
                         <small>
                           Dampak efektif +1 point pada karakter ini:
                         </small>
-                        <AttributeCombatPowerPreview hero={hero} attribute={attribute.id} />
+                        {!rangeSelected && <AttributeCombatPowerPreview hero={hero} attribute={attribute.id} />}
+                        {rangeSelected && <p>{hero.statPoints>0 ? attribute.id==='str' ? '+1 STR adds 1 to both Physical Attack endpoints.' : '+1 does not add raw Physical Attack; existing resource and combat effects remain.' : 'No available point. STR affects both Physical Attack endpoints; no allocation preview.'}</p>}
                         <dl>
-                          {attributeEffects(hero, attribute.id).map(
+                          {(!rangeSelected || hero.statPoints>0 ? attributeEffects(hero, attribute.id) : []).filter(effect=>!rangeSelected || effect.id!=='physicalAttack').map(
                             (effect) => (
                               <div key={effect.id}>
                                 <dt>{effect.label}</dt>
@@ -691,6 +725,8 @@ export function CharacterScreen({
             </button>
             <div className="cs-resources">
               <h3 className="cs-section-heading">Resources</h3>
+              <small className="cs-eyebrow" style={{display:'block'}}>HP base {fmt(resourceBreakdown.hp.base)} + growth {fmt(resourceBreakdown.hp.growth)}/level + VIT {fmt(resourceBreakdown.hp.primaryContribution)}</small>
+              {resourceBreakdown.mana.levelFoundation !== null && <small className="cs-eyebrow" style={{display:'block'}}>Mana level {fmt(resourceBreakdown.mana.levelFoundation)} + Bonus INT {fmt(resourceBreakdown.mana.primaryContribution!)}</small>}
               {[
                 {
                   id: 'hp',
@@ -784,7 +820,7 @@ export function CharacterScreen({
                                 {slot.label} ·{' '}
                                 {equipped.handedness.replaceAll('_', ' ')}
                               </p>
-                              <StatBlockList value={calculateEnhancedBaseStats(equipped)} />
+                              <SelectedItemBaseStats item={equipped} game={game}/>
                               {equipped.uniqueStatsLocked ? (
                                 <small>Unique Stats terkunci.</small>
                               ) : (
@@ -823,7 +859,8 @@ export function CharacterScreen({
                             <Feather size={22} />
                           ) : slot.id === 'chest' ? (
                             <Shirt size={22} />
-
+                          ) : slot.id === 'gloves' ? (
+                            <Hand size={22} />
                           ) : slot.id === 'legs' ? (
                             <Columns2 size={22} />
                           ) : slot.id === 'boots' ? (
@@ -906,10 +943,11 @@ export function CharacterScreen({
                       </Popover.Close>
                     </div>
                     <Popover.Description className="cs-muted">
-                      Bonus tambahan yang aktif pada karakter.
+                        Nilai sumber karakter. Lihat tooltip untuk efek aktif dan batas consumer.
                     </Popover.Description>
                     <div className="cs-popup-scroll">
-                      {statRows(ADVANCED_STATS)}
+                      {/* Keep focused stat help beside the popup, clear of its close button. */}
+                      {statRows(ADVANCED_STATS, 'right')}
                     </div>
                   </Popover.Popup>
                 </Popover.Positioner>

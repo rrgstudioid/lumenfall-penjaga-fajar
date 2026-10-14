@@ -23,6 +23,12 @@ import { PLAINS_DAYLIGHT, FROST_DAWN } from './verdant-plains-sky';
 import { UIInputBlockers, isEditableTarget } from './ui-input';
 import { CHAT_MESSAGE_LIMIT } from './chat';
 import * as T from 'three';
+import { openBasicReferenceBinding, prepareBasicReferenceAttack, type BasicReferenceBinding } from './basic-attack-reference-v2.ts';
+import { sampleRawAttackExecution, type AttackExecutionSnapshot, type FoundationFailure, type SampledRawExecution } from './attack-range-v2.ts';
+import { QUICK_SLASH_REFERENCE, openQuickSlashBinding, prepareQuickSlash, type QuickSlashBinding } from './quick-slash-reference-v2.ts';
+import { POWER_STRIKE_REFERENCE, openPowerStrikeBinding, preparePowerStrike, currentPowerStrikeBinding, coherentHigherPowerRank, type PowerStrikeBinding } from './power-strike-reference-v2.ts';
+import { ADVENTURER_RANKS_REFERENCE, adventurerReferenceSkillMetadata, adventurerRangePresentation, adventurerOwnedItemRangePresentation, adventurerLifecycleSignature, openAdventurerRanksBinding, prepareAdventurerRanks, prepareAdventurerBasic, currentAdventurerRanksBinding, type AdventurerRanksBinding } from './adventurer-ranks-reference-v2.ts';
+import { WARRIOR_REFERENCE, warriorReferenceSkillMetadata, warriorLifecycleSignature, openWarriorBinding, readWarriorBinding, prepareWarriorReference, recordCommittedWarriorBuffs, type WarriorBinding } from './warrior-reference-v3.ts';
 import type { RogueAmbushState } from './rogue-ambush.ts';
 import { AssasinPoisonState } from './assasin-poison.ts';
 import { AssasinCombatState } from './assasin-combat.ts';
@@ -71,6 +77,8 @@ import {
   deleteCharacter,
   discardItem as discardInventoryItem,
   derivedStats,
+  reconcileResourceMaximums,
+  recoverActiveResources,
   calculateBaseStats,
   calculateEquipmentStats,
   combatModifiersFor,combatSupportFor,modifierContextFor,
@@ -126,12 +134,14 @@ import {
   type SpecializationId,
 } from './rules';
 import { MASTERY_EFFECTS, type SkillDefinition } from './skills';
-import { COMBAT_MECHANICS, criticalChance, evasionChance, blockChance, barrierAmount, resolveHitAgainstEvasion } from './combat-mechanics';
+import { COMBAT_MECHANICS, criticalChance, evasionChance, passiveBlockChance, barrierAmount, resolveHitAgainstEvasion } from './combat-mechanics';
+import { resolveCriticalDamage } from './combat-resolver.ts';
 import { SkillHitQueue, selectSkillTargets, skillHitDamage, type ResolvedSkillAction } from './skill-action';
 import { applySourceOwnedStatus, applyStatus, clearExpiredSourceStatuses, effectiveArmorBreakStrength, getActiveStatusApplications, hasActiveStatusFromSource, hasStatus, getStatus, DefenseEvents, counterContextAllowed, type DefenseResult, type SourceOwnedStatus } from './combat-status';
 import {addTemporaryModifier,tickTemporaryModifiers,receivedMultiplier,resolveTargetHit,NO_COUNTER,setManualGuard} from './combat-modifiers';
 import {forwardFromYaw} from './combat-position';
 import {enterStealth,exitStealth,isStealthed,breakStealth} from './stealth';
+import { VanishState } from './vanish.ts';
 import {PersonalMarks,personalMark} from './personal-mark';
 import {directionalVector,moveDirectional,moveCollisionSafeTo,passThroughEndpoint} from './directional-movement';
 import {relativePosition} from './combat-position';
@@ -500,12 +510,16 @@ export class Game {
   private poisonTime = 0;
   readonly assasinPoison = new AssasinPoisonState<Enemy>((target, tick) => {
     if (tick.rawDamage <= 0 || !this.enemies.includes(target) || target.hp <= 0) return;
-    this.hurtEnemy(target, tick.rawDamage, 0, 'physical', { ...tick.snapshot, magicPenetration: 0 }, tick.snapshot.level, 'poison_dot');
+    const damage = resolveCriticalDamage(tick.rawDamage, { ...tick,
+      criticalRate: tick.snapshot.criticalRate, criticalDamage: tick.snapshot.criticalDamage }, () => this.rand());
+    this.hurtEnemy(target, damage, 0, 'physical', { ...tick.snapshot, magicPenetration: 0 }, tick.snapshot.level, 'poison_dot');
   }, () => this.rand());
   private poisonExecutions = new WeakMap<ResolvedSkillAction, NonNullable<ReturnType<AssasinPoisonState<Enemy>['beginExecution']>>>();
   readonly assasinCombat = new AssasinCombatState<Enemy>(this.assasinPoison, (target,tick) => {
-    if (tick.rawDamage>0 && this.enemies.includes(target) && target.hp>0)
-      this.hurtEnemy(target,tick.rawDamage,0,'physical',{...tick.snapshot,magicPenetration:0},tick.snapshot.level,'poison_dot');
+    if (tick.rawDamage <= 0 || !this.enemies.includes(target) || target.hp <= 0) return;
+    const damage = resolveCriticalDamage(tick.rawDamage, { ...tick,
+      criticalRate: tick.snapshot.criticalRate, criticalDamage: tick.snapshot.criticalDamage }, () => this.rand());
+    this.hurtEnemy(target,damage,0,'physical',{...tick.snapshot,magicPenetration:0},tick.snapshot.level,'poison_dot');
   },()=>this.rand());
   private assasinExecutions = new WeakMap<ResolvedSkillAction,ReturnType<AssasinCombatState<Enemy>['beginExecution']>>();
   private assasinDaggers: Array<{ mesh:T.Mesh<T.OctahedronGeometry,T.MeshBasicMaterial>; origin:T.Vector3; target:TargetIdentity; age:number; delay:number; duration:number }> = [];
@@ -563,7 +577,147 @@ export class Game {
   /** Transient only: the next valid Blade Master basic attack hand. */
   dualBasicNextHand: 'MAIN' | 'OFF' = 'MAIN';
   dualBasicEquipmentSignature = '';
+  #basicReferenceSelected = false;
+  #basicReferenceBinding?: BasicReferenceBinding;
+  #basicReferenceFailure?: FoundationFailure;
+  #quickSlashReferenceSelected = false;
+  #quickSlashReferenceBinding?: QuickSlashBinding;
+  #quickSlashReferenceFailure?: FoundationFailure;
+  #quickSlashResult?: FoundationFailure | Readonly<{ ok: true; execution: AttackExecutionSnapshot; sample: SampledRawExecution }>;
+  getDevelopmentQuickSlashResult() { return this.#quickSlashResult; }
+  #quickSlashExecutions = new WeakMap<ResolvedSkillAction, { hero: Hero; actorId: string }>();
+  #powerStrikeReferenceSelected = false;
+  #powerStrikeReferenceBinding?: PowerStrikeBinding;
+  #powerStrikeReferenceFailure?: FoundationFailure;
+  #powerStrikeResult?: FoundationFailure | Readonly<{ ok: true; execution: AttackExecutionSnapshot; sample: SampledRawExecution }>;
+  #powerStrikeExecutions = new WeakMap<ResolvedSkillAction, { hero: Hero; actorId: string; slotId: string }>();
+  getDevelopmentPowerStrikeResult() { return this.#powerStrikeResult; }
+  /** Independent, nonpersistent Power R1 opt-in; paid Lv2 context only. */
+  enableDevelopmentPowerStrikeReference() {
+    if (process.env.NODE_ENV !== 'development') return Object.freeze({ ok: false as const, code: 'DEVELOPMENT_ONLY', path: 'route', reason: 'Power Strike reference is development-only.' });
+    this.#powerStrikeReferenceSelected = true;
+    const opened = openPowerStrikeBinding(this);
+    this.#powerStrikeReferenceBinding = opened.ok ? opened.value : undefined;
+    this.#powerStrikeReferenceFailure = opened.ok ? undefined : opened;
+    return opened.ok ? Object.freeze({ ok: true as const, version: opened.value.version }) : opened;
+  }
+  /** Nonpersistent opt-in for the single owner-approved development reference. */
+  enableDevelopmentQuickSlashReference() {
+    if (process.env.NODE_ENV !== 'development') return Object.freeze({ ok: false as const, code: 'DEVELOPMENT_ONLY', path: 'route', reason: 'Quick Slash reference is development-only.' });
+    this.#quickSlashReferenceSelected = true;
+    const opened = openQuickSlashBinding(this);
+    this.#quickSlashReferenceBinding = opened.ok ? opened.value : undefined;
+    this.#quickSlashReferenceFailure = opened.ok ? undefined : opened;
+    return opened.ok ? Object.freeze({ ok: true as const, version: opened.value.version }) : opened;
+  }
+  /** Explicit development-only route; never selected by a save, item or UI. */
+  enableDevelopmentBasicReferenceB() {
+    if (process.env.NODE_ENV !== 'development') return Object.freeze({ ok: false as const, code: 'DEVELOPMENT_ONLY', path: 'route', reason: 'Reference B is development-only.' });
+    this.#basicReferenceSelected = true;
+    const opened = openBasicReferenceBinding(this);
+    this.#basicReferenceBinding = opened.ok ? opened.value : undefined;
+    this.#basicReferenceFailure = opened.ok ? undefined : opened;
+    return opened.ok ? Object.freeze({ ok: true as const, version: opened.value.version }) : opened;
+  }
   elapsed = 0;
+  #adventurerRanksSelected = false;
+  #adventurerRenewal?: {hero: Hero; signature: string};
+  #adventurerRenewalEvent?: Readonly<{reason:string;ok:boolean}>;
+  #adventurerRegionTransaction?: object;
+  /** Read-only lifecycle availability; never opens or repairs a binding. */
+  isDevelopmentDiagnosticLifecycleAvailable() {
+    return this.started && !this.dead && !this.disposed && !this.transitioning && !this.regionLoadError;
+  }
+  getDevelopmentAdventurerRenewal() { return this.#adventurerRenewalEvent; }
+  getDevelopmentAdventurerRange() {
+    if(!this.#adventurerRanksSelected)return null;
+    if(this.dead || this.disposed)return Object.freeze({ok:false as const,code:'INACTIVE_LIFECYCLE',path:'hero',reason:'Range unavailable'});
+    return adventurerRangePresentation(this.#adventurerRanksBinding,this);
+  }
+  getDevelopmentAdventurerItemRange(item: Partial<ItemData>) {
+    const range=this.getDevelopmentAdventurerRange();
+    if(!this.hero.inventory.includes(item as ItemData))return null;
+    if(range?.ok && item.id===range.value.itemId)return range.value.weapon;
+    return this.#adventurerRanksSelected && !this.dead && !this.disposed && this.#beginAdventurerTransaction()
+      ? adventurerOwnedItemRangePresentation(this.hero,item as ItemData) : null;
+  }
+  #beginAdventurerTransaction() {
+    if(this.#warriorSelected)return !!this.#warriorRenewal && this.#warriorRenewal.hero===this.hero && this.#warriorRenewal.signature===warriorLifecycleSignature(this.hero);
+    return !!this.#adventurerRenewal && this.#adventurerRenewal.hero===this.hero &&
+      this.#adventurerRenewal.signature===adventurerLifecycleSignature(this.hero);
+  }
+  #renewAdventurerTransaction(authorized: boolean, reason: string) {
+    if(!authorized)return;
+    if(this.#warriorSelected) {
+      const opened=!this.dead&&!this.disposed ? openWarriorBinding(this,this.#warriorSourceBinding) : undefined;
+      this.#warriorBinding=opened?.ok ? opened.value : undefined;
+      if(opened?.ok)this.#warriorSourceBinding=opened.value;
+      this.#warriorFailure=opened&&!opened.ok ? opened : Object.freeze({ok:false,code:'REFERENCE_REBIND_REQUIRED',path:'lifecycle',reason:'Inactive Warrior lifecycle'});
+      this.#warriorRenewal={hero:this.hero,signature:warriorLifecycleSignature(this.hero)};
+      this.#warriorRenewalEvent=Object.freeze({reason,ok:opened?.ok===true});return;
+    }
+    const opened=!this.dead && !this.disposed ? openAdventurerRanksBinding(this) : undefined;
+    this.#adventurerRanksBinding=opened?.ok ? opened.value : undefined;
+    this.#adventurerRanksFailure=opened && !opened.ok ? opened : Object.freeze({ok:false,code:'REFERENCE_REBIND_REQUIRED',path:'lifecycle',reason:'Inactive lifecycle'});
+    // Track only the exact output of this authoritative transaction, including
+    // an unsupported unequip state. Returning through a valid operation still
+    // requires the complete producer proof; presentation never renews authority.
+    this.#adventurerRenewal={hero:this.hero,signature:adventurerLifecycleSignature(this.hero)};
+    this.#adventurerRenewalEvent=Object.freeze({reason,ok:opened?.ok===true});
+  }
+  #adventurerRanksBinding?: AdventurerRanksBinding;
+  #adventurerRanksFailure?: FoundationFailure;
+  #adventurerRanksResult?: FoundationFailure | Readonly<{ ok: true; execution: AttackExecutionSnapshot; sample: SampledRawExecution }>;
+  #adventurerRanksExecutions = new WeakMap<ResolvedSkillAction, { hero: Hero; actorId: string; slotId: string }>();
+  getDevelopmentAdventurerRanksResult() { return this.#adventurerRanksResult; }
+  getDevelopmentAdventurerSkillMetadata(id: string, rank = Math.max(1,this.hero.skillLevels[id]??0)) {
+    if(this.#warriorSelected)return warriorReferenceSkillMetadata(id,rank);
+    return this.#adventurerRanksSelected ? adventurerReferenceSkillMetadata(id,rank) : null;
+  }
+  #warriorSelected=false;
+  #warriorBinding?:WarriorBinding;
+  #warriorSourceBinding?:WarriorBinding;
+  #warriorFailure?:FoundationFailure;
+  #warriorRenewal?:{hero:Hero;signature:string};
+  #warriorRenewalEvent?:Readonly<{reason:string;ok:boolean}>;
+  #warriorCounterReceipt?:{hero:Hero;event:NonNullable<DefenseEvents['lastDefenseEvent']>};
+  #warriorExecutions=new WeakMap<ResolvedSkillAction,{hero:Hero;actorId:string;slotId:string;level:number;targets:Enemy[];identities:Map<Enemy,TargetIdentity>}>();
+  #warriorResult?:FoundationFailure|Readonly<{ok:true;rank:number;level:number;execution?:AttackExecutionSnapshot;sample?:SampledRawExecution}>;
+  getDevelopmentWarriorResult(){return this.#warriorResult;}
+  getDevelopmentWarriorRenewal(){return this.#warriorRenewalEvent;}
+  getDevelopmentWarriorAvailability(){
+    return this.#warriorSelected ? !this.isDevelopmentDiagnosticLifecycleAvailable() ? Object.freeze({ok:false as const,code:'INACTIVE_LIFECYCLE',path:'hero',reason:'Warrior unavailable'}) : readWarriorBinding(this.#warriorBinding,this) : null;
+  }
+  enableDevelopmentWarriorReference(options?:{lifecycleRenewal:true}) {
+    if(process.env.NODE_ENV!=='development')return Object.freeze({ok:false as const,code:'DEVELOPMENT_ONLY',path:'route',reason:'Warrior reference is development-only.'});
+    this.#warriorSelected=true;
+    if(this.#adventurerRanksSelected||this.#quickSlashReferenceSelected||this.#powerStrikeReferenceSelected||this.#basicReferenceSelected){
+      this.#warriorBinding=undefined;
+      return this.#warriorFailure=Object.freeze({ok:false,code:'AMBIGUOUS_REFERENCE_ROUTE',path:'route',reason:'Warrior and Adventurer opt-ins are mutually exclusive.'});
+    }
+    const opened=!this.dead&&!this.disposed ? openWarriorBinding(this) : undefined;
+    this.#warriorBinding=opened?.ok?opened.value:undefined;
+    this.#warriorSourceBinding=this.#warriorBinding;
+    this.#warriorFailure=opened&&!opened.ok?opened:Object.freeze({ok:false,code:'INACTIVE_LIFECYCLE',path:'hero',reason:'Warrior inactive.'});
+    this.#warriorRenewal=opened?.ok&&options?.lifecycleRenewal ? {hero:this.hero,signature:warriorLifecycleSignature(this.hero)}:undefined;
+    return opened?.ok?Object.freeze({ok:true as const,version:opened.value.version}):this.#warriorFailure;
+  }
+  /** Combined reference only. Rebinding never edits cooldowns or persistent state. */
+  enableDevelopmentAdventurerRanksReference(options?: {lifecycleRenewal: true}) {
+    if (process.env.NODE_ENV !== 'development') return Object.freeze({ ok: false as const, code: 'DEVELOPMENT_ONLY', path: 'route', reason: 'Combined ranks reference is development-only.' });
+    this.#adventurerRanksSelected = true;
+    if (this.#quickSlashReferenceSelected || this.#powerStrikeReferenceSelected || this.#basicReferenceSelected) {
+      this.#adventurerRanksBinding = undefined;
+      this.#adventurerRanksFailure = Object.freeze({ok: false, code: 'AMBIGUOUS_REFERENCE_ROUTE', path: 'route', reason: 'Standalone and combined opt-ins are mutually exclusive.'});
+      return this.#adventurerRanksFailure;
+    }
+    const opened = openAdventurerRanksBinding(this);
+    this.#adventurerRanksBinding = opened.ok ? opened.value : undefined;
+    this.#adventurerRanksFailure = opened.ok ? undefined : opened;
+    this.#adventurerRenewal=opened.ok && options?.lifecycleRenewal===true
+      ? {hero:this.hero,signature:adventurerLifecycleSignature(this.hero)} : undefined;
+    return opened.ok ? Object.freeze({ok: true as const, version: opened.value.version}) : opened;
+  }
   lastTime = 0;
   frame = 0;
   emitTimer = 0;
@@ -576,6 +730,17 @@ export class Game {
   noticeTimer = 0;
   saved = true;
   skillCooldowns: Record<string, number> = {};
+  readonly vanish = new VanishState((state) => {
+    // Snapshot the canonical resolved cooldown at activation; start it only now.
+    this.skillCooldowns[state.cooldownKey] = Math.max(this.skillCooldowns[state.cooldownKey] ?? 0, state.cooldown);
+  });
+  private commitVanishOffense() {
+    this.vanish.update(this.hero);
+    const opening = this.vanish.end('OFFENSIVE_ACTION');
+    if (opening?.sourceJob === 'rogue')
+      this.transientCombat.rogueAmbush.grantVanishOpening(this.hero, opening.sourceSkillId, this.combatTime);
+    this.updateRogueConcealmentPresentation();
+  }
   skillHits = new SkillHitQueue();
   // Simulation-owned grounded movement; never serialized or driven by animation.
   private thiefMovement?: { direction: T.Vector3; remaining: number; valid: () => boolean; complete: () => void };
@@ -740,10 +905,9 @@ export class Game {
     if (this.rogueSmoke) { this.rogueSmoke.removeFromParent(); this.rogueSmoke.geometry.dispose(); this.rogueSmoke.material.dispose(); this.rogueSmoke = undefined; }
   }
   private updateRogueConcealmentPresentation() {
-    const vanish = this.assasinCombat.concealed(this.hero, this.combatTime);
+    const vanish = this.vanish.status(this.hero);
     this.updateVanishPresentation(!!vanish);
-    const concealed = this.transientCombat.rogueAmbush.concealed(this.hero, this.combatTime) || vanish;
-    if (!concealed) {
+    if (!vanish) {
       this.clearRogueConcealmentPresentation();
       return;
     }
@@ -771,6 +935,7 @@ export class Game {
     if (this.specializationRuntimeIdentity !== undefined && this.specializationRuntimeIdentity !== identity) this.clearSkillRuntime();
     this.specializationRuntimeIdentity=identity;
     this.transientCombat.rogueAmbush.update(this.hero, this.combatTime);
+    this.vanish.update(this.hero);
     const support=combatSupportFor(this.hero),style=modifierContextFor(this.hero,derivedStats(this.hero)).weaponStyle;
     this.transientCombat.update(this.combatTime,style,support);
     this.transientCombat.updateBladeTempo(this.combatTime, this.hero.specialization === 'blade_master' && bladeMasterDualWieldActive(this.hero) && style === 'dual_sword');
@@ -781,10 +946,8 @@ export class Game {
     const indicators: CombatFeedbackIndicator[] = [];
     const ambush = this.transientCombat.rogueAmbush.status(this.hero, this.combatTime);
     if (ambush) indicators.push({ id: 'rogue-ambush', label: 'Ambush', remaining: ambush.remaining, tone: 'ready' });
-    const smoke = this.transientCombat.rogueAmbush.concealed(this.hero, this.combatTime);
-    if (smoke) indicators.push({ id: 'rogue-smoke-veil', label: 'Smoke Veil', remaining: smoke.expiresAt - this.combatTime, tone: 'defensive' });
-    const vanish=this.assasinCombat.concealed(this.hero,this.combatTime);
-    if (vanish) indicators.push({id:'assasin-vanish',label:'Vanish',remaining:vanish.remaining,tone:'defensive'});
+    const vanish=this.vanish.status(this.hero);
+    if (vanish) indicators.push({id:'vanish',label:'Vanish',iconSkillId:vanish.sourceSkillId,tone:'defensive'});
     if(isStealthed(this.hero))indicators.push({id:'stealth',label:'STEALTH',remaining:Number(getStatus(this.hero,'stealth')),tone:'defensive'});
     const buffs: Array<[string,string,string,'defensive'|'offensive'|'ready']> = [
       ['v2-warrior-guard-stance','Guard Stance','v2-warrior-guard-stance','defensive'],
@@ -847,16 +1010,26 @@ export class Game {
     this.personalMarks?.update(dt);
     this.updateTargetPresentation();
     tickTemporaryModifiers(this.hero,dt);
-    this.hero.hp = Math.min(this.hero.hp, maxHP(this.hero));
+    reconcileResourceMaximums(this.hero);
     this.syncCombatModifiers();
-    this.hero.hp=Math.min(this.hero.hp,derivedStats(this.hero).maxHP);
+    reconcileResourceMaximums(this.hero);
     this.skillHits.update(dt);
     this.updateAssasinProjectiles(dt);
     this.updateThiefMovement(dt);
     this.updateRogueConcealmentPresentation();
   }
   clearSkillRuntime() {
-    this.assasinCombat?.clearSelf();
+    this.#adventurerRegionTransaction=undefined;
+    if(this.#warriorSelected){
+      this.#warriorBinding=undefined;this.#warriorSourceBinding=undefined;this.#warriorCounterReceipt=undefined;
+      this.#warriorFailure=Object.freeze({ok:false,code:'REFERENCE_REBIND_REQUIRED',path:'lifecycle',reason:'Warrior runtime was reset.'});
+      for(const id of WARRIOR_REFERENCE.skills)delete this.hero.activeBuffs[id];
+    }
+    if(this.#adventurerRanksSelected) {
+      this.#adventurerRanksBinding=undefined;
+      this.#adventurerRanksFailure=Object.freeze({ok:false,code:'REFERENCE_REBIND_REQUIRED',path:'lifecycle',reason:'Development context needs explicit readmission after runtime reset.'});
+    }
+    this.vanish.end(this.hero.hp <= 0 ? 'DEATH' : 'RESET');
     this.assasinExecutions=new WeakMap();
     this.clearAssasinProjectiles();
     this.poisonExecutions = new WeakMap(); // Cancel casts, NOT already-applied target Poison.
@@ -1349,9 +1522,6 @@ export class Game {
     model.animator.update(0,{movementMode:this.isSunken?'underwater':'ground'});
     this.scene.add(this.actor);
     if (this.isPlains) this.setPlainsCharacterShadows(true);
-    void model.equipmentReady.then(ok => {
-      if (!ok && !this.disposed && this.characterModel === model) this.message('Model Dragon Veil gagal dimuat. Lepas lalu pakai kembali equipment untuk mencoba lagi.');
-    });
     void model.ready.then(() => {
       if (!this.disposed && this.characterModel === model && this.isPlains)
         this.setPlainsCharacterShadows(true);
@@ -1896,6 +2066,13 @@ export class Game {
       this.regionLoads.push(import('./sunken-ruins-map').then(m=>m.buildSunkenRuins(this.graphicsQuality,{deepOcean,abysalTrench})).then(map=>{
         if(this.disposed||buildToken!==this.regionBuildToken){map.dispose();return;}
         this.sunken=map;this.regionDecor.add(map.root);this.setGraphicsQuality(this.graphicsQuality,false);
+        const camp=FIELD_NPCS[this.hero.currentField];
+        if(camp){
+          const person=new T.Group();person.position.set(camp.x,this.groundHeight(camp.x,camp.z),camp.z);person.userData.npcId=camp.id;this.regionDecor.add(person);
+          this.mesh(new T.CylinderGeometry(.35,.45,1.2,6),this.mat('#d0a95c'),person,0,.65,0);
+          this.mesh(new T.SphereGeometry(.3,8,6),this.mat('#cda07a'),person,0,1.5,0);
+          this.addNpcLabel(camp);
+        }
         for(const p of map.portals){
           const element=document.createElement('div');element.className='npc-label';
           const badge=document.createElement('button');badge.type='button';badge.className='npc-service-badge';badge.textContent=p.name;
@@ -2083,7 +2260,16 @@ export class Game {
     return this.loadActiveLocation(this.activeLocationId,this.isMineInterior?'Ironveil Mines \u00b7 Interior':FIELDS[this.hero.currentField]?.displayName??'Map','Map loaded.');
   }
   private loadActiveLocation(id:string,destinationLabel:string,message:string) {
+    // Capture only a current, fully admitted policy. Retrying a failed load does
+    // not recover discarded intent. This object never escapes the transaction.
+    const prior=this.#beginAdventurerTransaction() && (this.#warriorSelected ? this.getDevelopmentWarriorAvailability()?.ok : this.getDevelopmentAdventurerRange()?.ok)
+      ? {hero:this.hero,item:this.hero.inventory.find(item=>item.id===this.hero.equipment.mainHand),
+         signature:this.#warriorSelected?warriorLifecycleSignature(this.hero):adventurerLifecycleSignature(this.hero)} : undefined;
     this.clearSkillRuntime();
+    this.#adventurerRenewal=undefined;
+    this.#warriorRenewal=undefined;
+    const transaction={};
+    this.#adventurerRegionTransaction=transaction;
     this.assasinPoison.clear(); this.assasinCombat.clear(); // Old target instances leave the loaded world.
     this.closeNpcMenu();
     this.transitioning=true;this.clearInput();
@@ -2095,21 +2281,31 @@ export class Game {
         this.enemyLabels.forEach(label=>label.remove());this.enemyLabels.clear();this.enemies=[];this.targetEntities.clear();this.bossSpawned=false;
         this.buildEnemies();
         this.buildRegionDecor();
+        const generation=this.regionBuildToken;
         this.placeActor();
         this.cameraFocus.copy(this.actor.position);
         await this.waitForRegionLoads();
+        if(this.disposed || this.#adventurerRegionTransaction!==transaction || generation!==this.regionBuildToken || this.activeLocationId!==id)return;
         this.invincible=2;
         this.transitioning=false;
+        if(prior && this.started && !this.dead && prior.hero===this.hero &&
+            prior.item===this.hero.inventory.find(item=>item.id===this.hero.equipment.mainHand) &&
+            prior.signature===(this.#warriorSelected?warriorLifecycleSignature(this.hero):adventurerLifecycleSignature(this.hero)))
+          this.#renewAdventurerTransaction(true,'successful region transaction');
         this.save();
         this.message(message);
       } catch (error) {
+        if(this.disposed || this.#adventurerRegionTransaction!==transaction)return;
         console.warn('Gagal memuat region tujuan.', error);
         this.regionLoadError=error instanceof Error?error:new Error(String(error));
         this.message((id===IRONVEIL_ID||id===MINE_ID)?'Unable to load Ironveil Mines. Please retry.':id===WILDS_ID?'Unable to load Whispering Wilds. Please retry.':'Map tujuan belum siap sepenuhnya. Silakan coba lagi sebentar.');
       } finally {
-        this.transitioning=false;
-        this.onMapTransition?.({ id, loading: false, label: destinationLabel, error: this.regionLoadError ? ((id===IRONVEIL_ID||id===MINE_ID)?'Unable to load Ironveil Mines. Check the connection and retry.':id===WILDS_ID?'Unable to load Whispering Wilds. Check the connection and retry.':'ERROR: Map gagal dimuat. Periksa koneksi, lalu tekan Retry.') : undefined });
-        this.emit();
+        if(!this.disposed && (!this.#adventurerRegionTransaction || this.#adventurerRegionTransaction===transaction)) {
+          this.#adventurerRegionTransaction=undefined;
+          this.transitioning=false;
+          this.onMapTransition?.({ id, loading: false, label: destinationLabel, error: this.regionLoadError ? ((id===IRONVEIL_ID||id===MINE_ID)?'Unable to load Ironveil Mines. Check the connection and retry.':id===WILDS_ID?'Unable to load Whispering Wilds. Check the connection and retry.':'ERROR: Map gagal dimuat. Periksa koneksi, lalu tekan Retry.') : undefined });
+          this.emit();
+        }
       }
     })();
     return true;
@@ -2158,7 +2354,9 @@ export class Game {
   }
   npcBuy(templateId:string,quantity=1) {
     const npc=this.currentNpc;if(!npc||!this.activeNpcMenu||!npc.services.includes('buy')){this.message('NPC ini tidak menyediakan layanan beli.');return false;}
+    const renewal=this.#beginAdventurerTransaction();
     const result=npc.fieldId?buyFieldShopItem(this.hero,npc.fieldId,templateId,quantity):buyShopItem(this.hero,templateId,npc.service,quantity);
+    if(result.ok)this.#renewAdventurerTransaction(renewal,'npcBuy');
     this.save();this.message(result.reason);return result.ok;
   }
   npcSell(itemId:string,quantity:number) {
@@ -2198,12 +2396,14 @@ export class Game {
         }
         simulatedInventory=preview.inventory;
       }
+      const renewal=this.#beginAdventurerTransaction();
       const quest=completeRegionQuest(this.hero,id);
       result={ok:quest.ok,reason:quest.reason};
       if(quest.ok){
         for(const rewardItem of rewardItems)this.hero.inventory=addItemToInventory(this.hero.inventory,rewardItem,this.hero.inventoryCapacity).inventory;
         this.hero.gold+=quest.reward.gold;
         gainXP(this.hero,quest.reward.xp);
+        this.#renewAdventurerTransaction(renewal,'quest gainXP');
         const itemSummary=rewardItems.map(item=>`${item.name} x${item.quantity}`).join(', ');
         const rewardSummary=[quest.reward.xp?`${quest.reward.xp} EXP`:'',quest.reward.gold?`${quest.reward.gold} GOLD`:'',itemSummary].filter(Boolean).join(' dan ');
         result.reason=`Quest selesai! Kamu mendapatkan ${rewardSummary}.`;
@@ -2403,6 +2603,7 @@ export class Game {
     }
   }
   respawn() {
+    const renewal=this.#beginAdventurerTransaction();
     this.closeNpcMenu();
     this.hero.hp = maxHP(this.hero);
     this.hero.x = 0;
@@ -2428,8 +2629,9 @@ export class Game {
       e.group.visible = true;
       e.respawn = 0;
     }
+    this.#renewAdventurerTransaction(renewal,'respawn');
     this.save();
-    this.message(this.isSunken?`Kamu kembali di ${this.hero.currentField===ABYSAL_TRENCH_ID?'Trench Landing':this.hero.currentField===DEEP_OCEAN_ID?'Descent Landing':'Coral Entrance'}. Progresmu tetap tersimpan.`:this.isMineInterior?'You returned to the mine entrance. Progress is preserved.':this.isPlains?'Kamu kembali di Arunika Rest. Progresmu tetap tersimpan.':'Kamu kembali di Kuil Fajar. Progresmu tetap tersimpan.');
+    this.message(this.isMineInterior?'You returned to the mine entrance. Progress is preserved.':this.isPlains?'Kamu kembali di Arunika Rest. Progresmu tetap tersimpan.':'Kamu kembali di Kuil Fajar. Progresmu tetap tersimpan.');
   }
   chooseCoreJob(coreJob: CoreJobId | 'thief') {
     if (!this.atJobTrainer('core')) return false;
@@ -2488,12 +2690,15 @@ export class Game {
     return false;
   }
   learnSkill(skillId: string) {
+    const previous=this.hero,renewal=this.#beginAdventurerTransaction();
     this.hero={...this.hero};
     if (learnSkill(this.hero, skillId)) {
+      this.#renewAdventurerTransaction(renewal,'learnSkill');
       this.save();
       this.emit();
       return true;
     }
+    if(renewal)this.hero=previous;
     this.message(
       'Skill belum terbuka, sudah maksimal, atau Skill Point tidak cukup.',
     );
@@ -2512,11 +2717,13 @@ export class Game {
     return false;
   }
   equipItem(itemId: string, targetSlot?: EquipSlot) {
+    const renewal=this.#beginAdventurerTransaction();
     const result = equipInventoryItem(this.hero, itemId, targetSlot);
     if (!result.ok) this.message(result.reason);
     if (result.ok) {
       this.syncCombatModifiers();
       this.rebuildHeroAppearance();
+      this.#renewAdventurerTransaction(renewal,'equipItem');
       this.save();
       this.emit();
     }
@@ -2538,11 +2745,13 @@ export class Game {
     return true;
   }
   unequipItem(slot: EquipSlot) {
+    const renewal=this.#beginAdventurerTransaction();
     const result = unequipInventoryItem(this.hero, slot);
     if (!result.ok) this.message(result.reason);
     if (result.ok) {
       this.syncCombatModifiers();
       this.rebuildHeroAppearance();
+      this.#renewAdventurerTransaction(renewal,'unequipItem');
       this.save();
       this.emit();
     }
@@ -2563,11 +2772,18 @@ export class Game {
     return this.commitRuneAction(hero=>removeInventoryRune(hero,equipmentId,socketIndex,this.forgeNpcId));
   }
   useItem(itemId: string) {
+    // Only the explicitly selected Warrior policy renews through this exact
+    // original consumable transaction; item IDs alone never authorize a bind.
+    const warriorRenewal=this.#warriorSelected && this.#beginAdventurerTransaction() && this.getDevelopmentWarriorAvailability()?.ok===true;
+    const warriorPrior=warriorRenewal ? this.hero : undefined;
+    const warriorSignature=warriorPrior ? warriorLifecycleSignature(warriorPrior) : undefined;
     this.hero={...this.hero,stamina:this.stamina};
     const result = consumeInventoryItem(this.hero, itemId);
+    if(!result.ok && warriorPrior && warriorLifecycleSignature(this.hero)===warriorSignature)this.hero=warriorPrior;
     if (!result.ok) this.message(result.reason);
     if (result.ok) {
       this.stamina=this.hero.stamina;
+      this.#renewAdventurerTransaction(warriorRenewal,'useItem');
       this.sound(600,0.18);
       this.effect(this.actor.position,'#a3f1b3',8);
       this.save();
@@ -2577,10 +2793,12 @@ export class Game {
   }
   commitUIDrop(source: DragSource, target: DropTarget) {
     if (!this.started || this.dead) return false;
+    const renewal=this.#beginAdventurerTransaction();
     const result = commitDrop(this.hero, source, target);
     if (result.ok) {
       this.hero = result.hero;
       if (target.type === 'equipment') this.rebuildHeroAppearance();
+      this.#renewAdventurerTransaction(renewal,'commitUIDrop');
       this.save();
       this.emit();
       if (target.type === 'inventory')
@@ -2590,51 +2808,64 @@ export class Game {
     return result.ok;
   }
   savePrimaryHotbar() {
+    this.#commitHotbarRenewal(false,'manual hotbar save');
+  }
+  #commitHotbarRenewal(renewal: boolean, reason: string) {
     this.hero=validatePrimaryHotbar(this.hero);
+    this.#renewAdventurerTransaction(renewal,reason);
     this.save();this.emit();
   }
   assignPrimaryHotbarSlot(slotIndex:number,entryId:string) {
     if(!this.started||this.dead)return false;
+    const renewal=this.#beginAdventurerTransaction();
     const result=assignHotbarSlot(this.hero,slotIndex,entryId);
-    if(result.ok){this.hero=result.hero;this.savePrimaryHotbar();}
+    if(result.ok){this.hero=result.hero;this.#commitHotbarRenewal(renewal,'assignPrimaryHotbarSlot');}
     if(!result.ok)this.message(result.reason);return result.ok;
   }
   swapPrimaryHotbarSlots(source:number,target:number) {
     if(!this.started||this.dead)return;
-    this.hero=swapHotbarSlots(this.hero,source,target);this.savePrimaryHotbar();
+    const renewal=this.#beginAdventurerTransaction();
+    this.hero=swapHotbarSlots(this.hero,source,target);this.#commitHotbarRenewal(renewal,'swapPrimaryHotbarSlots');
   }
   removePrimaryHotbarSlot(index:number) {
     if(!this.started||this.dead)return;
-    this.hero=removeHotbarSlot(this.hero,index);this.savePrimaryHotbar();
+    const renewal=this.#beginAdventurerTransaction();
+    this.hero=removeHotbarSlot(this.hero,index);this.#commitHotbarRenewal(renewal,'removePrimaryHotbarSlot');
   }
   savePrimaryHotbarLayout(layout:HotbarLayout) {
     if(!this.started||this.dead)return;
     if(layout&&(!Number.isFinite(layout.x)||!Number.isFinite(layout.y)))return;
+    const renewal=this.#beginAdventurerTransaction();
     this.hero={...this.hero,primaryHotbarLayout:layout?{x:Math.max(0,layout.x),y:Math.max(0,layout.y)}:null};
-    this.savePrimaryHotbar();
+    this.#commitHotbarRenewal(renewal,'savePrimaryHotbarLayout');
   }
   assignQuickHotbarSlot(id:QuickHotbarId,entryId:string) {
     if(!this.started||this.dead)return false;
+    const renewal=this.#beginAdventurerTransaction();
     const result=assignQuickSlot(this.hero,id,entryId);
-    if(result.ok){this.hero=result.hero;this.savePrimaryHotbar();}
+    if(result.ok){this.hero=result.hero;this.#commitHotbarRenewal(renewal,'assignQuickHotbarSlot');}
     if(!result.ok)this.message(result.reason);return result.ok;
   }
   removeQuickHotbarSlot(id:QuickHotbarId) {
     if(!this.started||this.dead)return;
-    this.hero=removeQuickSlot(this.hero,id);this.savePrimaryHotbar();
+    const renewal=this.#beginAdventurerTransaction();
+    this.hero=removeQuickSlot(this.hero,id);this.#commitHotbarRenewal(renewal,'removeQuickHotbarSlot');
   }
   moveQuickHotbarEntry(source:QuickHotbarId,target:QuickHotbarId) {
     if(!this.started||this.dead)return;
-    this.hero=moveQuickEntry(this.hero,source,target);this.savePrimaryHotbar();
+    const renewal=this.#beginAdventurerTransaction();
+    this.hero=moveQuickEntry(this.hero,source,target);this.#commitHotbarRenewal(renewal,'moveQuickHotbarEntry');
   }
   saveQuickHotbarLayout(id:QuickHotbarId,position:HotbarLayout) {
     if(!this.started || this.dead || (position && (!Number.isFinite(position.x)||!Number.isFinite(position.y))))return;
+    const renewal=this.#beginAdventurerTransaction();
     this.hero={...this.hero,quickHotbars:{...this.hero.quickHotbars,[id]:{...this.hero.quickHotbars[id],position}}};
-    this.savePrimaryHotbar();
+    this.#commitHotbarRenewal(renewal,'saveQuickHotbarLayout');
   }
   resetHotbarLayouts() {
     if(!this.started||this.dead)return;
-    this.hero=resetLayouts(this.hero);this.save();this.emit();
+    const renewal=this.#beginAdventurerTransaction();
+    this.hero=resetLayouts(this.hero);this.#renewAdventurerTransaction(renewal,'resetHotbarLayouts');this.save();this.emit();
   }
   setUIInputBlocked(owner: string, active: boolean) {
     this.uiInputBlockers.set(owner, active);
@@ -2761,8 +2992,9 @@ export class Game {
     return result.ok;
   }
   allocateStatPoint(stat: keyof AllocatedStats) {
+    const renewal=this.#beginAdventurerTransaction();
     const result=allocateStatPointRules(this.hero,stat);
-    if(result.ok){this.hero=result.hero;this.save();}
+    if(result.ok){this.hero=result.hero;this.#renewAdventurerTransaction(renewal,'allocateStatPoint');this.save();}
     if(!result.ok)this.message(result.reason);this.emit();return result.ok;
   }
   resetSkillPoints() {
@@ -2840,7 +3072,7 @@ export class Game {
       return true;
     });
   }
-  canCastSkill(skillId:string) {return canCastSkillRules(this.hero,skillId,this.skillCooldowns,this.equippedWeaponType(),undefined,{ambush:this.transientCombat.rogueAmbush,now:this.combatTime,assasinRequirement:this.assasinCastRequirement});}
+  canCastSkill(skillId:string) {return canCastSkillRules(this.hero,skillId,this.skillCooldowns,this.equippedWeaponType(),undefined,{ambush:this.transientCombat.rogueAmbush,vanish:this.vanish,now:this.combatTime,assasinRequirement:this.assasinCastRequirement});}
   getSkillManaCost(skillId:string) {
     skillId = heroFamilySkillReference(this.hero, skillId) ?? '';
     const skill=activeSkills(this.hero).find(candidate=>candidate.id===skillId);
@@ -2855,6 +3087,45 @@ export class Game {
   restoreMana(amount:number) {return restoreManaRules(this.hero,amount);}
   castSkill(idOrSlot: string | 1 | 2 | 3 | 4) {
     if (typeof idOrSlot === 'string') idOrSlot = heroFamilySkillReference(this.hero, idOrSlot) ?? '';
+    if(this.#warriorSelected) {
+      const requested=activeSkills(this.hero).find(candidate=>typeof idOrSlot==='string'?candidate.id===idOrSlot:candidate.slot===idOrSlot);
+      if(WARRIOR_REFERENCE.skills.includes(typeof idOrSlot==='string'?idOrSlot:requested?.id??'')){
+        this.#warriorResult=this.#adventurerRanksSelected||this.#quickSlashReferenceSelected||this.#powerStrikeReferenceSelected||this.#basicReferenceSelected
+          ? Object.freeze({ok:false,code:'AMBIGUOUS_REFERENCE_ROUTE',path:'route',reason:'Conflicting development opt-ins.'}) : this.castDevelopmentWarriorReference(requested);
+        return this.#warriorResult.ok;
+      }
+    }
+    if (this.#adventurerRanksSelected && (idOrSlot === 1 || idOrSlot === 2 || typeof idOrSlot === 'string' && ADVENTURER_RANKS_REFERENCE.skills.includes(idOrSlot))) {
+      if (this.#quickSlashReferenceSelected || this.#powerStrikeReferenceSelected || this.#basicReferenceSelected) {
+        this.#adventurerRanksResult = Object.freeze({ok: false, code: 'AMBIGUOUS_REFERENCE_ROUTE', path: 'route', reason: 'Standalone and combined opt-ins are mutually exclusive.'});
+      } else {
+        const requested = activeSkills(this.hero).find(candidate => typeof idOrSlot === 'string' ? candidate.id === idOrSlot : candidate.slot === idOrSlot);
+        this.#adventurerRanksResult = this.castDevelopmentAdventurerRanksReference(requested);
+      }
+      return this.#adventurerRanksResult.ok;
+    }
+    if (this.#powerStrikeReferenceSelected) {
+      this.#powerStrikeResult = undefined;
+      const requested = activeSkills(this.hero).find(candidate => typeof idOrSlot === 'string' ? candidate.id === idOrSlot : candidate.slot === idOrSlot);
+      if ((requested?.id === POWER_STRIKE_REFERENCE.skillId || idOrSlot === POWER_STRIKE_REFERENCE.skillId || idOrSlot === 2 && !requested) &&
+          !coherentHigherPowerRank(this.hero)) {
+        this.#powerStrikeResult = this.castDevelopmentPowerStrikeReference(requested);
+        return this.#powerStrikeResult.ok;
+      }
+    }
+    if (this.#quickSlashReferenceSelected) {
+      this.#quickSlashResult = undefined;
+      const requested = activeSkills(this.hero).find(candidate => typeof idOrSlot === 'string' ? candidate.id === idOrSlot : candidate.slot === idOrSlot);
+      const mirror = this.hero.skillLevels[QUICK_SLASH_REFERENCE.skillId];
+      const canonical = this.hero.skillProgressionV3?.skillRanks[QUICK_SLASH_REFERENCE.skillId];
+      // Consistent ranks 2–5 keep the existing route. Missing/mismatched R1
+      // authorization never silently falls back to legacy arithmetic.
+      const legacyHigherRank = mirror === canonical && Number.isInteger(mirror) && mirror >= 2 && mirror <= 5;
+      if ((requested?.id === QUICK_SLASH_REFERENCE.skillId || idOrSlot === QUICK_SLASH_REFERENCE.skillId || idOrSlot === 1 && !requested) && !legacyHigherRank) {
+        this.#quickSlashResult = this.castDevelopmentQuickSlashReference(requested);
+        return this.#quickSlashResult.ok;
+      }
+    }
     if(this.thiefMovement || this.actionLock?.active(this.combatTime))return this.failTarget('ACTION_LOCKED');
     if(isStunned(this.hero,this.combatTime)){this.message('Karakter sedang Stun.');return false;}
     if (!this.started || this.paused || this.dead || this.hotbarInteracting) return false;
@@ -2884,7 +3155,7 @@ export class Game {
       });
     }
     // Structural validation first; mana is paid against the final contextual action below.
-    const validation=canCastSkillRules(this.hero,skill.id,this.skillCooldowns,this.equippedWeaponType(),0,{ambush:this.transientCombat.rogueAmbush,now:this.combatTime,assasinRequirement:this.assasinCastRequirement});
+    const validation=canCastSkillRules(this.hero,skill.id,this.skillCooldowns,this.equippedWeaponType(),0,{ambush:this.transientCombat.rogueAmbush,vanish:this.vanish,now:this.combatTime,assasinRequirement:this.assasinCastRequirement});
     if(!validation.ok){
       if(!validation.reason.includes('masih cooldown'))this.message(validation.reason);
       return false;
@@ -2943,14 +3214,10 @@ export class Game {
     const support=combatSupportFor(this.hero);
     const windows=this.transientCombat.windowModifiers(preview,support,this.combatTime);
     const action=resolveHeroSkill(this.hero,skill,level,stats,counter,windows,this.skillImpactContext(selection.target),tempoReduction, skill.assasin || skill.tags?.includes('v3-thief') || skill.tags?.includes('v3-rogue') || skill.id === 'v3-berserker-earth-splitter' ? () => this.rand() : Math.random);
-    if (action.rogueAmbush?.generator?.source === 'SMOKE_VEIL' && (!action.nonDamaging || !(action.duration > 0) || !Number.isFinite(action.duration))) {
-      this.message('Durasi concealment Smoke Veil belum dikonfigurasi.'); return false;
-    }
     if(!this.consumeMana(action.manaCost)){this.message('Mana tidak cukup.');return false;}
-    if (!action.nonDamaging) this.assasinCombat.breakConcealment('attack');
+    if (!action.nonDamaging && action.targetType !== 'self') this.commitVanishOffense();
     if (action.rogueAmbush) this.ambushExecutions.set(action, this.transientCombat.rogueAmbush.begin(this.hero, action, this.combatTime));
     this.lastActionFailure=null;
-    if (!action.nonDamaging && action.hitSequence.some(hit => skillHitDamage(hit, stats) > 0)) this.transientCombat.rogueAmbush.breakConcealment('ATTACK');
     if(targetRequirement(action)!=='self'&&action.hitSequence.some(hit=>skillHitDamage(hit,stats)>0))breakStealth(this.hero,'offensive_skill');
     this.updateStealthPresentation();
     if(selection.target)action.targetIdentity=targetIdentity(selection.target,this.regionBuildToken);
@@ -2962,7 +3229,7 @@ export class Game {
     const consumedWindows=this.transientCombat.commitWindows(action,support,this.combatTime);
     const mastery = this.hero.masteryChoices[skill.id];
     const cooldown = action.cooldown;
-    this.skillCooldowns[heroSkillCooldownKey(this.hero, skill.id)] = cooldown;
+    if (!action.vanish) this.skillCooldowns[heroSkillCooldownKey(this.hero, skill.id)] = cooldown;
     this.applySkill(skill, level, mastery, action, stats,consumedWindows,false,rogueInput);
     this.traceV3Damage(skill.id, 'cast_accepted', {
       targetId: selection.target?.id ?? null,
@@ -2975,8 +3242,6 @@ export class Game {
       moveDirectional(action.movementDistance??0,movement,(x,z)=>this.move(x,z));
       if (action.rogueAmbush?.generator?.source === 'SLIPSTEP') this.completeRogueReposition(action, start);
     }
-    if (action.rogueAmbush?.generator?.source === 'SMOKE_VEIL')
-      this.transientCombat.rogueAmbush.generate(this.hero, action, this.combatTime, { type: 'ACTIVATED', concealmentDuration: action.duration });
     this.updateRogueConcealmentPresentation();
     this.save();
     this.emit();
@@ -2986,9 +3251,309 @@ export class Game {
   equippedWeaponType() {
     return equippedWeaponType(this.hero);
   }
+  private castDevelopmentQuickSlashReference(definition?: SkillDefinition) {
+    const reject = (code: string, path = 'cast') => Object.freeze({ ok: false as const, code, path, reason: `Quick Slash reference rejected: ${code}` });
+    if (!this.started || this.paused || this.dead || this.disposed || this.hotbarInteracting || this.transitioning || this.regionLoadError ||
+        this.isAverion && !this.averion || this.isPlains && !this.plains || !Number.isFinite(this.hero.hp) || this.hero.hp <= 0)
+      return reject('REFERENCE_ACTION_UNAVAILABLE');
+    if (this.thiefMovement || this.actionLock?.active(this.combatTime) || isStunned(this.hero, this.combatTime)) return reject('ACTION_LOCKED');
+    if (!definition) return reject('SKILL_UNAVAILABLE');
+    const prepared = this.#quickSlashReferenceBinding
+      ? prepareQuickSlash(this.#quickSlashReferenceBinding, this, definition) : this.#quickSlashReferenceFailure!;
+    if (!prepared.ok) return prepared;
+    const { snapshot, action, stats, hero } = prepared.value;
+    const cooldownKey = heroSkillCooldownKey(hero, definition.id);
+    const remaining = this.skillCooldowns[cooldownKey] ?? 0;
+    if (!Number.isFinite(remaining) || remaining < 0) return reject('INVALID_COOLDOWN');
+    if (!Number.isFinite(hero.mana) || hero.mana < action.manaCost) return reject('INSUFFICIENT_MANA');
+    const validation = canCastSkillRules(hero, definition.id, this.skillCooldowns, this.equippedWeaponType(), action.manaCost);
+    if (!validation.ok) return reject('CAST_NOT_ALLOWED');
+    const selected = this.resolveCurrentTarget(Infinity);
+    if (selected.reason || !selected.target) return reject(selected.reason ?? 'NO_TARGET');
+    const target = selected.target, identity = targetIdentity(target, this.regionBuildToken);
+    // Plan the unchanged collision-aware approach on plain positions. A failed
+    // approach, admission, resource check or RNG sample cannot move/focus Game.
+    const steps: { x: number; z: number }[] = [];
+    let pose = { x: this.actor.position.x, z: this.actor.position.z };
+    if (pose.x !== hero.x || pose.z !== hero.z) return reject('SPATIAL_CONTEXT_MISMATCH');
+    const dx = target.group.position.x - pose.x, dz = target.group.position.z - pose.z;
+    const distance = Math.hypot(dx, dz);
+    if (!Number.isFinite(distance)) return reject('TARGET_INVALID');
+    let remainingDistance = Math.max(0, distance - action.range);
+    while (remainingDistance > 1e-6) {
+      const step = Math.min(.25, remainingDistance);
+      const moveX = dx / distance * step, moveZ = dz / distance * step;
+      const next = moveWithTreeCollisions(pose, moveX, moveZ, this.treeColliders,
+        (from, x, z) => this.moveHeroOnGround(from, x, z), (x, z) => this.groundHeight(x, z));
+      const progressed = Math.hypot(next.x - pose.x, next.z - pose.z);
+      if (!Number.isFinite(progressed) || progressed <= 1e-7) break;
+      steps.push({ x: moveX, z: moveZ });
+      pose = next; remainingDistance -= progressed;
+    }
+    if (Math.hypot(target.group.position.x - pose.x, target.group.position.z - pose.z) > action.range + 1e-4)
+      return reject('TARGET_OUT_OF_RANGE');
+    const sampled = sampleRawAttackExecution(snapshot, () => this.rand());
+    if (!sampled.ok) return sampled;
+    // A synchronous authoritative RNG may throw; no commitment precedes it.
+    // Exact actor/target correlation is checked again without rereading budget.
+    if (this.hero !== hero || hero.characterId !== snapshot.owner.actorId || this.getCastTarget(identity) !== target)
+      return reject('STALE_COMMITMENT');
+    if (!this.consumeMana(action.manaCost)) return reject('INSUFFICIENT_MANA');
+    const hit = action.hitSequence[0];
+    hit.composedPhysicalPower = sampled.value.hits[0].raw;
+    hit.weaponHand = 'MAIN';
+    Object.freeze(hit); Object.freeze(action.hitSequence);
+    action.targetIdentity = identity;
+    this.#quickSlashExecutions.set(action, { hero, actorId: snapshot.owner.actorId });
+    this.commitVanishOffense(); this.lastActionFailure = null;
+    breakStealth(hero, 'offensive_skill'); this.updateStealthPresentation();
+    for (const step of steps) this.move(step.x, step.z);
+    this.faceTarget(target);
+    this.actionLock ??= new ActionLock();
+    this.actionLock.start(this.combatTime, action.actionLockDuration ?? 0, action.movementAllowedDuringLock);
+    this.skillCooldowns[cooldownKey] = action.cooldown;
+    this.applySkill(definition, 1, undefined, action, stats);
+    this.updateRogueConcealmentPresentation(); this.save(); this.emit();
+    return Object.freeze({ ok: true as const, execution: snapshot, sample: sampled.value });
+  }
+  private castDevelopmentPowerStrikeReference(definition?: SkillDefinition) {
+    const reject = (code: string, path = 'cast') => Object.freeze({ ok: false as const, code, path, reason: `Power Strike reference rejected: ${code}` });
+    if (!this.started || this.paused || this.dead || this.disposed || this.hotbarInteracting || this.transitioning || this.regionLoadError ||
+        this.isAverion && !this.averion || this.isPlains && !this.plains || !Number.isFinite(this.hero.hp) || this.hero.hp <= 0)
+      return reject('REFERENCE_ACTION_UNAVAILABLE');
+    if (this.thiefMovement || this.actionLock?.active(this.combatTime) || isStunned(this.hero, this.combatTime)) return reject('ACTION_LOCKED');
+    if (!definition) return reject('SKILL_UNAVAILABLE');
+    const prepared = this.#powerStrikeReferenceBinding
+      ? preparePowerStrike(this.#powerStrikeReferenceBinding, this, definition) : this.#powerStrikeReferenceFailure!;
+    if (!prepared.ok) return prepared;
+    const { snapshot, action, stats, hero } = prepared.value;
+    const cooldownKey = heroSkillCooldownKey(hero, definition.id);
+    const remaining = this.skillCooldowns[cooldownKey] ?? 0;
+    if (!Number.isFinite(remaining) || remaining < 0) return reject('INVALID_COOLDOWN');
+    if (!Number.isFinite(hero.mana) || hero.mana < action.manaCost) return reject('INSUFFICIENT_MANA');
+    const validation = canCastSkillRules(hero, definition.id, this.skillCooldowns, this.equippedWeaponType(), action.manaCost);
+    if (!validation.ok) return reject('CAST_NOT_ALLOWED');
+    const selected = this.resolveCurrentTarget(Infinity);
+    if (selected.reason || !selected.target) return reject(selected.reason ?? 'NO_TARGET');
+    const target = selected.target, identity = targetIdentity(target, this.regionBuildToken);
+    if (!this.enemies.includes(target) || this.currentTarget?.id !== target.id || this.getCastTarget(identity) !== target)
+      return reject('TARGET_INVALID');
+    const initialPosition = { x: this.actor.position.x, z: this.actor.position.z };
+    const targetPosition = { x: target.group.position.x, z: target.group.position.z };
+    // Plan the unchanged collision-aware approach on plain positions. A failed
+    // approach, admission, resource check or RNG sample cannot move/focus Game.
+    const steps: { x: number; z: number }[] = [];
+    let pose = { x: this.actor.position.x, z: this.actor.position.z };
+    if (pose.x !== hero.x || pose.z !== hero.z) return reject('SPATIAL_CONTEXT_MISMATCH');
+    const dx = target.group.position.x - pose.x, dz = target.group.position.z - pose.z;
+    const distance = Math.hypot(dx, dz);
+    if (!Number.isFinite(distance)) return reject('TARGET_INVALID');
+    let remainingDistance = Math.max(0, distance - action.range);
+    while (remainingDistance > 1e-6) {
+      const step = Math.min(.25, remainingDistance);
+      const moveX = dx / distance * step, moveZ = dz / distance * step;
+      const next = moveWithTreeCollisions(pose, moveX, moveZ, this.treeColliders,
+        (from, x, z) => this.moveHeroOnGround(from, x, z), (x, z) => this.groundHeight(x, z));
+      const progressed = Math.hypot(next.x - pose.x, next.z - pose.z);
+      if (!Number.isFinite(progressed) || progressed <= 1e-7) break;
+      steps.push({ x: moveX, z: moveZ });
+      pose = next; remainingDistance -= progressed;
+    }
+    if (Math.hypot(target.group.position.x - pose.x, target.group.position.z - pose.z) > action.range + 1e-4)
+      return reject('TARGET_OUT_OF_RANGE');
+    const sampled = sampleRawAttackExecution(snapshot, () => this.rand());
+    if (!sampled.ok) return sampled;
+    // A synchronous authoritative RNG may throw; no commitment precedes it.
+    // Exact actor/target correlation is checked again without rereading budget.
+    if (!currentPowerStrikeBinding(this.#powerStrikeReferenceBinding!, this) ||
+        this.hero !== hero || hero.characterId !== snapshot.owner.actorId || this.getCastTarget(identity) !== target ||
+        target.id !== identity.id || !this.enemies.includes(target) ||
+        this.actor.position.x !== initialPosition.x || this.actor.position.z !== initialPosition.z ||
+        target.group.position.x !== targetPosition.x || target.group.position.z !== targetPosition.z ||
+        !this.started || this.paused || this.dead || this.disposed || this.transitioning || this.regionLoadError || this.hotbarInteracting ||
+        this.thiefMovement || this.actionLock?.active(this.combatTime) || isStunned(hero, this.combatTime) ||
+        !Number.isFinite(hero.hp) || hero.hp <= 0 || !Number.isFinite(hero.mana) || hero.mana < action.manaCost ||
+        !Number.isFinite(this.skillCooldowns[cooldownKey] ?? 0) || (this.skillCooldowns[cooldownKey] ?? 0) !== 0)
+      return reject('STALE_COMMITMENT');
+    if (!this.consumeMana(action.manaCost)) return reject('INSUFFICIENT_MANA');
+    const hit = action.hitSequence[0];
+    hit.composedPhysicalPower = sampled.value.hits[0].raw;
+    hit.weaponHand = 'MAIN';
+    Object.freeze(hit); Object.freeze(action.hitSequence);
+    action.targetIdentity = identity;
+    this.#powerStrikeExecutions.set(action, { hero, actorId: snapshot.owner.actorId, slotId: hero.slotId });
+    this.commitVanishOffense(); this.lastActionFailure = null;
+    breakStealth(hero, 'offensive_skill'); this.updateStealthPresentation();
+    for (const step of steps) this.move(step.x, step.z);
+    this.faceTarget(target);
+    this.actionLock ??= new ActionLock();
+    this.actionLock.start(this.combatTime, action.actionLockDuration ?? 0, action.movementAllowedDuringLock);
+    this.skillCooldowns[cooldownKey] = action.cooldown;
+    this.applySkill(definition, 1, undefined, action, stats);
+    this.updateRogueConcealmentPresentation(); this.save(); this.emit();
+    return Object.freeze({ ok: true as const, execution: snapshot, sample: sampled.value });
+  }
+  private castDevelopmentAdventurerRanksReference(definition?: SkillDefinition) {
+    const reject = (code: string, path = 'cast') => Object.freeze({ ok: false as const, code, path, reason: `Adventurer ranks reference rejected: ${code}` });
+    if (!this.started || this.paused || this.dead || this.disposed || this.hotbarInteracting || this.transitioning || this.regionLoadError ||
+        this.isAverion && !this.averion || this.isPlains && !this.plains || !Number.isFinite(this.hero.hp) || this.hero.hp <= 0)
+      return reject('REFERENCE_ACTION_UNAVAILABLE');
+    if (this.thiefMovement || this.actionLock?.active(this.combatTime) || isStunned(this.hero, this.combatTime)) return reject('ACTION_LOCKED');
+    if (!definition) return reject('SKILL_UNAVAILABLE');
+    const prepared = this.#adventurerRanksBinding
+      ? prepareAdventurerRanks(this.#adventurerRanksBinding, this, definition) : this.#adventurerRanksFailure!;
+    if (!prepared.ok) return prepared;
+    const { snapshot, action, stats, hero, rank } = prepared.value;
+    const cooldownKey = heroSkillCooldownKey(hero, definition.id);
+    const remaining = this.skillCooldowns[cooldownKey] ?? 0;
+    if (!Number.isFinite(remaining) || remaining < 0) return reject('INVALID_COOLDOWN');
+    if (!Number.isFinite(hero.mana) || hero.mana < action.manaCost) return reject('INSUFFICIENT_MANA');
+    const validation = canCastSkillRules(hero, definition.id, this.skillCooldowns, this.equippedWeaponType(), action.manaCost);
+    if (!validation.ok) return reject('CAST_NOT_ALLOWED');
+    const selected = this.resolveCurrentTarget(Infinity);
+    if (selected.reason || !selected.target) return reject(selected.reason ?? 'NO_TARGET');
+    const target = selected.target, identity = targetIdentity(target, this.regionBuildToken);
+    if (!this.enemies.includes(target) || this.currentTarget?.id !== target.id || this.getCastTarget(identity) !== target)
+      return reject('TARGET_INVALID');
+    const initialPosition = { x: this.actor.position.x, z: this.actor.position.z };
+    const targetPosition = { x: target.group.position.x, z: target.group.position.z };
+    // Plan the unchanged collision-aware approach on plain positions. A failed
+    // approach, admission, resource check or RNG sample cannot move/focus Game.
+    const steps: { x: number; z: number }[] = [];
+    let pose = { x: this.actor.position.x, z: this.actor.position.z };
+    if (pose.x !== hero.x || pose.z !== hero.z) return reject('SPATIAL_CONTEXT_MISMATCH');
+    const dx = target.group.position.x - pose.x, dz = target.group.position.z - pose.z;
+    const distance = Math.hypot(dx, dz);
+    if (!Number.isFinite(distance)) return reject('TARGET_INVALID');
+    let remainingDistance = Math.max(0, distance - action.range);
+    while (remainingDistance > 1e-6) {
+      const step = Math.min(.25, remainingDistance);
+      const moveX = dx / distance * step, moveZ = dz / distance * step;
+      const next = moveWithTreeCollisions(pose, moveX, moveZ, this.treeColliders,
+        (from, x, z) => this.moveHeroOnGround(from, x, z), (x, z) => this.groundHeight(x, z));
+      const progressed = Math.hypot(next.x - pose.x, next.z - pose.z);
+      if (!Number.isFinite(progressed) || progressed <= 1e-7) break;
+      steps.push({ x: moveX, z: moveZ });
+      pose = next; remainingDistance -= progressed;
+    }
+    if (Math.hypot(target.group.position.x - pose.x, target.group.position.z - pose.z) > action.range + 1e-4)
+      return reject('TARGET_OUT_OF_RANGE');
+    const sampled = sampleRawAttackExecution(snapshot, () => this.rand());
+    if (!sampled.ok) return sampled;
+    // A synchronous authoritative RNG may throw; no commitment precedes it.
+    // Exact actor/target correlation is checked again without rereading budget.
+    if (!currentAdventurerRanksBinding(this.#adventurerRanksBinding!, this) ||
+        this.hero !== hero || hero.characterId !== snapshot.owner.actorId || this.getCastTarget(identity) !== target ||
+        target.id !== identity.id || !this.enemies.includes(target) ||
+        this.actor.position.x !== initialPosition.x || this.actor.position.z !== initialPosition.z ||
+        target.group.position.x !== targetPosition.x || target.group.position.z !== targetPosition.z ||
+        !this.started || this.paused || this.dead || this.disposed || this.transitioning || this.regionLoadError || this.hotbarInteracting ||
+        this.thiefMovement || this.actionLock?.active(this.combatTime) || isStunned(hero, this.combatTime) ||
+        !Number.isFinite(hero.hp) || hero.hp <= 0 || !Number.isFinite(hero.mana) || hero.mana < action.manaCost ||
+        !Number.isFinite(this.skillCooldowns[cooldownKey] ?? 0) || (this.skillCooldowns[cooldownKey] ?? 0) !== 0)
+      return reject('STALE_COMMITMENT');
+    if (!this.consumeMana(action.manaCost)) return reject('INSUFFICIENT_MANA');
+    const hit = action.hitSequence[0];
+    hit.composedPhysicalPower = sampled.value.hits[0].raw;
+    hit.weaponHand = 'MAIN';
+    Object.freeze(hit); Object.freeze(action.hitSequence);
+    action.targetIdentity = identity;
+    this.#adventurerRanksExecutions.set(action, { hero, actorId: snapshot.owner.actorId, slotId: hero.slotId });
+    this.commitVanishOffense(); this.lastActionFailure = null;
+    breakStealth(hero, 'offensive_skill'); this.updateStealthPresentation();
+    for (const step of steps) this.move(step.x, step.z);
+    this.faceTarget(target);
+    this.actionLock ??= new ActionLock();
+    this.actionLock.start(this.combatTime, action.actionLockDuration ?? 0, action.movementAllowedDuringLock);
+    this.skillCooldowns[cooldownKey] = action.cooldown;
+    this.applySkill(definition, rank, undefined, action, stats);
+    this.updateRogueConcealmentPresentation(); this.save(); this.emit();
+    return Object.freeze({ ok: true as const, execution: snapshot, sample: sampled.value });
+  }
+  private castDevelopmentWarriorReference(definition?:SkillDefinition) {
+    const reject=(code:string,path='cast')=>Object.freeze({ok:false as const,code,path,reason:`Warrior reference rejected: ${code}`});
+    const ready=()=>this.started&&!this.paused&&!this.dead&&!this.disposed&&!this.hotbarInteracting&&!this.transitioning&&!this.regionLoadError&&(!this.isAverion||!!this.averion)&&(!this.isPlains||!!this.plains)&&(!this.isSunken||!!this.sunken)&&(!this.isIronveil||!!this.ironveil)&&(!this.isMineInterior||!!this.mineInterior)&&Number.isFinite(this.hero.hp)&&this.hero.hp>0;
+    if(!ready())return reject('REFERENCE_ACTION_UNAVAILABLE');
+    if(this.thiefMovement||this.actionLock.active(this.combatTime)||isStunned(this.hero,this.combatTime))return reject('ACTION_LOCKED');
+    if(!definition)return reject('SKILL_UNAVAILABLE');
+    const receipt=this.#warriorCounterReceipt;
+    const counter=definition.counterPolicy ? this.defenseEvents.snapshot(definition.counterPolicy.accepted,definition.counterPolicy.windowMs,this.combatTime*1000) : NO_COUNTER;
+    const counterValid=()=>!definition.counterPolicy || !!receipt&&receipt.hero===this.hero&&receipt.event===this.defenseEvents.lastDefenseEvent&&counterContextAllowed(counter,definition.counterPolicy.accepted)&&this.defenseEvents.recent(counter.result,definition.counterPolicy.windowMs,this.combatTime*1000);
+    if(!counterValid())return reject('COUNTER_REQUIRED');
+    const definitionProof=JSON.stringify(definition);
+    const prepared=this.#warriorBinding ? prepareWarriorReference(this.#warriorBinding,this,definition,counter) : this.#warriorFailure!;
+    if(!prepared.ok)return prepared;
+    const {snapshot,action,stats,hero,rank,level}=prepared.value;
+    const key=heroSkillCooldownKey(hero,definition.id),cd=this.skillCooldowns[key]??0;
+    if(!Number.isFinite(cd)||cd<0)return reject('INVALID_COOLDOWN');
+    if(!Number.isFinite(hero.mana)||hero.mana<action.manaCost)return reject('INSUFFICIENT_MANA');
+    if(!canCastSkillRules(hero,definition.id,this.skillCooldowns,this.equippedWeaponType(),action.manaCost).ok)return reject('CAST_NOT_ALLOWED');
+    const start={x:this.actor.position.x,z:this.actor.position.z};
+    if(start.x!==hero.x||start.z!==hero.z)return reject('SPATIAL_CONTEXT_MISMATCH');
+    const single=action.targetType==='single',charge=action.effect==='dash_damage';
+    const selection=single?this.resolveCurrentTarget(Infinity):{};
+    if(single&&(!selection.target||selection.reason))return reject(selection.reason??'NO_TARGET');
+    const selected=selection.target;
+    const steps:{x:number;z:number}[]=[];
+    let pose={...start};
+    if(selected) {
+      const contact=this.enemyContact(selected,pose);
+      const dx=contact.x-pose.x,dz=contact.z-pose.z,distance=Math.hypot(dx,dz);
+      if(!Number.isFinite(distance)||charge&&distance>action.range)return reject('TARGET_OUT_OF_RANGE');
+      let remaining=Math.max(0,distance-(charge?action.dash!.stopDistance:action.range));
+      while(remaining>1e-6) {
+        const step=Math.min(.25,remaining),x=dx/distance*step,z=dz/distance*step;
+        const next=moveWithTreeCollisions(pose,x,z,this.treeColliders,(from,mx,mz)=>this.moveHeroOnGround(from,mx,mz),(px,pz)=>this.groundHeight(px,pz));
+        const progress=Math.hypot(next.x-pose.x,next.z-pose.z);
+        if(!Number.isFinite(progress)||progress<=1e-7)break;
+        steps.push({x,z});pose=next;remaining-=progress;
+      }
+      if(this.enemyRange(selected,pose)>(charge?action.dash!.stopDistance:action.range)+1e-4)return reject('TARGET_OUT_OF_RANGE');
+    }
+    const forward=selected ? {x:selected.group.position.x-pose.x,z:selected.group.position.z-pose.z} : {x:this.direction.x,z:this.direction.z};
+    const targets=action.nonDamaging?[]:selectSkillTargets({action,origin:pose,forward,candidates:this.enemies.map(e=>({target:e,id:String(e.id),position:this.enemyContact(e,pose),alive:e.hp>0&&this.getCastTarget(targetIdentity(e,this.regionBuildToken))===e})),selected:selected?{target:selected,id:String(selected.id),position:this.enemyContact(selected,pose),alive:selected.hp>0}:null});
+    if(!action.nonDamaging&&!targets.length)return reject('NO_VALID_TARGET');
+    const identities=new Map(targets.map(e=>[e,targetIdentity(e,this.regionBuildToken)]));
+    const positions=targets.map(e=>({e,x:e.group.position.x,z:e.group.position.z}));
+    if(targets.some(e=>!this.enemies.includes(e)||this.getCastTarget(identities.get(e))!==e))return reject('TARGET_INVALID');
+    let sampled:ReturnType<typeof sampleRawAttackExecution>|undefined;
+    try{sampled=snapshot?sampleRawAttackExecution(snapshot,()=>this.rand()):undefined;}
+    catch{return reject('ATTACK_RNG_EXCEPTION_AFTER_ONE_ATTEMPT');}
+    if(sampled&&!sampled.ok)return sampled;
+    if(!readWarriorBinding(this.#warriorBinding,this).ok||JSON.stringify(definition)!==definitionProof||this.hero!==hero||!ready()||!counterValid()||
+      this.actor.position.x!==start.x||this.actor.position.z!==start.z||positions.some(p=>p.e.group.position.x!==p.x||p.e.group.position.z!==p.z||this.getCastTarget(identities.get(p.e))!==p.e||!this.enemies.includes(p.e))||
+      !Number.isFinite(hero.mana)||hero.mana<action.manaCost||(this.skillCooldowns[key]??0)!==0||this.actionLock.active(this.combatTime)||isStunned(hero,this.combatTime))return reject('STALE_COMMITMENT');
+    if(!this.consumeMana(action.manaCost))return reject('INSUFFICIENT_MANA');
+    if(definition.counterPolicy){this.defenseEvents.consume(counter.result,definition.counterPolicy.windowMs,this.combatTime*1000);this.#warriorCounterReceipt=undefined;}
+    if(sampled?.ok) {
+      const hit=action.hitSequence[0];hit.composedPhysicalPower=sampled.value.hits[0].raw;hit.weaponHand='MAIN';Object.freeze(hit);Object.freeze(action.hitSequence);
+    }
+    if(selected)action.targetIdentity=identities.get(selected);
+    this.#warriorExecutions.set(action,{hero,actorId:hero.characterId,slotId:hero.slotId,level,targets,identities});
+    this.lastActionFailure=null;
+    if(!action.nonDamaging){breakStealth(hero,'offensive_skill');this.updateStealthPresentation();}
+    if(!charge)for(const step of steps)this.move(step.x,step.z);
+    if(selected)this.faceTarget(selected);
+    this.actionLock.start(this.combatTime,action.actionLockDuration??0,action.movementAllowedDuringLock);
+    this.skillCooldowns[key]=action.cooldown;
+    this.applySkill(definition,rank,undefined,action,stats);
+    recordCommittedWarriorBuffs(this.#warriorBinding!,this,action);
+    this.save();this.emit();
+    return Object.freeze({ok:true as const,rank,level,execution:snapshot,sample:sampled?.ok?sampled.value:undefined});
+  }
   applySkill(definition: SkillDefinition, level: number, mastery?: MasteryChoice, action?: ResolvedSkillAction, stats=derivedStats(this.hero),consumedWindows:readonly string[]=[], movementComplete = false, rogueInput?: T.Vector3) {
     const skill=action??resolveHeroSkill(this.hero,definition,level,stats);
+    const quickSlashExecution = this.#quickSlashExecutions.get(skill);
+    const powerStrikeExecution = this.#powerStrikeExecutions.get(skill);
+    const adventurerRanksExecution = this.#adventurerRanksExecutions.get(skill);
+    const warriorExecution = this.#warriorExecutions.get(skill);
+    const referenceFinalImpact = !!quickSlashExecution || !!powerStrikeExecution || !!adventurerRanksExecution || !!warriorExecution;
     if (this.hero.skillArchitectureVersion===3 && !thiefSkillJobAllowed(this.hero,definition.specialization ?? definition.job)) return;
+    if (skill.vanish) {
+      this.vanish.activate(this.hero, skill.id, skill.vanish, skill.cooldown, heroSkillCooldownKey(this.hero, skill.id));
+      this.characterModel.animator.play('magic_cast', .3);
+      return;
+    }
     const launchOrigin=this.actor.position.clone();
     const castOwner=this.hero.characterId ?? this.hero.slotId;
     let assasinExecution=this.assasinExecutions.get(skill);
@@ -2996,13 +3561,10 @@ export class Game {
       assasinExecution=this.assasinCombat.beginExecution(this.hero,skill.id,skill.assasin,level,()=>{
         const currentStats=derivedStats(this.hero),base=calculateBaseStats(this.hero),gear=calculateEquipmentStats(this.hero);
         return {profile:VENOM_PROFILES[venomMasteryRank(this.hero)-1],snapshot:{physicalAttack:currentStats.physicalAttack,effectiveDex:base.dex+(gear.dex ?? 0),
-          level:this.hero.level,physicalPenetration:currentStats.physicalPenetration,bossDamage:currentStats.bossDamage,eliteDamage:currentStats.eliteDamage}};
+          level:this.hero.level,physicalPenetration:currentStats.physicalPenetration,bossDamage:currentStats.bossDamage,eliteDamage:currentStats.eliteDamage,
+          criticalRate:currentStats.criticalRate,criticalDamage:currentStats.criticalDamage}};
       });
       this.assasinExecutions.set(skill,assasinExecution);
-      if (skill.assasin.vanish) {
-        this.assasinCombat.conceal(this.hero,this.combatTime,skill.duration);
-        this.characterModel.animator.play('magic_cast',.3); return;
-      }
       const target=this.getCastTarget(skill.targetIdentity);
       if (skill.weaponMode?.startsWith('THROWN') && target && skill.targetIdentity) {
         const travel=Math.max(.08,this.groundDistance(launchOrigin,target.group.position)/24);
@@ -3024,6 +3586,7 @@ export class Game {
       const session = this.assasinPoison.beginExecution(this.hero, skill.skillId, skill.assasinPoison, level, {
         physicalAttack: stats.physicalAttack, effectiveDex: calculateBaseStats(this.hero).dex + (calculateEquipmentStats(this.hero).dex ?? 0),
         level: this.hero.level, physicalPenetration: stats.physicalPenetration, bossDamage: stats.bossDamage, eliteDamage: stats.eliteDamage,
+        criticalRate: stats.criticalRate, criticalDamage: stats.criticalDamage,
       });
       if (!session) return;
       this.poisonExecutions.set(skill, session); poisonExecution = session;
@@ -3054,7 +3617,6 @@ export class Game {
       return;
     }
     if (rogue && skill.nonDamaging) {
-      // Smoke Veil uses only the actor-owned concealment primitive, never saved activeBuffs.
       this.characterModel.animator.play('magic_cast', .3);
       this.message(`${skill.name} digunakan.`);
       return;
@@ -3090,9 +3652,8 @@ export class Game {
     const isBerserkerDamage = skill.tags.includes('v3-berserker');
     const isEarthSplitter = skill.skillId === 'v3-berserker-earth-splitter';
     const bladeImpact = new BladeMasterImpactSession(skill.skillId,this.transientCombat,this.combatTime);
-    const maxBeforeBuff = maxHP(this.hero);
     for(const buff of skill.temporaryBuffs??[])addTemporaryModifier(this.hero,buff.modifier,buff.duration);
-    if (skill.skillId === 'v3-berserker-iron-blood') this.hero.hp = Math.min(maxHP(this.hero), Math.round(this.hero.hp * maxHP(this.hero) / Math.max(1, maxBeforeBuff)));
+    reconcileResourceMaximums(this.hero);
     if (isBerserkerTrance) {
       const tranceRank = Math.max(1, Math.min(3, level));
       const duration = [0, 12, 14, 16][tranceRank];
@@ -3134,7 +3695,7 @@ export class Game {
       selected: targetCandidate,
     });
     // Moving radial sequences acquire enemies at each impact, not at cast start.
-    const targets = isEarthSplitter ? [] : acquireTargets();
+    const targets = warriorExecution ? warriorExecution.targets : isEarthSplitter ? [] : acquireTargets();
     this.traceV3Damage(skill.skillId, 'impact_scheduled', {
       targetIds: targets.map(enemy => enemy.id),
       scheduledImpacts: skill.hitSequence.length,
@@ -3226,7 +3787,7 @@ export class Game {
       );
     }
     const buildToken=this.regionBuildToken;
-    const attackerLevel=this.hero.level;
+    const attackerLevel=warriorExecution?.level??this.hero.level;
     const refreshFrenzyGuard = () => {
       const trance = this.transientCombat.berserkerTrance;
       if (isBerserkerDamage && successfulTargets >= 3 && trance && trance.expiresAt > this.combatTime)
@@ -3239,7 +3800,7 @@ export class Game {
     for (const enemy of targets) {
       let alive=true;
       const spawn=enemy.respawnDeadline;
-      const castTargetIdentity=isEarthSplitter?targetIdentity(enemy,buildToken):skill.targetIdentity??targetIdentity(enemy,buildToken);
+      const castTargetIdentity=warriorExecution?.identities.get(enemy)??(isEarthSplitter?targetIdentity(enemy,buildToken):skill.targetIdentity??targetIdentity(enemy,buildToken));
       const isIronCharge = skill.skillId === 'v3-warrior-iron-charge';
       const dashImpactRange = skill.dash ? Math.max(skill.dash.impactRange, skill.dash.stopDistance) : 0;
       let impactInvalidReported = false;
@@ -3263,7 +3824,11 @@ export class Game {
         return valid;
       };
       this.skillHits.schedule(hits,
-        ()=>alive&&!this.disposed&&!this.dead&&buildToken===this.regionBuildToken&&enemy.respawnDeadline===spawn&&validImpact(),
+        ()=>alive&&!this.disposed&&!this.dead&&buildToken===this.regionBuildToken&&enemy.respawnDeadline===spawn&&validImpact()&&
+          (!quickSlashExecution || this.hero === quickSlashExecution.hero && this.hero.characterId === quickSlashExecution.actorId && this.hero.hp > 0) &&
+          (!powerStrikeExecution || this.hero === powerStrikeExecution.hero && this.hero.characterId === powerStrikeExecution.actorId && this.hero.slotId === powerStrikeExecution.slotId && this.hero.hp > 0 && enemy.id === castTargetIdentity.id) &&
+          (!adventurerRanksExecution || this.hero === adventurerRanksExecution.hero && this.hero.characterId === adventurerRanksExecution.actorId && this.hero.slotId === adventurerRanksExecution.slotId && this.hero.hp > 0 && enemy.id === castTargetIdentity.id) &&
+          (!warriorExecution || this.hero === warriorExecution.hero && this.hero.characterId === warriorExecution.actorId && this.hero.slotId === warriorExecution.slotId && this.hero.hp > 0 && enemy.id === castTargetIdentity.id && this.groundDistance(this.actor.position,enemy.group.position)<=(skill.dash?Math.max(skill.dash.impactRange,skill.dash.stopDistance):skill.targetType==='single'?skill.range:skill.radius)+1e-4),
         snapshotHit=>{
       const impactIndex = stompIndex ?? skill.hitSequence.indexOf(snapshotHit);
       this.traceV3Damage(skill.skillId, 'impact_callback', {
@@ -3351,9 +3916,9 @@ export class Game {
       const beforeHP=enemy.hp;
       const appliedDamage = this.hurtEnemy(
         enemy,
-        Math.round(amount),
+        referenceFinalImpact ? amount : Math.round(amount),
         hit.knockbackStrength,
-        hit.damageType, stats, attackerLevel,
+        hit.damageType, stats, attackerLevel, 'direct', referenceFinalImpact ? 'REFERENCE_B_FINAL' : 'LEGACY',
       );
       const dummyImpact = enemy.dummy && amount > 0;
       this.traceV3Damage(skill.skillId, 'hp_mutation', {
@@ -3657,9 +4222,28 @@ export class Game {
         .normalize();
   }
   attack(autoAim = false) {
+    const selectedReference = this.#basicReferenceSelected || this.#adventurerRanksSelected;
+    if (selectedReference && (!this.started || this.paused || this.dead || this.hero.hp <= 0 || this.hotbarInteracting || this.disposed || this.transitioning || this.regionLoadError))
+      return Object.freeze({ ok: false as const, code: 'REFERENCE_ACTION_UNAVAILABLE' });
     if(isStunned(this.hero,this.combatTime)){this.message('Karakter sedang Stun.');return;}
     if(this.thiefMovement || this.actionLock?.active(this.combatTime))return this.failTarget('ACTION_LOCKED');
     if (this.attackTimer > 0) return;
+    // Validate stored presentation state before computing the legitimate cycle.
+    // Never normalize corrupted selected-reference indices into a valid event.
+    if (this.#adventurerRanksSelected && (!Number.isInteger(this.combo) || this.combo < 0 || this.combo > 3 ||
+        !Number.isFinite(this.comboWindow) || this.comboWindow < 0 || this.comboWindow > 0 && this.combo === 0))
+      return Object.freeze({ok:false as const,code:'UNSUPPORTED_COMBO',reason:'Invalid Basic presentation state'});
+    const nextCombo = this.comboWindow > 0 ? (this.combo % 3) + 1 : 1;
+    const referencePreparation = this.#adventurerRanksSelected
+      ? this.#adventurerRanksBinding
+        ? prepareAdventurerBasic(this.#adventurerRanksBinding, this, nextCombo)
+        : this.#adventurerRanksFailure!
+      : this.#basicReferenceSelected
+      ? this.#basicReferenceBinding
+        ? prepareBasicReferenceAttack(this.#basicReferenceBinding, this, this.comboWindow > 0 ? (this.combo % 3) + 1 : 1)
+        : this.#basicReferenceFailure!
+      : undefined;
+    if (referencePreparation && !referencePreparation.ok) { this.message(referencePreparation.reason); return referencePreparation; }
     const equippedWeapon=itemById(this.hero.inventory,this.hero.equipment.mainHand);
     const offhandWeapon=itemById(this.hero.inventory,this.hero.equipment.offHand);
     const daggerEquipment = daggerEquipmentForHero(this.hero);
@@ -3668,7 +4252,7 @@ export class Game {
       equippedWeapon?.equipmentType === 'one_hand_sword' && offhandWeapon?.equipmentType === 'one_hand_sword' && equippedWeapon.id !== offhandWeapon.id,
     );
     const equipmentSignature = `${this.hero.equipment.mainHand ?? ''}:${this.hero.equipment.offHand ?? ''}`;
-    if (equipmentSignature !== this.dualBasicEquipmentSignature) {
+    if (!referencePreparation && equipmentSignature !== this.dualBasicEquipmentSignature) {
       this.dualBasicEquipmentSignature = equipmentSignature;
       this.dualBasicNextHand = 'MAIN';
     }
@@ -3678,6 +4262,24 @@ export class Game {
     const selection=hard?this.resolveCurrentTarget(Infinity):{};
     if(selection.target&&this.enemyRange(selection.target)>(isBow?Math.max(11,combatProfile(this.hero).range):selection.target.boss?4.3:combatProfile(this.hero).range))selection.reason='TARGET_OUT_OF_RANGE';
     if(selection.reason)return this.failTarget(selection.reason);
+    let referenceSample: SampledRawExecution | undefined;
+    if (referencePreparation?.ok) {
+      const sampled = sampleRawAttackExecution(referencePreparation.value.snapshot, () => this.rand());
+      if (!sampled.ok) { this.message(sampled.reason); return sampled; }
+      if (this.#adventurerRanksSelected && (!this.#adventurerRanksBinding || !currentAdventurerRanksBinding(this.#adventurerRanksBinding, this)))
+        return Object.freeze({ok:false as const,code:'STALE_ACTOR_EPOCH',reason:'Reference identity changed during attack sampling'});
+      if (this.#adventurerRanksSelected && (this.dead || this.paused || this.disposed || this.hero.hp<=0 ||
+          hard && (!selection.target || this.resolveCurrentTarget(Infinity).target !== selection.target ||
+          this.enemyRange(selection.target)>(selection.target.boss?4.3:combatProfile(this.hero).range))))
+        return Object.freeze({ok:false as const,code:'REFERENCE_TARGET_CHANGED',reason:'Reference target/action changed during attack sampling'});
+      referenceSample = sampled.value;
+      // No facing, equipment cycle, timer, combo or animation mutation before
+      // admitted preparation, target/range guards and successful attack sampling.
+      if (equipmentSignature !== this.dualBasicEquipmentSignature) {
+        this.dualBasicEquipmentSignature = equipmentSignature;
+        this.dualBasicNextHand = 'MAIN';
+      }
+    }
     this.lastActionFailure=null;
     if(isBow){
       const arrows=this.hero.inventory.find(item=>item.templateId===(this.hero.selectedAmmo??'arrows')&&item.quantity>0);
@@ -3696,7 +4298,7 @@ export class Game {
         if (d.length() > 0.1) this.direction.copy(d.normalize());
       }
     }
-    this.transientCombat.rogueAmbush.breakConcealment('ATTACK');this.assasinCombat.breakConcealment('attack');this.updateRogueConcealmentPresentation();
+    this.commitVanishOffense();
     breakStealth(this.hero,'basic_attack');this.updateStealthPresentation();
     this.actor.rotation.y = Math.atan2(-this.direction.x, -this.direction.z);
     this.combo = this.comboWindow > 0 ? (this.combo % 3) + 1 : 1;
@@ -3704,18 +4306,20 @@ export class Game {
     const profile = combatProfile(this.hero);
     this.attackTimer =
       this.combo === 3 ? profile.cooldown + COMBAT_MECHANICS.comboFinisherDelay : profile.cooldown;
-    this.attackTimer /= derivedStats(this.hero).attackSpeed / 100;
+    this.attackTimer /= (referencePreparation?.ok ? referencePreparation.value.stats : derivedStats(this.hero)).attackSpeed / 100;
     this.swing = 0.3;
     this.characterModel.animator.play(isBow ? 'ranged_attack' : 'basic_attack', .3);
-    const stats = derivedStats(this.hero);
-    const attackPowerForHand = daggerEquipment.state !== 'NO_DAGGER'
+    const stats = referencePreparation?.ok ? referencePreparation.value.stats : derivedStats(this.hero);
+    const referenceLevel = referencePreparation?.ok && 'level' in referencePreparation.value && typeof referencePreparation.value.level === 'number'
+      ? referencePreparation.value.level : referenceSample ? 1 : this.hero.level;
+    const attackPowerForHand = referenceSample ? referenceSample.totalRaw : daggerEquipment.state !== 'NO_DAGGER'
       ? basicAttackPower(this.hero, basicHand)
       : dualBasicActive
       ? (() => { const context = resolveWeaponAttackContext(equippedWeapon, offhandWeapon, basicHand === 'MAIN' ? 'SINGLE_MAIN' : 'SINGLE_OFF'); const shared = stats.physicalAttack - context.mainHandWeaponAttack - context.offHandWeaponAttack; return Math.max(0, shared + (basicHand === 'MAIN' ? context.mainHandWeaponAttack : context.offHandWeaponAttack)); })()
       : basicAttackPower(this.hero);
     const baseDamage =
       attackPowerForHand *
-      (this.combo === 3 ? COMBAT_MECHANICS.comboFinisherDamage : 1);
+      (referenceSample ? 1 : this.combo === 3 ? COMBAT_MECHANICS.comboFinisherDamage : 1);
     const resolveBasicDamage = (enemy: Enemy) => {
       const hitResolution = resolveHitAgainstEvasion({ attackerAccuracy: stats.accuracy, targetEvasion: enemy.evasion ?? 0, rng: () => this.rand() });
       if (hitResolution.result === 'EVADED') {
@@ -3731,7 +4335,7 @@ export class Game {
     if(isBow)this.effect(strike,'#b6f1ff',9);
     for (const e of (hard&&selection.target?[selection.target]:this.enemies)) {
       if (e.hp <= 0) continue;
-      if(hard){const damage=resolveBasicDamage(e);if(damage===null)continue;this.hurtEnemy(e,Math.round(damage),this.hero.skillArchitectureVersion===3?0:.8,'physical');continue;}
+      if(hard){const damage=resolveBasicDamage(e);if(damage===null)continue;this.hurtEnemy(e,referenceSample?damage:Math.round(damage),this.hero.skillArchitectureVersion===3?0:.8,'physical',referenceSample?stats:undefined,referenceLevel,'direct',referenceSample?'REFERENCE_B_FINAL':'LEGACY');continue;}
       const v = e.group.position.clone().sub(this.actor.position);
       if(this.fieldTerrain||this.isPlains||this.isFrostfire||this.isWilds||this.isSunken||this.isIronveil||this.isMineInterior)v.y=0;
       const d = v.length();
@@ -3740,10 +4344,12 @@ export class Game {
         v.normalize().dot(this.direction) > -0.2
       ) {
         const damage=resolveBasicDamage(e);if(damage===null)continue;
-        this.hurtEnemy(e, Math.round(damage), this.hero.skillArchitectureVersion===3?0:0.8, 'physical');
+        this.hurtEnemy(e, referenceSample ? damage : Math.round(damage), this.hero.skillArchitectureVersion===3?0:0.8, 'physical', referenceSample ? stats : undefined, referenceLevel, 'direct', referenceSample ? 'REFERENCE_B_FINAL' : 'LEGACY');
       }
     }
     if (dualBasicActive) this.dualBasicNextHand = basicHand === 'MAIN' ? 'OFF' : 'MAIN';
+    if (referencePreparation?.ok && referenceSample) return Object.freeze({ ok: true as const,
+      version: this.#adventurerRanksSelected ? ADVENTURER_RANKS_REFERENCE.version : 'Q2_Q4_BASIC_REFERENCE_B_1' as const, execution: referencePreparation.value.snapshot, sample: referenceSample });
   }
   nova() {
     if(this.actionLock?.active(this.combatTime))return this.failTarget('ACTION_LOCKED');
@@ -3760,7 +4366,7 @@ export class Game {
     this.save();
     this.emit();
   }
-  hurtEnemy(e: Enemy, damage: number, knock: number, damageType: 'physical' | 'magic' = 'physical', snapshot?:Pick<DerivedStats, 'bossDamage' | 'eliteDamage' | 'physicalPenetration' | 'magicPenetration'>, attackerLevel=this.hero.level, damageKind: 'direct' | 'poison_dot' = 'direct') {
+  hurtEnemy(e: Enemy, damage: number, knock: number, damageType: 'physical' | 'magic' = 'physical', snapshot?:Pick<DerivedStats, 'bossDamage' | 'eliteDamage' | 'physicalPenetration' | 'magicPenetration'>, attackerLevel=this.hero.level, damageKind: 'direct' | 'poison_dot' = 'direct', rounding: 'LEGACY' | 'REFERENCE_B_FINAL' = 'LEGACY') {
     if(this.isMineInterior && damageKind==='direct' && !mineLineOfSight(this.hero,e.group.position))return 0;
     if (e.hp <= 0) return 0;
     const playerStats=snapshot??derivedStats(this.hero);
@@ -3769,11 +4375,12 @@ export class Game {
     const defense = damageType === 'magic' ? (e.definition?.magicDefense ?? 0) : (e.definition?.defense ?? 0);
     const penetration = damageType === 'magic' ? playerStats.magicPenetration : playerStats.physicalPenetration;
     const armorBreakStrength = effectiveArmorBreakStrength(e, this.combatTime);
-    const finalDamage = mitigateDamage(damage, defense * (armorBreakStrength > 0 ? Math.max(0, 1 - armorBreakStrength / 100) : 1), attackerLevel, penetration);
+    const defendedDamage = mitigateDamage(damage, defense * (armorBreakStrength > 0 ? Math.max(0, 1 - armorBreakStrength / 100) : 1), attackerLevel, penetration);
+    const finalDamage = rounding === 'REFERENCE_B_FINAL' ? Math.round(defendedDamage) : defendedDamage;
     if (e.dummy) {
       e.hp = e.max;
       e.flash = 0.14;
-      this.float(e.group.position, String(Math.round(finalDamage)), 'damage');
+      this.float(e.group.position, String(rounding === 'REFERENCE_B_FINAL' ? finalDamage : Math.round(finalDamage)), 'damage');
       this.effect(e.group.position, '#d9f0ff', 8);
       return finalDamage;
     }
@@ -3795,7 +4402,7 @@ export class Game {
       e.group.position.x=T.MathUtils.clamp(e.group.position.x,-extent,extent);
       e.group.position.z=T.MathUtils.clamp(e.group.position.z,-extent,extent);
     }
-    this.float(e.group.position, String(Math.round(finalDamage)), 'damage');
+    this.float(e.group.position, String(rounding === 'REFERENCE_B_FINAL' ? finalDamage : Math.round(finalDamage)), 'damage');
     this.effect(e.group.position, e.boss ? '#ddb7e8' : '#c0da78', 8);
     if (e.hp === 0) {
       e.group.visible = false;
@@ -3814,7 +4421,9 @@ export class Game {
       this.hero.fieldProgress[this.activeLocationId] = (this.hero.fieldProgress[this.activeLocationId] ?? 0) + 1;
       const goldPosition = e.group.position.clone().add(new T.Vector3(0.85, 0, 0));
       this.spawnGoldDrop(goldReward, goldPosition);
+      const renewal=this.#beginAdventurerTransaction();
       const levels = gainXP(this.hero, xp);
+      if(levels)this.#renewAdventurerTransaction(renewal,'reward gainXP');
       const loots = e.definition ? rollMonsterLootDrops(this.hero, e.definition, () => this.rand()) : [];
       const lootPositions = [
         new T.Vector3(-0.85, 0, 0),
@@ -3846,11 +4455,12 @@ export class Game {
       this.emit();
     }
   }
-  hurtHero(damage: number, sourceId?:string, displacement?:{x:number;z:number}, damageKind: 'direct' | 'dot' = 'direct') {
+  hurtHero(damage: number, sourceId?:string, displacement?:{x:number;z:number}, damageKind: 'direct' | 'dot' = 'direct', blockable = true) {
     setManualGuard(this.hero,this.blocking);
     if (this.invincible > 0 || this.dead) return;
     if(hasStatus(this.hero,'parry')){
       this.defenseEvents.record(this.hero,false,this.combatTime*1000,sourceId);
+      this.#warriorCounterReceipt=this.#warriorSelected&&damageKind==='direct'&&blockable ? {hero:this.hero,event:this.defenseEvents.lastDefenseEvent!}:undefined;
       this.float(this.actor.position,'PARRY','reward');
       return;
     }
@@ -3863,8 +4473,12 @@ export class Game {
     this.transientCombat?.updateBerserker(this.combatTime);
     if (this.transientCombat?.frenzyGuard && this.transientCombat.frenzyGuard.expiresAt > this.combatTime)
       damage *= Math.max(0, 1 - this.transientCombat.frenzyGuard.reductionPercent / 100);
-    const blocked=this.rand() < blockChance(stats.blockRate);
+    // Existing physical direct callers explicitly retain their blockable adapter.
+    // No eligible Block source means no passive Block draw; CP60/30 is separate.
+    const passiveChance = passiveBlockChance(stats.blockRate,{damageType:'physical',damageKind,blockable});
+    const blocked=passiveChance > 0 && this.rand() < passiveChance;
     this.defenseEvents.record(this.hero,blocked||this.blocking,this.combatTime*1000,sourceId);
+    this.#warriorCounterReceipt=this.#warriorSelected&&damageKind==='direct'&&blockable&&(blocked||this.blocking) ? {hero:this.hero,event:this.defenseEvents.lastDefenseEvent!}:undefined;
     const context=modifierContextFor(this.hero,stats),modifiers=combatModifiersFor(this.hero);
     const defenseMultiplier=(1-stats.damageReduction/100)*(blocked?1-COMBAT_MECHANICS.blockDamageReduction:1)*(this.blocking?.3:1);
     damage *= receivedMultiplier(modifiers,context,'damageMultiplier',defenseMultiplier);
@@ -3872,12 +4486,12 @@ export class Game {
     this.hero.barrier -= absorbed;
     damage -= absorbed;
     this.hero.hp = Math.max(0, this.hero.hp - damage);
-    if (damageKind === 'direct') { this.transientCombat.rogueAmbush.breakConcealment('DIRECT_DAMAGE', damage); this.assasinCombat.breakConcealment('direct',damage); this.updateRogueConcealmentPresentation(); }
+    if (damageKind === 'direct') { this.vanish.directDamage(damage + absorbed); this.updateRogueConcealmentPresentation(); }
     if(damage>0){breakStealth(this.hero,'received_damage');this.updateStealthPresentation();}
     if(this.hero.hp>0&&displacement){const factor=receivedMultiplier(modifiers,context,'knockbackMultiplier');this.move(displacement.x*factor,displacement.z*factor);}
     if (damage > 0) this.characterModel.animator.play('hit', .24);
     this.invincible = 0.45;
-    this.float(this.actor.position, `−${Math.round(damage)}`, 'hurt');
+    this.float(this.actor.position, `−${damage}`, 'hurt');
     this.sound(95, 0.13);
     if (this.hero.hp === 0) {
       this.dead = true;
@@ -3976,7 +4590,7 @@ export class Game {
     let animationMoveSpeed=0;
     if (!this.paused) {
       // Poison keeps its cadence while the caster is dead. It neither calls
-      // player hit/crit/on-hit hooks nor advances other classes' combat actions.
+      // direct-hit/on-hit hooks nor advances other classes' combat actions.
       this.poisonTime += dt;
       for (const enemy of this.enemies) { this.assasinPoison.advanceTarget(enemy, this.poisonTime); this.assasinCombat.advanceTarget(enemy,this.poisonTime); }
       if (this.currentTarget) this.updateTargetPresentation();
@@ -4003,9 +4617,7 @@ export class Game {
       }
       this.attackTimer = Math.max(0, this.attackTimer - dt);
       const manaStats=derivedStats(this.hero);
-      this.hero.mana=Math.min(this.hero.mana,manaStats.maxMana);
-      this.hero.maxMana=manaStats.maxMana;
-      if(manaStats.manaRecovery>0)this.restoreMana(dt*manaStats.manaRecovery);
+      recoverActiveResources(this.hero,dt,manaStats);
       this.invincible = Math.max(0, this.invincible - dt);
       this.comboWindow = Math.max(0, this.comboWindow - dt);
       this.swing = Math.max(0, this.swing - dt);
@@ -4412,7 +5024,7 @@ export class Game {
     }
     (e.ring.material as T.MeshBasicMaterial).opacity = 0;
     if (
-      !safe &&
+      !safe && this.vanish.canAcquireDirectTarget(this.hero, { actorId: `enemy:${e.id}` }) &&
       dist < (e.boss ? 15 : e.definition?.variant === 'elite' ? 12 : 10) &&
       this.groundDistance(e.group.position,e.home) < 20
     ) {

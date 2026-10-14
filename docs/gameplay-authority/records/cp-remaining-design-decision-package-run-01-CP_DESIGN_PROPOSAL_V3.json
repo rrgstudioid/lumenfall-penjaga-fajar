@@ -1,0 +1,1315 @@
+{
+  "version": "CP_DESIGN_PROPOSAL_V3_20261009",
+  "status": "PROPOSED_FOR_OWNER_REVIEW_NOT_ACC",
+  "originalSpec": {
+    "name": "LUMENFALL_Combat_Power_System_Specification_FINAL.docx",
+    "status": "NOT_RECOVERED_IN_SCOPED_SEARCH",
+    "newSearchPerformed": false,
+    "newPointerSupplied": false
+  },
+  "scopeAuthorization": "Latest user prompt permits proposal only; every new policy/value remains unapproved",
+  "packages": {
+    "A": {
+      "name": "OFFENSE_NOMINAL_30S_V3",
+      "recommendation": "Adopt complete bounded protocol only after explicit owner approval",
+      "fields": [
+        "A-D1-01",
+        "A-D1-02",
+        "A-D1-03",
+        "A-D1-04",
+        "A-D1-05",
+        "A-D1-06",
+        "A-D2-01",
+        "A-D2-02",
+        "A-D2-03",
+        "A-D2-04",
+        "A-D2-05",
+        "A-D2-06",
+        "A-D2-07",
+        "A-D2-08",
+        "A-D2-09",
+        "A-D2-10",
+        "A-D3-01",
+        "A-D3-02",
+        "A-D3-03",
+        "A-D3-04"
+      ],
+      "implementationNow": false
+    },
+    "B": {
+      "name": "FULL_CP_CONDITIONAL_V3",
+      "recommendation": "Approve separation/anti-double-count/source requirements if desired; hold all null numeric policies",
+      "fields": [
+        "B-DEF-01",
+        "B-DEF-02",
+        "B-DEF-03",
+        "B-DEF-04",
+        "B-Q6-01",
+        "B-Q6-02",
+        "B-SUS-01",
+        "B-SUS-02",
+        "B-SUS-03",
+        "B-SUS-04",
+        "B-UTIL-01",
+        "B-SCORE-01"
+      ],
+      "implementationNow": false
+    }
+  },
+  "fields": [
+    {
+      "id": "LOCK-01",
+      "field": "Pemisahan offense / total",
+      "value": true,
+      "unit": null,
+      "scope": "Paket A: offense diagnostik Adventurer Training Lv1–14 / newIron Lv10–14 +0 MAIN, tanpa perluasan admission",
+      "status": "OWNER_FINAL",
+      "origin": "OWNER_FINAL",
+      "disposition": "RECOMMENDED",
+      "sourceRefs": [
+        "ACC"
+      ],
+      "reason": "ACC langsung untuk staging terpisah.",
+      "retainsOrChanges": "Total CP pemain belum diganti.",
+      "tradeoff": "Offense tidak mewakili defense/sustain.",
+      "dependencies": [],
+      "approval": "ALREADY_APPROVED_DO_NOT_REASK"
+    },
+    {
+      "id": "LOCK-02",
+      "field": "Core defense",
+      "value": "sqrt(PhysicalEHP*MagicEHP)",
+      "unit": "EHP",
+      "scope": "Paket B: arah full CP bersyarat; tidak membuka gameplay Q6 atau total CP",
+      "status": "OWNER_FINAL",
+      "origin": "OWNER_FINAL",
+      "disposition": "RECOMMENDED",
+      "sourceRefs": [
+        "CHAR"
+      ],
+      "reason": "OWNER136bba47 pada2026-09-16T20:42:48.351Z.",
+      "retainsOrChanges": "Geometric tetap; bukan65/35 atau50/50.",
+      "tradeoff": "Tidak menetapkan inputEHP atau defensiveScale.",
+      "dependencies": [],
+      "approval": "ALREADY_APPROVED_DO_NOT_REASK"
+    },
+    {
+      "id": "LOCK-03",
+      "field": "Arithmetic dan effect-once",
+      "value": "Range authored + explicit C/scaling + BonusSTR + final rounding; Basic1/1/1; source once",
+      "unit": null,
+      "scope": "Paket A: offense diagnostik Adventurer Training Lv1–14 / newIron Lv10–14 +0 MAIN, tanpa perluasan admission",
+      "status": "OWNER_FINAL",
+      "origin": "OWNER_FINAL",
+      "disposition": "RECOMMENDED",
+      "sourceRefs": [
+        "Q2",
+        "Q2ACC",
+        "COEF",
+        "BASIC",
+        "PLACEMENT"
+      ],
+      "reason": "Kontrak terbaru tetap.",
+      "retainsOrChanges": "Tidak mengembalikan BaseRoll/x4/second rank/1.65/reference.90 kedua.",
+      "tradeoff": "Compatibility legacy tetap sampai scope migrasinya.",
+      "dependencies": [],
+      "approval": "ALREADY_APPROVED_DO_NOT_REASK"
+    },
+    {
+      "id": "LOCK-04",
+      "field": "Cohort/progression/weapon",
+      "value": "Training9–11 Lv1–14; newIron32–36 Lv10–14; oldIron grandfather; primary/SP/ranks legal",
+      "unit": null,
+      "scope": "Paket A: offense diagnostik Adventurer Training Lv1–14 / newIron Lv10–14 +0 MAIN, tanpa perluasan admission",
+      "status": "OWNER_FINAL",
+      "origin": "OWNER_FINAL",
+      "disposition": "RECOMMENDED",
+      "sourceRefs": [
+        "IRON",
+        "SWORD",
+        "ACTOR",
+        "COEF",
+        "PRODUCER"
+      ],
+      "reason": "Input already authorized dan ditetapkan lagi oleh prompt ini.",
+      "retainsOrChanges": "Tidak mengubah gear, job, allocation budget, save atau kit.",
+      "tradeoff": "Gear/class di luar cohort tetap unavailable.",
+      "dependencies": [],
+      "approval": "ALREADY_APPROVED_DO_NOT_REASK"
+    },
+    {
+      "id": "A-D1-01",
+      "field": "Arsitektur dan versi bank",
+      "value": "Central fixed level-matched bank: CP_ADV_BANK_V3_CANDIDATE_1",
+      "unit": null,
+      "scope": "Paket A: offense diagnostik Adventurer Training Lv1–14 / newIron Lv10–14 +0 MAIN, tanpa perluasan admission",
+      "status": "PROPOSED",
+      "origin": "NEW_DESIGN_PROPOSAL",
+      "disposition": "RECOMMENDED",
+      "sourceRefs": [
+        "CHAR",
+        "CONFIG",
+        "LIVE"
+      ],
+      "reason": "Mengikuti alasan assistant recovered: map/roster edit tidak mengubah rating.",
+      "retainsOrChanges": "Retain fixedbank architecture; version baru hanya draft.",
+      "tradeoff": "Bukan statistik populasi monster; frozen roster merupakan alternatif material.",
+      "dependencies": [],
+      "approval": "OWNER_REVIEW_REQUIRED_NOT_ACC"
+    },
+    {
+      "id": "A-D1-02",
+      "field": "Level/cohort benchmark",
+      "value": "L_target=L_actor, L integer1–14; Iron admitted mulai10",
+      "unit": "level",
+      "scope": "Paket A: offense diagnostik Adventurer Training Lv1–14 / newIron Lv10–14 +0 MAIN, tanpa perluasan admission",
+      "status": "PROPOSED",
+      "origin": "HISTORICAL_CANDIDATE_PROPOSED_RETENTION",
+      "disposition": "RECOMMENDED",
+      "sourceRefs": [
+        "CONFIG",
+        "LIVE",
+        "IRON"
+      ],
+      "reason": "Kontinuitas bank level-matched; tidak menebak level referensi global baru.",
+      "retainsOrChanges": "Pertahankan relasi historical, bukan approval otomatis.",
+      "tradeoff": "DPS antarlevel memakai target berbeda; tampilkan level/version, bukan klaim rasio kekuatan lintaslevel.",
+      "dependencies": [],
+      "approval": "OWNER_REVIEW_REQUIRED_NOT_ACC"
+    },
+    {
+      "id": "A-D1-03",
+      "field": "DEF target",
+      "value": "normal=round(4+1.1L); elite=normal*1.25; boss=normal*1.5",
+      "unit": "Physical DEF",
+      "scope": "Paket A: offense diagnostik Adventurer Training Lv1–14 / newIron Lv10–14 +0 MAIN, tanpa perluasan admission",
+      "status": "PROPOSED",
+      "origin": "HISTORICAL_CANDIDATE_PROPOSED_RETENTION",
+      "disposition": "RECOMMENDED",
+      "sourceRefs": [
+        "CONFIG",
+        "LIVE"
+      ],
+      "reason": "Baseline eksplisit yang sudah dapat ditelusuri; hindari ganti semua sumbu sekaligus.",
+      "retainsOrChanges": "Nilai usulan retensi historical; elite/boss fractional tidak diround ulang.",
+      "tradeoff": "Belum population-calibrated; perubahan versioned dapat menggeser hasil.",
+      "dependencies": [],
+      "approval": "OWNER_REVIEW_REQUIRED_NOT_ACC"
+    },
+    {
+      "id": "A-D1-04",
+      "field": "Evasion target",
+      "value": 10,
+      "unit": "persen nilai Evasion input ModelB",
+      "scope": "Paket A: offense diagnostik Adventurer Training Lv1–14 / newIron Lv10–14 +0 MAIN, tanpa perluasan admission",
+      "status": "PROPOSED",
+      "origin": "NEW_DESIGN_PROPOSAL",
+      "disposition": "RECOMMENDED",
+      "sourceRefs": [
+        "MECH",
+        "RULES",
+        "CONFIG",
+        "ACC",
+        "PRIMARY"
+      ],
+      "reason": "Neutral Accuracy105 ->91.5%hit, DEX+18 ->93.3%; membedakan Accuracy tanpa mencapai cap. ContohI2.",
+      "retainsOrChanges": "Tambah Evasion sama10 untuk ketiga variant; oldCP tidak punya targetEvasion/accuracyFactor1.",
+      "tradeoff": "Pilihan tekanan uji moderate, bukan angka enemycanonical. E0 alternatif kompatibilitas kehilangan diskriminasi; E5/E20 hanya sensitivitas.",
+      "dependencies": [],
+      "approval": "OWNER_REVIEW_REQUIRED_NOT_ACC"
+    },
+    {
+      "id": "A-D1-05",
+      "field": "Bobot bank",
+      "value": {
+        "normal": 0.6,
+        "elite": 0.25,
+        "boss": 0.15
+      },
+      "unit": "fraksi sum1",
+      "scope": "Paket A: offense diagnostik Adventurer Training Lv1–14 / newIron Lv10–14 +0 MAIN, tanpa perluasan admission",
+      "status": "PROPOSED",
+      "origin": "HISTORICAL_CANDIDATE_PROPOSED_RETENTION",
+      "disposition": "RECOMMENDED",
+      "sourceRefs": [
+        "CONFIG",
+        "LIVE"
+      ],
+      "reason": "Kontinuitas historical: normal dominan sambil tetap menguji dua defense lebih tinggi.",
+      "retainsOrChanges": "Tidak diklaim proporsi encounter aktual.",
+      "tradeoff": "Hasil bergantung mix; pervariant wajib terlihat; tidak silent normalize.",
+      "dependencies": [],
+      "approval": "OWNER_REVIEW_REQUIRED_NOT_ACC"
+    },
+    {
+      "id": "A-D1-06",
+      "field": "Bonuses/target occupancy",
+      "value": "targetBonusPercent=0 terverifikasi dari admission; satu target selalu hidup/in-range/stasioner; no Block/barrier/status/HPclamp",
+      "unit": null,
+      "scope": "Paket A: offense diagnostik Adventurer Training Lv1–14 / newIron Lv10–14 +0 MAIN, tanpa perluasan admission",
+      "status": "PROPOSED",
+      "origin": "NEW_DESIGN_PROPOSAL",
+      "disposition": "RECOMMENDED",
+      "sourceRefs": [
+        "ACTUAL",
+        "PRODUCER",
+        "EXPECT"
+      ],
+      "reason": "Cohort menolak bonus tambahan; skenario mengukur inflicted capacity, bukan overkill/TTK.",
+      "retainsOrChanges": "Tidak menambahkan boss bonus hanya karena labelvariant; tidak membuang bonusunsupported.",
+      "tradeoff": "Tidak mengukur gerak/pursuit/death/incoming pressure; nonzero sumber tidak dibuang supaya lolos.",
+      "dependencies": [],
+      "approval": "OWNER_REVIEW_REQUIRED_NOT_ACC"
+    },
+    {
+      "id": "A-D2-01",
+      "field": "Makna rating",
+      "value": "Nominal build capacity, bukan HP/Mana/CD tersisa saat bertarung",
+      "unit": null,
+      "scope": "Paket A: offense diagnostik Adventurer Training Lv1–14 / newIron Lv10–14 +0 MAIN, tanpa perluasan admission",
+      "status": "PROPOSED",
+      "origin": "NEW_DESIGN_PROPOSAL",
+      "disposition": "RECOMMENDED",
+      "sourceRefs": [
+        "CHAR",
+        "HIST",
+        "ACC"
+      ],
+      "reason": "Arah globalstable; build sama tidak turun hanya karena bar Mana baru dipakai.",
+      "retainsOrChanges": "Snapshot immutable actual admitted permanent sources; start resources adalah input skenario, tidak memulihkan hero.",
+      "tradeoff": "Actual inactive/dead/unsupported tetap unavailable; jangan fabricate live receipt.",
+      "dependencies": [],
+      "approval": "OWNER_REVIEW_REQUIRED_NOT_ACC"
+    },
+    {
+      "id": "A-D2-02",
+      "field": "Action set",
+      "value": "Basic + seluruh Quick/Power learned legal pada current rank; Heal capacity terpisah; hotbar tidak membatasi offense",
+      "unit": null,
+      "scope": "Paket A: offense diagnostik Adventurer Training Lv1–14 / newIron Lv10–14 +0 MAIN, tanpa perluasan admission",
+      "status": "PROPOSED",
+      "origin": "NEW_DESIGN_PROPOSAL",
+      "disposition": "RECOMMENDED",
+      "sourceRefs": [
+        "CHAR",
+        "LIVE",
+        "ACTUAL",
+        "COEF"
+      ],
+      "reason": "Merefleksikan kemampuan kit yang sah, bukan posisi tombol.",
+      "retainsOrChanges": "Tidak reask nama/kit; ini policy seleksi rating baru.",
+      "tradeoff": "Hotbar tactics tidak dinilai. Selected-loadout/current-state hanya scenario terpisah dengan label.",
+      "dependencies": [],
+      "approval": "OWNER_REVIEW_REQUIRED_NOT_ACC"
+    },
+    {
+      "id": "A-D2-03",
+      "field": "Horizon",
+      "value": 30,
+      "unit": "detik",
+      "scope": "Paket A: offense diagnostik Adventurer Training Lv1–14 / newIron Lv10–14 +0 MAIN, tanpa perluasan admission",
+      "status": "PROPOSED",
+      "origin": "HISTORICAL_CANDIDATE_PROPOSED_RETENTION",
+      "disposition": "RECOMMENDED",
+      "sourceRefs": [
+        "CONFIG",
+        "V2"
+      ],
+      "reason": "Jendela ringkas yang mempertahankan historical30 dan beberapa siklus skill CD<=6; startpool tetap berpengaruh.",
+      "retainsOrChanges": "Tidak diambil sebagaiACC dari keberadaanconfig.",
+      "tradeoff": "Bukan steady-state; pool contribution M/30 dua kali M/60. Horizon berubah -> protocolversion berubah.",
+      "dependencies": [],
+      "approval": "OWNER_REVIEW_REQUIRED_NOT_ACC"
+    },
+    {
+      "id": "A-D2-04",
+      "field": "Start state",
+      "value": "t0: Mana=resolvedMaxMana, Quick/PowerCD=0, BasicDue=0, comboIndex=0, comboExpires=0, actionLock=0; tanpa activebuff/Guard/incoming",
+      "unit": null,
+      "scope": "Paket A: offense diagnostik Adventurer Training Lv1–14 / newIron Lv10–14 +0 MAIN, tanpa perluasan admission",
+      "status": "PROPOSED",
+      "origin": "NEW_DESIGN_PROPOSAL",
+      "disposition": "RECOMMENDED",
+      "sourceRefs": [
+        "V2",
+        "WORKLOAD",
+        "ACTUAL"
+      ],
+      "reason": "Bandingkan build dari kondisi siap yang sama.",
+      "retainsOrChanges": "Nominal model only; tidak mengosongkan cooldown atau mengisi Mana Game.",
+      "tradeoff": "Menilai cold-start potential, bukan kemampuan melanjutkan fight saat ini.",
+      "dependencies": [],
+      "approval": "OWNER_REVIEW_REQUIRED_NOT_ACC"
+    },
+    {
+      "id": "A-D2-05",
+      "field": "Recovery/cost",
+      "value": "Continuous capped actual resolved manaRecovery; payment actual resolved Mana/cooldown sekali; no potion/rest/cast refund",
+      "unit": null,
+      "scope": "Paket A: offense diagnostik Adventurer Training Lv1–14 / newIron Lv10–14 +0 MAIN, tanpa perluasan admission",
+      "status": "PROPOSED",
+      "origin": "NEW_DESIGN_PROPOSAL",
+      "disposition": "RECOMMENDED",
+      "sourceRefs": [
+        "WORKLOAD",
+        "ACTUAL",
+        "RULES"
+      ],
+      "reason": "Gunakan ledger existing dengan input eksplisit dan alokasiINT sah.",
+      "retainsOrChanges": "Tidak menambah regen base15 atau menganggap recovery ketika poolfull tersimpan.",
+      "tradeoff": "Continuous model bukan exact frame/tick integration; perlu future quantization evidence.",
+      "dependencies": [],
+      "approval": "OWNER_REVIEW_REQUIRED_NOT_ACC"
+    },
+    {
+      "id": "A-D2-06",
+      "field": "Clocks/occupancy",
+      "value": "Independent Basic timer and per-skillCD; shared actual actionLock; actual delay; Basic(.46+thirdIndex*.22)/(AS/100), combo window1.1s from current adapter",
+      "unit": null,
+      "scope": "Paket A: offense diagnostik Adventurer Training Lv1–14 / newIron Lv10–14 +0 MAIN, tanpa perluasan admission",
+      "status": "PROPOSED",
+      "origin": "NEW_DESIGN_PROPOSAL",
+      "disposition": "RECOMMENDED",
+      "sourceRefs": [
+        "WORKLOAD",
+        "ACTUAL",
+        "MECH"
+      ],
+      "reason": "Memakai clock source yang dipertahankan, bukan castingTime metadata sebagai lockbaru.",
+      "retainsOrChanges": "Basic1/1/1 damage tetap, third timing tetap; tidak menerapkan AS ke skillCD.",
+      "tradeoff": "Tidak mengklaim simultaneous positive-lock casts; exact same time order hanya legal bila actualLock0.",
+      "dependencies": [],
+      "approval": "OWNER_REVIEW_REQUIRED_NOT_ACC"
+    },
+    {
+      "id": "A-D2-07",
+      "field": "Kebijakan penggunaan skill",
+      "value": "Pada setiap kesempatan: skill ready+affordable dengan expectedInflicted/Mana tertinggi dahulu; tie stable ID ordinal; lalu Basic bila due; no waiting-for-expensive-skill reservation",
+      "unit": null,
+      "scope": "Paket A: offense diagnostik Adventurer Training Lv1–14 / newIron Lv10–14 +0 MAIN, tanpa perluasan admission",
+      "status": "PROPOSED",
+      "origin": "NEW_DESIGN_PROPOSAL",
+      "disposition": "RECOMMENDED",
+      "sourceRefs": [
+        "LIVE",
+        "WORKLOAD",
+        "ACTUAL"
+      ],
+      "reason": "Pertahankan gagasan efisiensi Mana historical tanpa membuang konservasi waktu/biaya.",
+      "retainsOrChanges": "Bukan hardcodedPower-first; expected-final mengganti legacyvalue; no healingvalue dimasukkanoffense.",
+      "tradeoff": "Heuristik berulang transparan, bukan rotasi optimal atau rekomendasi bermain.",
+      "dependencies": [],
+      "approval": "OWNER_REVIEW_REQUIRED_NOT_ACC"
+    },
+    {
+      "id": "A-D2-08",
+      "field": "Skill boros tidak dipaksa",
+      "value": "Bandingkan paling banyak4 declared protocol schedules: Basic; Basic+Quick; Basic+Power; Basic+Quick+Power, hanya subsetlearned. Ambil expected total terbesar; tie lebih sedikit Mana lalu urutan subsettetap.",
+      "unit": null,
+      "scope": "Paket A: offense diagnostik Adventurer Training Lv1–14 / newIron Lv10–14 +0 MAIN, tanpa perluasan admission",
+      "status": "PROPOSED",
+      "origin": "NEW_DESIGN_PROPOSAL",
+      "disposition": "RECOMMENDED",
+      "sourceRefs": [
+        "LIVE",
+        "WORKLOAD"
+      ],
+      "reason": "Menjaga prinsip historical belajar skill tambahan tidak memaksa damage turun; subset sebelum belajar masih tersedia.",
+      "retainsOrChanges": "Satu bankweighted expectation dan satu schedule terpilih, bukan pertarget cherry-pick; mana tidak dijumlah lintasschedule.",
+      "tradeoff": "Best-of empat pilihan terbatas, bukan global optimizer. Rank upgrade tidak dijanjikan monotonic bila costs berubah.",
+      "dependencies": [],
+      "approval": "OWNER_REVIEW_REQUIRED_NOT_ACC"
+    },
+    {
+      "id": "A-D2-09",
+      "field": "Event/terminal semantics",
+      "value": "Awal0 inklusif; cast dan impact harus<30. Recovery hingga event -> legal readiness -> ordered payment/update -> impact. Next timestamp earliest due/lock-release/Mana-affordability; no arbitrary extra reaction delay.",
+      "unit": null,
+      "scope": "Paket A: offense diagnostik Adventurer Training Lv1–14 / newIron Lv10–14 +0 MAIN, tanpa perluasan admission",
+      "status": "PROPOSED",
+      "origin": "NEW_DESIGN_PROPOSAL",
+      "disposition": "RECOMMENDED",
+      "sourceRefs": [
+        "WORKLOAD",
+        "ACTUAL"
+      ],
+      "reason": "Match strict terminal existing; tidak bayar event yang memang tidak dijadwalkan setelahcutoff.",
+      "retainsOrChanges": "Delay/lock harus dari metadataactual; don't accept eventthenrefund. R1–5impact0 saat ini.",
+      "tradeoff": "Bounded4096event/finiteprogress tetap; exceed=>unsupported, bukan truncate. Continuous timing validation future.",
+      "dependencies": [],
+      "approval": "OWNER_REVIEW_REQUIRED_NOT_ACC"
+    },
+    {
+      "id": "A-D2-10",
+      "field": "AS compression",
+      "value": "Tidak dipakai pada inflictedDPS Paket A; .7/min.7/max1.5 disimpan sebagai kandidat transform SCORE masa depan, tidak aktif",
+      "unit": null,
+      "scope": "Paket A: offense diagnostik Adventurer Training Lv1–14 / newIron Lv10–14 +0 MAIN, tanpa perluasan admission",
+      "status": "PROPOSED",
+      "origin": "NEW_DESIGN_PROPOSAL",
+      "disposition": "RECOMMENDED",
+      "sourceRefs": [
+        "CHAR",
+        "CONFIG",
+        "HIST"
+      ],
+      "reason": "Pisahkan detik nyata model dari kompresi valuasi yang disengaja dahulu.",
+      "retainsOrChanges": "Tidak menghapus config/compatibility atau melabel compressionbug; owner perluACC pemisahan baru ini.",
+      "tradeoff": "DPS nominal bisa lebih sensitifAS; future scorecompression tidak boleh disamarkan sebagai rate/diterapkan ke semua skill.",
+      "dependencies": [],
+      "approval": "OWNER_REVIEW_REQUIRED_NOT_ACC"
+    },
+    {
+      "id": "A-D3-01",
+      "field": "Units/label/normalization",
+      "value": "Potensi offense — damage/detik (protokol30s); unroundedExpectedInflictedTotal/30; no normalization/score conversion",
+      "unit": null,
+      "scope": "Paket A: offense diagnostik Adventurer Training Lv1–14 / newIron Lv10–14 +0 MAIN, tanpa perluasan admission",
+      "status": "PROPOSED",
+      "origin": "NEW_DESIGN_PROPOSAL",
+      "disposition": "RECOMMENDED",
+      "sourceRefs": [
+        "ACC",
+        "EXPECT",
+        "WORKLOAD"
+      ],
+      "reason": "Angka berdimensi jelas, belum membutuhkan bobotCP.",
+      "retainsOrChanges": "Bukan offensiveWeight1 atau displayScale1 sebagai bobotcanonical; operasi identity berarti unit natural.",
+      "tradeoff": "Bukan totalCP, HP-loss/DPSfight aktual/TTK/ratinglintasclass.",
+      "dependencies": [],
+      "approval": "OWNER_REVIEW_REQUIRED_NOT_ACC"
+    },
+    {
+      "id": "A-D3-02",
+      "field": "Display precision",
+      "value": 2,
+      "unit": "digit desimal pada mean/DPS",
+      "scope": "Paket A: offense diagnostik Adventurer Training Lv1–14 / newIron Lv10–14 +0 MAIN, tanpa perluasan admission",
+      "status": "PROPOSED",
+      "origin": "NEW_DESIGN_PROPOSAL",
+      "disposition": "RECOMMENDED",
+      "sourceRefs": [
+        "V2",
+        "CONFIG"
+      ],
+      "reason": "Cukup membaca perubahan kecil earlygear tanpa menyamakan mean dengan hitinteger.",
+      "retainsOrChanges": "UIformat only, internal fullprecision; nativeHP/actual impact rounding tidak berubah.",
+      "tradeoff": "Bukan precision/error guarantee; swordendpointinteger bukan dasar policy ini. Integerdisplay alternatif lebih sederhana namun mengaburkan delta.",
+      "dependencies": [],
+      "approval": "OWNER_REVIEW_REQUIRED_NOT_ACC"
+    },
+    {
+      "id": "A-D3-03",
+      "field": "Unsupported",
+      "value": "null + reason + supported cohort/version; totalCombatPower=null",
+      "unit": null,
+      "scope": "Paket A: offense diagnostik Adventurer Training Lv1–14 / newIron Lv10–14 +0 MAIN, tanpa perluasan admission",
+      "status": "PROPOSED",
+      "origin": "NEW_DESIGN_PROPOSAL",
+      "disposition": "RECOMMENDED",
+      "sourceRefs": [
+        "ACC",
+        "ACTUAL",
+        "EXPECT"
+      ],
+      "reason": "Tidak memberi ilusi total lengkap.",
+      "retainsOrChanges": "Channelunsupported bukan0; no fallbackV3hybrid atau lastknown currentvalue.",
+      "tradeoff": "Old playerCP tetap legacy label sampai migrasiterpisah.",
+      "dependencies": [],
+      "approval": "OWNER_REVIEW_REQUIRED_NOT_ACC"
+    },
+    {
+      "id": "A-D3-04",
+      "field": "Cache/preview",
+      "value": "Key includes policy/bank/method/formula/source versions, level/legalranks/ledger/allocation/ownedrange/resolvedstats. Exclude nominal currentHP/Mana/CD/map from arithmetic; fresh lifecycle/admission before result, even on cache hit.",
+      "unit": null,
+      "scope": "Paket A: offense diagnostik Adventurer Training Lv1–14 / newIron Lv10–14 +0 MAIN, tanpa perluasan admission",
+      "status": "PROPOSED",
+      "origin": "NEW_DESIGN_PROPOSAL",
+      "disposition": "RECOMMENDED",
+      "sourceRefs": [
+        "ACTUAL",
+        "PRODUCER",
+        "LIVE",
+        "PREVIEW"
+      ],
+      "reason": "Pure build comparison, lawfulcurrentread, no gettertrust/RNG/save/serial.",
+      "retainsOrChanges": "Transient scenario uses separate key; immutable mathematical previews not castauthority.",
+      "tradeoff": "Invalidstate unavailable not stale cache; no fullclasspurity assertion. No CP save.",
+      "dependencies": [],
+      "approval": "OWNER_REVIEW_REQUIRED_NOT_ACC"
+    },
+    {
+      "id": "B-DEF-01",
+      "field": "Future EHP basis",
+      "value": "Per-channel MaxHP / (expected inflicted channel damage per event / expected raw channel damage per event); raw mean>0. Then geometric once.",
+      "unit": null,
+      "scope": "Paket B: arah full CP bersyarat; tidak membuka gameplay Q6 atau total CP",
+      "status": "PROPOSED",
+      "origin": "NEW_DESIGN_PROPOSAL",
+      "disposition": "RECOMMENDED",
+      "sourceRefs": [
+        "CHAR",
+        "LIVE",
+        "EXPECT"
+      ],
+      "reason": "EHP mempertimbangkan resolusi channel; jangan menjumlah defense stat lagi setelahEHP.",
+      "retainsOrChanges": "Mengganti unitDamage-only assumption untuk full final-rounded reference apabilapacket tersedia.",
+      "tradeoff": "Packet size matters after rounding; model bukan finiteHPkill/overkill, missingpacket=>unavailable.",
+      "dependencies": [
+        "B-DEF-03",
+        "B-Q6-02"
+      ],
+      "approval": "OWNER_REVIEW_REQUIRED_NOT_ACC"
+    },
+    {
+      "id": "B-DEF-02",
+      "field": "Candidate neutral incoming structure",
+      "value": "Incoming attacker level=L_actor; nominal fullMaxHP; penetration0, Crit probability0, no conditionalstatus/Guard/barrier in passiveEHP baseline; physical and hypotheticalmagic evaluated separately",
+      "unit": null,
+      "scope": "Paket B: arah full CP bersyarat; tidak membuka gameplay Q6 atau total CP",
+      "status": "PROPOSED",
+      "origin": "NEW_DESIGN_PROPOSAL",
+      "disposition": "RECOMMENDED",
+      "sourceRefs": [
+        "CHAR",
+        "LIVE",
+        "WORLD"
+      ],
+      "reason": "Isolasi pertahanan permanent sebelum threatcomplications; magic CP-only tidak mengubah monster.",
+      "retainsOrChanges": "Zero disajikan explicit proposed baseline, bukan fallbackmissing. Evasion/Block tidak dibuang dari channelsaateligible.",
+      "tradeoff": "Bukan benchmarkPvP atau finalincomingmechanics; richer channels future.",
+      "dependencies": [
+        "B-DEF-03",
+        "B-Q6-02"
+      ],
+      "approval": "OWNER_REVIEW_REQUIRED_NOT_ACC"
+    },
+    {
+      "id": "B-DEF-03",
+      "field": "Incoming numeric/channel policy held",
+      "value": {
+        "rawPacketDistribution": null,
+        "incomingAccuracy": null,
+        "physicalAvoidancePolicy": null,
+        "magicAvoidancePolicy": null,
+        "minimumIncomingFloor": null
+      },
+      "unit": "explicit channel inputs",
+      "scope": "Paket B: arah full CP bersyarat; tidak membuka gameplay Q6 atau total CP",
+      "status": "PROPOSED",
+      "origin": "HELD_PENDING_JUSTIFIED_DESIGN",
+      "disposition": "HOLD",
+      "sourceRefs": [
+        "WORLD",
+        "LIVE",
+        "MECH"
+      ],
+      "reason": "PhysicalhurtHero flatEvasion berbeda dengan outgoingModelB; packet/floor mengubahEHP. Tidak ada dasar memilih angka/eligibility final.",
+      "retainsOrChanges": "Historicalunit1/floor.01/magicnododge dicatat, tidak otomatis final.",
+      "tradeoff": "Perlu satu kontrakQ6/incoming dengan packet/policy sebelum EHP numeric executable; no fake0defense.",
+      "dependencies": [],
+      "approval": "OWNER_REVIEW_REQUIRED_NOT_ACC"
+    },
+    {
+      "id": "B-DEF-04",
+      "field": "Defensive scale",
+      "value": null,
+      "unit": "score/EHP",
+      "scope": "Paket B: arah full CP bersyarat; tidak membuka gameplay Q6 atau total CP",
+      "status": "PROPOSED",
+      "origin": "HELD_PENDING_JUSTIFIED_DESIGN",
+      "disposition": "HOLD",
+      "sourceRefs": [
+        "CHAR",
+        "CONFIG"
+      ],
+      "reason": ".85 hanya conditional reuse padaassistant; belum ada calibration terhadapoffense/sustain.",
+      "retainsOrChanges": "Rekomendasi HOLD .85 sebagai kandidat historical, tampilkan rawEHP ketika sah.",
+      "tradeoff": "Scale tidak memblok PaketA; belum adil membandingkan unitsDPS denganEHP.",
+      "dependencies": [
+        "B-SCORE-01"
+      ],
+      "approval": "OWNER_REVIEW_REQUIRED_NOT_ACC"
+    },
+    {
+      "id": "B-Q6-01",
+      "field": "Representasi Chance/Efficiency",
+      "value": "Dua nilai resolved terpisah; display persen; mathematical probability/fraction0..1 hanya conversion once; sumbereligible eksplisit dan duplicate dedupe",
+      "unit": null,
+      "scope": "Paket B: arah full CP bersyarat; tidak membuka gameplay Q6 atau total CP",
+      "status": "PROPOSED",
+      "origin": "NEW_DESIGN_PROPOSAL",
+      "disposition": "RECOMMENDED",
+      "sourceRefs": [
+        "WF",
+        "R6",
+        "MECH",
+        "EFFECT"
+      ],
+      "reason": "Mewujudkan direction Chance+Efficiency tanpa menetapkanchance/efficiencybaru.",
+      "retainsOrChanges": "Unit policy proposed, bukanmemintaOwnerpilihDTO; no fixed.3 asdefault.",
+      "tradeoff": "Conversionrange bukan gameplaycap; dataunknown tetapunavailable.",
+      "dependencies": [],
+      "approval": "OWNER_REVIEW_REQUIRED_NOT_ACC"
+    },
+    {
+      "id": "B-Q6-02",
+      "field": "Q6 held",
+      "value": {
+        "baseChance": null,
+        "baseEfficiency": null,
+        "chanceCap": null,
+        "efficiencyCap": null,
+        "sourceAllowlist": null,
+        "physicalMagicDirectPeriodicEligibility": null,
+        "stacking": null,
+        "critPenDefenseBlockGuardDRBarrierOrder": null,
+        "rounding": null
+      },
+      "unit": null,
+      "scope": "Paket B: arah full CP bersyarat; tidak membuka gameplay Q6 atau total CP",
+      "status": "PROPOSED",
+      "origin": "HELD_PENDING_JUSTIFIED_DESIGN",
+      "disposition": "HOLD",
+      "sourceRefs": [
+        "R6",
+        "BR",
+        "MECH",
+        "EFFECT",
+        "WORLD"
+      ],
+      "reason": "Currentcap50%/efficiency30% dan master~60%provisional tidak memberi konfirmasi final. Ordering berpengaruhpada branches/barrier/finalround.",
+      "retainsOrChanges": "Pertahankan gameplayunchanged; CP tidak menambahBlockmagicatauDoT otomatis.",
+      "tradeoff": "Tanpa dataitem/skillproducer dan intendedchannel, angka baru adalahdesainmechanics tanpa dasar.",
+      "dependencies": [],
+      "approval": "OWNER_REVIEW_REQUIRED_NOT_ACC"
+    },
+    {
+      "id": "B-SUS-01",
+      "field": "Capacity vs usable",
+      "value": "PotentialHeal=existing round(MaxHP*percent); usableAtImpact=min(capacity,missingHP); overheal discarded; fullHPaccepted-cost existing",
+      "unit": null,
+      "scope": "Paket B: arah full CP bersyarat; tidak membuka gameplay Q6 atau total CP",
+      "status": "PROPOSED",
+      "origin": "NEW_DESIGN_PROPOSAL",
+      "disposition": "RECOMMENDED",
+      "sourceRefs": [
+        "COEF",
+        "RULES",
+        "WORLD",
+        "PROFILE"
+      ],
+      "reason": "Retain actual Heal6/8/10; pemisahanlabel dan crediteduse.",
+      "retainsOrChanges": "No INTformula, no attack/Critheal, no totalCPcredit otomatis.",
+      "tradeoff": "Capacity bukan HPSusable; contextualmissingHPdiimpactbukanasumsi100%.",
+      "dependencies": [],
+      "approval": "OWNER_REVIEW_REQUIRED_NOT_ACC"
+    },
+    {
+      "id": "B-SUS-02",
+      "field": "Scenario and sharedbudget",
+      "value": "Satu timeline offense+heal+incoming+barrier; payment/regen/time countedonce. Gunakan incoming/exposure explicit; report offense retained + heal actually used, not sum two full-Mana maxima.",
+      "unit": null,
+      "scope": "Paket B: arah full CP bersyarat; tidak membuka gameplay Q6 atau total CP",
+      "status": "PROPOSED",
+      "origin": "NEW_DESIGN_PROPOSAL",
+      "disposition": "RECOMMENDED",
+      "sourceRefs": [
+        "WORKLOAD",
+        "WORLD",
+        "HIST"
+      ],
+      "reason": "Menutup double-credit dan overwritten shield.",
+      "retainsOrChanges": "SameMana/statusversion dan impactordering; isolatedcapacity bolehterpisah tapi nonadditive.",
+      "tradeoff": "Threatmix untuksustain berbeda dari geometriccore dan normalizationCP.",
+      "dependencies": [
+        "B-SUS-03",
+        "B-Q6-02"
+      ],
+      "approval": "OWNER_REVIEW_REQUIRED_NOT_ACC"
+    },
+    {
+      "id": "B-SUS-03",
+      "field": "Exposure policy held",
+      "value": {
+        "incomingRate": null,
+        "channelMix": null,
+        "packetTiming": null,
+        "initialMissingHP": null,
+        "healTriggerPriority": null,
+        "deathTermination": null,
+        "barrierExpiryAndRefreshSource": null
+      },
+      "unit": null,
+      "scope": "Paket B: arah full CP bersyarat; tidak membuka gameplay Q6 atau total CP",
+      "status": "PROPOSED",
+      "origin": "HELD_PENDING_JUSTIFIED_DESIGN",
+      "disposition": "HOLD",
+      "sourceRefs": [
+        "WORLD",
+        "HIST",
+        "WORKLOAD"
+      ],
+      "reason": "Tidak ada protokolthreatfinal; memilih100%utilizationataucontinuousmissingHPmembesarkanhealingtanpabukti.",
+      "retainsOrChanges": "No .65/.35 coredefense; scenariochannelmix independent.",
+      "tradeoff": "Usable sustain/fullCPmenunggu; PaketA dan capacity tetapbisa.",
+      "dependencies": [],
+      "approval": "OWNER_REVIEW_REQUIRED_NOT_ACC"
+    },
+    {
+      "id": "B-SUS-04",
+      "field": "Barrier/regen",
+      "value": "Barrier max(existing,new), credit incremental remaining and actual absorbed once; expiry from source. HPregen no credit while no active consumer; MPregen only shared Mana ledger.",
+      "unit": null,
+      "scope": "Paket B: arah full CP bersyarat; tidak membuka gameplay Q6 atau total CP",
+      "status": "PROPOSED",
+      "origin": "NEW_DESIGN_PROPOSAL",
+      "disposition": "RECOMMENDED",
+      "sourceRefs": [
+        "WORLD",
+        "RULES",
+        "HIST"
+      ],
+      "reason": "Retain actualsource behavior dan no inventHPtick.",
+      "retainsOrChanges": "Barrier tidak countedagainas permanentEHP dan sustain; tidak mengasumsikan shield pada admittedkit.",
+      "tradeoff": "Shields outside currentcohort remainunsupported, not merely set0.",
+      "dependencies": [],
+      "approval": "OWNER_REVIEW_REQUIRED_NOT_ACC"
+    },
+    {
+      "id": "B-UTIL-01",
+      "field": "Utility/effects disposition",
+      "value": "Movement/procs numeric rating HOLD; require executable trigger/recipient/stack/uptime and unique incremental effect. Exclude EXP/gold/drop, rarity/+N and stats alreadyin damage/EHP.",
+      "unit": null,
+      "scope": "Paket B: arah full CP bersyarat; tidak membuka gameplay Q6 atau total CP",
+      "status": "PROPOSED",
+      "origin": "NEW_DESIGN_PROPOSAL",
+      "disposition": "CONDITIONAL",
+      "sourceRefs": [
+        "Q2",
+        "Q2ACC",
+        "LIVE",
+        "CONFIG"
+      ],
+      "reason": "Resolvedeffectonce sudaharahfinal; purpose/valuation belumada.",
+      "retainsOrChanges": "HistoricalMove8/Ucap10/Xcap15 disimpan candidate; no prose-score.",
+      "tradeoff": "Movementbenefit tidak dianggapuseless; hanya belumdinilai.",
+      "dependencies": [
+        "B-SCORE-01"
+      ],
+      "approval": "OWNER_REVIEW_REQUIRED_NOT_ACC"
+    },
+    {
+      "id": "B-SCORE-01",
+      "field": "Total normalization/weights held",
+      "value": {
+        "offenseWeight": null,
+        "defensiveScale": null,
+        "sustainWeight": null,
+        "utilityWeight": null,
+        "specialWeight": null,
+        "utilityCap": null,
+        "specialCap": null,
+        "overallScale": null,
+        "totalDisplayPrecision": null
+      },
+      "unit": null,
+      "scope": "Paket B: arah full CP bersyarat; tidak membuka gameplay Q6 atau total CP",
+      "status": "PROPOSED",
+      "origin": "HELD_PENDING_JUSTIFIED_DESIGN",
+      "disposition": "HOLD",
+      "sourceRefs": [
+        "CONFIG",
+        "HIST",
+        "CHAR",
+        "ACC"
+      ],
+      "reason": "DPS,EHP,HP/s,mobility tidak langsungseunit; tidak ada calibration/reference buildsuntuk bobot.",
+      "retainsOrChanges": "Retain historicalO10/D.85/S12/U8/caps.10/.15/scale1.5/integer as candidate only; no arbitrarysum.",
+      "tradeoff": "TotalplayerCP/fullCP tetapheld, bukanwaiver. Calibrasi nanti memerlukan skenarioapproved, bukanpromptini.",
+      "dependencies": [
+        "B-DEF-03",
+        "B-Q6-02",
+        "B-SUS-03"
+      ],
+      "approval": "OWNER_REVIEW_REQUIRED_NOT_ACC"
+    },
+    {
+      "id": "MIG-01",
+      "field": "Travel prerequisite",
+      "value": "Post-main travel invalidates selected binding; authorized readmission policy at region transaction requires separate explicit scope before travel-dependent parity",
+      "unit": null,
+      "scope": "Paket A: offense diagnostik Adventurer Training Lv1–14 / newIron Lv10–14 +0 MAIN, tanpa perluasan admission",
+      "status": "PROPOSED",
+      "origin": "NEW_DESIGN_PROPOSAL",
+      "disposition": "RECOMMENDED",
+      "sourceRefs": [
+        "WORLD",
+        "PRODUCER",
+        "MAIN_REPORT"
+      ],
+      "reason": "Mainreport mengungkapgetter UNAVAILABLE setelahtravel; janganbypass.",
+      "retainsOrChanges": "Propose future narrow ticket/currentidentity proof, not renderautoenroll.",
+      "tradeoff": "Stationarydiagnostic bisa lanjut; travelparity tetapBLOCKED sampai sah; no sourcepatchnow.",
+      "dependencies": [],
+      "approval": "OWNER_REVIEW_REQUIRED_NOT_ACC"
+    },
+    {
+      "id": "MIG-02",
+      "field": "Next combined checkpoint",
+      "value": "After explicit ownerACC: one versioned rating contract + Training/Iron protocol + pure preview/cache/lifecycle + final-source consumer/browser proof. No duplicatefoundation; no production total/default switch.",
+      "unit": null,
+      "scope": "Paket A: offense diagnostik Adventurer Training Lv1–14 / newIron Lv10–14 +0 MAIN, tanpa perluasan admission",
+      "status": "PROPOSED",
+      "origin": "NEW_DESIGN_PROPOSAL",
+      "disposition": "RECOMMENDED",
+      "sourceRefs": [
+        "ACTUAL",
+        "WORKLOAD",
+        "PROFILE",
+        "EXPECT",
+        "ACC",
+        "AGENTS"
+      ],
+      "reason": "Reuse engineering selesai.",
+      "retainsOrChanges": "Empatmainintegrationchecks wajib; runtimeboundaries tetap.",
+      "tradeoff": "Policyapproval bukanpublish/defaultrollout; currentproposal tidakmenjalankanimplementasi.",
+      "dependencies": [],
+      "approval": "OWNER_REVIEW_REQUIRED_NOT_ACC"
+    }
+  ],
+  "sourceCatalog": {
+    "ACC": {
+      "path": "C:/Users/USER/Documents/ChatGPT/PROJECT GAME NGEMPER/outputs/gameplay-migration/canonical-decision-handoff/CP_OFFENSE_SEPARATE_RECOVERY_OWNER_ACC.txt",
+      "relativePath": "outputs/gameplay-migration/canonical-decision-handoff/CP_OFFENSE_SEPARATE_RECOVERY_OWNER_ACC.txt",
+      "sha256": "35727d55a2ff6cf775a4b14ca8d627a95b64299f53d9f1ffd4016e487e7b931d",
+      "provenanceRole": "OWNER_CONFIRMATION_RECORDED_LOCALLY",
+      "coverage": "FULL",
+      "decisionDate": "2026-10-09",
+      "coverageThisCheckpoint": "FULL"
+    },
+    "Q2": {
+      "path": "C:/Users/USER/Documents/ChatGPT/PROJECT GAME NGEMPER/outputs/gameplay-migration/canonical-decision-handoff/Q2_Q4_DESIGN_PROPOSAL_V1.txt",
+      "relativePath": "outputs/gameplay-migration/canonical-decision-handoff/Q2_Q4_DESIGN_PROPOSAL_V1.txt",
+      "sha256": "c8a5f1ae6a3fe066a5f9c80604d5dade3d273e5c42f627970409ee92beee2c6f",
+      "provenanceRole": "ASSISTANT_PROPOSAL_SUBSEQUENTLY_APPROVED_WITH_NUMERIC_GATE",
+      "coverage": "FULL",
+      "decisionDate": "2026-10-08",
+      "coverageThisCheckpoint": "FULL"
+    },
+    "Q2ACC": {
+      "path": "C:/Users/USER/Documents/ChatGPT/PROJECT GAME NGEMPER/outputs/gameplay-migration/canonical-decision-handoff/Q2_Q4_OWNER_ACC.txt",
+      "relativePath": "outputs/gameplay-migration/canonical-decision-handoff/Q2_Q4_OWNER_ACC.txt",
+      "sha256": "b14896ad47cd1dfac3212e4f602958cc2a4c41a7f2469a7eaaf06510c868cdb1",
+      "provenanceRole": "OWNER_CONFIRMATION_RECORDED_LOCALLY",
+      "coverage": "FULL",
+      "decisionDate": "2026-10-08",
+      "coverageThisCheckpoint": "FULL"
+    },
+    "COEF": {
+      "path": "C:/Users/USER/Documents/ChatGPT/PROJECT GAME NGEMPER/outputs/gameplay-migration/canonical-decision-handoff/ADVENTURER_Q2_Q4_COEFFICIENT_OWNER_ACC.txt",
+      "relativePath": "outputs/gameplay-migration/canonical-decision-handoff/ADVENTURER_Q2_Q4_COEFFICIENT_OWNER_ACC.txt",
+      "sha256": "04b59ef917642e58a0c7fc1607dc19bdb0b6debc663ed5dabdfc66754629eae5",
+      "provenanceRole": "OWNER_CONFIRMATION_RECORDED_LOCALLY",
+      "coverage": "FULL",
+      "decisionDate": "2026-10-08T16:41:53Z",
+      "coverageThisCheckpoint": "FULL"
+    },
+    "BASIC": {
+      "path": "C:/Users/USER/Documents/ChatGPT/PROJECT GAME NGEMPER/outputs/gameplay-migration/canonical-decision-handoff/BASIC_ATTACK_EQUAL_HITS_OWNER_ACC.txt",
+      "relativePath": "outputs/gameplay-migration/canonical-decision-handoff/BASIC_ATTACK_EQUAL_HITS_OWNER_ACC.txt",
+      "sha256": "5c867d2e4274c03e59d07e5de25652bb71c7300a405dfa81629c42bb99ca332b",
+      "provenanceRole": "OWNER_CONFIRMATION_RECORDED_LOCALLY",
+      "coverage": "FULL",
+      "decisionDate": "2026-10-09",
+      "coverageThisCheckpoint": "FULL"
+    },
+    "SWORD": {
+      "path": "C:/Users/USER/Documents/ChatGPT/PROJECT GAME NGEMPER/outputs/gameplay-migration/canonical-decision-handoff/SWORD_EARLY_PROGRESSION_INTEGER_OWNER_ACC.txt",
+      "relativePath": "outputs/gameplay-migration/canonical-decision-handoff/SWORD_EARLY_PROGRESSION_INTEGER_OWNER_ACC.txt",
+      "sha256": "2fc822a5dd6f709813ce0d3a5e7d69de58365d3cc9c688351a611155ab728a0b",
+      "provenanceRole": "OWNER_CONFIRMATION_RECORDED_LOCALLY",
+      "coverage": "FULL",
+      "decisionDate": "2026-10-08",
+      "coverageThisCheckpoint": "FULL"
+    },
+    "IRON": {
+      "path": "C:/Users/USER/Documents/ChatGPT/PROJECT GAME NGEMPER/outputs/gameplay-migration/canonical-decision-handoff/IRON_SWORD_LV10_OWNER_ACC.txt",
+      "relativePath": "outputs/gameplay-migration/canonical-decision-handoff/IRON_SWORD_LV10_OWNER_ACC.txt",
+      "sha256": "8dc21ebf6faf2b720f09660ce5716da2212a918034c0c144c5f15dafdc0cb680",
+      "provenanceRole": "OWNER_CONFIRMATION_RECORDED_LOCALLY",
+      "coverage": "FULL",
+      "decisionDate": "2026-10-09",
+      "coverageThisCheckpoint": "FULL"
+    },
+    "ACTOR": {
+      "path": "C:/Users/USER/Documents/ChatGPT/PROJECT GAME NGEMPER/outputs/gameplay-migration/canonical-decision-handoff/POWER_STRIKE_R1_ACTOR_OWNER_ACC.txt",
+      "relativePath": "outputs/gameplay-migration/canonical-decision-handoff/POWER_STRIKE_R1_ACTOR_OWNER_ACC.txt",
+      "sha256": "c791a53518b383b345ca9fc4ffa1bb1e76d284b4cddf2a249c6b6c147a15fe5c",
+      "provenanceRole": "OWNER_CONFIRMATION_RECORDED_LOCALLY",
+      "coverage": "FULL",
+      "decisionDate": "2026-10-09",
+      "coverageThisCheckpoint": "FULL"
+    },
+    "PLACEMENT": {
+      "path": "C:/Users/USER/Documents/ChatGPT/PROJECT GAME NGEMPER/outputs/gameplay-migration/canonical-decision-handoff/WEAPON_REFERENCE_PLACEMENT_OWNER_ACC.txt",
+      "relativePath": "outputs/gameplay-migration/canonical-decision-handoff/WEAPON_REFERENCE_PLACEMENT_OWNER_ACC.txt",
+      "sha256": "fe193c56ee096445f8539faeceab21d0f41e34a6163614f6747a116f29f438ce",
+      "provenanceRole": "OWNER_CONFIRMATION_RECORDED_LOCALLY",
+      "coverage": "FULL",
+      "decisionDate": "2026-10-08",
+      "coverageThisCheckpoint": "FULL"
+    },
+    "HIST": {
+      "path": "C:/Users/USER/Documents/ChatGPT/PROJECT GAME NGEMPER/docs/COMBAT_POWER_IMPLEMENTATION.md",
+      "relativePath": "docs/COMBAT_POWER_IMPLEMENTATION.md",
+      "sha256": "a9406abdb3289291f145a42c773b1a60d143f848e54e9ee2396c5bcab9af93ea",
+      "provenanceRole": "SECONDARY_IMPLEMENTATION_REPORT",
+      "coverage": "FULL",
+      "decisionDate": "2026-09-17",
+      "coverageThisCheckpoint": "FULL"
+    },
+    "MASTER": {
+      "path": "C:/Users/USER/Documents/ChatGPT/PROJECT GAME NGEMPER/outputs/gameplay-migration/canonical-decision-handoff/BRANCH_EVIDENCE.json",
+      "relativePath": "outputs/gameplay-migration/canonical-decision-handoff/BRANCH_EVIDENCE.json",
+      "sha256": "4bcae5395ff2ae72d7feeb60862887dba038da16f894767e62ad003509c4217b",
+      "provenanceRole": "SELECTED_CONVERSATION_EXPORT",
+      "coverage": "Targeted CP/Q6/master sections, not whole inherited branch",
+      "decisionDate": "2026-10-08",
+      "coverageThisCheckpoint": "Reused targeted prior reconciliation/source evidence; not full new reread"
+    },
+    "R6": {
+      "path": "C:/Users/USER/Documents/ChatGPT/PROJECT GAME NGEMPER/outputs/gameplay-migration/canonical-decision-handoff/reconciliation-run-01/DECISION_ADDENDUM.json",
+      "relativePath": "outputs/gameplay-migration/canonical-decision-handoff/reconciliation-run-01/DECISION_ADDENDUM.json",
+      "sha256": "1bbbdd38309757f0f509313e564eaf94fc727c1b358a2eb960bbba6f3f346d44",
+      "provenanceRole": "SECONDARY_RECONCILIATION",
+      "coverage": "R6.1-R6.3 and CP/range entries",
+      "decisionDate": "2026-10-08",
+      "coverageThisCheckpoint": "Reused targeted prior reconciliation/source evidence; not full new reread"
+    },
+    "REPORT": {
+      "path": "C:/Users/USER/Documents/ChatGPT/PROJECT GAME NGEMPER/outputs/gameplay-migration/adventurer-cp-diagnostic-full-stack/run-01/REPORT.txt",
+      "relativePath": "outputs/gameplay-migration/adventurer-cp-diagnostic-full-stack/run-01/REPORT.txt",
+      "sha256": "48162c51e323b4bc49dfa45c0e280d4b820452b1143bec579baff45dc72bddac",
+      "provenanceRole": "HISTORICAL_ENGINEERING_REPORT",
+      "coverage": "FULL",
+      "decisionDate": "2026-10-09",
+      "coverageThisCheckpoint": "Reused targeted prior reconciliation/source evidence; not full new reread"
+    },
+    "V2": {
+      "path": "C:/Users/USER/Documents/ChatGPT/PROJECT GAME NGEMPER/outputs/gameplay-migration/adventurer-cp-diagnostic-full-stack/run-01/CP_DECISION_PACKAGE_V2.txt",
+      "relativePath": "outputs/gameplay-migration/adventurer-cp-diagnostic-full-stack/run-01/CP_DECISION_PACKAGE_V2.txt",
+      "sha256": "cc33864403b37aae4f36ef085e3426321e02b1538a51897ff94a39b2932aca2c",
+      "provenanceRole": "ASSISTANT_PROPOSAL",
+      "coverage": "FULL",
+      "decisionDate": "2026-10-09",
+      "coverageThisCheckpoint": "FULL"
+    },
+    "V2AUTH": {
+      "path": "C:/Users/USER/Documents/ChatGPT/PROJECT GAME NGEMPER/outputs/gameplay-migration/adventurer-cp-diagnostic-full-stack/run-01/CP_DECISION_AUTHORITY_V2.json",
+      "relativePath": "outputs/gameplay-migration/adventurer-cp-diagnostic-full-stack/run-01/CP_DECISION_AUTHORITY_V2.json",
+      "sha256": "4aaaaba9e707f8b5f9ea1db555e074bc42568d95947d60f896be7bf4dd68e6bb",
+      "provenanceRole": "SECONDARY_PROVENANCE_MATRIX",
+      "coverage": "FULL",
+      "decisionDate": "2026-10-09",
+      "coverageThisCheckpoint": "Reused targeted prior reconciliation/source evidence; not full new reread"
+    },
+    "INPUT": {
+      "path": "C:/Users/USER/Documents/ChatGPT/PROJECT GAME NGEMPER/outputs/gameplay-migration/adventurer-cp-diagnostic-full-stack/run-01/INPUT_CONTRACT.json",
+      "relativePath": "outputs/gameplay-migration/adventurer-cp-diagnostic-full-stack/run-01/INPUT_CONTRACT.json",
+      "sha256": "9dc7e9e87e55a4bb4a6db55a4e0495c556a4cd7864f45849193df7ed7b10695f",
+      "provenanceRole": "ENGINEERING_CONTRACT_NOT_POLICY_ACC",
+      "coverage": "FULL",
+      "decisionDate": "2026-10-09",
+      "coverageThisCheckpoint": "Reused targeted prior reconciliation/source evidence; not full new reread"
+    },
+    "FINALHASH": {
+      "path": "C:/Users/USER/Documents/ChatGPT/PROJECT GAME NGEMPER/outputs/gameplay-migration/adventurer-cp-diagnostic-full-stack/run-01/FINAL_SOURCE_HASHES.json",
+      "relativePath": "outputs/gameplay-migration/adventurer-cp-diagnostic-full-stack/run-01/FINAL_SOURCE_HASHES.json",
+      "sha256": "9b23c8a53c87d75c1147c3e6313a2fe8788452f51a6f5767699316ca23ac0151",
+      "provenanceRole": "HISTORICAL_SOURCE_BROWSER_BINDING",
+      "coverage": "Selected source map and served-module metadata",
+      "decisionDate": "2026-10-09",
+      "coverageThisCheckpoint": "Reused targeted prior reconciliation/source evidence; not full new reread"
+    },
+    "FOUNDATIONINPUT": {
+      "path": "C:/Users/USER/Documents/ChatGPT/PROJECT GAME NGEMPER/outputs/gameplay-migration/adventurer-cp-foundation-sword-proposal/run-01/FOUNDATION_INPUT_CONTRACT.json",
+      "relativePath": "outputs/gameplay-migration/adventurer-cp-foundation-sword-proposal/run-01/FOUNDATION_INPUT_CONTRACT.json",
+      "sha256": "6906f8890ecb3c2ed7b296c244c570ac6e44a023cbcde4ff52145d91d7783e0a",
+      "provenanceRole": "ENGINEERING_CONTRACT",
+      "coverage": "FULL",
+      "decisionDate": "2026-10-09",
+      "coverageThisCheckpoint": "Reused targeted prior reconciliation/source evidence; not full new reread"
+    },
+    "LIVE": {
+      "path": "C:/Users/USER/Documents/ChatGPT/PROJECT GAME NGEMPER/lib/game/combat-power.ts",
+      "relativePath": "lib/game/combat-power.ts",
+      "sha256": "9b22ad2cdc26435d46a480b60668d637b3874d0ea8ce9887436f9a2409bac5d4",
+      "provenanceRole": "ACTUAL_SOURCE_NOT_DESIGN_AUTHORITY",
+      "coverage": "FULL",
+      "decisionDate": null,
+      "coverageThisCheckpoint": "FULL"
+    },
+    "CONFIG": {
+      "path": "C:/Users/USER/Documents/ChatGPT/PROJECT GAME NGEMPER/lib/game/combat-power-config.ts",
+      "relativePath": "lib/game/combat-power-config.ts",
+      "sha256": "ad4c7bd1dee25b60b11b9917c665c10aea7efbc62f5ace929da95af20626da19",
+      "provenanceRole": "ACTUAL_SOURCE_NOT_DESIGN_AUTHORITY",
+      "coverage": "FULL",
+      "decisionDate": null,
+      "coverageThisCheckpoint": "FULL"
+    },
+    "MECH": {
+      "path": "C:/Users/USER/Documents/ChatGPT/PROJECT GAME NGEMPER/lib/game/combat-mechanics.ts",
+      "relativePath": "lib/game/combat-mechanics.ts",
+      "sha256": "18de1f7103f430e0436e9adb47d00854133e6f1ca64218c6718d1a87fcb45f2c",
+      "provenanceRole": "ACTUAL_SOURCE_NOT_DESIGN_AUTHORITY",
+      "coverage": "FULL",
+      "decisionDate": null,
+      "coverageThisCheckpoint": "FULL"
+    },
+    "RESOLVER": {
+      "path": "C:/Users/USER/Documents/ChatGPT/PROJECT GAME NGEMPER/lib/game/combat-resolver.ts",
+      "relativePath": "lib/game/combat-resolver.ts",
+      "sha256": "2b6011fa0bebffb7cc385a553577b33017fee4f401ecf9a5c22970b6e1c93df0",
+      "provenanceRole": "ACTUAL_SOURCE_NOT_DESIGN_AUTHORITY",
+      "coverage": "FULL",
+      "decisionDate": null,
+      "coverageThisCheckpoint": "Reused targeted prior reconciliation/source evidence; not full new reread"
+    },
+    "EFFECT": {
+      "path": "C:/Users/USER/Documents/ChatGPT/PROJECT GAME NGEMPER/lib/game/shared-effects.ts",
+      "relativePath": "lib/game/shared-effects.ts",
+      "sha256": "d44982e5cabfa9cffa3970b6207727b8a0f1a4ba8214be30c328efc456da9da8",
+      "provenanceRole": "ACTUAL_SOURCE_NOT_DESIGN_AUTHORITY",
+      "coverage": "FULL",
+      "decisionDate": null,
+      "coverageThisCheckpoint": "Reused targeted prior reconciliation/source evidence; not full new reread"
+    },
+    "WORLD": {
+      "path": "C:/Users/USER/Documents/ChatGPT/PROJECT GAME NGEMPER/lib/game/world.ts",
+      "relativePath": "lib/game/world.ts",
+      "sha256": "b957e08ba00d335cdfb358712f22294d8b535d0523a1bc30b713573ce0170846",
+      "provenanceRole": "ACTUAL_SOURCE_NOT_DESIGN_AUTHORITY",
+      "coverage": "Selected applySkill/heal, selected hurtEnemy rounding, hurtHero and tick/resource sections; not full world audit",
+      "decisionDate": null,
+      "coverageThisCheckpoint": "Selected applySkill/heal, selected hurtEnemy rounding, hurtHero and tick/resource sections; not full world audit"
+    },
+    "RULES": {
+      "path": "C:/Users/USER/Documents/ChatGPT/PROJECT GAME NGEMPER/lib/game/rules.ts",
+      "relativePath": "lib/game/rules.ts",
+      "sha256": "586ee5c2e8de54909be9c6b19d66101d697794bfc09456dae606ca9ef6d33468",
+      "provenanceRole": "ACTUAL_SOURCE_NOT_DESIGN_AUTHORITY",
+      "coverage": "Selected derivedStats/modifier context/skillHealingPreview/resource paths",
+      "decisionDate": null,
+      "coverageThisCheckpoint": "Selected derivedStats/modifier context/skillHealingPreview/resource paths"
+    },
+    "EXPECT": {
+      "path": "C:/Users/USER/Documents/ChatGPT/PROJECT GAME NGEMPER/lib/game/expected-final-damage-v2.ts",
+      "relativePath": "lib/game/expected-final-damage-v2.ts",
+      "sha256": "4de1c7bb8535b221c289219d67192d8d3f1f9c335fa52d49a059ac7b710c17fe",
+      "provenanceRole": "ACTUAL_SOURCE_NOT_DESIGN_AUTHORITY",
+      "coverage": "FULL",
+      "decisionDate": null,
+      "coverageThisCheckpoint": "FULL"
+    },
+    "PROFILE": {
+      "path": "C:/Users/USER/Documents/ChatGPT/PROJECT GAME NGEMPER/lib/game/adventurer-cp-foundation-v2.ts",
+      "relativePath": "lib/game/adventurer-cp-foundation-v2.ts",
+      "sha256": "5693159cf5674a7b0720efc3cb3b234f6e5d13c94e106f650ad1fda8ebcd39e0",
+      "provenanceRole": "ACTUAL_SOURCE_NOT_DESIGN_AUTHORITY",
+      "coverage": "FULL",
+      "decisionDate": null,
+      "coverageThisCheckpoint": "Reused targeted prior reconciliation/source evidence; not full new reread"
+    },
+    "ACTUAL": {
+      "path": "C:/Users/USER/Documents/ChatGPT/PROJECT GAME NGEMPER/lib/game/adventurer-diagnostic-v2.ts",
+      "relativePath": "lib/game/adventurer-diagnostic-v2.ts",
+      "sha256": "9cdac1b0dfa56b150d935c924fbacb04793425611f1b26d6048ed81f79e61c33",
+      "provenanceRole": "ACTUAL_SOURCE_NOT_DESIGN_AUTHORITY",
+      "coverage": "FULL",
+      "decisionDate": null,
+      "coverageThisCheckpoint": "FULL"
+    },
+    "WORKLOAD": {
+      "path": "C:/Users/USER/Documents/ChatGPT/PROJECT GAME NGEMPER/lib/game/adventurer-diagnostic-workload-v2.ts",
+      "relativePath": "lib/game/adventurer-diagnostic-workload-v2.ts",
+      "sha256": "31a215cabedac1854e3317a73863505190be784c1612dc921aaab3225feacbf7",
+      "provenanceRole": "ACTUAL_SOURCE_NOT_DESIGN_AUTHORITY",
+      "coverage": "FULL",
+      "decisionDate": null,
+      "coverageThisCheckpoint": "FULL"
+    },
+    "PRODUCER": {
+      "path": "C:/Users/USER/Documents/ChatGPT/PROJECT GAME NGEMPER/lib/game/adventurer-ranks-reference-v2.ts",
+      "relativePath": "lib/game/adventurer-ranks-reference-v2.ts",
+      "sha256": "068797fd87c84e39f971fda3a4676d0c58adf17d4e9a79a6aa5f4e995e3ae004",
+      "provenanceRole": "ACTUAL_SOURCE_NOT_DESIGN_AUTHORITY",
+      "coverage": "Admission, composition, read-only extraction and bindings",
+      "decisionDate": null,
+      "coverageThisCheckpoint": "Admission, composition, read-only extraction and bindings"
+    },
+    "IRONPROVIDER": {
+      "path": "C:/Users/USER/Documents/ChatGPT/PROJECT GAME NGEMPER/lib/game/iron-sword-range-v2.ts",
+      "relativePath": "lib/game/iron-sword-range-v2.ts",
+      "sha256": "053966de33675a2814c7364f26ebdeb1c79581d34a5efeedc2580aa5900801c6",
+      "provenanceRole": "ACTUAL_SOURCE_NOT_DESIGN_AUTHORITY",
+      "coverage": "FULL",
+      "decisionDate": null,
+      "coverageThisCheckpoint": "Reused targeted prior reconciliation/source evidence; not full new reread"
+    },
+    "PREVIEW": {
+      "path": "C:/Users/USER/Documents/ChatGPT/PROJECT GAME NGEMPER/lib/game/character-view.ts",
+      "relativePath": "lib/game/character-view.ts",
+      "sha256": "ea4a33fbe7e8bd96751bec232ce9af93f325936cf17abce69763335c79d02860",
+      "provenanceRole": "ACTUAL_SOURCE_NOT_DESIGN_AUTHORITY",
+      "coverage": "previewEquipmentChange and CP import",
+      "decisionDate": null,
+      "coverageThisCheckpoint": "Reused targeted prior reconciliation/source evidence; not full new reread"
+    },
+    "VIEWER": {
+      "path": "C:/Users/USER/Documents/ChatGPT/PROJECT GAME NGEMPER/components/game/adventurer-development-diagnostics.tsx",
+      "relativePath": "components/game/adventurer-development-diagnostics.tsx",
+      "sha256": "87e0608e6745b544d9e1667bf93688bcfdf1ca5276e34db2123520e336fa96ed",
+      "provenanceRole": "ACTUAL_DIAGNOSTIC_SOURCE",
+      "coverage": "State/defaultOFF/required inputs/import boundaries",
+      "decisionDate": null,
+      "coverageThisCheckpoint": "Reused targeted prior reconciliation/source evidence; not full new reread"
+    },
+    "CHAR": {
+      "path": "C:/Users/USER/Documents/ChatGPT/PROJECT GAME NGEMPER/outputs/gameplay-migration/cp-original-authority-reconciliation/run-01/CP_CHARACTER_CONVERSATION.json",
+      "relativePath": "outputs/gameplay-migration/cp-original-authority-reconciliation/run-01/CP_CHARACTER_CONVERSATION.json",
+      "sha256": "a2206f4e1da4b4637b9e9f30e66d1aba93e0a45965b61e48e8afdb4ad3103c9e",
+      "provenanceRole": "READ_ONLY_CHAT_TOOL_RESPONSE",
+      "coverage": "All 5 exposed turns; attachment bytes absent; no claim entire original conversation",
+      "decisionDate": null,
+      "threadId": "6aaadfcb-e320-83ec-a36e-d843b5dac367",
+      "title": "UI Charachter Lummenfall",
+      "coverageThisCheckpoint": "All 5 exposed turns; attachment bytes absent; no claim entire original conversation"
+    },
+    "WF": {
+      "path": "C:/Users/USER/Documents/ChatGPT/PROJECT GAME NGEMPER/outputs/gameplay-migration/cp-original-authority-reconciliation/run-01/WORKFLOW_SELECTED_RESPONSE.json",
+      "relativePath": "outputs/gameplay-migration/cp-original-authority-reconciliation/run-01/WORKFLOW_SELECTED_RESPONSE.json",
+      "sha256": "800fc642a79bae4413f20f709ee01898a73905752ae260d0d8d57fbd21896bd9",
+      "provenanceRole": "READ_ONLY_CHAT_TOOL_RESPONSE",
+      "coverage": "One selected workflow turn, complete returned text; unresolved content-reference attachments",
+      "decisionDate": "2026-10-08T08:28:32.427Z",
+      "threadId": "6ac3716b-8104-83ec-85f6-78fdd213459c",
+      "coverageThisCheckpoint": "Reused targeted prior reconciliation/source evidence; not full new reread"
+    },
+    "BR": {
+      "path": "C:/Users/USER/Documents/ChatGPT/PROJECT GAME NGEMPER/outputs/gameplay-migration/cp-original-authority-reconciliation/run-01/BRANCH_READ_RESPONSE.json",
+      "relativePath": "outputs/gameplay-migration/cp-original-authority-reconciliation/run-01/BRANCH_READ_RESPONSE.json",
+      "sha256": "6e2914fa4c3c5190a27c00261bc361889bed8ab6df07e735c4360b7a97c6f4b7",
+      "provenanceRole": "READ_ONLY_CHAT_TOOL_RESPONSE",
+      "coverage": "5 exposed turns; three assistant messages truncated at12000 chars; CP/Q6 relevant portions inspected",
+      "decisionDate": "2026-10-05",
+      "threadId": "6abd07da-8704-83ec-9dae-2ba72181c973",
+      "coverageThisCheckpoint": "Reused targeted prior reconciliation/source evidence; not full new reread"
+    },
+    "AGENTS": {
+      "path": "C:/Users/USER/Documents/ChatGPT/PROJECT GAME NGEMPER/AGENTS.md",
+      "relativePath": "AGENTS.md",
+      "sha256": "ef2e525fe39b96bf7a1782d9795499c4efec6bf6947afe7c76d2a111b0c815d8",
+      "provenanceRole": "CURRENT_PROJECT_INSTRUCTION",
+      "coverage": "FULL incl four locked integration checks",
+      "coverageThisCheckpoint": "FULL incl four locked integration checks"
+    },
+    "MAIN_REPORT": {
+      "path": "C:/Users/USER/Documents/ChatGPT/PROJECT GAME NGEMPER/outputs/main-local-reconciliation/run-01/REPORT.txt",
+      "relativePath": "outputs/main-local-reconciliation/run-01/REPORT.txt",
+      "sha256": "4e57dc351702547175b9a2abce92a246ac7c9931f878ba5cfde227f30c89845d",
+      "provenanceRole": "HISTORICAL_SELECTIVE_INTEGRATION_EVIDENCE",
+      "coverage": "FULL; not rerun",
+      "coverageThisCheckpoint": "FULL; not rerun"
+    },
+    "MAIN_MANIFEST": {
+      "path": "C:/Users/USER/Documents/ChatGPT/PROJECT GAME NGEMPER/outputs/main-local-reconciliation/run-01/EVIDENCE_MANIFEST.json",
+      "relativePath": "outputs/main-local-reconciliation/run-01/EVIDENCE_MANIFEST.json",
+      "sha256": "ddfebe836d48730b96909d77215653aeaa804ca7f07f4ec235e4593cdcacc4ab",
+      "provenanceRole": "HISTORICAL_EVIDENCE_MANIFEST",
+      "coverage": "FULL",
+      "coverageThisCheckpoint": "FULL"
+    },
+    "PRIMARY": {
+      "path": "C:/Users/USER/Documents/ChatGPT/PROJECT GAME NGEMPER/lib/game/canonical-config.ts",
+      "relativePath": "lib/game/canonical-config.ts",
+      "sha256": "94b338fc00e030039809f50fc71528e86259e7e9912a27264d1074d065f2574d",
+      "provenanceRole": "CURRENT_SOURCE_NOT_AUTOMATIC_NUMERIC_AUTHORITY",
+      "coverage": "STAT_TUNING and retained rules",
+      "coverageThisCheckpoint": "STAT_TUNING and retained rules"
+    },
+    "KIT": {
+      "path": "C:/Users/USER/Documents/ChatGPT/PROJECT GAME NGEMPER/outputs/gameplay-migration/canonical-decision-handoff/ADVENTURER_CURRENT_KIT_OWNER_DIRECTION.txt",
+      "relativePath": "outputs/gameplay-migration/canonical-decision-handoff/ADVENTURER_CURRENT_KIT_OWNER_DIRECTION.txt",
+      "sha256": "76f784ed84b48fd86a4ba680b2cbb9b6f0b247e7b84ec5a7f6b184e42b2dec0d",
+      "provenanceRole": "OWNER_CONFIRMATION_RECORDED_LOCALLY",
+      "coverage": "FULL",
+      "coverageThisCheckpoint": "FULL"
+    },
+    "ACTION": {
+      "path": "C:/Users/USER/Documents/ChatGPT/PROJECT GAME NGEMPER/lib/game/skill-action.ts",
+      "relativePath": "lib/game/skill-action.ts",
+      "sha256": "d49125aa9752daec82dc8276acdfe8f57bb1bac4e37a48ecd6527bea91131837",
+      "provenanceRole": "CURRENT_SOURCE",
+      "coverage": "Selected timing/action-lock metadata",
+      "coverageThisCheckpoint": "Selected timing/action-lock metadata"
+    },
+    "HOME": {
+      "path": "C:/Users/USER/Documents/ChatGPT/PROJECT GAME NGEMPER/app/page.tsx",
+      "relativePath": "app/page.tsx",
+      "sha256": "2fba537f45d16493dc5261bfe4f1c191337c9f0b328c61a85459930f9359eaea",
+      "provenanceRole": "CURRENT_SOURCE_BASELINE",
+      "coverage": "Hash/preservation only this run",
+      "coverageThisCheckpoint": "Hash/preservation only this run"
+    }
+  },
+  "closedEvidence": {
+    "geometric": {
+      "source": "CHAR",
+      "threadId": "6aaadfcb-e320-83ec-a36e-d843b5dac367",
+      "messageId": "136bba47-9086-4600-aacd-eb618eb02f40",
+      "UTC": "2026-09-16T20:42:48.351Z",
+      "excerpt": "nah aku setuju dengan geometric mean mu yang baru, jadi buatkan ulang aku untuk prompt tambahannya agar aku bisa memberikannya ke astra",
+      "scope": "Geometric core only; subsequent assistant23sections not blanket approved"
+    }
+  },
+  "historicalCandidates": {
+    "defense": {
+      "normalPhysical": "round(4+1.1L)",
+      "normalMagic": "round(3+L)",
+      "elite": 1.25,
+      "boss": 1.5,
+      "weights": [
+        0.6,
+        0.25,
+        0.15
+      ],
+      "evasion": "absent in liveCP; prior diagnosticcandidate0",
+      "accuracyFactor": 1
+    },
+    "score": {
+      "offensive": 10,
+      "defensive": 0.85,
+      "sustain": 12,
+      "movement": 8,
+      "utilityCap": 0.1,
+      "specialCap": 0.15,
+      "overallScale": 1.5,
+      "displayDecimals": 0
+    },
+    "rate": {
+      "horizon": 30,
+      "AScoefficient": 0.7,
+      "ASmin": 0.7,
+      "ASmax": 1.5
+    },
+    "status": "HISTORICAL_IMPLEMENTED_NOT_OWNER_FINAL"
+  },
+  "heldValuesAreNotDefaults": true,
+  "playerCPChanged": false,
+  "implementation": false,
+  "sourceChanges": false,
+  "runtimeRuns": 0
+}

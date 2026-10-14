@@ -1,0 +1,255 @@
+{
+  "utc": "2026-10-14T06:47:57.607Z",
+  "purpose": "Minimal selected durable authority and exact test oracle; historical labels/bytes preserved, scoped later approvals do not approve all proposal text",
+  "files": [
+    {
+      "source": "outputs/gameplay-migration/canonical-decision-handoff/HANDOFF.txt",
+      "destination": "docs/gameplay-authority/canonical/HANDOFF.txt",
+      "sha256": "573f2cffdf4c92336309b1da1bc43fb71498e26c982fb0388f0140476beebe96",
+      "bytes": 8924,
+      "status": "RECOVERED_MIXED_EVIDENCE",
+      "scope": "Lv100/SP199/base15/2points, Crit channels and original provenance; provisional/superseded fields not promoted",
+      "selection": "EXACT_DURABLE_COPY_NOT_NEW_APPROVAL_NOT_STAGED",
+      "copySHA256": "573f2cffdf4c92336309b1da1bc43fb71498e26c982fb0388f0140476beebe96"
+    },
+    {
+      "source": "outputs/gameplay-migration/canonical-decision-handoff/BRANCH_EVIDENCE.json",
+      "destination": "docs/gameplay-authority/canonical/BRANCH_EVIDENCE.json",
+      "sha256": "4bcae5395ff2ae72d7feeb60862887dba038da16f894767e62ad003509c4217b",
+      "bytes": 35942,
+      "status": "SELECTED_PRIMARY_MESSAGES_AND_ASSISTANT_CONTEXT",
+      "scope": "Message identities supporting handoff; not entire CLASS history",
+      "selection": "EXACT_DURABLE_COPY_NOT_NEW_APPROVAL_NOT_STAGED",
+      "copySHA256": "4bcae5395ff2ae72d7feeb60862887dba038da16f894767e62ad003509c4217b"
+    },
+    {
+      "source": "outputs/gameplay-migration/canonical-decision-handoff/Q2_Q4_DESIGN_PROPOSAL_V1.txt",
+      "destination": "docs/gameplay-authority/canonical/Q2_Q4_DESIGN_PROPOSAL_V1.txt",
+      "sha256": "c8a5f1ae6a3fe066a5f9c80604d5dade3d273e5c42f627970409ee92beee2c6f",
+      "bytes": 20313,
+      "status": "HISTORICAL_PROPOSAL_APPROVED_IN_BOUNDED_SCOPE_BY_PAIRED_ACC",
+      "scope": "Range/sampling/final-round architecture, numeric gates retained",
+      "selection": "EXACT_DURABLE_COPY_NOT_NEW_APPROVAL_NOT_STAGED",
+      "copySHA256": "c8a5f1ae6a3fe066a5f9c80604d5dade3d273e5c42f627970409ee92beee2c6f"
+    },
+    {
+      "source": "outputs/gameplay-migration/canonical-decision-handoff/Q2_Q4_OWNER_ACC.txt",
+      "destination": "docs/gameplay-authority/canonical/Q2_Q4_OWNER_ACC.txt",
+      "sha256": "b14896ad47cd1dfac3212e4f602958cc2a4c41a7f2469a7eaaf06510c868cdb1",
+      "bytes": 1846,
+      "status": "OWNER_FINAL_SCOPED",
+      "scope": "Approval of paired architecture",
+      "selection": "EXACT_DURABLE_COPY_NOT_NEW_APPROVAL_NOT_STAGED",
+      "copySHA256": "b14896ad47cd1dfac3212e4f602958cc2a4c41a7f2469a7eaaf06510c868cdb1"
+    },
+    {
+      "source": "outputs/gameplay-migration/canonical-decision-handoff/ADVENTURER_CURRENT_KIT_OWNER_DIRECTION.txt",
+      "destination": "docs/gameplay-authority/canonical/ADVENTURER_CURRENT_KIT_OWNER_DIRECTION.txt",
+      "sha256": "76f784ed84b48fd86a4ba680b2cbb9b6f0b247e7b84ec5a7f6b184e42b2dec0d",
+      "bytes": 1490,
+      "status": "OWNER_DIRECTION",
+      "scope": "Current English kit; withdrawn Q3 stays withdrawn",
+      "selection": "EXACT_DURABLE_COPY_NOT_NEW_APPROVAL_NOT_STAGED",
+      "copySHA256": "76f784ed84b48fd86a4ba680b2cbb9b6f0b247e7b84ec5a7f6b184e42b2dec0d"
+    },
+    {
+      "source": "outputs/gameplay-migration/canonical-decision-handoff/ADVENTURER_Q2_Q4_COEFFICIENT_OWNER_ACC.txt",
+      "destination": "docs/gameplay-authority/canonical/ADVENTURER_Q2_Q4_COEFFICIENT_OWNER_ACC.txt",
+      "sha256": "04b59ef917642e58a0c7fc1607dc19bdb0b6debc663ed5dabdfc66754629eae5",
+      "bytes": 3691,
+      "status": "OWNER_FINAL_SCOPED",
+      "scope": "Quick/Power coefficients; Heal percent behavior retained",
+      "selection": "EXACT_DURABLE_COPY_NOT_NEW_APPROVAL_NOT_STAGED",
+      "copySHA256": "04b59ef917642e58a0c7fc1607dc19bdb0b6debc663ed5dabdfc66754629eae5"
+    },
+    {
+      "source": "outputs/gameplay-migration/canonical-decision-handoff/BASIC_ATTACK_EQUAL_HITS_OWNER_ACC.txt",
+      "destination": "docs/gameplay-authority/canonical/BASIC_ATTACK_EQUAL_HITS_OWNER_ACC.txt",
+      "sha256": "5c867d2e4274c03e59d07e5de25652bb71c7300a405dfa81629c42bb99ca332b",
+      "bytes": 3258,
+      "status": "OWNER_FINAL_SCOPED",
+      "scope": "Equal1/1/1 selected Basic; later dual correction supersedes alternating proposal, not autoimplementation",
+      "selection": "EXACT_DURABLE_COPY_NOT_NEW_APPROVAL_NOT_STAGED",
+      "copySHA256": "5c867d2e4274c03e59d07e5de25652bb71c7300a405dfa81629c42bb99ca332b"
+    },
+    {
+      "source": "outputs/gameplay-migration/canonical-decision-handoff/WEAPON_REFERENCE_PLACEMENT_OWNER_ACC.txt",
+      "destination": "docs/gameplay-authority/canonical/WEAPON_REFERENCE_PLACEMENT_OWNER_ACC.txt",
+      "sha256": "fe193c56ee096445f8539faeceab21d0f41e34a6163614f6747a116f29f438ce",
+      "bytes": 4109,
+      "status": "OWNER_FINAL_PLACEMENT",
+      "scope": "Archetype reference once in authoring, not universal numeric approval",
+      "selection": "EXACT_DURABLE_COPY_NOT_NEW_APPROVAL_NOT_STAGED",
+      "copySHA256": "fe193c56ee096445f8539faeceab21d0f41e34a6163614f6747a116f29f438ce"
+    },
+    {
+      "source": "outputs/gameplay-migration/canonical-decision-handoff/SWORD_EARLY_PROGRESSION_INTEGER_OWNER_ACC.txt",
+      "destination": "docs/gameplay-authority/canonical/SWORD_EARLY_PROGRESSION_INTEGER_OWNER_ACC.txt",
+      "sha256": "2fc822a5dd6f709813ce0d3a5e7d69de58365d3cc9c688351a611155ab728a0b",
+      "bytes": 3741,
+      "status": "OWNER_FINAL_ENDPOINTS",
+      "scope": "Training9-11 and bands; individual mappings limited",
+      "selection": "EXACT_DURABLE_COPY_NOT_NEW_APPROVAL_NOT_STAGED",
+      "copySHA256": "2fc822a5dd6f709813ce0d3a5e7d69de58365d3cc9c688351a611155ab728a0b"
+    },
+    {
+      "source": "outputs/gameplay-migration/canonical-decision-handoff/IRON_SWORD_LV10_OWNER_ACC.txt",
+      "destination": "docs/gameplay-authority/canonical/IRON_SWORD_LV10_OWNER_ACC.txt",
+      "sha256": "8dc21ebf6faf2b720f09660ce5716da2212a918034c0c144c5f15dafdc0cb680",
+      "bytes": 2254,
+      "status": "OWNER_FINAL_SCOPED",
+      "scope": "NewIron32-36/Lv10 and old instance grandfather",
+      "selection": "EXACT_DURABLE_COPY_NOT_NEW_APPROVAL_NOT_STAGED",
+      "copySHA256": "8dc21ebf6faf2b720f09660ce5716da2212a918034c0c144c5f15dafdc0cb680"
+    },
+    {
+      "source": "outputs/gameplay-migration/canonical-decision-handoff/POWER_STRIKE_R1_ACTOR_OWNER_ACC.txt",
+      "destination": "docs/gameplay-authority/canonical/POWER_STRIKE_R1_ACTOR_OWNER_ACC.txt",
+      "sha256": "c791a53518b383b345ca9fc4ffa1bb1e76d284b4cddf2a249c6b6c147a15fe5c",
+      "bytes": 2552,
+      "status": "OWNER_FINAL_INITIAL_REFERENCE",
+      "scope": "Includes original BasePhysical provenance; later cohort extensions separate",
+      "selection": "EXACT_DURABLE_COPY_NOT_NEW_APPROVAL_NOT_STAGED",
+      "copySHA256": "c791a53518b383b345ca9fc4ffa1bb1e76d284b4cddf2a249c6b6c147a15fe5c"
+    },
+    {
+      "source": "outputs/gameplay-migration/canonical-decision-handoff/CP_OFFENSE_SEPARATE_RECOVERY_OWNER_ACC.txt",
+      "destination": "docs/gameplay-authority/canonical/CP_OFFENSE_SEPARATE_RECOVERY_OWNER_ACC.txt",
+      "sha256": "35727d55a2ff6cf775a4b14ca8d627a95b64299f53d9f1ffd4016e487e7b931d",
+      "bytes": 1969,
+      "status": "OWNER_DIRECTION",
+      "scope": "Separate offense, no total/playerCP approval",
+      "selection": "EXACT_DURABLE_COPY_NOT_NEW_APPROVAL_NOT_STAGED",
+      "copySHA256": "35727d55a2ff6cf775a4b14ca8d627a95b64299f53d9f1ffd4016e487e7b931d"
+    },
+    {
+      "source": "outputs/gameplay-migration/canonical-decision-handoff/CP_V3_PROTOCOL_TRAVEL_OWNER_ACC.txt",
+      "destination": "docs/gameplay-authority/canonical/CP_V3_PROTOCOL_TRAVEL_OWNER_ACC.txt",
+      "sha256": "a0fbaa5d92844b3d3e15591269791a5b346bf99f77dc06bdb55ffb07276228d9",
+      "bytes": 2749,
+      "status": "OWNER_FINAL_SCOPED",
+      "scope": "A nominal protocol and lawful travel renewal; B HOLD not approved here",
+      "selection": "EXACT_DURABLE_COPY_NOT_NEW_APPROVAL_NOT_STAGED",
+      "copySHA256": "a0fbaa5d92844b3d3e15591269791a5b346bf99f77dc06bdb55ffb07276228d9"
+    },
+    {
+      "source": "outputs/gameplay-migration/canonical-decision-handoff/CP_PACKAGE_B_DIAGNOSTIC_OWNER_ACC.txt",
+      "destination": "docs/gameplay-authority/canonical/CP_PACKAGE_B_DIAGNOSTIC_OWNER_ACC.txt",
+      "sha256": "6fc21508bc96579a1caf4d0adb35ca6df9bc298a81a824791e418f7c4544c84f",
+      "bytes": 3809,
+      "status": "OWNER_FINAL_DIAGNOSTIC_ONLY",
+      "scope": "B diagnostic60/30 distinct from later liveBlock50/30",
+      "selection": "EXACT_DURABLE_COPY_NOT_NEW_APPROVAL_NOT_STAGED",
+      "copySHA256": "6fc21508bc96579a1caf4d0adb35ca6df9bc298a81a824791e418f7c4544c84f"
+    },
+    {
+      "source": "outputs/gameplay-migration/cp-remaining-design-decision-package/run-01/CP_DESIGN_PROPOSAL_V3.json",
+      "destination": "docs/gameplay-authority/records/cp-remaining-design-decision-package-run-01-CP_DESIGN_PROPOSAL_V3.json",
+      "sha256": "549eba1afc530b865b6731d63412218cab6a0ac15a7946138719803149a2c687",
+      "bytes": 61716,
+      "status": "HISTORICAL_PROPOSAL_WITH_SCOPED_LATER_ACC",
+      "scope": "A exact identified package; B HOLD stays HOLD",
+      "selection": "EXACT_DURABLE_COPY_NOT_NEW_APPROVAL_NOT_STAGED",
+      "copySHA256": "549eba1afc530b865b6731d63412218cab6a0ac15a7946138719803149a2c687"
+    },
+    {
+      "source": "outputs/gameplay-migration/approved-shared-stat-completion/run-01/INPUT_CONTRACT.json",
+      "destination": "docs/gameplay-authority/records/approved-shared-stat-completion-run-01-INPUT_CONTRACT.json",
+      "sha256": "32cead9acca177e0846be18d5d87e90070385c1ad4f2956d8176dae5df25b8c1",
+      "bytes": 2550,
+      "status": "RECORDED_DIRECT_OWNER_SCOPE",
+      "scope": "Shared A-F approvals; casting/defense/resource holds subsequently superseded only by listed later approvals",
+      "selection": "EXACT_DURABLE_COPY_NOT_NEW_APPROVAL_NOT_STAGED",
+      "copySHA256": "32cead9acca177e0846be18d5d87e90070385c1ad4f2956d8176dae5df25b8c1"
+    },
+    {
+      "source": "C:/Users/USER/.codex/attachments/af70e179-3a04-487c-9877-c05c542a14d5/Pasted text.txt",
+      "destination": "docs/gameplay-authority/OWNER_FINAL_STAT_CLOSURE.txt",
+      "sha256": "49372bd99f5078e819570b441d418585a67183bbf2e70c159346f705b8db76c7",
+      "bytes": 6686,
+      "status": "DIRECT_OWNER_APPROVAL",
+      "scope": "CastStat/4, caps and base defenses; excludes new class kit",
+      "selection": "EXACT_DURABLE_COPY_NOT_NEW_APPROVAL_NOT_STAGED",
+      "copySHA256": "49372bd99f5078e819570b441d418585a67183bbf2e70c159346f705b8db76c7"
+    },
+    {
+      "source": "outputs/gameplay-migration/approved-hp-mana-profile-implementation/run-01/APPROVAL_PROVENANCE.json",
+      "destination": "docs/gameplay-authority/records/approved-hp-mana-profile-implementation-run-01-APPROVAL_PROVENANCE.json",
+      "sha256": "61d09d24683524a31d1382295ab492dae386b94eee11fad79ee6e2fd1f742215",
+      "bytes": 6329,
+      "status": "RECORDED_DIRECT_OWNER_APPROVAL",
+      "scope": "22resource model approval; not weapon/kit/unlock",
+      "selection": "EXACT_DURABLE_COPY_NOT_NEW_APPROVAL_NOT_STAGED",
+      "copySHA256": "61d09d24683524a31d1382295ab492dae386b94eee11fad79ee6e2fd1f742215"
+    },
+    {
+      "source": "outputs/gameplay-migration/role-based-hp-mana-profile-design/run-02/RESOURCE_PROFILE_PROPOSAL.json",
+      "destination": "docs/gameplay-authority/records/role-based-hp-mana-profile-design-run-02-RESOURCE_PROFILE_PROPOSAL.json",
+      "sha256": "8a26ac60f44f62ac5003166f64f0199b6720bb886742d28c3704d1fe36201b5c",
+      "bytes": 26992,
+      "status": "HISTORICAL_PROPOSAL_LATER_APPROVED_RESOURCE_TABLE_ONLY",
+      "scope": "Latest Specialist105/130; pair with resource approval, not all proposal text approved",
+      "selection": "EXACT_DURABLE_COPY_NOT_NEW_APPROVAL_NOT_STAGED",
+      "copySHA256": "8a26ac60f44f62ac5003166f64f0199b6720bb886742d28c3704d1fe36201b5c"
+    },
+    {
+      "source": "outputs/gameplay-migration/warrior-core-transition-kit-reconciliation/run-01/AUTHORITY_PROVENANCE.json",
+      "destination": "docs/gameplay-authority/records/warrior-core-transition-kit-reconciliation-run-01-AUTHORITY_PROVENANCE.json",
+      "sha256": "e2880c3a53ace845b2c65375d1d3c37115d45e770382a42c8ddf9acf1021bbb5",
+      "bytes": 4870,
+      "status": "SELECTED_PRIMARY_CORE_PROVENANCE",
+      "scope": "FirstCore allocated-primary refund; oldSP150 superseded by199",
+      "selection": "EXACT_DURABLE_COPY_NOT_NEW_APPROVAL_NOT_STAGED",
+      "copySHA256": "e2880c3a53ace845b2c65375d1d3c37115d45e770382a42c8ddf9acf1021bbb5"
+    },
+    {
+      "source": "C:/Users/USER/.codex/attachments/4a8304b3-06dc-4d76-aeb3-8844d1fdbf2d/Pasted text.txt",
+      "destination": "docs/gameplay-authority/OWNER_CFV3_1_ORIGINAL.txt",
+      "sha256": "267020a89b58744c5bb9e21fa8e490c6a68a7b79414648094d2a9f3aa46e79f2",
+      "bytes": 14055,
+      "status": "HISTORICAL_OWNER_SOURCE_SELECTIVE_APPLICABILITY",
+      "scope": "Original CFV3-1 section4/5 only where later corrections do not supersede; not whole old contract revived",
+      "selection": "EXACT_DURABLE_COPY_NOT_NEW_APPROVAL_NOT_STAGED",
+      "copySHA256": "267020a89b58744c5bb9e21fa8e490c6a68a7b79414648094d2a9f3aa46e79f2"
+    },
+    {
+      "source": "outputs/gameplay-migration/warrior-final-input-package/run-01/WARRIOR_FINAL_INPUT_PACKAGE.json",
+      "destination": "tests/fixtures/warrior-final-input-package.json",
+      "sha256": "9c68dfa59b285988526e766d61be2c4f2dc027edffa99986473a2076af5a1ccf",
+      "bytes": 193702,
+      "status": "HISTORICAL_PROPOSAL_APPROVED_W1_W4_BY_PAIRED_OWNER_PROMPT",
+      "scope": "Exact test oracle path; preserve PROPOSED strings, apply external approval boundary",
+      "selection": "EXACT_DURABLE_COPY_NOT_NEW_APPROVAL_NOT_STAGED",
+      "copySHA256": "9c68dfa59b285988526e766d61be2c4f2dc027edffa99986473a2076af5a1ccf"
+    },
+    {
+      "source": "C:/Users/USER/.codex/attachments/eb9e1045-f06b-4daa-9622-1ecb35b531c9/Pasted text.txt",
+      "destination": "docs/gameplay-authority/OWNER_WARRIOR_W1_W4_APPROVAL.txt",
+      "sha256": "c02939c981a7f14f88d4f7e8ba80a0c704e876e7899e85d83f8dfa5da6978354",
+      "bytes": 5636,
+      "status": "DIRECT_OWNER_APPROVAL",
+      "scope": "Warrior11/61 W1-W4, separateIronadmission, unspecializedLv61 proof only",
+      "selection": "EXACT_DURABLE_COPY_NOT_NEW_APPROVAL_NOT_STAGED",
+      "copySHA256": "c02939c981a7f14f88d4f7e8ba80a0c704e876e7899e85d83f8dfa5da6978354"
+    },
+    {
+      "source": "outputs/main-local-reconciliation/run-03/APPROVAL.json",
+      "destination": "docs/gameplay-authority/records/main-local-reconciliation-run-03-APPROVAL.json",
+      "sha256": "30b16a3a575d1ff27c5c01b288b74ff98bb6224b35519fe386706158ff89a14c",
+      "bytes": 21090,
+      "status": "RECORDED_DIRECT_OWNER_SCOPE",
+      "scope": "Map integration, safe versioned relocation, preserve all3quests/progress/rewards/NPC; incoming numeric prototype",
+      "selection": "EXACT_DURABLE_COPY_NOT_NEW_APPROVAL_NOT_STAGED",
+      "copySHA256": "30b16a3a575d1ff27c5c01b288b74ff98bb6224b35519fe386706158ff89a14c"
+    }
+  ],
+  "totalCopiedBytes": 440273,
+  "originalsUnchanged": true,
+  "readingOrder": [
+    "README.txt",
+    "INTEGRATION_CONSTRAINTS.txt",
+    "PROVENANCE.json"
+  ],
+  "origin": "outputs/final-integration-commit-readiness/run-01/DURABLE_AUTHORITY_MANIFEST.json",
+  "authorityScope": "Only recorded exact OWNER decisions apply; no approval created by copying. Historical path references remain provenance pointers, not runtime dependencies."
+}

@@ -14,7 +14,6 @@ export const HUD_IDS = [
   'chat',
   'hotbar',
   'buff',
-  'fps',
 ] as const;
 export type HUDId = (typeof HUD_IDS)[number];
 export type HUDAnchor =
@@ -30,7 +29,6 @@ export const HUD_ANCHORS: Record<HUDId, HUDAnchor> = {
   chat: 'bottom-left',
   hotbar: 'bottom-center',
   buff: 'bottom-right',
-  fps: 'bottom-left',
 };
 export type HUDPlacement = { anchor: HUDAnchor; dx: number; dy: number };
 export type HUDLayout = {
@@ -237,10 +235,9 @@ export function resolveHUDLayout(
     bottom = hudBottomClearance(uiScale),
     height = Math.max(1, viewport.height - margin - bottom);
   const sizes: Record<HUDId, WindowSize> = {
-    fps: { width: 112, height: 28 },
     player: { width: 396, height: 120 },
     quest: { width: 300, height: 274 },
-    right: { width: 260, height: 444 },
+    right: { width: 224, height: 396 },
     chat: chatCollapsed ? { width: 300, height: 44 } : layout.chatSize,
     hotbar: { width: 1140, height: 156 },
     buff: {
@@ -334,19 +331,10 @@ export function resolveHUDLayout(
       result.chat.y = result.hotbar.y - 16 - result.chat.height;
     }
   }
-  // Until explicitly moved, FPS follows the resolved chat position and size.
-  if (!layout.positions.fps) {
-    const fps = result.fps, chat = result.chat;
-    const above = chat.y - fps.height - 8 * uiScale;
-    Object.assign(fps, clampWindowPosition(
-      above >= margin ? { x: chat.x, y: above } : { x: chat.x + chat.width + 8, y: chat.y },
-      { ...viewport, height: viewport.height - bottom + margin }, fps, margin,
-    ));
-  }
   if (!layout.positions.quest) {
     const limit =
       result.chat.x < result.quest.x + result.quest.width
-        ? Math.min(result.chat.y - 16, !layout.positions.fps ? result.fps.y - 8 : result.chat.y - 16)
+        ? result.chat.y - 16
         : viewport.height - 48;
     result.quest.height = Math.max(
       80,

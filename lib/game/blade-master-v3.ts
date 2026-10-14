@@ -1,4 +1,6 @@
-import type { SkillDefinition, SkillHit } from './skills.ts';
+import { weaponAttack } from './dual-wield.ts';
+import { WEAPON_TUNING } from './canonical-config.ts';
+import type { SkillDefinition, SkillHit, SkillRankValues as _SkillRankValues } from './skills.ts';
 import type { SkillDefinitionV3, SkillProgressionV3State } from './skill-progression-v3.ts';
 import type { ResolvedSkillAction } from './skill-action.ts';
 import type { ItemData } from './items.ts';
@@ -154,10 +156,9 @@ export const BLADE_MASTER_MASTERY_MANA_REDUCTION_BY_RANK = [0, 2, 4, 6, 8] as co
 export const BLADE_MASTER_TEMPO_GENERATORS = new Set(['v3-blade-master-twin-assault','v3-blade-master-cross-sever']);
 /** Compose the explicitly declared per-hand layers after the ordinary V3 resolver.
  * Full item/Rune character stats stay in shared core; only raw item Weapon ATK is hand-local. */
-export function composeBladeWeaponHits(action: ResolvedSkillAction, physicalAttack: number, main: ItemData | null, off: ItemData | null, weaponFactor = 1) {
+export function composeBladeWeaponHits(action: ResolvedSkillAction, physicalAttack: number, main: ItemData | null, off: ItemData | null, weaponFactor = 1, efficiency: number = WEAPON_TUNING.offHandBaseline) {
   if (!action.hitSequence.some(hit => hit.weaponHand)) return action;
-  const raw = (item: ItemData | null) => (item?.baseStats.attack ?? 0) * (1 + (item?.enhancementLevel ?? 0) * .08) * weaponFactor;
-  const mainAttack = raw(main), offAttack = raw(off);
+  const mainAttack = weaponAttack(main) * weaponFactor, offAttack = weaponAttack(off, 'OFF', efficiency) * weaponFactor;
   const sharedCore = physicalAttack - mainAttack - (action.resolvedWeaponStyle === 'dual_sword' ? offAttack : 0);
   const totalCoefficient = action.hitSequence.reduce((sum, hit) => sum + hit.physicalCoefficient, 0);
   action.hitSequence = action.hitSequence.map(hit => {

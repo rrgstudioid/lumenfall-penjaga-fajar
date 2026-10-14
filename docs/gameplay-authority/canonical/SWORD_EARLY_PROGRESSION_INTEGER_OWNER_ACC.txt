@@ -1,0 +1,62 @@
+LUMENFALL — SWORD EARLY PROGRESSION: INTEGER RANGE OWNER ACC
+Dicatat Garda, 8 Oktober 2026, dari percakapan langsung ini.
+STATUS: APPROVED NUMERIC CORRECTION / NOT IMPLEMENTED IN GAMEPLAY.
+
+1. AUTHORITY DAN KOREKSI
+OWNER meminta: "tolong ralat sedikit, aku ingin angkanya bilangan bulat tanpa ada koma".
+Garda mengusulkan pembulatan Min-Max ATK senjata ke bilangan bulat terdekat:
+Lv1 9-11; Lv5 18-22; Lv10 32-36; Lv15 45-50.
+Garda menegaskan bahwa koefisien, persentase dan perhitungan internal tetap
+mengikuti kontrak sebelumnya; perubahan hanya pada angka dasar range senjata.
+Jawaban OWNER setelah proposal tersebut: "ok aku setuju".
+
+Addendum ini supersedes hanya decimal base-range endpoints empat milestone
+dan arahan mempertahankan decimal endpoints pada proposal/ACC Sword sebelumnya.
+Sumber historis tetap dipertahankan byte-identik:
+SWORD_EARLY_PROGRESSION_DESIGN_PROPOSAL_V1.txt
+SHA256: 95026470f0a1d1158d4cba269a30e9d66683b30dee5cff86e98be7ae09cdaff4
+SWORD_EARLY_PROGRESSION_OWNER_ACC.txt
+SHA256: 48ca90e7af8f5f94165b185a04a35d7124deacd947db1d28244044f245101383
+Prompt B sebelum koreksi:
+SHA256: 44096fbb55a7fbbc2f8e6e473e62742ec7d6f86267a746c585fddb0bc4a13efb
+
+2. ANGKA DASAR RANGE YANG BERLAKU
+Level | Budget pembanding 100% | Hasil Sword 90% historis | Base range final bulat
+Lv1   | 10-12                 | 9-10.8                  | 9-11
+Lv5   | 20-24                 | 18-21.6                 | 18-22
+Lv10  | 35-40                 | 31.5-36                 | 32-36
+Lv15  | 50-56                 | 45-50.4                 | 45-50
+
+Ini pembulatan masing-masing endpoint sekali saat AUTHORING range dasar item,
+sesudah reference Sword 90% diterapkan. Untuk nilai nonnegative pada tabel,
+nearest integer dan tie .5 ke atas menghasilkan angka yang disetujui di atas.
+Aturan ini mengesahkan tabel terarah tersebut, bukan global catalog rounder baru.
+Runtime memakai stored base range final, tidak mengulangi reference atau authoring
+rounding. Range tetap BASE sebelum enhancement dan dual-wield efficiency.
+
+3. BATAS YANG TIDAK BERUBAH
+Lv1 khusus existing Training Sword, templateId field-verdant-plains-sword,
+requiredLevel 1, rarity Common, +0. Lv5/10/15 masih reference bands tanpa mapping
+individual template/asset baru; bukan izin implementasi seluruh progression.
+Tidak mengganti starter default Dawnblade, rarity, options, sockets, drops atau
+job permission; tidak menyalin angka ke weapon families lain.
+Coefficient, percent, enhancement curve, Off-Hand penalty, sampling uniform
+kontinu dan intermediate combat arithmetic tetap presisi sesuai Q2+Q4 ACC.
+Tidak mengganti sampler menjadi discrete integer RNG, tidak floor/round setiap
+roll/hit/weapon layer. Damage final tetap dibulatkan sekali pada akhir impact
+pipeline; integer base endpoints tidak menjamin setiap intermediate raw integer.
+
+4. CHECKPOINT B
+Input target kini Training Sword BASE[9,11], archetype reference sudah masuk.
+Neutral target: BasePhysical 8, BonusSTR 0, MAIN +0, coefficient 1, scaling 0.
+Raw Basic Attack range=[17,19]; u=0.5 menghasilkan raw18 sebelum hit/Crit/mitigation.
+Ini bukan fixed HP loss, UI Current Damage Preview, atau bukti balance/runtime PASS.
+Scope B tetap satu development opt-in reference Adventurer Lv1 / basic event1.
+Tidak mengubah approval/scope Checkpoint A atau membuka Q3/Q5/Q6/UI/CP/save.
+
+5. TINDAKAN PENCATATAN
+Hanya addendum TXT ini dan revisi current PROMPT_Q2_Q4_CHECKPOINT_B.txt.
+Game source/config/catalog/save/register/assets dan evidence historis tidak diubah.
+Tidak menjalankan implementasi B, game/tests/build/browser/simulator/Git publishing.
+OWNER dapat memberi prompt B terbaru ke implementing Codex; hasilnya wajib
+REPORT.txt dan STOP untuk OWNER REVIEW sesuai prompt, bukan auto-commit/push/merge.

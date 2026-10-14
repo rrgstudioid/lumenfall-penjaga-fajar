@@ -50,7 +50,8 @@ await test('retired Sunken field saves relocate once while retaining items and p
     loaded.inventory.map((i) => i.id),
     hero.inventory.map((i) => i.id),
   );
-  assert.deepEqual(loaded.activeQuests, ['field-meteorfall-citadel-easy']);
+  // OWNER continuity supersedes incoming quest retirement; no progress deletion.
+  assert.deepEqual(loaded.activeQuests, ['field-sunken-ruins-veteran','field-meteorfall-citadel-easy']);
   Object.assign(loaded, SUNKEN_PORTALS[3]);
   const reloaded = parseSave(JSON.stringify(loaded))!;
   assert.deepEqual(

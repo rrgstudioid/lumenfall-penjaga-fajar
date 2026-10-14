@@ -137,8 +137,9 @@ export function createRevision02Binding(rig: CharacterRig, actor: T.Group, fallb
     model.traverse(o => {
       if (!(o instanceof T.Mesh)) return;
       o.castShadow = true; o.receiveShadow = true;
-      if (equipped.has('head') && !model.userData.preserveHairWithHeadEquipment && o.name.startsWith('Hair')) o.visible = false;
+      if (equipped.has('head') && o.name.startsWith('Hair')) o.visible = false;
       if (equipped.has('boots') && o.name.startsWith('Boot')) o.visible = false;
+      if (equipped.has('gloves') && cleanName(o.name).startsWith('Wristcuff')) o.visible = false;
     });
     for (const mesh of fallback) mesh.visible = false;
     // Existing equipment geometry is preserved, with torso/head shells fitted

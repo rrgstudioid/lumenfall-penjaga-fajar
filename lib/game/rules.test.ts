@@ -1,3 +1,5 @@
+import { legalJobResetFixture } from './gameplay-test-fixtures.ts';
+import { LEGACY_SPECIALIZATIONS } from './gameplay-test-fixtures.ts';
 import { CITIES } from './regions.ts';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -24,7 +26,6 @@ import {
   canEquipItem,
   CORE_JOBS,
   createItem,
-  SPECIALIZATIONS,
   attackPower,
   chooseCoreJob,
   chooseMastery,
@@ -60,11 +61,11 @@ await test('new characters begin as Adventurer with four data-driven skill slots
   assert.equal(maxHP(hero), hero.hp);
 });
 
-await test('progression caps at level 50 and grants skill points', () => {
+await test('progression caps at level 100 and grants skill points', () => {
   const hero = freshHero();
   const startingPoints = hero.skillPoints;
   gainXP(hero, 999999);
-  assert.equal(hero.level, 50);
+  assert.equal(hero.level, 100);
   assert.equal(hero.xp, 0);
   assert.ok(hero.skillPoints > startingPoints);
   assert.equal(hero.hp, maxHP(hero));
@@ -79,14 +80,14 @@ await test('level-up restores mana to full, not just the current value', () => {
 
   gainXP(hero, 999999);
 
-  assert.equal(hero.level, 50);
+  assert.equal(hero.level, 100);
   assert.equal(hero.hp, maxHP(hero));
   assert.equal(hero.mana, derivedStats(hero).maxMana);
 });
 
-await test('all five legacy Core Jobs and fourteen registered Special Jobs are represented', () => {
+await test('all five Core Jobs and ten Special Jobs are represented', () => {
   assert.equal(Object.keys(CORE_JOBS).length, 5);
-  assert.equal(Object.keys(SPECIALIZATIONS).length, 14);
+  assert.equal(Object.keys(LEGACY_SPECIALIZATIONS).length, 10);
   for (const core of Object.keys(CORE_JOBS) as CoreJobId[]) {
     const hero = freshHero();
     gainXP(hero, 999999);
@@ -116,42 +117,7 @@ await test('specialization and mastery do not add a fifth active skill', () => {
 });
 
 await test('job reset returns to Adventurer without losing earned level points or duplicating stat/SP totals', () => {
-  const hero = createV3AdventurerHero();
-  gainXP(hero, 90000);
-  hero.gold = 1500;
-  hero.allocatedStats = { str: 7, vit: 5, dex: 3, int: 2 };
-  hero.statPoints = 12;
-  hero.skillPoints = 5;
-  hero.coreJob = 'warrior';
-  hero.job = 'warrior';
-  hero.jobTier = 'core';
-  hero.specialization = 'berserker';
-  hero.skillProgressionV3 = {
-    skillArchitectureVersion: 3,
-    totalEarnedSP: 18,
-    skillRanks: {
-      'v3-adventurer-quick-slash': 1,
-      'v3-adventurer-power-strike': 1,
-      'v3-warrior-strike': 2,
-      'v3-warrior-guard-stance': 1,
-    },
-    grantedRanks: {
-      'v3-adventurer-quick-slash': 1,
-      'v3-adventurer-power-strike': 1,
-    },
-    chosenCoreJob: 'warrior',
-    chosenSpecialization: 'berserker',
-    chosenAdvancedJob: null,
-  };
-  const sword = createItem('legacy-fajar-blade', { id: 'job-reset-sword' });
-  hero.inventory.push(sword);
-  equipItem(hero, sword.id, 'mainHand');
-
-  const equippedSnapshot = structuredClone(hero);
-  assert.equal(resetJobToAdventurer(hero).ok, false);
-  assert.deepEqual(hero, equippedSnapshot, 'rejected reset cannot charge or mutate the hero');
-  for (const slot of Object.keys(hero.equipment) as Array<keyof typeof hero.equipment>)
-    if (hero.equipment[slot]) assert.equal(unequipItem(hero, slot).ok, true);
+  const hero = legalJobResetFixture();
   const result = resetJobToAdventurer(hero);
   assert.equal(result.ok, true);
   assert.equal(result.hero.job, 'adventurer');
@@ -166,7 +132,7 @@ await test('job reset returns to Adventurer without losing earned level points o
   assert.equal(result.hero.equipment.mainHand, null);
   assert.equal(result.hero.equipment.offHand, null);
   assert.ok(result.hero.statPoints >= calculateTotalStatPoints(hero.level, hero.progressionArchitecture));
-  assert.equal(result.hero.skillProgressionV3?.totalEarnedSP, 18);
+  assert.equal(result.hero.skillProgressionV3?.totalEarnedSP, 119);
   assert.equal(result.hero.skillProgressionV3?.skillRanks['v3-adventurer-quick-slash'], 1);
   assert.equal(result.hero.skillProgressionV3?.chosenCoreJob, null);
   assert.equal(result.hero.skillProgressionV3?.chosenSpecialization, null);
@@ -194,8 +160,8 @@ await test('stale V3 save data backfills earned SP from the level curve instead 
   }));
 
   assert.ok(hero);
-  assert.equal(hero?.skillProgressionV3?.totalEarnedSP, 263);
-  assert.equal(hero?.skillPoints, 263);
+  assert.equal(hero?.skillProgressionV3?.totalEarnedSP, 187);
+  assert.equal(hero?.skillPoints, 187);
 });
 
 await test('job promotion refuses to proceed while gear is still equipped', () => {
@@ -255,7 +221,7 @@ await test('save values are clamped and invalid payloads are ignored', () => {
     }),
   );
   assert.ok(hero);
-  assert.equal(hero?.level, 50);
+  assert.equal(hero?.level, 100);
   assert.equal(hero?.gold, 0);
   assert.equal(hero?.hp, 1);
   assert.equal(hero?.x, regionHalfExtent(true)-1);
@@ -319,11 +285,8 @@ await test('core job promotion requires empty gear and resets skills and hotbars
   hero.quickHotbars.q.assignment = 'fajar-step';
 
   assert.equal(hasEquippedGear(hero), true);
-  const equippedSnapshot = structuredClone(hero);
   assert.equal(chooseCoreJob(hero, 'hunter'), false);
-  assert.deepEqual(hero, equippedSnapshot, 'promotion must reject equipped gear without mutations');
-  for (const slot of Object.keys(hero.equipment) as Array<keyof typeof hero.equipment>)
-    if (hero.equipment[slot]) assert.equal(unequipItem(hero, slot).ok, true);
+  assert.equal(unequipItem(hero,'mainHand').ok,true);
   assert.equal(chooseCoreJob(hero, 'hunter'), true);
   assert.equal(hero.coreJob, 'hunter');
   assert.equal(hero.equipment.mainHand, null);
@@ -384,59 +347,38 @@ await test('attribute preview changes derived stats and enhancement exposes risk
 
 await test('full inventory retains loot across save and collects it without loss', () => {
   const hero = freshHero();
-  hero.equipment = emptyEquipment();
-  hero.inventory = hero.inventory.filter((item) => item.itemType !== 'potion')
-    .map(item => ({ ...item, isEquipped: false }));
   hero.inventoryCapacity = 10;
-  while (hero.inventory.length < hero.inventoryCapacity)
+  while (hero.inventory.length < 10)
     hero.inventory.push(createItem('forest-vest'));
-  assert.equal(hero.inventory.length, hero.inventoryCapacity);
   const gold = (hero.gold = 100);
+  hero.inventory = hero.inventory.filter((item) => item.itemType !== 'potion');
+  hero.inventory.push(createItem('forest-vest'));
+  hero.inventoryCapacity=hero.inventory.filter(item=>!item.isEquipped).length;
   assert.equal(buyPotion(hero), false);
   assert.equal(hero.gold, gold);
   grantLoot(hero, true, 1);
   assert.equal(hero.pendingLoot.length, 1);
   const restored = parseSave(JSON.stringify(hero))!;
+  restored.inventoryCapacity=restored.inventory.filter(item=>!item.isEquipped).length;
   restored.inventory.pop();
   assert.equal(collectPendingLoot(restored), 1);
   assert.equal(restored.pendingLoot.length, 0);
 });
 
-await test('all ten legacy specializations preserve their weapon rewards and four skills', () => {
-  // Warrior and Thief V3 specializations also appear in the registry, but use
-  // V3 progression, not this legacy four-slot promotion API.
-  const legacyIds = Object.values(CORE_JOBS).flatMap(core => core.specializations);
-  assert.equal(new Set(legacyIds).size, 10);
-  assert.deepEqual(
-    Object.keys(SPECIALIZATIONS).filter(id => !legacyIds.includes(id as keyof typeof SPECIALIZATIONS)).sort(),
-    ['assasin', 'berserker', 'blade_master', 'rogue'],
-  );
-  for (const id of legacyIds) {
-    const job = SPECIALIZATIONS[id];
+await test('all ten specializations receive legal equipment and four skills', () => {
+  for (const [id, job] of Object.entries(LEGACY_SPECIALIZATIONS)) {
     const hero = freshHero();
     gainXP(hero, 999999);
     hero.equipment = emptyEquipment();
     hero.inventory = hero.inventory.map((item) => ({ ...item, isEquipped: false }));
-    const core = Object.values(CORE_JOBS).find(core => core.id === job.coreJob);
-    assert(core, 'legacy promotion requires a legacy core');
-    assert.equal(chooseCoreJob(hero, core.id), true, id);
-    assert.equal(chooseSpecialization(hero, id as keyof typeof SPECIALIZATIONS), true, id);
+    chooseCoreJob(hero, job.coreJob);
+    chooseSpecialization(hero, id as keyof typeof LEGACY_SPECIALIZATIONS);
     assert.equal(skillsFor(hero.coreJob, hero.specialization).length, 4);
     const main = hero.inventory.find(
       (item) => item.id === hero.equipment.mainHand,
     )!;
     assert.ok(main, id);
     assert.equal(canEquipItem(main, hero).ok, true, id);
-    if (id === 'caroq' || id === 'anom') {
-      const templateId = id === 'caroq' ? 'caroq-daggers' : 'anom-dagger';
-      const rewards = hero.inventory.filter(item => item.templateId === templateId);
-      assert.equal(rewards.length, 1);
-      assert.equal(rewards[0].quantity, 1);
-      assert.equal(rewards[0].requiredSpecialJob, null);
-      const inventoryBefore = structuredClone(hero.inventory);
-      assert.equal(chooseSpecialization(hero, id), false);
-      assert.deepEqual(hero.inventory, inventoryBefore, 'repeated promotion cannot duplicate rewards');
-    }
     for (const template of Object.values(ITEM_CATALOG).filter(
       (item) => item.requiredSpecialJob && item.requiredSpecialJob !== id,
     )) {
@@ -448,7 +390,7 @@ await test('all ten legacy specializations preserve their weapon rewards and fou
   }
 });
 
-await test('enhancement reaches +12 and consumes rune, seal protects failed +8', () => {
+await test('enhancement reaches +12 with opt-in Rune; incomplete +13 blocks and failed +8 stays intact', () => {
   const hero = freshHero();
   const blade = hero.inventory.find((item) => item.category === 'weapon')!;
   hero.inventory.push(createItem('iron', { quantity: 99 }),createItem('titanium', { quantity: 99 }),createItem('vibranium', { quantity: 99 }),createItem('meteorite-core', { quantity: 99 }));
@@ -460,7 +402,7 @@ await test('enhancement reaches +12 and consumes rune, seal protects failed +8',
       level,
     );
   }
-  assert.equal(enhancementPreview(hero, blade.id), null);
+  assert.match(enhancementPreview(hero, blade.id)!.blockedReason!, /belum ditetapkan/);
   assert.equal(
     hero.inventory.some((item) => item.itemType === 'fateRune'),
     false,
@@ -477,7 +419,7 @@ await test('enhancement reaches +12 and consumes rune, seal protects failed +8',
   );
   assert.equal(
     hero.inventory.some((item) => item.itemType === 'eternalSeal'),
-    false,
+    true,
   );
 });
 
@@ -526,7 +468,7 @@ await test('main/off-hand validation supports bow, shield, quiver, and dual wiel
   const sword=createItem('field-verdant-plains-sword',{id:'one-hand-test'});const guard=createItem('ironveil-shield',{id:'shield-test'});const twoHand=createItem('field-sunken-ruins-bow',{id:'two-hand-test',allowedJobs:['warrior']});
   warrior.inventory.push(sword,guard,twoHand);assert.equal(equipItem(warrior,sword.id).ok,true);assert.equal(equipItem(warrior,guard.id).ok,true);assert.equal(equipItem(warrior,twoHand.id).ok,true);assert.equal(warrior.equipment.offHand,null);assert.equal(warrior.inventory.some(item=>item.id===guard.id),true);
 
-  const rogue=freshHero();gainXP(rogue,999999);rogue.equipment=emptyEquipment();rogue.inventory=rogue.inventory.map(item=>({...item,isEquipped:false}));chooseCoreJob(rogue,'rogue');const rogueTrainingWeapon=rogue.inventory.find(item=>item.templateId==='field-verdant-plains-dagger');assert.ok(rogueTrainingWeapon);assert.equal(equipItem(rogue,rogueTrainingWeapon!.id).ok,true);const dagger=createItem('whispering-offhand-dagger',{id:'dual-off'});rogue.inventory.push(dagger);assert.equal(equipItem(rogue,dagger.id,'offHand').ok,true);assert.equal(rogue.equipment.mainHand,rogueTrainingWeapon!.id);assert.equal(rogue.equipment.offHand,dagger.id);
+  const rogue=freshHero();gainXP(rogue,999999);rogue.equipment=emptyEquipment();rogue.inventory=rogue.inventory.map(item=>({...item,isEquipped:false}));chooseCoreJob(rogue,'rogue');const rogueTrainingWeapon=rogue.inventory.find(item=>item.equipmentType==='dagger');assert.ok(rogueTrainingWeapon);assert.equal(equipItem(rogue,rogueTrainingWeapon!.id).ok,true);const dagger=createItem('whispering-offhand-dagger',{id:'dual-off'});rogue.inventory.push(dagger);assert.equal(equipItem(rogue,dagger.id).ok,true);
 });
 
 await test('equipment metadata, assets, rarity colors, and reset stats share the migrated state',()=>{

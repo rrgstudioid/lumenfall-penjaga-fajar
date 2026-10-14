@@ -32,7 +32,7 @@ export const CHARACTER_SLOTS: Array<{
 }> = [
   { id: 'head', label: 'Head', side: 'left' },
   { id: 'chest', label: 'Body Armor', side: 'left' },
-  { id: 'legs', label: 'Legs', side: 'left' },
+  { id: 'gloves', label: 'Gloves', side: 'left' },
   { id: 'boots', label: 'Boots', side: 'left' },
   { id: 'necklace', label: 'Necklace', side: 'left' },
   { id: 'earring1', label: 'Earring 1', side: 'left' },
@@ -69,19 +69,17 @@ export function previewEquipmentChange(
   item: ItemData,
   slot: EquipSlot,
 ) {
-  const previewHero = {
-    ...hero,
-    equipment: { ...hero.equipment },
-    inventory: [...hero.inventory],
-    petRecords: { ...hero.petRecords },
-  };
+  // Equip may mutate nested inventory/pet/source state. Keep both projections
+  // detached, including failed previews and the legacy CP read.
+  const beforeHero = structuredClone(hero);
+  const previewHero = structuredClone(hero);
   const validation = equipItem(previewHero, item.id, slot);
-  const beforePower = getCombatPower(hero);
+  const beforePower = getCombatPower(beforeHero);
   const afterPower = validation.ok ? getCombatPower(previewHero) : null;
   return {
     validation,
     hero: previewHero,
-    before: derivedStats(hero),
+    before: derivedStats(beforeHero),
     after: derivedStats(previewHero),
     combatPower: afterPower
       ? {

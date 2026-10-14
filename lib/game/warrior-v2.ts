@@ -697,7 +697,7 @@ export const WARRIOR_V2_PASSIVES: PassiveDefinition[] = [
     ]),
     {
       branch: 'precision',
-      description: 'Per rank: Accuracy +2 dan Critical Rate +0,5.',
+      description: 'Per rank: Accuracy +2 dan Critical Rate +0,5%.',
     },
   ),
   passive(
@@ -826,7 +826,7 @@ export const WARRIOR_V2_PASSIVES: PassiveDefinition[] = [
     {
       branch: 'twin_blade',
       description:
-        'Dengan dua one-hand sword, per rank: Accuracy +1 dan Critical Rate +0,5.',
+        'Dengan dua one-hand sword, per rank: Accuracy +1 dan Critical Rate +0,5%.',
     },
   ),
   passive('twin-blade-rhythm', 'Twin Blade Rhythm', 40, empty(3), {

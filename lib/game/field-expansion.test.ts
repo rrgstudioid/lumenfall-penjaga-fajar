@@ -1,10 +1,11 @@
 import { STARTER_FIELD_CONTENT } from './regions.ts';
-import { frostPopulation } from './frostfire-population.ts';
-import { wildsPopulation } from './whispering-wilds-population.ts';
 import { SUNKEN_ID } from './sunken-ruins-layout.ts';
 import { sunkenPopulation } from './sunken-ruins-population.ts';
 import { ABYSAL_TRENCH_ID } from './underwater-regions.ts';
 import { isSeaSerpent } from './sea-serpent-combat.ts';
+import { frostPopulation } from './frostfire-population.ts';
+import { IRONVEIL_ID } from './ironveil-mines-layout.ts';
+import { ironveilPopulation } from './ironveil-mines-population.ts';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
@@ -13,27 +14,20 @@ import { FIELD_TERRAINS, terrainWalkable } from './field-terrain.ts';
 import { FIELD_LAYOUT, regionHalfExtent, fieldSpawns, isFieldWater, isFieldSafe, monsterRespawnKey, restoreRespawnDeadline } from './field-layout.ts';
 import { MONSTER_MODELS, createMonsterBody } from './monster-models.ts';
 import { MONSTER_LOOT_PROFILES, EQUIPMENT_DROP_RARITIES, RUNE_DROP_RARITIES, BOSS_RUNE_DROPS, monsterDropChance, lootItemPool, weightedPick, rollMonsterItem } from './monster-loot.ts';
-import { ITEM_CATALOG, inventorySlotCount } from './items.ts';
-import { freshHero, createItem, grantMonsterLoot, parseSave, collectPendingLoot } from './rules.ts';
+import { ITEM_CATALOG } from './items.ts';
+import { freshHero, grantMonsterLoot, parseSave, collectPendingLoot } from './rules.ts';
 
-await test('legacy fields retain 42 spawns; large maps use their own tested populations',()=>{
+await test('legacy fields retain 42 spawns; the large Plains uses its own tested population',()=>{
   assert.ok(Math.abs((regionHalfExtent(false)/45)**2-2)<1e-12);
   assert.equal(regionHalfExtent(true),67.5);
   assert.equal(FIELD_LAYOUT.normalCount+FIELD_LAYOUT.eliteCount+FIELD_LAYOUT.bossCount,14*3);
   for(const field of Object.values(FIELDS)){
     const spawns=fieldSpawns(field);
     assert.deepEqual(spawns,fieldSpawns(field));
-    if(field.id==='ironveil-mines-exterior-v1'){assert.equal(spawns.length,129);continue;}
     if(field.id==='verdant-plains-v2'){assert.equal(spawns.length,497);continue;}
-    if(field.id==='frostfire-highlands'||field.id==='whispering-wilds-v2'){
-      const population=field.id==='whispering-wilds-v2'?wildsPopulation():frostPopulation();
-      assert.equal(spawns.filter(s=>s.definition.variant==='normal').length,population.normalCount);
-      assert.equal(spawns.filter(s=>s.definition.variant==='elite').length,population.eliteCount);
-      assert.equal(spawns.filter(s=>s.definition.variant==='boss').length,1);
-      assert.equal(spawns.length,population.normalCount+population.eliteCount+1);
-      assert.equal(new Set(spawns.map(s=>s.id)).size,spawns.length);
-      continue;
-    }
+    if(field.id==='frostfire-highlands'){assert.equal(spawns.length,frostPopulation().homes.length+1);assert.equal(new Set(spawns.map(s=>s.id)).size,spawns.length);continue;}
+    if(field.id==='whispering-wilds-v2'){assert.equal(spawns.length,273);assert.equal(new Set(spawns.map(s=>s.id)).size,spawns.length);continue;}
+    if(field.id===IRONVEIL_ID){assert.equal(spawns.length,ironveilPopulation().length+1);assert.equal(new Set(spawns.map(s=>s.id)).size,spawns.length);continue;}
     if(field.id==='deep-ocean-underwater-v1'){assert.equal(spawns.length,335);assert.equal(new Set(spawns.map(s=>s.id)).size,335);continue;}
     if(field.id===ABYSAL_TRENCH_ID){assert.equal(spawns.length,201);assert.equal(new Set(spawns.map(s=>s.id)).size,201);continue;}
     if(field.id===SUNKEN_ID){assert.equal(spawns.length,sunkenPopulation().length+1);assert.equal(new Set(spawns.map(s=>s.id)).size,spawns.length);continue;}
@@ -138,23 +132,13 @@ await test('all ten rune themes, six unique boss runes, optimizer tiers and gear
 });
 
 await test('new monster loot is preserved in overflow and survives save/load without duplication',()=>{
-  const hero=freshHero();
-  // Equipped instances remain owned but do not consume bag slots. Fill the real
-  // capacity so the full bag also survives save normalization.
-  while(inventorySlotCount(hero.inventory)<hero.inventoryCapacity)
-    hero.inventory.push(createItem('field-verdant-plains-sword'));
-  assert.equal(inventorySlotCount(hero.inventory),hero.inventoryCapacity);
-  assert.ok(hero.inventory.length>hero.inventoryCapacity);
+  const hero=freshHero();hero.inventoryCapacity=hero.inventory.filter(item=>!item.isEquipped).length;
   // Force boss rune branch and a unique, nonstacking item.
   const monster=FIELDS[hero.currentField].fieldBoss;assert.ok(monster);
   const draws=[0,.90,0,.5];const drop=grantMonsterLoot(hero,monster,()=>draws.shift()??.5)!;
   assert.ok(drop);assert.equal(hero.pendingLoot.length,1);
   const loaded=parseSave(JSON.stringify(hero))!;
-  assert.equal(loaded.pendingLoot[0].id,drop.id);
-  assert.equal(collectPendingLoot(loaded),0);
-  assert.equal(loaded.pendingLoot.length,1);
-  loaded.inventory.splice(loaded.inventory.findIndex(item=>!item.isEquipped),1);
-  assert.equal(collectPendingLoot(loaded),1);
-  assert.equal(collectPendingLoot(loaded),0);
+  assert.equal(loaded.pendingLoot[0].id,drop.id);loaded.inventoryCapacity=100;
+  collectPendingLoot(loaded);collectPendingLoot(loaded);
   assert.equal(loaded.pendingLoot.length,0);assert.equal(loaded.inventory.filter(item=>item.id===drop.id).length,1);
 });

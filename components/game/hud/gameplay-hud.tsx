@@ -50,7 +50,6 @@ import { HotbarLayer } from '../drag-drop-provider';
 import { BuffTray } from './buff-tray';
 import { ChatPanel } from '../chat/chat-panel';
 import { HUDFrame, HUDLayoutProvider } from './hud-layout';
-import { FPSCounter } from './fps-counter';
 
 const PlayerStatusCard = memo(function PlayerStatusCard({
   hero,
@@ -496,9 +495,6 @@ export function GameplayHUD({
               <Minus size={16} />
             </button>
           </div>
-        </HUDFrame>
-        <HUDFrame id="fps" label="FPS" className="hud-fps" textOnly resizable={false}>
-          {visible && <FPSCounter game={game} />}
         </HUDFrame>
         <HUDFrame
           id="buff"

@@ -17,7 +17,7 @@ function core(job: 'thief' | 'warrior', level = 30): Hero {
   return hero;
 }
 
-void test('Adventurer exposes no unchosen lineage, even at specialization level', () => {
+await test('Adventurer exposes no unchosen lineage, even at specialization level', () => {
   const hero = createV3AdventurerHero('new-ui', 'New');
   for (const level of [1, 15, 60]) {
     hero.level = level;
@@ -28,9 +28,9 @@ void test('Adventurer exposes no unchosen lineage, even at specialization level'
   }
 });
 for (const job of ['warrior', 'thief'] as const) {
-  void test(`${job} sidebar shows only its ancestry and contextual specialization`, () => {
+  await test(`${job} sidebar shows only its ancestry and contextual specialization`, () => {
     const hero = core(job);
-    const names = job === 'thief' ? ['Adventurer', 'Thief', 'Rogue / Assasin'] : ['Adventurer', 'Warrior', 'Berserker / Blade Master'];
+    const names = job === 'thief' ? ['Adventurer', 'Thief', 'Rogue / Assassin'] : ['Adventurer', 'Warrior', 'Berserker / Blade Master'];
     assert.deepEqual(getJobProgression(hero).map(s => s.name), names);
     assert.deepEqual(getJobProgression(hero).map(s => s.status), ['Completed', 'Current', 'Locked']);
     hero.level = 60;
@@ -42,7 +42,7 @@ for (const job of ['warrior', 'thief'] as const) {
   });
 }
 for (const specialization of ['berserker', 'blade_master', 'rogue', 'assasin'] as const) {
-  void test(`${specialization} selected stage binds its own nine-skill registry`, () => {
+  await test(`${specialization} selected stage binds its own nine-skill registry`, () => {
     const hero = core(specialization === 'rogue' || specialization === 'assasin' ? 'thief' : 'warrior', 60);
     assert(chooseSpecialization(hero, specialization));
     assert.deepEqual(getJobProgression(hero).map(s => s.status), ['Completed', 'Completed', 'Current']);
@@ -52,7 +52,7 @@ for (const specialization of ['berserker', 'blade_master', 'rogue', 'assasin'] a
     assert.equal(getJobSkillNodes(hero, 'adventurer').active.length, 3);
   });
 }
-void test('Thief tree contains all nine families; learned family resolves in loadout without mutation', () => {
+await test('Thief tree contains all nine families; learned family resolves in loadout without mutation', () => {
   const hero = core('thief');
   assert(learnSkill(hero, 'v3-thief-quick-stab'));
   const before = JSON.stringify(hero);
@@ -63,7 +63,7 @@ void test('Thief tree contains all nine families; learned family resolves in loa
   assert.equal(resolvePrimaryHotbarEntry(hero, heroFamilyHotbarBinding(hero, 'v3-thief-quick-stab'))?.id, 'v3-thief-quick-stab');
   assert.equal(JSON.stringify(hero), before);
 });
-void test('UI registry follows saved progression rather than defaulting stale mirrors to Warrior', () => {
+await test('UI registry follows saved progression rather than defaulting stale mirrors to Warrior', () => {
   const hero = core('thief');
   hero.coreJob = 'warrior'; // Read-only presentation must not change/repair the actor.
   assert.equal(getJobProgression(hero)[1].name, 'Thief');

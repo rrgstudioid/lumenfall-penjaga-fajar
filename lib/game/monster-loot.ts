@@ -36,7 +36,7 @@ export function monsterDropChance(monster:Pick<MonsterDefinition,'dropRate'>,ite
 }
 export function equipmentDropPool(fieldId:string,specialization:string|null=null):Weighted<string>[] {
   const field=fieldContent(fieldId);
-  return Object.values(ITEM_CATALOG).filter(item=>['weapon','armor','accessory'].includes(item.category)&&item.equipSlot&&!item.isQuestItem&&!item.isSoulbound&&item.source.sourceId!=='aruna-developer-materials'&&
+  return Object.values(ITEM_CATALOG).filter(item=>item.templateId!=='dragon-veil-wings'&&['weapon','armor','accessory'].includes(item.category)&&item.equipSlot&&!item.isQuestItem&&!item.isSoulbound&&
     item.levelRequirement<=field.maxLevel&&(!item.requiredSpecialJob||item.requiredSpecialJob===specialization)&&
     (!item.templateId.startsWith('field-')||item.templateId.startsWith(`field-${field.id}-`)))
     .map(item=>({value:item.templateId,weight:item.templateId.startsWith('field-')?3:1}));

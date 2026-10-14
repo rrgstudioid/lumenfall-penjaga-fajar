@@ -1,0 +1,42 @@
+LUMENFALL — POWER STRIKE R1 REFERENCE ACTOR: OWNER ACC
+Dicatat Garda, 9 Oktober 2026, Asia/Jakarta.
+STATUS: PS-ACTOR-01 CLOSED / BOUNDED INTEGRATION AUTHORIZED BY NEXT PROMPT.
+
+KEPUTUSAN LANGSUNG
+Sesudah membaca laporan Power Strike R1 readiness, Garda mengusulkan reference:
+Adventurer Lv2 netral; primary tetap15; dua stat point belum dialokasikan;
+Quick Slash R1 free grant; Power Strike R1 dibeli dengan1SP lewat progression
+normal; Training Sword+0 MAIN, OFF dan sumber bonus lain kosong.
+Garda menjelaskan bahwa Lv2 bukan perubahan unlock gate, melainkan konteks fresh
+character paling awal yang memiliki SP untuk membeli Power Strike R1.
+Jawaban langsung OWNER: "ok aku ACC, lanjutkan".
+
+INPUT REFERENCE YANG DIPILIH
+- Adventurer V3 Lv2, belum memilih Core/Specialization/Advanced.
+- Base/effective STR/VIT/DEX/INT15, allocation0; statPoints2 belum dibelanjakan.
+- Quick Slash R1 tetap rank1/granted1; Minor Heal rank0.
+- Sebelum Power purchase: earnedSP1/spent0/available1.
+- Sesudah purchase: Power rank1 paid, canonical/mirror1, grant absent atau0
+  menurut schema existing; earnedSP1/spent1/available0. Jangan membuat grant1.
+- Actual owned Training Sword+0 MAIN, template field-verdant-plains-sword;
+  Lv1/Common/one_hand_sword, OFF/gear/options/passive/buff bonus lain kosong.
+
+DERIVASI, BUKAN TUNING BARU
+BasePhysical(level)=7+floor(level*1.1) berasal dari OWNER CFV3-1 section5:
+C:/Users/USER/.codex/attachments/4a8304b3-06dc-4d76-aeb3-8844d1fdbf2d/Pasted text.txt.
+Pada Lv2, BasePhysical9; BonusSTR0; core kSTR1. BASE weapon range[9,11] tetap
+authoring yang sudah ACC; enhancement/contribution1 pada+0; jangan kalikan.90 lagi.
+Attack[18,20]; C_R1=1.20; explicit BonusSTR coefficient.04 yang sudah ACC.
+Raw=AttackPhysical(MAIN,u)*1.20+BonusSTR*.04; raw range[21.6,24].
+u=.5 menghasilkan22.8; u=.25 menghasilkan22.2. Ini RAW, bukan final HP damage.
+
+BATAS
+UnlockLevel tetap1, cost tetap1SP, Mana5/baseCD6s/range3.8/satu hit MAIN.
+Tidak mengubah starter grants, SP/stat economy, job progression atau catalog.
+Tidak ada separate skill BaseRoll, factor4/6/8/10, second RankPowerFactor atau
+compensation multiplier pada selected formula baru. Penghapusan tetap bertahap.
+Readiness run-01 dan PS-ACTOR-01 BLOCKED tetap historical sebelum ACC ini;
+jangan menimpa report/input/evidence lama. Coefficient ACC terdahulu tetap utuh.
+ACC tidak mengaktifkan Power ranks2–5, Quick ranks2–5, Minor Heal, UI/CP,
+default production migration, class lain atau publish/Git writes.
+Catatan ini bukan source implementation atau test/runtime PASS baru.

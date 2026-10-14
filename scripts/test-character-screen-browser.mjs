@@ -30,6 +30,7 @@ hero.allocatedStats = { str: 35, vit: 25, dex: 15, int: 8 };
 hero.statPoints = 6;
 for (const id of [
   'arunika-head',
+  'arunika-gloves',
   'arunika-legs',
   'arunika-boots',
   'arunika-ring1',

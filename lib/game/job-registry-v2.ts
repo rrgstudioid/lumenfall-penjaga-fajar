@@ -15,7 +15,7 @@ const branches = [
     'Thief',
     [
       ['rogue', 'Rogue', 'spectre', 'Spectre'],
-      ['assasin', 'Assasin', 'reaper', 'Reaper'],
+      ['assasin', 'Assassin', 'reaper', 'Reaper'],
     ],
   ],
   [
@@ -75,7 +75,13 @@ export type JobV2Definition = Readonly<{
   architectureVersion: 2;
   playable: false;
   activation: 'inactive' | 'future_locked';
+  referenceStatus: 'LOCK' | 'UNRESOLVED';
+  legacyName?: string;
+  primaryPath?: 'INT' | 'STR';
+  role?: string;
+  jobLevelCap: number | null;
 }>;
+const unresolved = new Set(['gladiator','warlock','arcanist','mastersmith','siege']);
 const definitions: JobV2Definition[] = [];
 const add = (
   id: JobV2Id,
@@ -86,7 +92,12 @@ const add = (
   definitions.push(
     Object.freeze({
       id,
-      name,
+      name: unresolved.has(id) ? 'Belum ditetapkan' : name,
+      ...(unresolved.has(id) ? { legacyName: name } : {}),
+      referenceStatus: unresolved.has(id) ? 'UNRESOLVED' : 'LOCK',
+      jobLevelCap: tier === 1 ? 15 : tier === 2 ? 60 : null,
+      ...(id === 'ranger' ? { primaryPath: 'INT' as const } : id === 'marksman' ? { primaryPath: 'STR' as const } : {}),
+      ...(id === 'phalanx' ? { role: 'Semi-tank DPS / Spear' } : {}),
       tier,
       parent,
       architectureVersion: 2,
@@ -110,6 +121,7 @@ export const JOB_V2_REGISTRY: Readonly<Record<JobV2Id, JobV2Definition>> =
     >,
   );
 export function getJobV2(id: string): JobV2Definition | undefined {
+  if (id === 'assassin') id = 'assasin'; // stable save ID
   return Object.hasOwn(JOB_V2_REGISTRY, id)
     ? JOB_V2_REGISTRY[id as JobV2Id]
     : undefined;

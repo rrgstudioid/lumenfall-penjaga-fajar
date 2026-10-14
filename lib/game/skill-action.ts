@@ -1,3 +1,4 @@
+import { resolveCastTiming } from './cast-timing.ts';
 import {
   skillCombatScaling,
   type SkillDefinition,
@@ -167,9 +168,7 @@ export function resolveSkillAction(
     }
   const damageType =
     skill.damageType ?? (explicit ? 'physical' : legacy.damageType);
-  // V3 skills declare their extra rank factor. Older rank tables already own
-  // their scaling; an implicit +5% here would multiply that scaling again.
-  const rankPowerFactor = skill.rankPowerFactorByRank?.[rank - 1] ?? 1;
+  const rankPowerFactor = skill.rankPowerFactorByRank?.[rank - 1] ?? (1 + (rank - 1) * 0.05);
   const damageMultiplier =
     ((explicit ? 1 : 1 + (rank - 1) * 0.12) *
     context.masteryPower *
@@ -185,6 +184,13 @@ export function resolveSkillAction(
     hits = hits.map(hit => ({ ...hit, sharedContributionWeight: hit.sharedContributionWeight ??
       (total > 0 ? safe(hit.physicalCoefficient) / total : 1 / hits.length) }));
   }
+  // Sequence coefficients partition the cast budget, never repeat it per hit.
+  const normalizeBudget = (key: 'physicalCoefficient' | 'magicCoefficient' | 'skillPowerCoefficient') => {
+    const total = hits.reduce((sum, hit) => sum + safe(hit[key]), 0);
+    if (total > 0 && values[key] > 0) hits = hits.map(hit => ({ ...hit, [key]: safe(hit[key]) / total * values[key] }));
+  };
+  normalizeBudget('physicalCoefficient'); normalizeBudget('magicCoefficient'); normalizeBudget('skillPowerCoefficient');
+  const castTiming = resolveCastTiming(skill.castTiming, values.cooldown * context.masteryCooldown, context.stats.cooldownReduction, {castStat:context.stats.castStat,variablePercent:context.stats.variableCastReduction,fixedPercent:context.stats.fixedCastReduction});
   const baseDamageRollMin = safe(skill.baseDamageMinByRank?.[rank - 1], 0);
   const baseDamageRollMax = safe(skill.baseDamageMaxByRank?.[rank - 1], 0);
   const skillPowerFactor = safe(skill.skillPowerFactor, 0);
@@ -200,14 +206,14 @@ export function resolveSkillAction(
       const share = corePower !== null ? (corePower * ((hit.sharedContributionWeight ?? 1) / totalWeight)) : 0;
       const baseComponent = hasSkillBaseDamage ? share : safe(hit.baseDamage);
       return {
-        delay: safe(hit.delay),
+        delay: safe(hit.delay) + castTiming.castDelay,
         // Explicit V3 stat scaling is resolved exactly once into the hit's flat
         // portion. This keeps it separate from CFV3 physical weapon attack.
         baseDamage: baseComponent +
           ((statScaling.str ?? 0) * (context.primaryStats?.str ?? 0) +
           (statScaling.vit ?? 0) * (context.primaryStats?.vit ?? 0) +
           (statScaling.dex ?? 0) * (context.primaryStats?.dex ?? 0) +
-          (statScaling.int ?? 0) * (context.primaryStats?.int ?? 0)) * (hit.sharedContributionWeight ?? 1),
+          (statScaling.int ?? 0) * (context.primaryStats?.int ?? 0)) * ((hit.sharedContributionWeight ?? 1) / totalWeight),
         physicalCoefficient: safe(hit.physicalCoefficient),
         magicCoefficient: safe(hit.magicCoefficient),
         skillPowerCoefficient: safe(hit.skillPowerCoefficient),
@@ -215,7 +221,7 @@ export function resolveSkillAction(
           safe(hit.knockbackStrength, values.knockbackStrength),
         damageType,
         damageMultiplier,
-        canCrit: skill.canCrit ?? false,
+        canCrit: damageType === 'physical' && (skill.canCrit ?? false),
         criticalRate: context.stats.criticalRate,
         criticalDamage: context.stats.criticalDamage,
         accuracy: context.stats.accuracy,
@@ -236,6 +242,7 @@ export function resolveSkillAction(
     targetModifiers: [],
     counterContext: context.combat?.counter ?? NO_COUNTER,
     ...values,
+    castTiming: { vct: castTiming.vct, fct: castTiming.fct, chargeTime: castTiming.chargeTime },
     areaRadius: values.radius,
     skillId: skill.id,
     rank,
@@ -245,9 +252,7 @@ export function resolveSkillAction(
       Math.ceil(values.manaCost * (1 - context.stats.manaCostReduction / 100)),
     ),
     cooldown:
-      values.cooldown *
-      context.masteryCooldown *
-      (1 - Math.min(0.3, context.stats.cooldownReduction / 100)),
+      castTiming.cooldown,
     tags: [...new Set(tags)],
     statuses,
     damageMultiplier,

@@ -1,5 +1,6 @@
 'use client';
 import { JobText } from './job-presentation-context';
+import { statDisplayLabel, statDisplayValue, statBonusText } from '@/lib/game/stat-presentation';
 
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { Hammer, ShieldCheck } from 'lucide-react';
@@ -27,17 +28,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 
-const statLabel = (key: string) =>
-  ({
-    hp: 'HP',
-    maxMana: 'Max MP',
-    str: 'STR',
-    dex: 'DEX',
-    int: 'INT',
-    sta: 'VIT',
-  })[key] ??
-  key.replace(/([A-Z])/g, ' $1').replace(/^./, (c) => c.toUpperCase());
-const number = (value: number | undefined) => Number((value ?? 0).toFixed(2));
+const statLabel = statDisplayLabel;
 
 /** Presentation over the existing inventory and enhancement transaction; no copied equipment state. */
 export function ForgePanel({
@@ -165,7 +156,7 @@ export function ForgePanel({
             </p>}
             {result.before && result.after && result.attempted && <dl className="forge-result-stats">
               {Object.entries(itemStats(result.before)).filter(([key, value]) => value !== itemStats(result.after!)[key as keyof StatBlock]).map(([key, value]) => (
-                <div key={key}><dt>{statLabel(key)}</dt><dd>{number(value)} → {number(itemStats(result.after!)[key as keyof StatBlock])}</dd></div>
+                <div key={key}><dt>{statLabel(key)}</dt><dd>{statDisplayValue(key, value!, false)} → {statDisplayValue(key, itemStats(result.after!)[key as keyof StatBlock] ?? 0, false)}</dd></div>
               ))}
             </dl>}
             <small>{result.uncertain ? 'Jangan ulangi percobaan sebelum memeriksa inventory.' : result.attempted ? 'Bahan dan hasil equipment sudah diperbarui. Biaya: 0 GOLD.' : 'Tidak ada bahan atau GOLD yang digunakan.'}</small>
@@ -266,8 +257,8 @@ export function ForgePanel({
                     <div key={key}>
                       <dt>{statLabel(key)}</dt>
                       <dd>
-                        {number(value)} <span>→</span>{' '}
-                        {number(next[key as keyof StatBlock])}
+                        {statDisplayValue(key, value!, false)} <span>→</span>{' '}
+                        {statDisplayValue(key, next[key as keyof StatBlock] ?? 0, false)}
                       </dd>
                     </div>
                   ))}
@@ -278,11 +269,11 @@ export function ForgePanel({
                 <p>
                   Base:{' '}
                   {Object.entries(selected.baseStats)
-                    .map(([key, value]) => `${statLabel(key)} ${number(value)}`)
+                    .map(([key, value]) => statBonusText(key, value!))
                     .join(' · ') || '—'}
                 </p>
-                <p>{selected.uniqueStatsLocked ? 'Unique Stats tersembunyi · Gunakan Arcane Magnifier.' : 
-                  'Unique Stats: ' + (Object.entries(selected.bonusStats).map(([key, value]) => statLabel(key)+' '+number(value)).join(' · ') || '—')}</p>
+                <p>{selected.uniqueStatsLocked ? 'Unique Stats tersembunyi · Gunakan Arcane Magnifier.' :
+                  'Unique Stats: ' + (Object.entries(selected.bonusStats).map(([key, value]) => statBonusText(key, value!)).join(' · ') || '—')}</p>
                 <p>
                   Socket:{' '}
                   {selected.sockets
@@ -295,7 +286,7 @@ export function ForgePanel({
                     <span>
                       Socket {index + 1}:{' '}
                       <JobText>{socket.rune
-                        ? `${socket.rune.name} (${socket.rune.runeRarity}) — ${socket.rune.affixes.map((a) => `${a.label} +${a.value}${a.unit === 'percent' ? '%' : ''}`).join(' · ')}`
+                        ? `${socket.rune.name} (${socket.rune.runeRarity}) — ${socket.rune.affixes.map((a) => statBonusText(a.stat, a.value)).join(' · ')}`
                         : 'Kosong'}</JobText>
                     </span>
                   </ItemHover>
@@ -334,19 +325,16 @@ export function ForgePanel({
                   <p className="forge-risk">
                     {preview.protectedBySeal && <ShieldCheck size={15} />}{' '}
                     {preview.risk}
-                    {!preview.protectedBySeal && selected.enhancementLevel + 1 >= 9
-                      ? ' Rune dalam socket juga hilang jika equipment hancur.'
-                      : ''}
+
                   </p>
                   <small>
-                    Material tetap terpakai saat gagal. Eternal Seal hanya
-                    terpakai ketika toggle perlindungan aktif dan melindungi kegagalan.
+                    Material tetap terpakai saat gagal. Item, Rune, dan level enhancement tetap. Eternal Seal tidak terpakai.
                   </small>
                   <label className="forge-seal-toggle" aria-label="Gunakan Eternal Seal">
                     <input
                       type="checkbox"
-                      checked={useSeal && hasSeal}
-                      disabled={Boolean(processing) || !hasSeal}
+                      checked={false}
+                      disabled={true}
                       onChange={(event) => {
                         const enabled = event.target.checked;
                         setUseSeal(enabled);
@@ -358,7 +346,7 @@ export function ForgePanel({
                       <small>
                         {hasSeal
                           ? useSeal
-                            ? 'Perlindungan aktif.'
+                            ? 'Item selalu terlindungi; Seal tidak terpakai.'
                             : 'Enhancement tidak akan memakai Seal.'
                           : 'Tidak ada Eternal Seal di inventory.'}
                       </small>
@@ -428,7 +416,7 @@ export function ForgePanel({
             <AlertDialogTitle>Konfirmasi tempa equipment</AlertDialogTitle>
             <AlertDialogDescription>
               <JobText>{confirmationValid && selected && preview
-                  ? `$<JobText>{selected.name}</JobText> +${selected.enhancementLevel} → +${selected.enhancementLevel + 1}. Peluang sukses ${Math.round(preview.finalChance * 100)}%. Biaya ${preview.materialRequired} ${material?.name}, 0 GOLD.${preview.runeBonus ? ' Fate Rune terpakai dan menambah +8% success chance.' : ' Fate Rune tidak dipakai.'} ${preview.risk}${!preview.protectedBySeal && selected.enhancementLevel + 1 >= 9 ? ' Equipment beserta Rune terpasang akan hilang jika gagal.' : ''} Material tetap terpakai saat gagal.`
+                  ? `$<JobText>{selected.name}</JobText> +${selected.enhancementLevel} → +${selected.enhancementLevel + 1}. Peluang sukses ${Math.round(preview.finalChance * 100)}%. Biaya ${preview.materialRequired} ${material?.name}, 0 GOLD.${preview.runeBonus ? ' Fate Rune terpakai dan menambah +8% success chance.' : ' Fate Rune tidak dipakai.'} ${preview.risk} Material tetap terpakai saat gagal.`
                 : blocked ||
                   'Equipment berubah. Batalkan dan periksa preview kembali.'}</JobText>
             </AlertDialogDescription>

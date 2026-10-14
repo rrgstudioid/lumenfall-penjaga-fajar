@@ -1,0 +1,61 @@
+LUMENFALL — PACKAGE B DIAGNOSTIC CONTRACT / IMPLEMENTATION ACC
+Local conversation record — 10 Oktober 2026, Asia/Jakarta
+
+DIRECT OWNER RESPONSE: "ok lanjut".
+Immediate context: Garda recommended ACC B1/B2/B3 as proposed, B4 component
+comparison with composite weights remaining HOLD, then one combined checkpoint
+for EHP evaluator, shared offense/Heal scenario, preview, lifecycle and local browser.
+Garda explained Chance60/Efficiency30, equal raw incoming envelope, fractional
+incoming, 29 landed packets in30s, and full-capacity Heal trigger/shared budget.
+Garda also explained that lower usable healing can reflect stronger defenses.
+
+This is a local record of the direct conversation. The detailed package wording
+is context for the short OWNER response, not an invented longer OWNER quotation.
+
+APPROVED SCOPE
+- B1 initial diagnostic contract: Chance cap60%, fixed Efficiency30%, no Efficiency
+  bonuses; no eligible Chance source =>0; missing/unsupported source => unavailable.
+  Qualified physical DIRECT blockable only. Source correlation/deduplication and
+  active/passive distinctions as identified proposal. Current admitted cohort has
+  no Block source; math fixtures do not authorize shield/other-class builds.
+- B2 passive physical/hypothetical-magic EHP, matched level, incoming envelope
+  [7+floor(1.1L)+9,7+floor(1.1L)+11], uniform, pen0/Crit0; current fractional
+  incoming policy. Physical flat Evasion cap50%, magic no avoidance/Crit/Block;
+  supported DR once. EHP=MaxHP*Eraw/Einflicted, geometric once, no hidden floor.
+- B3 physical and hypothetical magic landed traces independently, horizon30s,
+  midpoint packets at seconds1..29, full modelHP/Mana/readyCD. Heal full missing
+  capacity trigger with priority and one resource/time ledger. Freeze A winning
+  damage subset then regenerate schedule; death terminal and totals divided by30.
+- B4 dimensional component outputs and same-level/same-scenario legal deltas.
+- One implementation checkpoint with pure diagnostic integration/preview, tests,
+  actual existing consumer checks and final-source Full Home local browser.
+
+IDENTIFIED SOURCE PACKAGE
+Root outputs/gameplay-migration/cp-package-b-contract-reconciliation/run-01/
+PACKAGE_B_CONTRACT_PROPOSAL.txt
+SHA256 a0629305e3d7672e80e399824fee56f341788754887933d83eff2af467ec2aa4
+PACKAGE_B_CONTRACT_PROPOSAL.json
+SHA256 97c953c7213d807b6da4f36226183423a45089356327d1da424a7e47ff900b09
+OWNER_REVIEW_SUMMARY.txt
+SHA256 46c69024aed673830fd046914c2a1866cd2fd72890e8a7e6889888b37b2eac9e
+Q6_ORDERING_AND_SOURCE_CONTRACT.txt
+SHA256 e15d502fc1ea6a70b111540f22290ba571bf74571debdc286f730dc4ae6df9c2
+INCOMING_EHP_CONTRACT.txt
+SHA256 5faebd9c79bbf32d964b7d5b18a0854693d4c1b7a038da4c78502b27ae3804e9
+SUSTAIN_SHARED_RESOURCE_CONTRACT.txt
+SHA256 568b99691b8f4d6052b26279e519bdeb91150603249bbc1c85ab9ffcb742acfe
+COMPOSITE_DEPENDENCY_MAP.txt
+SHA256 de6771554df70a29acab57131d0575bb66c8b7c48a47c390de75dee6e66a0380
+
+RETAINED HOLDS / EXCLUSIONS
+B1-04 Efficiency growth/caps/new sources, B3-08 shield cohort/source/lifetime,
+B4-03 composite weights/scales/caps and B4-05 utility/proc numeric remain HOLD.
+No approval of alternatives cap50/integer incoming/new threat list or emergency
+partial-Heal policy. Existing fullHP gameplay cast behavior remains unchanged.
+No gameplay Q6 migration: no actual hurtHero cap/eligibility/rounding changes,
+new magic monster channel, item/class admission expansion or new shield/HPregen.
+No change to Package A policy, current playerCP or default production activation.
+No commit/push/merge/rebase/reset/stash/checkout/publish/deploy/chat messaging.
+Original proposals/reports remain historical; this addendum closes applicability
+only for the specific diagnostic package and implementation scope above.
+FullCP/Phase14 remain BELUM LULUS / BELUM RELEASE-READY.

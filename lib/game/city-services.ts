@@ -2,21 +2,14 @@ import {addItemToInventory,createItem,ITEM_CATALOG,POTION_IDS,removeItemQuantity
 import {maxHP,derivedStats,restoreMana,type Hero} from './rules.ts';
 import {FIELDS, WORLD_CONFIG, fieldContent} from './regions.ts';
 import { isResourceEnabled } from './gameplay-config.ts';
-export function shopStock(service:string) {
- return Object.values(ITEM_CATALOG).filter(item => {
-  if (item.equipmentType === 'gloves') return false;
-  const developer = item.source.sourceId === 'aruna-developer-materials';
-  return service === 'developer-materials' ? (item.category === 'material' || item.itemType === 'eternalSeal' || developer)
-    : service === 'equipment' ? !developer && ['weapon','armor','accessory'].includes(item.category)
-    : service === 'seal' ? ['fateRune','eternalSeal'].includes(item.itemType)
-    : service === 'consumable' ? ['consumable','potion'].includes(item.category) : false;
- });
+export function shopStock(hero:Hero,service:string) {
+ return Object.values(ITEM_CATALOG).filter(item=>service==='developer-materials'?(item.category==='material'||item.itemType==='eternalSeal'||item.templateId==='dragon-veil-wings'||item.templateId==='developer-level-100-potion'):service==='equipment'?item.templateId!=='dragon-veil-wings'&&['weapon','armor','accessory'].includes(item.category):service==='seal'?['fateRune','eternalSeal'].includes(item.itemType):service==='consumable'?item.templateId!=='developer-level-100-potion'&&['consumable','potion'].includes(item.category):false);
 }
 export function shopItemPrice(item:Pick<ItemData,'buyValue'|'sellValue'|'levelRequirement'>,service:string) {
  return service==='developer-materials'?0:item.buyValue||Math.max(60,item.sellValue*4+item.levelRequirement*5);
 }
 export function fieldShopStock(fieldId:string) {
- const field=FIELDS[fieldId]; if(!field) return [];
+ const field=FIELDS[fieldId]??Object.values(FIELDS).find(candidate=>candidate.contentFamilyId===fieldId); if(!field) return [];
  return Object.values(ITEM_CATALOG).filter(item => [...POTION_IDS,'arrows','rice-meal'].includes(item.templateId) || (item.templateId.startsWith(`field-${fieldContent(fieldId).id}-`) && (item.category==='weapon'?item.rarity==='common':item.rarity==='normal') && item.levelRequirement>=field.minLevel && item.levelRequirement<=field.maxLevel));
 }
 export function buyFieldShopItem(hero:Hero,fieldId:string,templateId:string,quantity=1) {
@@ -44,7 +37,7 @@ export function sellInventoryItem(hero:Hero,itemId:string,quantity:number,allowe
  return {ok:true,reason:'Item berhasil dijual',earned};
 }
 export function buyShopItem(hero:Hero,templateId:string,service:string,quantity=1) {
- const template=shopStock(service).find(item=>item.templateId===templateId);
+ const template=shopStock(hero,service).find(item=>item.templateId===templateId);
  if(!hero.inCity||!template) return {ok:false,reason:'Item tidak tersedia di toko ini.'};
  const amount=Math.max(1,Math.floor(quantity));
  const price=shopItemPrice(template,service)*amount;

@@ -26,10 +26,11 @@ await test('clean break rejects pre-break saves without deleting their parsed da
   assert.equal(old?.gold, 123);
 });
 
-await test('new character creation is V2 Adventurer and does not auto-promote', () => {
+await test('public creation is V3 Adventurer; explicit V2 fixture remains separate', () => {
   const hero = createNewCharacter('slot-1', 'Astra');
   assert.equal(isCompatibleCharacterSave(hero), true);
-  assert.equal(hero.progressionArchitecture, 'v2_test');
+  assert.equal(hero.progressionArchitecture, 'v3_adventurer');
+  assert.equal(createV2TestHero().progressionArchitecture, 'v2_test');
   assert.equal(hero.job, 'adventurer');
   assert.equal(hero.coreJob, null);
   assert.equal(hero.specialization, null);
@@ -37,7 +38,7 @@ await test('new character creation is V2 Adventurer and does not auto-promote', 
 });
 
 await test('level 15 V2 exposes only Warrior as an available core job', () => {
-  const hero = createNewCharacter('slot-1', 'Astra');
+  const hero = createV2TestHero();
   hero.level = 15;
   const choices = getVisibleJobArchitecture(hero).v2CoreChoices;
   assert.equal(choices.find(choice => choice.id === 'warrior')?.available, true);

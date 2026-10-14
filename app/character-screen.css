@@ -1,6 +1,13 @@
 /* Character [C] only. Job [J] and inventory keep their existing styles. */
 html
   .game-dialog.character-dialog.lumenfall-draggable-window[data-slot='dialog-content'] {
+  /* Character positioning must also hold in the diagnostic Vite entry. */
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  translate: -50% -50%;
+  z-index: var(--lumenfall-window-top-z, 1000);
+  box-sizing: border-box;
   width: min(1240px, calc((100vw - 32px) / var(--lumenfall-ui-scale, 1)));
   height: min(720px, calc((100dvh - 40px) / var(--lumenfall-ui-scale, 1)));
   max-width: none;
@@ -185,6 +192,9 @@ html
 }
 .cs-combat {
   padding-left: 22px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
 }
 .cs-section-heading {
   display: flex;
@@ -573,6 +583,7 @@ html
   display: flex;
   flex-direction: column;
   min-height: 0;
+  flex-shrink: 0;
 }
 .cs-stat-row {
   display: flex;
@@ -1045,9 +1056,6 @@ html
   .cs-attribute-list {
     gap: 4px;
   }
-  .cs-attribute-info {
-    line-height: 1.2;
-  }
   .cs-attribute-info small {
     font-size: 8px;
   }
@@ -1075,9 +1083,6 @@ html
   }
   .cs-resource {
     margin-bottom: 8px;
-  }
-  .cs-resource:last-child {
-    margin-bottom: 0;
   }
   .cs-resource > div:first-child {
     margin-bottom: 4px;

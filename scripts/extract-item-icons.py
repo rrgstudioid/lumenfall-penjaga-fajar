@@ -9,7 +9,6 @@ import hashlib
 import json
 import subprocess
 from pathlib import Path
-from urllib.parse import urlsplit
 from PIL import Image, ImageDraw, ImageFilter, ImageOps
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -69,39 +68,21 @@ row(9, 'arcana-tome resi-orb pujangga-talisman', [268,608,950], 704, 232, 212)
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--source-dir', type=Path)
-    parser.add_argument('--check', action='store_true', help='Validate mappings without rewriting any icons')
+    parser.add_argument('--source-dir', type=Path, required=True)
     args = parser.parse_args()
     catalog = json.loads(subprocess.check_output([
         'node', '--input-type=module', '-e',
         "import {ITEM_CATALOG} from './lib/game/items.ts'; console.log(JSON.stringify(Object.fromEntries(Object.entries(ITEM_CATALOG).map(([id,i])=>[id,i.name]))))",
     ], cwd=ROOT, text=True, encoding='utf-8'))
-    # Preserve independently rendered GLB icons when regenerating sheet icons.
-    existing = json.loads(subprocess.check_output([
-        'node', '--input-type=module', '-e',
-        "import {ITEM_ICON_MANIFEST} from './lib/game/item-icon-manifest.ts'; console.log(JSON.stringify(ITEM_ICON_MANIFEST))",
-    ], cwd=ROOT, text=True, encoding='utf-8'))
-    external = {k:v for k,v in existing.items() if k in catalog and k not in {r[0] for r in RECIPES}}
-    assert all((ROOT/'public'/urlsplit(v).path.lstrip('/')).is_file() for v in external.values()), 'Missing independently rendered icon'
-    recipes = [r for r in RECIPES if r[0] in catalog]
-    ids = [r[0] for r in recipes]
+    ids = [r[0] for r in RECIPES]
     assert len(ids) == len(set(ids)), 'Duplicate art mapping'
-    mapped = set(ids) | set(external)
-    assert set(existing) & set(catalog) <= mapped, 'Regeneration would lose an existing catalog icon'
-    missing = sorted(set(catalog) - mapped)
-    if missing:
-        print(f'Catalog items already without artwork keep the runtime fallback: {missing}')
-    if args.check:
-        print(f'Validated {len(ids)} sheet icons and {len(external)} preserved independent icons.')
-        return
-    if args.source_dir is None:
-        parser.error('--source-dir is required unless --check is used')
+    assert set(ids) == set(catalog), {'missing': sorted(set(catalog)-set(ids)), 'unknown': sorted(set(ids)-set(catalog))}
     sources = {n: Image.open(args.source_dir / filename).convert('RGBA') for n, filename in SHEETS.items()}
     assert all(im.size == (1448,1086) for im in sources.values()), 'Unexpected source dimensions: re-audit crop coordinates'
     OUTPUT.mkdir(parents=True, exist_ok=True)
     REVIEW.mkdir(parents=True, exist_ok=True)
-    manifest, provenance = dict(external), {}
-    for item_id, sheet, box in recipes:
+    manifest, provenance = {}, {}
+    for item_id, sheet, box in RECIPES:
         crop = sources[sheet].crop(box)
         # Preserve aspect ratio and painted lighting. Only the outside padding is transparent.
         # A soft corner mask excludes the last curved frame corners without colour-keying dark art.
@@ -121,7 +102,7 @@ def main():
         + json.dumps(dict(sorted(manifest.items())), indent=2) + ');\n', encoding='utf-8')
     (REVIEW / 'extraction-report.json').write_text(json.dumps(provenance,indent=2), encoding='utf-8')
     for sheet in SHEETS:
-        entries = [r for r in recipes if r[1] == sheet]
+        entries = [r for r in RECIPES if r[1] == sheet]
         contact = Image.new('RGB', (900, ((len(entries)+4)//5)*190), '#1b2026')
         draw = ImageDraw.Draw(contact)
         for i, (item_id, _, _) in enumerate(entries):
@@ -132,7 +113,7 @@ def main():
             draw.text((x+4,y+152), title[:26], fill='#ecdfc8')
             draw.text((x+4,y+167), title[26:], fill='#ecdfc8')
         contact.save(REVIEW / f'sheet-{sheet}.jpg', quality=94)
-    print(f'Updated {len(ids)} sheet icons and preserved {len(external)} independent icons; no existing catalog mapping lost.')
+    print(f'Created {len(manifest)} individual 256px WebP icons; exact catalog coverage verified.')
 
 
 if __name__ == '__main__':

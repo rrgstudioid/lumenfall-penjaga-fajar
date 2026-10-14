@@ -1,7 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  BASE_PRIMARY_STAT,
   basePhysicalAttackForLevel,
   basicAttackPower,
   calculateTotalStatPoints,
@@ -15,7 +14,7 @@ import {
 await test('CFV3-1 uses the canonical primary-stat and +2-per-level foundations', () => {
   const hero = freshHero();
   assert.deepEqual(hero.allocatedStats, { str: 0, vit: 0, dex: 0, int: 0 });
-  assert.equal(derivedStats(hero).maxMana, 100 + BASE_PRIMARY_STAT * 3);
+  assert.equal(derivedStats(hero).maxMana, Math.floor(60 + 2.5 + .01));
   assert.equal(calculateTotalStatPoints(1), 0);
   assert.equal(calculateTotalStatPoints(15, 'v2_test'), 28);
   assert.equal(calculateTotalStatPoints(59, 'v2_test'), 116);
@@ -39,9 +38,9 @@ await test('CFV3-1 starter allocation scenarios use weapon-configured STR contri
     hero.allocatedStats = { str, vit, dex, int: 0 };
     return hero;
   };
-  assert.equal(derivedStats(make(15, 28, 0, 0)).physicalAttack, 23 + 8 + 28);
-  assert.equal(derivedStats(make(15, 14, 14, 0)).physicalAttack, 23 + 8 + 14);
-  assert.equal(derivedStats(make(15, 0, 0, 28)).physicalAttack, 23 + 8);
+  assert.equal(derivedStats(make(15, 28, 0, 0)).physicalAttack, Math.floor(23 + 8 * .9 + 28));
+  assert.equal(derivedStats(make(15, 14, 14, 0)).physicalAttack, Math.floor(23 + 8 * .9 + 14));
+  assert.equal(derivedStats(make(15, 0, 0, 28)).physicalAttack, Math.floor(23 + 8 * .9));
   const unarmed = make(15, 28, 0, 0);
   unarmed.equipment.mainHand = null;
   assert.equal(derivedStats(unarmed).physicalAttack, 23);

@@ -1,3 +1,5 @@
+import { getTotalSkillPointsForLevel } from './rules.ts';
+import { promoteFixture } from './gameplay-test-fixtures.ts';
 import { createItem } from './items.ts';
 import { chooseV3Berserker, chooseV3BladeMaster, chooseV3Warrior, createV3AdventurerHero, derivedStats, resolveHeroSkill } from './rules.ts';
 import { BERSERKER_V3_RUNTIME_MAP } from './berserker-v3.ts';
@@ -24,8 +26,8 @@ const target = (evasion: number): FixtureTarget => ({
 function bladeMasterHero() {
   const hero = createV3AdventurerHero('accuracy-evasion-blade-fixture', 'Accuracy Evasion Blade Fixture');
   hero.level = 80;
-  hero.skillProgressionV3!.totalEarnedSP = 500;
-  if (!chooseV3Warrior(hero) || !chooseV3BladeMaster(hero)) throw new Error('Blade Master fixture transition failed');
+  hero.skillProgressionV3!.totalEarnedSP = getTotalSkillPointsForLevel(hero.level);
+  if (!promoteFixture(hero, chooseV3Warrior) || !promoteFixture(hero, chooseV3BladeMaster)) throw new Error('Blade Master fixture transition failed');
   const sword = (id: string, attack: number) => createItem('legacy-fajar-blade', {
     id, baseStats: { attack }, equipSlot: 'mainHand', mainHand: true,
     equipmentType: 'one_hand_sword', weaponType: 'one_hand_sword',
@@ -48,8 +50,8 @@ function bladeMasterHero() {
 function berserkerHero() {
   const hero = createV3AdventurerHero('accuracy-evasion-berserker-fixture', 'Accuracy Evasion Berserker Fixture');
   hero.level = 80;
-  hero.skillProgressionV3!.totalEarnedSP = 500;
-  if (!chooseV3Warrior(hero) || !chooseV3Berserker(hero)) throw new Error('Berserker fixture transition failed');
+  hero.skillProgressionV3!.totalEarnedSP = getTotalSkillPointsForLevel(hero.level);
+  if (!promoteFixture(hero, chooseV3Warrior) || !promoteFixture(hero, chooseV3Berserker)) throw new Error('Berserker fixture transition failed');
   const sword = createItem('jayantara-two-hand-sword', {
     id: 'accuracy-evasion-two-hand',
     baseStats: { attack: 120 },
@@ -176,13 +178,15 @@ export function runAccuracyEvasionFixture() {
   const twinBothEvade = bladeSequence(bladeMasterHero(), 'v3-blade-master-twin-assault', 8, target(50), [0.999, 0.999], twinBothEvadeState);
 
   const piercingHero = bladeMasterHero();
-  const piercingNoOwner = bladeSequence(piercingHero, 'v3-blade-master-piercing-sequence', 5, target(10), [0.93, 0.93, 0.93]);
+  // BonusDEX baseline + mastery gives Accuracy100: pHit=.91 at Evasion10.
+  // Own Armor Break adds10 Accuracy: pHit=.92. Keep the fixture roll between them.
+  const piercingNoOwner = bladeSequence(piercingHero, 'v3-blade-master-piercing-sequence', 5, target(10), [0.915, 0.915, 0.915]);
   const otherArmor = target(10);
   applySourceOwnedStatus(otherArmor, 'armor_break', { sourceActorId: 'B', sourceSkillId: 'v3-warrior-armor-breaker', strength: 12, appliedAt: 0, duration: 8 });
-  const piercingOtherOwner = bladeSequence(piercingHero, 'v3-blade-master-piercing-sequence', 5, otherArmor, [0.93, 0.93, 0.93]);
+  const piercingOtherOwner = bladeSequence(piercingHero, 'v3-blade-master-piercing-sequence', 5, otherArmor, [0.915, 0.915, 0.915]);
   const ownArmor = target(10);
   applySourceOwnedStatus(ownArmor, 'armor_break', { sourceActorId: 'A', sourceSkillId: 'v3-warrior-armor-breaker', strength: 6, appliedAt: 0, duration: 8 });
-  const piercingOwnOwner = bladeSequence(piercingHero, 'v3-blade-master-piercing-sequence', 5, ownArmor, [0.93, 0.93, 0.93]);
+  const piercingOwnOwner = bladeSequence(piercingHero, 'v3-blade-master-piercing-sequence', 5, ownArmor, [0.915, 0.915, 0.915]);
 
   const tempestState = new TransientCombatState();
   tempestState.openBladeFlow(1, 3);

@@ -144,7 +144,7 @@ void test('2C full registries contain no stamina equipment/passive/skill/rune/un
   assert(!mentions(UNIQUE_STAT_POOL));
   // Character player-resource surfaces must consume the policy rather than the legacy global toggle.
   for (const file of [
-    '../../app/page.tsx',
+    '../../components/game/hud/gameplay-hud.tsx',
     './world.ts',
     './webmcp.ts',
     './city-services.ts',

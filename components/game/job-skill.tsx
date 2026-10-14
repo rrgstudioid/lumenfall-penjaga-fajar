@@ -1,4 +1,5 @@
 'use client';
+import { MANUAL_SKILL_RESET } from '../../lib/game/canonical-config';
 import { useState, type CSSProperties } from 'react';
 import { heroFamilyNodeStates, heroFamilySkillActive, skillFamilyDefinitions as v3Definitions } from '@/lib/game/skill-family-runtime';
 import { skillFamilyOverview, skillNodePresentation, canonicalSkillName } from '@/lib/game/skill-family-presentation';
@@ -135,7 +136,7 @@ export function JobSkill({
   const level = selected ? skillRank(selected) : 0;
   const v3Definition = hero.skillArchitectureVersion === 3 && selected ? v3Definitions[selected.id] : undefined;
   const presentation = v3Definition && selectedActive
-    ? resolveSkillPresentation(hero, v3Definition, selectedActive)
+    ? resolveSkillPresentation(hero, v3Definition, selectedActive, game?.getDevelopmentAdventurerSkillMetadata(selectedActive.id))
     : null;
   const selectedIsMastery = v3Definition?.skillType === 'MASTERY' || v3Definition?.skillType === 'PASSIVE';
   const nextRankCost = v3Definition ? skillCostThroughRank(v3Definition, level + 1) - skillCostThroughRank(v3Definition, level) : 1;
@@ -246,14 +247,14 @@ export function JobSkill({
             Available SP: {availableSP} <small>/ {totalEarnedSP}</small>
           </b>
           <AlertDialog open={resetOpen} onOpenChange={setResetOpen}>
-            <AlertDialogTrigger className="js-reset" data-reset-skills disabled={hero.gold < 500}>
-              RESET SKILL <small>500 Gold</small>
+            <AlertDialogTrigger className="js-reset" data-reset-skills disabled={!MANUAL_SKILL_RESET.enabled || hero.gold < (MANUAL_SKILL_RESET.goldCost ?? 0)}>
+              RESET SKILL <small>{MANUAL_SKILL_RESET.enabled ? `${MANUAL_SKILL_RESET.goldCost} Gold` : 'Belum tersedia'}</small>
             </AlertDialogTrigger>
             <DraggableAlertDialogContent windowId="skill-reset-confirm">
               <AlertDialogHeader>
                 <AlertDialogTitle>Reset skill {characterLabel(hero)}?</AlertDialogTitle>
                 <AlertDialogDescription>
-                  Rank skill yang dibayar akan dikembalikan. {grantedLabels.length ? `${grantedLabels.join(', ')} tetap dimiliki. ` : ''}Biaya reset: 500 Gold.
+                  Rank skill yang dibayar akan dikembalikan. {grantedLabels.length ? `${grantedLabels.join(', ')} tetap dimiliki. ` : ''}{MANUAL_SKILL_RESET.enabled ? `Biaya reset: ${MANUAL_SKILL_RESET.goldCost} Gold.` : 'Syarat dan biaya reset belum ditetapkan.'}
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>

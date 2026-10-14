@@ -2,12 +2,12 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as T from 'three';
 import { createCharacterModel, disposeCharacterModel } from './character-model.ts';
-import { freshHero, createItem } from './rules.ts';
+import { freshHero, createItem, chooseCoreJob, equipItem } from './rules.ts';
 
 function equipped() {
   const hero = freshHero();
   const source = createItem('legacy-fajar-blade');
-  for (const slot of ['mainHand', 'boots', 'legs', 'ring1', 'necklace', 'earring1'] as const) {
+  for (const slot of ['mainHand', 'gloves', 'boots', 'legs', 'ring1', 'necklace', 'earring1'] as const) {
     const item = { ...source, id: `model-test-${slot}` };
     hero.inventory.push(item); hero.equipment[slot] = item.id;
   }
@@ -65,9 +65,9 @@ await test('walk moves both full leg chains in opposite phases and settles when 
 await test('equipment follows its owning joints during walk, attack and body turn', () => {
   const m = createCharacterModel(equipped(), { aura: false });
   const weapon = m.actor.getObjectByName('equipment:mainHand')!;
-  const hand = m.rig.rightHand;
+  const glove = m.actor.getObjectByName('equipment:gloves:right')!;
   const boot = m.actor.getObjectByName('equipment:boots:right')!;
-  assert.equal(m.actor.getObjectByName('equipment:gloves:right'), undefined);
+  assert.equal(glove.parent, m.rig.rightHand);
   assert.equal(boot.parent, m.rig.rightFoot);
   assert.equal(m.actor.getObjectByName('equipment:ring1')!.parent, m.rig.rightHand);
   assert.equal(m.actor.getObjectByName('equipment:earring1')!.parent, m.rig.head);
@@ -77,7 +77,7 @@ await test('equipment follows its owning joints during walk, attack and body tur
   assert.ok(point(weapon).distanceTo(point(m.rig.rightHand)) < 1e-6);
   assert.ok(point(boot).distanceTo(point(m.rig.rightFoot)) < 1e-6);
   m.actor.rotation.y = 1.4; m.actor.position.set(12, 3, -5);
-  assert.ok(point(weapon).distanceTo(point(hand)) < 1e-6);
+  assert.ok(point(weapon).distanceTo(point(glove)) < 1e-6);
   disposeCharacterModel(m.actor);
 });
 
@@ -137,12 +137,19 @@ await test('all sword-like equipment uses the owning hand and points forward, in
   const swordTemplates = ['legacy-fajar-blade', 'jayantara-two-hand-sword', 'caroq-daggers', 'anom-dagger'];
   for (const templateId of swordTemplates) {
     const hero = freshHero();
+    hero.level = 60;
+    hero.equipment.mainHand = null;
     const item = createItem(templateId);
-    const dagger=item.equipmentType==='dagger';
-    if(dagger){hero.coreJob='thief';hero.job='thief';}
+    const dagger = item.equipmentType === 'dagger';
+    // Canonical lineage gate also applies to rendered equipment. Two hands
+    // require two real instances; the old fixture bypassed both requirements.
+    assert(chooseCoreJob(hero, dagger ? 'rogue' : 'warrior'));
     hero.inventory.push(item);
-    hero.equipment.mainHand = item.id;
-    if(dagger){const off=createItem(templateId);hero.inventory.push(off);hero.equipment.offHand=off.id;}
+    assert(equipItem(hero, item.id, 'mainHand').ok);
+    if (dagger) {
+      const off = createItem(templateId); hero.inventory.push(off);
+      assert.notEqual(off.id, item.id); assert(equipItem(hero, off.id, 'offHand').ok);
+    }
     const model = createCharacterModel(hero, { aura: false });
     const slots = dagger ? ['mainHand', 'offHand'] as const : ['mainHand'] as const;
     for (const slot of slots) {
@@ -155,6 +162,12 @@ await test('all sword-like equipment uses the owning hand and points forward, in
       assert.ok(point(tip).sub(point(grip)).normalize().dot(forward) > .98, `${templateId} ${slot} blade points forward`);
     }
     disposeCharacterModel(model.actor);
+    if (dagger) {
+      const invalid = freshHero(); invalid.inventory.push(item); invalid.equipment.mainHand = item.id;
+      const rejected = createCharacterModel(invalid, { aura: false });
+      assert.equal(rejected.actor.getObjectByName('equipment:mainHand'), undefined);
+      disposeCharacterModel(rejected.actor);
+    }
   }
 });
 

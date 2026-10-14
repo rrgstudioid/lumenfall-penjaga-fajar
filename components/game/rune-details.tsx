@@ -1,5 +1,6 @@
 'use client';
 import { JobText } from './job-presentation-context';
+import { statBonusText } from '@/lib/game/stat-presentation';
 
 import { RUNE_RARITY_RULES, type ItemData } from '@/lib/game/items';
 import { ItemIcon } from './entry-icon';
@@ -26,8 +27,7 @@ export function RuneDetails({ rune }: { rune: ItemData }) {
       <div aria-label="Rune Stats">
         {rune.affixes.map((affix) => (
           <p key={affix.id}>
-            {affix.label} +{affix.value}
-            {affix.unit === 'percent' ? '%' : ''}
+            {statBonusText(affix.stat, affix.value)}
           </p>
         ))}
       </div>

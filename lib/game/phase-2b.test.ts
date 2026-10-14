@@ -1,3 +1,4 @@
+import { createV3AdventurerHero } from './rules.ts';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
@@ -124,10 +125,11 @@ void test('2B save writes ownership but strips ephemeral combat modifiers withou
     },
   });
   try {
-    const hero = freshHero();
-    hero.skillPoints = 2;
+    assert.throws(()=>saveCharacter(freshHero(), true), /Only V3/);
+    const hero = createV3AdventurerHero();
     hero.level = 15;
-    assert(learnSkill(hero, ALL_SKILLS[0].id));
+    hero.skillProgressionV3!.totalEarnedSP = 14;
+    assert(learnSkill(hero, 'v3-adventurer-power-strike'));
     addTemporaryModifier(
       hero,
       { id: 'transient', stats: { flat: { physicalAttack: 20 } } },
@@ -142,10 +144,8 @@ void test('2B save writes ownership but strips ephemeral combat modifiers withou
     assert.equal(saved.manualGuardActive,undefined);
     assert.equal(hero.manualGuardActive,true);
     const loaded = parseSave(JSON.stringify(saved))!;
-    assert.deepEqual(rankSource(loaded, 'active', ALL_SKILLS[0].id), {
-      granted: 1,
-      paid: 1,
-    });
+    assert.equal(loaded.skillProgressionV3!.skillRanks['v3-adventurer-power-strike'], 1);
+    assert.equal(loaded.skillProgressionV3!.totalEarnedSP, 14);
     assert.equal(hero.temporaryModifiers?.length, 1);
     assert.equal(hero.combatStateModifiers.length, 1);
   } finally {
@@ -154,19 +154,19 @@ void test('2B save writes ownership but strips ephemeral combat modifiers withou
     else Reflect.deleteProperty(globalThis, 'localStorage');
   }
 });
-void test('2B progression: explicit legacy/test caps, original XP formula, incremental rewards and locked jobs', () => {
+void test('2B progression: explicit canonical caps and SP199, original XP formula, incremental rewards and locked jobs', () => {
   const legacy = freshHero(),
     v2 = createV2TestHero();
   gainXP(legacy, 9999999);
   gainXP(v2, 9999999);
-  assert.equal(legacy.level, 50);
-  assert.equal(v2.level, 80);
-  assert.equal(legacy.skillPoints, 49);
-  assert.equal(v2.skillPoints, 79);
-  assert.equal(v2.statPoints, 158);
+  assert.equal(legacy.level, 100);
+  assert.equal(v2.level, 100);
+  assert.equal(legacy.skillPoints, 199);
+  assert.equal(v2.skillPoints, 199);
+  assert.equal(v2.statPoints, 198);
   gainXP(v2, 9999999);
-  assert.equal(v2.level, 80);
-  assert.equal(v2.skillPoints, 79);
+  assert.equal(v2.level, 100);
+  assert.equal(v2.skillPoints, 199);
   assert.equal(ABSOLUTE_MAX_LEVEL, 100);
   assert.equal(xpNeeded(79), 90 + 79 * 40);
   assert.equal(progressionRules(v2).coreLevel, 15);
@@ -176,8 +176,8 @@ void test('2B progression: explicit legacy/test caps, original XP formula, incre
   assert.equal(chooseCoreJob(v2, 'warrior'), false);
   assert.equal(chooseSpecialization(v2, 'gatotkaca'), false);
   for (const [hero, expected] of [
-    [legacy, 50],
-    [v2, 80],
+    [legacy, 100],
+    [v2, 100],
   ] as const) {
     const saved = JSON.parse(JSON.stringify(hero));
     saved.level = 100;
@@ -186,11 +186,11 @@ void test('2B progression: explicit legacy/test caps, original XP formula, incre
   }
   const loaded = parseSave(JSON.stringify(v2))!;
   assert.equal(loaded.progressionArchitecture, 'v2_test');
-  assert.equal(loaded.statPoints, 158);
+  assert.equal(loaded.statPoints, 198);
   v2.gold = 500;
   v2.allocatedStats.str = 20;
   v2.statPoints -= 20;
-  assert.equal(resetCharacterStats(v2).hero.statPoints, 158);
+  assert.equal(resetCharacterStats(v2).hero.statPoints, 198);
 });
 void test('CFV3-1 legacy promotion uses level 15/25 and records genuine grants', () => {
   const hero = freshHero();
@@ -219,11 +219,11 @@ void test('2B paid Rank 1 after promotion is refundable, GOLD required, and rese
   hero.gold = 500;
   const original = JSON.stringify(hero),
     reset = resetSkillPoints(hero);
-  assert(reset.ok);
+  assert.equal(reset.ok, false); assert.equal(reset.returnedPoints, 0);
   assert.equal(JSON.stringify(hero), original);
-  assert.equal(reset.hero.skillPoints, before);
-  assert.equal(reset.hero.skillLevels['warrior-breaker'], 0);
-  assert.equal(refundableSkillPoints(reset.hero), 0);
+  assert.equal(reset.hero.skillPoints, before - 1);
+  assert.equal(reset.hero.skillLevels['warrior-breaker'], 1);
+  assert.equal(refundableSkillPoints(reset.hero), 1);
 });
 void test('2B one granted plus two paid refunds exactly two; promotion does not lose paid points', () => {
   const hero = freshHero();
@@ -234,7 +234,7 @@ void test('2B one granted plus two paid refunds exactly two; promotion does not 
   learnSkill(hero, id);
   learnSkill(hero, id);
   assert.deepEqual(rankSource(hero, 'active', id), { granted: 1, paid: 2 });
-  assert.equal(resetSkillPoints(hero).returnedPoints, 2);
+  assert.equal(resetSkillPoints(hero).returnedPoints, 0);
   unequipItem(hero, 'mainHand');
   assert(chooseCoreJob(hero, 'warrior'));
   assert.equal(hero.skillPoints, 10);
@@ -261,10 +261,10 @@ void test('2B ambiguous old save conservatively retains/refunds ranks once, incl
     true,
   );
   const reset = resetSkillPoints(loaded);
-  assert(reset.ok);
+  assert.equal(reset.ok, false);
   assert.equal(reset.hero.skillLevels['future-unknown'], 2);
   const reloaded = parseSave(JSON.stringify(reset.hero))!;
-  assert.equal(refundableSkillPoints(reloaded), 0);
+  assert.equal(refundableSkillPoints(reloaded), refundableSkillPoints(loaded));
 });
 void test('2B scoped investment and passive ranked AND prerequisites are generic and ignore free/self/other-version ranks', () => {
   const hero = createV2TestHero();
@@ -309,10 +309,10 @@ void test('2B scoped investment and passive ranked AND prerequisites are generic
       0,
     );
     const reset = resetSkillPoints(hero);
-    assert(reset.ok);
-    assert.equal(paidTreeInvestment(reset.hero, tree, nodes), 0);
+    assert.equal(reset.ok, false); assert.equal(reset.returnedPoints, 0);
+    assert.equal(paidTreeInvestment(reset.hero, tree, nodes), 25);
     grantRank(reset.hero, 'passive', nodes[0].id, 5);
-    assert.equal(paidTreeInvestment(reset.hero, tree, nodes), 0);
+    assert.equal(paidTreeInvestment(reset.hero, tree, nodes), 25);
   } finally {
     ALL_PASSIVES.splice(ALL_PASSIVES.length - nodes.length - 1);
   }

@@ -178,8 +178,8 @@ await test('reset preserves granted skills and assignments while unavailable ski
   assert.ok(assigned.ok);
   hero.primaryHotbar = assigned.hero.primaryHotbar;
   const reset = resetSkillPoints(hero);
-  assert.ok(reset.ok);
-  assert.equal(reset.hero.skillLevels[skill.id], 1);
+  assert.equal(reset.ok, false); assert.equal(reset.returnedPoints, 0);
+  assert.equal(reset.hero.skillLevels[skill.id], 2);
   assert.deepEqual(reset.hero.primaryHotbar, hero.primaryHotbar);
   reset.hero.skillLevels[skill.id] = 0;
   assert.match(

@@ -9,7 +9,6 @@ export type AssasinSkillConfig = {
   maxPoisonStacksGrantedPerExecution?: number;
   crippling?: { bonusPPByRank: number[]; duration: number };
   backward?: boolean;
-  vanish?: boolean;
   execution?: boolean;
   eclipse?: boolean;
 };
@@ -22,13 +21,13 @@ export const VENOM_PROFILES: readonly AssasinPoisonProfile[] = [
   [16,24,.10,.10], [20,28,.12,.12], [24,33,.14,.14], [28,38,.16,.16], [32,44,.18,.18],
 ].map(([baseDamageMin,baseDamageMax,patkCoefficient,dexCoefficient], i) => ({
   id: 'v3-assasin-venom-mastery', baseDamageMin, baseDamageMax, patkCoefficient, dexCoefficient,
-  rank: i + 1, skillPowerFactor: 8, baseRollPolicy: 'PER_TICK',
+  rank: i + 1, skillPowerFactor: 8, baseRollPolicy: 'PER_TICK', critException: 'assassin_skill_poison',
 }));
 export const VENOM_THROWN_ACCURACY = [2,4,6,8,10] as const;
 export const ECLIPSE_PROFILES = [
-  { min: 24, max: 34, physical: .15, dex: .18 },
-  { min: 30, max: 42, physical: .18, dex: .22 },
-  { min: 36, max: 50, physical: .22, dex: .26 },
+  { critException: 'assassin_skill_poison', min: 24, max: 34, physical: .15, dex: .18 },
+  { critException: 'assassin_skill_poison', min: 30, max: 42, physical: .18, dex: .22 },
+  { critException: 'assassin_skill_poison', min: 36, max: 50, physical: .22, dex: .26 },
 ] as const;
 type RankData = { min?: number[]; max?: number[]; physical?: number[]; str?: number[]; dex?: number[];
   mana?: number[]; cooldown?: number[]; duration?: number[]; distance?: number[] };
@@ -51,8 +50,8 @@ const nodes: AssasinNode[] = [
     data:{ min:[90,102,115,130,145], max:[125,140,155,175,195], physical:[.90,.98,1.06,1.15,1.25], str:[.03,.04,.05,.06,.07], dex:[.18,.215,.25,.285,.32], mana:[15,17,19,21,23], cooldown:[9,8.6,8.2,7.8,7.5], distance:[2.5,2.75,3,3.25,3.5] } },
   { slug:'venom-pursuit', name:'Venom Pursuit', description:'Throws a pursuing venom dagger that strengthens and refreshes Poison on the target.', gate:65, ranks:5, range:12, prerequisites:requires('twin-venom-throw',2), mechanics:poison,
     data:{ min:[75,87,100,112,125], max:[105,118,135,152,170], physical:[.70,.78,.86,.94,1.02], str:[.02,.025,.03,.035,.04], dex:[.18,.21,.24,.27,.30], mana:[14,16,18,20,22], cooldown:[7,6.6,6.2,5.8,5.5] } },
-  { slug:'vanish', name:'Vanish', description:'Disappear from sight briefly to reposition and prepare another attack.', gate:65, ranks:5, prerequisites:requires('venom-mastery',2), mechanics:{ vanish:true },
-    data:{ duration:[3.5,4,4.5,5,5.5], mana:[20,22,24,26,28], cooldown:[32,30,28,26,24] } },
+  { slug:'vanish', name:'Vanish', description:'Disappear from sight until you attack or receive direct damage.', gate:65, ranks:5, prerequisites:requires('venom-mastery',2),
+    data:{ mana:[20,22,24,26,28], cooldown:[32,30,28,26,24] } },
   { slug:'executioner', name:'Executioner', description:'Execute a weakened poisoned enemy with a lethal dagger strike.', gate:67, ranks:5, range:2.5, dual:true, hands:['BOTH'], prerequisites:requires('venom-pursuit',3), mechanics:{ execution:true },
     data:{ min:[220,250,280,315,350], max:[300,340,380,425,480], physical:[1.60,1.72,1.84,1.97,2.10], str:[.06,.07,.08,.09,.10], dex:[.35,.40,.45,.50,.55], mana:[24,27,30,33,36], cooldown:[16,15,14,13,12.5] } },
   { slug:'venom-eclipse', name:'Venom Eclipse', description:'Throws a lethal venom dagger that inflicts an extremely powerful poison over time.', gate:70, ranks:3, range:12, ultimate:true, prerequisites:requires('venom-mastery',3), mechanics:{ eclipse:true },
@@ -91,6 +90,7 @@ export const ASSASIN_V3_RUNTIME_SKILLS: readonly SkillDefinition[] = nodes.map((
     })),
     rankEffects:Array.from({length:node.ranks},(_,i)=>damaging ? {hitSequence:hands.map((weaponHand,n)=>({delay:n*.15,weaponHand,sharedContributionWeight:weights[n],weaponContributionCoefficient:1,physicalCoefficient:v.physical![i]*weights[n],knockbackStrength:0}))} : {}),
     assasin:node.mechanics, motionArchetype:`ASSASIN_${node.slug.replaceAll('-','_').toUpperCase()}`,
+    ...(node.slug === 'vanish' ? { vanish: { job: 'assasin' as const }, actionLockDuration: 0, movementAllowedDuringLock: true } : {}),
     targetType:damaging ? 'single' : 'self',range:node.range ?? 0,areaRadius:0,duration:v.duration?.[0] ?? 0,
     statusEffect:null,effect:damaging ? 'damage' : 'buff',canCrit:damaging,knockbackStrength:0,actionType:damaging ? 'skill' : 'buff',
     animation:damaging ? 'ranged_attack' : 'magic_cast',visualEffect:'',soundEffect:'',

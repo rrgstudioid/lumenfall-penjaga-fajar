@@ -1,6 +1,8 @@
+import { getTotalSkillPointsForLevel } from './rules.ts';
+import { promoteFixture } from './gameplay-test-fixtures.ts';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { activeSkills, chooseV3Berserker, chooseV3Warrior, createV3AdventurerHero, learnSkill, parseSave, stripEquippedGear } from './rules.ts';
+import { activeSkills, chooseV3Berserker, chooseV3Warrior, createV3AdventurerHero, learnSkill, parseSave } from './rules.ts';
 import { BERSERKER_V3_SKILLS, BERSERKER_V3_RUNTIME_SKILLS, EARTH_SPLITTER_STUN_CHANCE, FURY_HARVEST_RECOVERY_PERCENT } from './berserker-v3.ts';
 import { canPurchaseSkillRank as _canPurchaseSkillRank, createSkillProgressionV3, purchaseSkillRankV3 as _purchaseSkillRankV3, spentSkillPointsV3 } from './skill-progression-v3.ts';
 import { BerserkerV3RuntimeFixture } from './berserker-v3-fixture.ts';
@@ -8,10 +10,9 @@ import { BerserkerV3RuntimeFixture } from './berserker-v3-fixture.ts';
 const setup = (level = 80) => {
   const hero = createV3AdventurerHero('berserker-test', 'Berserker V3 Test');
   hero.level = level;
-  hero.skillProgressionV3!.totalEarnedSP = 300;
-  stripEquippedGear(hero);
-  assert.equal(chooseV3Warrior(hero), true);
-  if (level >= 60) assert.equal(chooseV3Berserker(hero), true);
+  hero.skillProgressionV3!.totalEarnedSP = getTotalSkillPointsForLevel(hero.level);
+  assert.equal(promoteFixture(hero, chooseV3Warrior), true);
+  if (level >= 60) assert.equal(promoteFixture(hero, chooseV3Berserker), true);
   return hero;
 };
 
@@ -46,10 +47,8 @@ await test('Berserker Damage V4 data and Earth Splitter hit weights are canonica
 await test('Lv59 cannot transition or purchase Berserker; Lv60 transition refunds skills and blocks Blade Master', () => {
   const low = createV3AdventurerHero();
   low.level = 59;
-  assert.equal(chooseV3Warrior(low), false, 'promotion requires empty equipment');
-  stripEquippedGear(low);
-  assert.equal(chooseV3Warrior(low), true);
-  assert.equal(chooseV3Berserker(low), false);
+  assert.equal(promoteFixture(low, chooseV3Warrior), true);
+  assert.equal(promoteFixture(low, chooseV3Berserker), false);
   const hero = setup(60);
   assert.equal(hero.coreJob, 'warrior');
   assert.equal(hero.specialization, 'berserker');
