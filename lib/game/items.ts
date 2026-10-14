@@ -1221,7 +1221,8 @@ export function normalizeItem(raw: unknown): ItemData | null {
     category:normalizedCategory,
     requiredGender:template.requiredGender ?? (value.requiredGender === 'male' || value.requiredGender === 'female' ? value.requiredGender : undefined),
     maxEnhancementLevel: templateId === 'dragon-veil-wings' ? 0 : isEquipment ? ITEMIZATION_RULES.maxEnhancement : template.maxEnhancementLevel,
-    enhancementLevel: templateId === 'dragon-veil-wings' ? 0 : Math.max(0, Math.min(ITEMIZATION_RULES.maxEnhancement, Math.floor(Number(value.enhancementLevel) || 0))),
+    // Grandfather saved Wings enhancement; their zero cap still prevents new upgrades.
+    enhancementLevel: Math.max(0, Math.min(ITEMIZATION_RULES.maxEnhancement, Math.floor(Number(value.enhancementLevel) || 0))),
     equipmentType:migratedEquipmentType,
     handedness:['one_hand','two_hand','off_hand','none'].includes(String(value.handedness))?value.handedness as Handedness:inferHandedness(migratedEquipmentType,value.twoHanded===true||template.twoHanded),
     attackType:['melee','ranged','magic','hybrid','none'].includes(String(value.attackType))?value.attackType as AttackType:inferAttackType(migratedEquipmentType),

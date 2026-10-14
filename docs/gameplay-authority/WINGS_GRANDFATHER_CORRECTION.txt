@@ -1,0 +1,18 @@
+LUMENFALL — SAVED WINGS GRANDFATHER CORRECTION
+
+Provenance: direct OWNER reply in the local history/Preview preparation conversation, 14 October 2026. Exact message time is not asserted by this copy.
+Question source: request_user_input_async call_c174966f9b7f46d1a0804539ab1c2409.
+
+Question presented:
+Fixture membuktikan saved Wings +6 dari main berubah menjadi +0 saat load lokal. Saya rekomendasikan grandfather untuk Wings lama: pertahankan enhancement tersimpan, sementara Wings baru dari NPC developer tetap +0/tidak bisa di-enhance. Full Dragon Veil tetap ditunda.
+
+Exact OWNER answer:
+Setujui grandfather Wings lama; Wings baru tetap +0
+
+Approved scope:
+Preserve legitimate stored Dragon Veil Wings enhancement on load. New developer Wings remain +0 with maximum enhancement 0. Keeping the stored level does not reopen further enhancement. Existing safe input normalization remains; no approval of malformed/forged data.
+
+Not approved here:
+Full Dragon Veil equipment acquisition, new bonuses, new enhancement progression, class migration, CP rollout, default development formula activation or publication.
+
+Public fixture source: b229218ead928c9b7914c56c9127ac4672e6d154 item factory. Durable fixture: tests/fixtures/public-wings-main-b229218.json. This is a synthetic fixture, not personal save data. Original historical evidence is unchanged. This file copies the narrow OWNER decision; it does not create a broader numeric ACC.

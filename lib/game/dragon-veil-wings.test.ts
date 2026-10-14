@@ -1,9 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as T from 'three';
-import { createItem } from './items.ts';
+import { createItem, normalizeItem } from './items.ts';
+import fs from 'node:fs';
 import { shopStock, buyShopItem } from './city-services.ts';
-import { createNewCharacter, derivedStats, equipItem, unequipItem, parseSave, characterStatBreakdown } from './rules.ts';
+import { createNewCharacter, derivedStats, equipItem, unequipItem, parseSave, characterStatBreakdown, isEnhanceableEquipment, enhancementPreview } from './rules.ts';
 import { createCharacterModel, disposeCharacterModel } from './character-model.ts';
 import { fitDragonVeilWings } from './dragon-veil-wings.ts';
 import { equipmentDropPool } from './monster-loot.ts';
@@ -84,4 +85,31 @@ await test('wings arriving after actor disposal release resources without reatta
   resolve(source); assert.equal(await m.accessoryReady, false); assert(disposed);
   assert.equal(m.actor.getObjectByName('DragonVeilWings'), undefined);
   assert.throws(()=>fitDragonVeilWings(new T.Group()));
+});
+
+await test('public main saved Wings retain enhancement/identity without reopening developer upgrades', () => {
+  const fixture = JSON.parse(fs.readFileSync(new URL('../../tests/fixtures/public-wings-main-b229218.json', import.meta.url), 'utf8'));
+  const old = normalizeItem(fixture.item)!;
+  assert.equal(old.enhancementLevel, 6);
+  assert.equal(old.id, fixture.item.id);
+  assert.equal(old.templateId, fixture.item.templateId);
+  assert.deepEqual(old.baseStats, fixture.item.baseStats);
+  assert.deepEqual(old.asset, fixture.item.asset);
+  assert.equal(old.maxEnhancementLevel, 0);
+  assert.equal(isEnhanceableEquipment(old), false);
+  const hero = createNewCharacter('wings-grandfather', 'Own public save fixture');
+  hero.inventory.push(old);
+  assert.equal(equipItem(hero, old.id, 'accessory').ok, true);
+  assert.equal(enhancementPreview(hero, old.id), null);
+  const restored = parseSave(JSON.stringify(hero))!;
+  assert.equal(restored.equipment.accessory, old.id);
+  assert.equal(restored.inventory.find(i => i.id === old.id)!.enhancementLevel, 6);
+  assert.equal(unequipItem(restored, 'accessory').ok, true);
+  assert.equal(equipItem(restored, old.id, 'accessory').ok, true);
+  const twice = parseSave(JSON.stringify(restored))!;
+  assert.equal(twice.inventory.find(i => i.id === old.id)!.enhancementLevel, 6);
+  const fresh = createItem('dragon-veil-wings');
+  assert.equal(fresh.enhancementLevel, 0);
+  assert.equal(fresh.maxEnhancementLevel, 0);
+  assert.equal(isEnhanceableEquipment(fresh), false);
 });
