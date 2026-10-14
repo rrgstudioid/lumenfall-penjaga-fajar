@@ -34,7 +34,7 @@ const localBindingConfig = {
     : [],
 };
 
-export default defineConfig(async () => {
+export default defineConfig(async ({ command }) => {
   const isVercelBuild = process.env.VERCEL === '1' || process.env.LUMENFALL_DEPLOY_TARGET === 'vercel';
 
   const plugins = isVercelBuild
@@ -58,6 +58,8 @@ export default defineConfig(async () => {
       })();
 
   return {
+    // A production compilation must not invalidate dependencies of a live dev tab.
+    cacheDir: command === 'serve' ? 'node_modules/.vite-lumenfall-dev' : 'node_modules/.vite-lumenfall-build',
     ...(isVercelBuild ? {} : { css: { postcss: { plugins: [tailwindcss()] } } }),
     // Unreal's staging project writes locked Intermediate files while the
     // editor exports assets. Keep those editor artifacts out of Vite HMR so

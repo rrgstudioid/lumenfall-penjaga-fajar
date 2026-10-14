@@ -136,7 +136,7 @@ import {
 import { MASTERY_EFFECTS, type SkillDefinition } from './skills';
 import { COMBAT_MECHANICS, criticalChance, evasionChance, passiveBlockChance, barrierAmount, resolveHitAgainstEvasion } from './combat-mechanics';
 import { resolveCriticalDamage } from './combat-resolver.ts';
-import { SkillHitQueue, selectSkillTargets, skillHitDamage, inFrontalArc as _inFrontalArc, type ResolvedSkillAction } from './skill-action';
+import { SkillHitQueue, selectSkillTargets, skillHitDamage, type ResolvedSkillAction } from './skill-action';
 import { applySourceOwnedStatus, applyStatus, clearExpiredSourceStatuses, effectiveArmorBreakStrength, getActiveStatusApplications, hasActiveStatusFromSource, hasStatus, getStatus, DefenseEvents, counterContextAllowed, type DefenseResult, type SourceOwnedStatus } from './combat-status';
 import {addTemporaryModifier,tickTemporaryModifiers,receivedMultiplier,resolveTargetHit,NO_COUNTER,setManualGuard} from './combat-modifiers';
 import {forwardFromYaw} from './combat-position';

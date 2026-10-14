@@ -2,10 +2,7 @@
 import { MINE_ID } from '@/lib/game/ironveil-interior-layout';
 import { IronveilInteriorLocalMap } from '@/components/game/ironveil-interior-local-map';
 
-import { useEffect, useRef, useState } from 'react';
-import { JobArchitecturePreview } from '@/components/game/job-architecture-preview';
-import { V3JobTrainer } from '@/components/game/v3-job-trainer';
-import { JobSkill } from '@/components/game/job-skill';
+import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { IRONVEIL_ID } from '@/lib/game/ironveil-mines-layout';
 import { DEEP_OCEAN_ID, isUnderwaterSubmap } from '@/lib/game/underwater-regions';
 import { SUNKEN_ID } from '@/lib/game/sunken-ruins-layout';
@@ -93,7 +90,7 @@ import {
   equipmentUsageDescription,
   type InventorySort,
 } from '@/lib/game/items';
-import { CharacterOverview, StatBlockList } from '@/components/game/character-overview';
+import { StatBlockList } from '@/components/game/stat-block-list';
 import {
   DraggableAlertDialogContent,
   DraggableDialogContent,
@@ -126,6 +123,20 @@ import {
   type QuestJournalEntry,
 } from '@/lib/game/regions';
 import { fieldShopStock, shopItemPrice, shopStock } from '@/lib/game/city-services';
+
+// Defer panel code until opened; keep the existing providers and live Game props.
+const JobArchitecturePreview = lazy(() =>
+  import('@/components/game/job-architecture-preview').then(module => ({ default: module.JobArchitecturePreview })),
+);
+const V3JobTrainer = lazy(() =>
+  import('@/components/game/v3-job-trainer').then(module => ({ default: module.V3JobTrainer })),
+);
+const CharacterOverview = lazy(() =>
+  import('@/components/game/character-overview').then(module => ({ default: module.CharacterOverview })),
+);
+const JobSkill = lazy(() =>
+  import('@/components/game/job-skill').then(module => ({ default: module.JobSkill })),
+);
 
 const initial: Snapshot = {
   cameraMode: 'free',
@@ -1597,6 +1608,7 @@ export default function Home() {
           )}
           {panel === 'class' && (
             <div className="dialog-stack class-panel">
+              <Suspense fallback={<p className="muted-copy">Memuat jalur job...</p>}>
                 <JobArchitecturePreview hero={hero} />
                 <V3JobTrainer
                   hero={hero}
@@ -1605,6 +1617,7 @@ export default function Home() {
                   onChooseSpecialization={(id) => game.current?.chooseSpecialization(id)}
                   onResetToAdventurer={() => game.current?.resetJobToAdventurer()}
                 />
+              </Suspense>
               {visibleJobs.v2 && !hero.coreJob && (
                 <>
                   <span className="eyebrow">CORE JOB · LEVEL 15</span>
@@ -2193,6 +2206,7 @@ export default function Home() {
             </div>
           )}
           {panel === 'character' && (
+            <Suspense fallback={<p className="muted-copy">Memuat karakter...</p>}>
               <CharacterOverview
                 hero={hero}
                 game={engine}
@@ -2201,8 +2215,10 @@ export default function Home() {
                   setPanel('bag');
                 }}
               />
+            </Suspense>
           )}
           {panel === 'jobSkill' && (
+            <Suspense fallback={<p className="muted-copy">Memuat skill...</p>}>
               <JobSkill
                 hero={hero}
                 game={engine}
@@ -2211,6 +2227,7 @@ export default function Home() {
                   setPanel('map');
                 }}
               />
+            </Suspense>
           )}
           {panel === 'quest' && (
             <div className="dialog-stack quest-journal">
