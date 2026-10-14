@@ -1,8 +1,9 @@
 import * as T from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import type { MonsterDefinition } from './regions.ts';
+import { createOceanMonster, isOceanSpecies } from './deep-ocean-monster-models.ts';
 
-type Form = 'slime'|'beast'|'bird'|'beetle'|'tree'|'bat'|'grub'|'humanoid'|'golem'|'wisp'|'serpent';
+type Form = 'fish'|'squid'|'slime'|'beast'|'bird'|'beetle'|'tree'|'bat'|'grub'|'humanoid'|'golem'|'wisp'|'serpent';
 type Detail = 'tusks'|'antlers'|'spines'|'wings'|'crystals'|'shield'|'spear'|'crown'|'leaves'|'flames'|'fins'|'robes';
 export type MonsterModelRecipe = { form: Form; color: string; accent: string; width: number; height: number; length: number; details: Detail[] };
 const recipe = (form:Form,color:string,accent:string,width:number,height:number,length:number,...details:Detail[]):MonsterModelRecipe => ({form,color,accent,width,height,length,details});
@@ -59,8 +60,15 @@ Object.assign(MONSTER_MODELS, {
   'verdant-plains-v2-alpha-boar': MONSTER_MODELS['verdant-plains-1'],
   'verdant-plains-v2-ancient-treant': MONSTER_MODELS['verdant-plains-5'],
 });
+for(const [slug,form,color,width,length] of [
+ ['goblin-shark','fish','#a17586',1.5,6],['baracuda','fish','#829b98',.7,5],
+ ['marlyn','fish','#276789',.7,5],['giant-squid','squid','#973f51',.85,8],
+ ['giant-squid-elite','squid','#973f51',.85,8],['megalodon','fish','#455e6e',1.5,6],
+] as const)MONSTER_MODELS[`deep-ocean-underwater-v1-${slug}`]=recipe(form,color,'#c8d2c9',width,2,length,'fins');
 export function createMonsterBody(definition: Pick<MonsterDefinition,'id'|'variant'|'visualScale'>):T.Mesh<T.BufferGeometry,T.MeshStandardMaterial> {
-  const r=MONSTER_MODELS[definition.id] ?? MONSTER_MODELS['verdant-plains-0'];
+  if(isOceanSpecies(definition.id))return createOceanMonster(definition);
+  const mineLevel=/^ironveil-mines-interior-v1-level-(\d+)$/.exec(definition.id);
+  const r=MONSTER_MODELS[definition.id] ?? (mineLevel ? MONSTER_MODELS[`ironveil-mines-${(Number(mineLevel[1])-12)%5}`] : MONSTER_MODELS['verdant-plains-0']);
   const parts:T.BufferGeometry[]=[];
   const add=(shape:'orb'|'box'|'cone'|'crystal',x:number,y:number,z:number,sx:number,sy:number,sz:number,color=r.color,rx=0,rz=0) => {
     const primitive=shape==='box'?new T.BoxGeometry(1,1,1):shape==='cone'?new T.ConeGeometry(.5,1,5):shape==='crystal'?new T.OctahedronGeometry(.5,0):new T.IcosahedronGeometry(.5,0);

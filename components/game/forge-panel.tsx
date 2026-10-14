@@ -272,7 +272,7 @@ export function ForgePanel({
                     .map(([key, value]) => statBonusText(key, value!))
                     .join(' · ') || '—'}
                 </p>
-                <p>{selected.uniqueStatsLocked ? 'Unique Stats tersembunyi · Gunakan Arcane Magnifier.' : 
+                <p>{selected.uniqueStatsLocked ? 'Unique Stats tersembunyi · Gunakan Arcane Magnifier.' :
                   'Unique Stats: ' + (Object.entries(selected.bonusStats).map(([key, value]) => statBonusText(key, value!)).join(' · ') || '—')}</p>
                 <p>
                   Socket:{' '}
@@ -325,19 +325,16 @@ export function ForgePanel({
                   <p className="forge-risk">
                     {preview.protectedBySeal && <ShieldCheck size={15} />}{' '}
                     {preview.risk}
-                    {!preview.protectedBySeal && selected.enhancementLevel + 1 >= 9
-                      ? ' Rune dalam socket juga hilang jika equipment hancur.'
-                      : ''}
+
                   </p>
                   <small>
-                    Material tetap terpakai saat gagal. Eternal Seal hanya
-                    terpakai ketika toggle perlindungan aktif dan melindungi kegagalan.
+                    Material tetap terpakai saat gagal. Item, Rune, dan level enhancement tetap. Eternal Seal tidak terpakai.
                   </small>
                   <label className="forge-seal-toggle" aria-label="Gunakan Eternal Seal">
                     <input
                       type="checkbox"
-                      checked={useSeal && hasSeal}
-                      disabled={Boolean(processing) || !hasSeal}
+                      checked={false}
+                      disabled={true}
                       onChange={(event) => {
                         const enabled = event.target.checked;
                         setUseSeal(enabled);
@@ -349,7 +346,7 @@ export function ForgePanel({
                       <small>
                         {hasSeal
                           ? useSeal
-                            ? 'Perlindungan aktif.'
+                            ? 'Item selalu terlindungi; Seal tidak terpakai.'
                             : 'Enhancement tidak akan memakai Seal.'
                           : 'Tidak ada Eternal Seal di inventory.'}
                       </small>
@@ -419,7 +416,7 @@ export function ForgePanel({
             <AlertDialogTitle>Konfirmasi tempa equipment</AlertDialogTitle>
             <AlertDialogDescription>
               <JobText>{confirmationValid && selected && preview
-                  ? `$<JobText>{selected.name}</JobText> +${selected.enhancementLevel} → +${selected.enhancementLevel + 1}. Peluang sukses ${Math.round(preview.finalChance * 100)}%. Biaya ${preview.materialRequired} ${material?.name}, 0 GOLD.${preview.runeBonus ? ' Fate Rune terpakai dan menambah +8% success chance.' : ' Fate Rune tidak dipakai.'} ${preview.risk}${!preview.protectedBySeal && selected.enhancementLevel + 1 >= 9 ? ' Equipment beserta Rune terpasang akan hilang jika gagal.' : ''} Material tetap terpakai saat gagal.`
+                  ? `$<JobText>{selected.name}</JobText> +${selected.enhancementLevel} → +${selected.enhancementLevel + 1}. Peluang sukses ${Math.round(preview.finalChance * 100)}%. Biaya ${preview.materialRequired} ${material?.name}, 0 GOLD.${preview.runeBonus ? ' Fate Rune terpakai dan menambah +8% success chance.' : ' Fate Rune tidak dipakai.'} ${preview.risk} Material tetap terpakai saat gagal.`
                 : blocked ||
                   'Equipment berubah. Batalkan dan periksa preview kembali.'}</JobText>
             </AlertDialogDescription>

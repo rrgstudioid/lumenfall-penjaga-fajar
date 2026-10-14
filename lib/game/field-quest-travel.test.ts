@@ -5,7 +5,7 @@ import { freshHero, parseSave } from './rules.ts';
 
 await test('all Chapter 1 maps travel by level without former quest or boss unlocks',()=>{
   const hero=freshHero(); hero.level=50; hero.completedQuests=[]; hero.defeatedFieldBosses=[]; hero.unlockedFields=[]; hero.unlockedCities=[];
-  for(const field of Object.values(FIELDS)){ assert.equal(unlockReason(hero,field.id),''); assert.equal(travel(hero,field.id).ok,true); assert.ok(hero.unlockedFields.includes(field.id)); }
+  for(const field of Object.values(FIELDS)){ assert.equal(unlockReason(hero,field.id),''); assert.equal(travel(hero,field.id).ok,!field.warpOnly); if(!field.warpOnly)assert.ok(hero.unlockedFields.includes(field.id)); }
   for(const cityId of ['arunika','jayantara'])assert.equal(travel(hero,cityId).ok,true);
 });
 
@@ -38,30 +38,30 @@ await test('field quest journal progress increases after every monster kill',()=
   const hero=freshHero();
   hero.level=50;
   hero.inCity=false;
-  hero.currentField='whispering-wilds';
-  hero.fieldProgress['whispering-wilds']=12;
-  assert.equal(acceptRegionQuest(hero,'field-whispering-wilds-easy'),true);
+  hero.currentField='meteorfall-citadel';
+  hero.fieldProgress['meteorfall-citadel']=12;
+  assert.equal(acceptRegionQuest(hero,'field-meteorfall-citadel-easy'),true);
 
-  let entry=getAllQuestJournalEntries(hero).find(quest=>quest.id==='field-whispering-wilds-easy')!;
+  let entry=getAllQuestJournalEntries(hero).find(quest=>quest.id==='field-meteorfall-citadel-easy')!;
   assert.deepEqual(entry.progress,[{current:0,required:5}]);
   assert.equal(entry.status,'active');
 
-  hero.fieldProgress['whispering-wilds']+=1;
-  entry=getAllQuestJournalEntries(hero).find(quest=>quest.id==='field-whispering-wilds-easy')!;
+  hero.fieldProgress['meteorfall-citadel']+=1;
+  entry=getAllQuestJournalEntries(hero).find(quest=>quest.id==='field-meteorfall-citadel-easy')!;
   assert.deepEqual(entry.progress,[{current:1,required:5}]);
   assert.equal(entry.status,'active');
 
-  hero.fieldProgress['whispering-wilds']+=4;
-  entry=getAllQuestJournalEntries(hero).find(quest=>quest.id==='field-whispering-wilds-easy')!;
+  hero.fieldProgress['meteorfall-citadel']+=4;
+  entry=getAllQuestJournalEntries(hero).find(quest=>quest.id==='field-meteorfall-citadel-easy')!;
   assert.deepEqual(entry.progress,[{current:5,required:5}]);
   assert.equal(entry.status,'ready_to_complete');
 });
 
 await test('legacy field opening quests migrate to the new local Easy quest',()=>{
-  assert.equal(migrateFieldQuestId('story-ironveil-mines'),'field-ironveil-mines-easy');
-  const hero=freshHero();hero.activeQuests=['story-ironveil-mines'];hero.acceptedQuests=['story-ironveil-mines'];hero.completedQuests=['story-verdant-plains'];
+  assert.equal(migrateFieldQuestId('story-meteorfall-citadel'),'field-meteorfall-citadel-easy');
+  const hero=freshHero();hero.activeQuests=['story-meteorfall-citadel'];hero.acceptedQuests=['story-meteorfall-citadel'];hero.completedQuests=['story-verdant-plains'];
   const loaded=parseSave(JSON.stringify(hero))!;
-  assert.deepEqual(loaded.activeQuests,['field-ironveil-mines-easy']);
-  assert.deepEqual(loaded.acceptedQuests,['field-ironveil-mines-easy']);
+  assert.deepEqual(loaded.activeQuests,['field-meteorfall-citadel-easy']);
+  assert.deepEqual(loaded.acceptedQuests,['field-meteorfall-citadel-easy']);
   assert.deepEqual(loaded.completedQuests,['field-verdant-plains-easy']);
 });

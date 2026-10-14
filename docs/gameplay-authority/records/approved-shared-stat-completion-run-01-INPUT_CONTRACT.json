@@ -1,0 +1,28 @@
+{
+  "scope": "APPROVED_SHARED_STAT_COMPLETION_IMPLEMENTATION",
+  "authority": "Direct OWNER request in this conversation, 10 October 2026 local date; this artifact records scope and is NOT a new OWNER_ACC canonical document",
+  "approved": {
+    "normalRelativePercent": "sum within normal group; multiply only explicitly independent groups",
+    "resourceMax": "absolute current then clamp; no refill on max increase; existing level-up/respawn retained",
+    "baseMagic": "7+floor(level*1.1)",
+    "magicCore": "BaseMagic+2*BonusINT+eligible GlobalFlatMATK; explicit weapon/skill inputs",
+    "resourceProfile": "retain Adventurer current; other numeric class profiles gated before class migration",
+    "DEX": "BonusDEX: Evasion .10 / Critical Rate .10 / Attack Speed .15; neutral0/2/100",
+    "accuracy": "90+BonusDEX plus legitimate sources",
+    "MDEFPrimary": ".60 TotalVIT+.20 TotalINT",
+    "HPregen": "resolved existing rate, continuous active dt alive world, in/out combat; no pause/loading/transition/offline catch-up",
+    "casting": "CastStat2BonusDEX+BonusINT; statVCT80 / totalVCT100 / explicitFCT50 / CDR40; no INT automatic CDR",
+    "liveBlock": "cap50% / efficiency30%; physical DIRECT explicitly blockable only; no source chance0",
+    "diagnosticBlock": "CP60/30 remains separate",
+    "MinorHeal": "existing6/8/10% MaxHP, round/clamp/cost/CD/fullHP behavior retained"
+  },
+  "notApproved": ["CastStat/4 conversion", "new base/growth defense numeric", "new class HP/Mana profiles", "new magic weapon range/skill input", "ambiguous primary percent source reinterpretation", "new active DR/Guard/Parry/Counter semantics", "composite CP", "CLASS or ITEMISASI migration"],
+  "mathematicalBoundary": "shared-magic-stat-foundation is pure explicit arithmetic/DTO; no actor enrollment/cast authority or live range fallback",
+  "compatibility": "Existing scalar magic consumers remain labeled compatibility until authorized magic weapon/skill admission; existing gear stat layers retain their declared adapters. New modifier groups do not silently rewrite item schemas or primary-percent ownership.",
+  "castConversionEvidence": [
+    "canonical-decision-handoff/HANDOFF.txt lines125 onward: VCT /4 provisional",
+    "original migration attachment98a6d2a4-e3e5-4dfa-bcc3-c060b5e4ece3/Pasted text.txt: no hidden casting conversion",
+    "latest direct OWNER explicitly excludes automatic promotion of /4"
+  ],
+  "evidenceHashes": "BASELINE.json / supplements / AFTER.json; relative canonical paths rooted at outputs/gameplay-migration"
+}

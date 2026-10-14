@@ -1,3 +1,5 @@
+import { getTotalSkillPointsForLevel } from './rules.ts';
+import { promoteFixture, resolveFixtureSkill } from './gameplay-test-fixtures.ts';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { ADVENTURER_V3_SKILL_MAP, adventurerV3RankValues } from './adventurer-v3.ts';
@@ -28,7 +30,6 @@ import {
   createV3AdventurerHero,
   derivedStats,
   parseSave,
-  resolveHeroSkill,
   warriorLineageSkillPointsAtLevel,
 } from './rules.ts';
 import { selectSkillTargets, skillHitDamage } from './skill-action.ts';
@@ -37,8 +38,8 @@ import { WARRIOR_V3_RUNTIME_MAP, WARRIOR_V3_SKILL_MAP } from './warrior-v3.ts';
 function warrior(level = 80) {
   const hero = createV3AdventurerHero('final-warrior', 'Final Warrior');
   hero.level = level;
-  hero.skillProgressionV3!.totalEarnedSP = 500;
-  assert.equal(chooseV3Warrior(hero), true);
+  hero.skillProgressionV3!.totalEarnedSP = getTotalSkillPointsForLevel(hero.level);
+  assert.equal(promoteFixture(hero, chooseV3Warrior), true);
   return hero;
 }
 
@@ -57,15 +58,15 @@ function oneHandSword(id: string, attack: number) {
   });
 }
 
-await test('FINAL A: Lv15 controlled Warrior Strike raw is exactly 45.04', () => {
+await test('FINAL A: Lv15 controlled Warrior Strike raw follows weighted sword contribution', () => {
   const hero = createV3AdventurerHero('controlled-l15', 'Controlled Lv15');
   hero.level = 15;
   hero.allocatedStats = { ...hero.allocatedStats, str: 13 };
-  assert.equal(chooseV3Warrior(hero), true);
+  assert.equal(promoteFixture(hero, chooseV3Warrior), true);
   const stats = derivedStats(hero);
-  assert.equal(stats.physicalAttack, 44);
-  const action = resolveHeroSkill(hero, WARRIOR_V3_RUNTIME_MAP['v3-warrior-strike'], 1, stats);
-  assert.equal(skillHitDamage(action.hitSequence[0], stats), 45.04);
+  assert.equal(stats.physicalAttack, 43);
+  const action = resolveFixtureSkill(hero, WARRIOR_V3_RUNTIME_MAP['v3-warrior-strike'], 1, stats);
+  assert.equal(skillHitDamage(action.hitSequence[0], stats), 44.04);
 });
 
 await test('FINAL B: canonical normal SP milestones are exact', () => {
@@ -116,12 +117,12 @@ await test('FINAL E: Battle Cry raises outgoing physical damage but leaves PATK 
   const hero = warrior(59);
   const strike = WARRIOR_V3_RUNTIME_MAP['v3-warrior-strike'];
   const statsBefore = derivedStats(hero);
-  const skillBefore = skillHitDamage(resolveHeroSkill(hero, strike, 1, statsBefore).hitSequence[0], statsBefore);
+  const skillBefore = skillHitDamage(resolveFixtureSkill(hero, strike, 1, statsBefore).hitSequence[0], statsBefore);
   const basicBefore = basicAttackPower(hero);
-  const cry = resolveHeroSkill(hero, WARRIOR_V3_RUNTIME_MAP['v3-warrior-battle-cry'], 5, statsBefore);
+  const cry = resolveFixtureSkill(hero, WARRIOR_V3_RUNTIME_MAP['v3-warrior-battle-cry'], 5, statsBefore);
   assert.equal(addTemporaryModifier(hero, cry.temporaryBuffs![0].modifier, cry.temporaryBuffs![0].duration), true);
   const statsDuring = derivedStats(hero);
-  const skillDuring = skillHitDamage(resolveHeroSkill(hero, strike, 1, statsDuring).hitSequence[0], statsDuring);
+  const skillDuring = skillHitDamage(resolveFixtureSkill(hero, strike, 1, statsDuring).hitSequence[0], statsDuring);
   assert.equal(statsDuring.physicalAttack, statsBefore.physicalAttack);
   assert.ok(Math.abs(skillDuring / skillBefore - 1.07) < 1e-10);
   assert.ok(Math.abs(basicAttackPower(hero) / basicBefore - 1.07) < 1e-10);
@@ -130,19 +131,19 @@ await test('FINAL E: Battle Cry raises outgoing physical damage but leaves PATK 
 await test('FINAL F/G: canonical selector enforces current rank radius/cap and fixture-equivalent behavior', () => {
   const hero = warrior(59);
   const entries = [1,2,3,3.8,4.2,4.6,5].map((x, index) => ({ target: `T${index + 1}`, id: `T${index + 1}`, position: { x, z: 0 }, alive: true }));
-  const sweepingR1 = resolveHeroSkill(hero, WARRIOR_V3_RUNTIME_MAP['v3-warrior-sweeping-slash'], 1);
-  const sweepingR5 = resolveHeroSkill(hero, WARRIOR_V3_RUNTIME_MAP['v3-warrior-sweeping-slash'], 5);
+  const sweepingR1 = resolveFixtureSkill(hero, WARRIOR_V3_RUNTIME_MAP['v3-warrior-sweeping-slash'], 1);
+  const sweepingR5 = resolveFixtureSkill(hero, WARRIOR_V3_RUNTIME_MAP['v3-warrior-sweeping-slash'], 5);
   assert.equal(sweepingR1.areaRadius, 4);
   assert.equal(selectSkillTargets({ action: sweepingR1, origin:{x:0,z:0}, forward:{x:1,z:0}, candidates:entries }).length, 3);
   assert.equal(sweepingR5.areaRadius, 4.4);
   assert.equal(selectSkillTargets({ action: sweepingR5, origin:{x:0,z:0}, forward:{x:1,z:0}, candidates:entries }).length, 4);
-  const groundR5 = resolveHeroSkill(hero, WARRIOR_V3_RUNTIME_MAP['v3-warrior-ground-breaker'], 5);
+  const groundR5 = resolveFixtureSkill(hero, WARRIOR_V3_RUNTIME_MAP['v3-warrior-ground-breaker'], 5);
   assert.equal(selectSkillTargets({ action: groundR5, origin:{x:0,z:0}, forward:{x:1,z:0}, candidates:entries }).length, 6);
 });
 
 await test('FINAL H: Offhand +100 raw ATK does not change inherited Warrior SINGLE_MAIN damage', () => {
   const hero = warrior(80);
-  assert.equal(chooseV3BladeMaster(hero), true);
+  assert.equal(promoteFixture(hero, chooseV3BladeMaster), true);
   const main = oneHandSword('final-main', 100);
   const off = oneHandSword('final-off', 70);
   hero.inventory.push(main, off);
@@ -151,11 +152,11 @@ await test('FINAL H: Offhand +100 raw ATK does not change inherited Warrior SING
   hero.skillProgressionV3!.skillRanks['v3-blade-master-twin-blade-mastery'] = 1;
   const skill = activeSkills(hero).find((entry) => entry.id === 'v3-warrior-strike')!;
   const beforeStats = derivedStats(hero);
-  const before = skillHitDamage(resolveHeroSkill(hero, skill, 1, beforeStats).hitSequence[0], beforeStats);
+  const before = skillHitDamage(resolveFixtureSkill(hero, skill, 1, beforeStats).hitSequence[0], beforeStats);
   off.baseStats.attack = 170;
   const afterStats = derivedStats(hero);
-  const after = skillHitDamage(resolveHeroSkill(hero, skill, 1, afterStats).hitSequence[0], afterStats);
-  assert.equal(afterStats.physicalAttack - beforeStats.physicalAttack, 100);
+  const after = skillHitDamage(resolveFixtureSkill(hero, skill, 1, afterStats).hitSequence[0], afterStats);
+  assert.equal(afterStats.physicalAttack - beforeStats.physicalAttack, 45);
   assert.equal(after, before);
 });
 
@@ -181,7 +182,7 @@ await test('FINAL J/K: Blade Focus Flow durations and Twin Assault one-Tempo-per
   session.commitDamagingImpact(0, 5, true, true);
   session.commitDamagingImpact(.18, 5, true, true);
   assert.equal(state.tempoCount(.18), 1);
-  assert.equal(session.prepare({ ...resolveHeroSkill(warrior(80), WARRIOR_V3_RUNTIME_MAP['v3-warrior-strike'], 1).hitSequence[0] }, 0, 0, target, 'A', 0).damageMultiplier > 0, true);
+  assert.equal(session.prepare({ ...resolveFixtureSkill(warrior(80), WARRIOR_V3_RUNTIME_MAP['v3-warrior-strike'], 1).hitSequence[0] }, 0, 0, target, 'A', 0).damageMultiplier > 0, true);
 });
 
 await test('FINAL L/M: Berserker Mastery whitelist and Trance resource arrays are exact', () => {
@@ -228,7 +229,7 @@ await test('FINAL DOCX R1 Blade Master gates and prerequisite graph are exact', 
 
 await test('FINAL save keeps lineage/ranks but clears every Warrior-lineage combat transient', () => {
   const hero = warrior(80);
-  assert.equal(chooseV3BladeMaster(hero), true);
+  assert.equal(promoteFixture(hero, chooseV3BladeMaster), true);
   hero.skillProgressionV3!.skillRanks['v3-blade-master-twin-blade-mastery'] = 3;
   hero.skillLevels['v3-blade-master-twin-blade-mastery'] = 3;
   hero.activeBuffs['v3-blade-master-blade-focus'] = 20;

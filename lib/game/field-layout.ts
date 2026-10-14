@@ -1,5 +1,18 @@
 import { PLAINS_ID, plainsSafe } from './verdant-plains-layout.ts';
+import { sunkenMonsterSpawns } from './sunken-ruins-population.ts';
+import { SUNKEN_ID, sunkenSafe, sunkenInsideWall } from './sunken-ruins-layout.ts';
+import { isUnderwaterSubmap, DEEP_OCEAN_ID, ABYSAL_TRENCH_ID } from './underwater-regions.ts';
+import { abysalTrenchSafe } from './abysal-trench-layout.ts';
+import { trenchMonsterSpawns } from './abysal-trench-population.ts';
+import { deepOceanSafe } from './deep-ocean-layout.ts';
+import { deepOceanMonsterSpawns } from './deep-ocean-population.ts';
+import { IRONVEIL_ID } from './ironveil-mines-layout.ts';
+import { ironveilSafe, ironveilMonsterSpawns } from './ironveil-mines-population.ts';
+import { WILDS_ID } from './whispering-wilds-layout.ts';
+import { wildsMonsterSpawns, wildsSafe } from './whispering-wilds-population.ts';
 import { plainsMonsterSpawns } from './verdant-plains-population.ts';
+import { FROSTFIRE_ID } from './frostfire-highlands-layout.ts';
+import { frostMonsterSpawns, frostSafe } from './frostfire-population.ts';
 import { FIELDS, FIELD_NPCS, WORLD_CONFIG, type FieldDefinition, type MonsterDefinition } from './regions.ts';
 import { FIELD_TERRAINS, terrainSafe, terrainWalkable, terrainBridge, nearestTerrainPoint } from './field-terrain.ts';
 
@@ -11,7 +24,14 @@ export const regionScale = (inCity: boolean) => inCity ? CITY_SCALE : FIELD_SCAL
 export const regionHalfExtent = (inCity: boolean) => FIELD_LAYOUT.oldHalfExtent * regionScale(inCity);
 export type MonsterSpawn = { id: number; x: number; z: number; definition: MonsterDefinition };
 export function isFieldSafe(fieldId: string, x: number, z: number, margin = 0) {
+  if(fieldId===DEEP_OCEAN_ID)return deepOceanSafe({x,z},margin);
+  if(fieldId===ABYSAL_TRENCH_ID)return abysalTrenchSafe({x,z},margin);
+  if(isUnderwaterSubmap(fieldId))return true;
+  if(fieldId===SUNKEN_ID)return !sunkenInsideWall({x,z})||sunkenSafe({x,z},margin);
+  if(fieldId===IRONVEIL_ID)return ironveilSafe({x,z},margin);
+  if(fieldId===WILDS_ID)return wildsSafe({x,z},margin);
   if(fieldId===PLAINS_ID)return plainsSafe({x,z},margin);
+  if(fieldId===FROSTFIRE_ID)return frostSafe({x,z},margin);
   const terrain=FIELD_TERRAINS[fieldId];
   if(terrain)return terrainSafe(terrain,{x,z},margin);
   const camp = FIELD_NPCS[fieldId];
@@ -22,8 +42,14 @@ export function isFieldWater(x: number, z: number, margin = 0) {
   return ((x / FIELD_SCALE - 24) / (11.8 + margin)) ** 2 + ((z / FIELD_SCALE + 3) / (7.5 + margin)) ** 2 < 1;
 }
 export function fieldSpawns(field: FieldDefinition): MonsterSpawn[] {
+  if(field.id===DEEP_OCEAN_ID)return deepOceanMonsterSpawns(field);
+  if(field.id===ABYSAL_TRENCH_ID)return trenchMonsterSpawns(field);
+  if(field.id===SUNKEN_ID)return sunkenMonsterSpawns(field);
+  if(field.id===IRONVEIL_ID)return ironveilMonsterSpawns(field);
+  if(field.id===WILDS_ID)return wildsMonsterSpawns(field);
   if(!field.normalMonsters.length&&!field.eliteMonsters.length&&!field.fieldBoss)return [];
   if(field.id===PLAINS_ID)return plainsMonsterSpawns(field);
+  if(field.id===FROSTFIRE_ID)return frostMonsterSpawns(field);
   const terrain=FIELD_TERRAINS[field.id];
   if(terrain) {
     // Keep original IDs/species order so existing respawn saves attach to new homes.

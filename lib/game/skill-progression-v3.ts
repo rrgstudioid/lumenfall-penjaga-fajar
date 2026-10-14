@@ -278,14 +278,12 @@ export function accessibleJobIdsV3(
   const ids = new Set(['adventurer']);
   if (state.chosenCoreJob) ids.add(state.chosenCoreJob);
   if (state.chosenSpecialization) ids.add(state.chosenSpecialization);
-  if (state.chosenAdvancedJob) ids.add(state.chosenAdvancedJob);
+  // Advanced Jobs remain locked even if an imported save claims one.
   return ids;
 }
 
 function rankLevel(skill: SkillDefinitionV3, nextRank: number): number {
-  if (skill.familyId) return skill.rankLevelRequirements?.[nextRank - 1] ?? skill.unlockLevel ?? 1;
-  void nextRank;
-  return skill.rankLevelRequirements?.[0] ?? skill.unlockLevel ?? 1;
+  return skill.rankLevelRequirements?.[nextRank - 1] ?? skill.unlockLevel ?? 1;
 }
 
 function skillIsAccessible(skill: SkillDefinitionV3, state: SkillProgressionV3State): boolean {
@@ -312,7 +310,7 @@ export function canPurchaseSkillRank(
   skillId: string,
 ): SkillPurchaseResultV3 {
   const skill = context.skills[skillId];
-  if (!skill) return { ok: false, reason: 'INVALID_SKILL' };
+  if (!skill || skill.jobTier === 'advanced') return { ok: false, reason: 'INVALID_SKILL' };
   const familyBlock = familyPurchaseBlock(context, skillId);
   if (familyBlock) return { ok: false, reason: familyBlock, requiredSkillId: skill.familyPredecessorId ?? skill.replacesSkillId, requiredRank: skill.familyPredecessorRank ?? 1 };
   if (!skillIsAccessible(skill, context.state)) {
@@ -380,7 +378,7 @@ export function getAvailableFamilyBranches(context: SkillProgressionContextV3, f
     .filter(option => option.purchase.ok);
 }
 
-/** Invoke only through the existing paid respec entry point. Earned SP is never
+/** Invoke only through a configured respec entry point; manual reset is currently disabled. Earned SP is never
  * incremented: removing purchased ranks refunds exactly their accounted cost. */
 export function resetFamilyBranch(context: SkillProgressionContextV3, skillId: string) {
   const node = context.skills[skillId];
@@ -435,6 +433,7 @@ export function transitionSkillJobV3(
   tier: Exclude<SkillTierV3, 'adventurer'>,
   jobId: string,
 ): SkillProgressionV3State {
+  if (tier === 'advanced') return state;
   const reset = refundAllSkillPointsForJobChange(state);
   if (tier === 'core') return { ...reset, chosenCoreJob: jobId, chosenSpecialization: null, chosenAdvancedJob: null };
   if (tier === 'specialization') return { ...reset, chosenSpecialization: jobId, chosenAdvancedJob: null };

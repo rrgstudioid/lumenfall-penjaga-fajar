@@ -1,7 +1,10 @@
 import * as T from 'three';
+import { PLAINS_BOUNDARY_GLSL, plainsBoundaryClearance, plainsBoundaryPoint } from './verdant-plains-boundary';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { createPlainsOaks } from './verdant-oak-renderer';
-import { createPlainsSky, PLAINS_DAYLIGHT } from './verdant-plains-sky';
+import { grassBatchInRange, partitionPlainsGrass } from './verdant-grass-tiles';
+import { createPlainsSky } from './verdant-plains-sky';
+import { plainsOceanGeometry, plainsOceanMaterial } from './verdant-plains-ocean';
 import {
   plainsBoulderGeometry,
   plainsBoulderMaterial,
@@ -12,9 +15,7 @@ import {
   PLAINS_BOUNDS,
   PLAINS_ENTRY,
   PLAINS_EXIT,
-  PLAINS_BRIDGE,
   PLAINS_STEP,
-  PLAINS_RIVER,
   PLAINS_PATHS,
   PlainsNavigation,
   plainsHeightfield,
@@ -22,10 +23,8 @@ import {
   plainsGroundHeight,
   plainsCoast,
   plainsRoadDistance,
-  plainsRiverDistance,
   plainsProps,
   plainsSafe,
-  riverHalfWidth,
   type PlainsPoint,
 } from './verdant-plains-layout';
 
@@ -33,6 +32,7 @@ import {
   PLAINS_QUALITY,
   PLAINS_GRASS_FIELD,
   plainsGrassTileCount,
+  plainsGrassRange,
   loadPlainsQuality,
   type PlainsQuality,
 } from './verdant-plains-quality';
@@ -125,7 +125,7 @@ export async function buildVerdantPlains(
     root.add(sky.mesh);
     const models = new Map<string, T.Group>();
     const modelResults = await Promise.allSettled(
-      ['shrub', 'pier', 'banner'].map(async (name) => {
+      ['shrub', 'banner'].map(async (name) => {
         const model = (await gltf.loadAsync(ROOT + name + '.glb')).scene;
         model.traverse((o) => {
           if (o instanceof T.Mesh) {
@@ -145,9 +145,10 @@ export async function buildVerdantPlains(
     );
     const modelFailure = modelResults.find((r) => r.status === 'rejected');
     if (modelFailure?.status === 'rejected') throw modelFailure.reason;
+    sand.repeat.set(200, 200);
     const terrainWind = { value: 0 };
     const terrainMaterial = ownMaterial(
-      new T.MeshStandardMaterial({ roughness: 0.96, color: '#eef0ce' }),
+      new T.MeshStandardMaterial({ roughness: 0.96, color: '#eef0ce', bumpMap: sand, bumpScale: .16 }),
     );
     terrainMaterial.onBeforeCompile = (shader) => {
       Object.assign(shader.uniforms, {
@@ -169,11 +170,14 @@ export async function buildVerdantPlains(
       shader.fragmentShader = shader.fragmentShader
         .replace(
           '#include <common>',
-          '#include <common>\nuniform sampler2D uGrass,uDirt,uSand,uRock; uniform float uMeadowTime; varying vec3 vSurface; varying vec2 vPlainsXZ;',
+          '#include <common>\nuniform sampler2D uGrass,uDirt,uSand,uRock; uniform float uMeadowTime; varying vec3 vSurface; varying vec2 vPlainsXZ;\n' + PLAINS_BOUNDARY_GLSL,
         )
         .replace(
           '#include <map_fragment>',
           `
+        // Clip the hidden heightfield at every LOD. Keep a small buried overlap
+        // beneath the rock foot, without exposed meadow shelves behind it.
+        if(max(abs(vPlainsXZ.x),abs(vPlainsXZ.y))>450.0 && plainsBoundaryClearance(vPlainsXZ)<-.5) discard;
         vec3 grassColor=texture2D(uGrass,vPlainsXZ/9.0).rgb*vec3(.95,1.4,.82);
         // Horizon LOD: wind/shading detail on the terrain continues beyond mesh grass.
         // Derivative filtering prevents subpixel blade patterns from shimmering.
@@ -185,13 +189,31 @@ export async function buildVerdantPlains(
         vec3 meadowBase=mix(grassColor,vec3(.32,.43,.12),.55);
         grassColor=mix(grassColor,meadowBase*(1.0+detail*streak*.12+meadowWave*.04),smoothstep(24.0,100.0,meadowDistance));
         vec3 groundColor=mix(grassColor,texture2D(uDirt,vPlainsXZ/7.0).rgb*vec3(1.8,1.65,1.3),clamp(vSurface.x,0.0,1.0));
-        groundColor=mix(groundColor,texture2D(uSand,vPlainsXZ/11.0).rgb,clamp(vSurface.y,0.0,1.0));
+        // Use the waterline sand finish across the entire beach.
+        float sandGrain=dot(texture2D(uSand,vPlainsXZ/7.0).rgb,vec3(.299,.587,.114));
+        float fineGrain=dot(texture2D(uSand,vPlainsXZ/1.3).rgb,vec3(.333));
+        vec3 beachSand=vec3(1.20,1.025,1.06)*vec3(.69,.59,.50)*(.56+1.25*sandGrain+.18*fineGrain);
+        groundColor=mix(groundColor,beachSand,clamp(vSurface.y,0.0,1.0));
         groundColor=mix(groundColor,texture2D(uRock,vPlainsXZ/13.0).rgb,clamp(vSurface.z,0.0,1.0));
         diffuseColor.rgb*=groundColor*(.94+.06*sin(vPlainsXZ.x*.039)*sin(vPlainsXZ.y*.034));
       `,
-        );
+        )
+        .replace('#include <normal_fragment_maps>', `
+          #ifdef USE_BUMPMAP
+            normal=perturbNormalArb(-vViewPosition,normal,dHdxy_fwd()*clamp(vSurface.y,0.0,1.0),faceDirection);
+          #endif
+        `)
+        .replace('#include <emissivemap_fragment>', `
+          #include <emissivemap_fragment>
+          // Soft diffuse bounce from bright beach sand; keep terrain shadows intact.
+          totalEmissiveRadiance+=beachSand*vec3(.85,.65,.56)*.72*clamp(vSurface.y,0.0,1.0);
+        `)
+        .replace('#include <roughnessmap_fragment>', `
+          #include <roughnessmap_fragment>
+          roughnessFactor=mix(roughnessFactor,.38,clamp(vSurface.y,0.0,1.0));
+        `);
     };
-    terrainMaterial.customProgramCacheKey = () => 'verdant-terrain-meadow-v3';
+    terrainMaterial.customProgramCacheKey = () => 'verdant-terrain-unified-beach-v7';
     const heights = plainsHeightfield(),
       mask = new Float32Array(513 * 513 * 3),
       grassMask = new Uint8Array(513 * 513);
@@ -199,34 +221,22 @@ export async function buildVerdantPlains(
       for (let x = 0; x < 513; x++) {
         const p = { x: x * PLAINS_STEP - 500, z: z * PLAINS_STEP - 500 },
           i = (z * 513 + x) * 3,
-          rd = plainsRiverDistance(p),
           coast = plainsCoast(p.x) - p.z;
         const roadDistance = plainsRoadDistance(p);
         mask[i] = T.MathUtils.clamp(1 - roadDistance / 3, 0, 1);
         if (plainsSafe(p, 1)) mask[i] = 0.9;
         mask[i + 1] =
-          Math.max(
-            T.MathUtils.clamp(1 - coast / 24, 0, 1),
-            T.MathUtils.clamp(1 - Math.abs(rd - 1) / 8, 0, 1),
-          ) *
+          (1 - T.MathUtils.smoothstep(coast, 12, 34)) *
           (1 - mask[i]);
-        mask[i + 2] =
-          Math.max(
-            0,
-            Math.abs(
-              heights[z * 513 + Math.min(512, x + 1)] - heights[z * 513 + x],
-            ) /
-              PLAINS_STEP -
-              0.24,
-          ) * 0.8;
+        // All hills keep meadow turf, including beyond the grass draw distance.
+        mask[i + 2] = 0;
         grassMask[z * 513 + x] =
           255 *
           Math.min(
             T.MathUtils.smoothstep(roadDistance, 1.5, 5),
-            T.MathUtils.smoothstep(rd, 7, 13),
-            T.MathUtils.smoothstep(coast, 15, 25),
+            T.MathUtils.smoothstep(coast, 24, 34),
             plainsSafe(p, 5) ? 0 : 1,
-            1 - T.MathUtils.smoothstep(mask[i + 2], 0.15, 0.4),
+            T.MathUtils.smoothstep(plainsBoundaryClearance(p.x, p.z), 0.2, 2),
           );
       }
     const chunks: Array<{ lod: T.LOD; x: number; z: number }> = [];
@@ -315,198 +325,145 @@ export async function buildVerdantPlains(
           z: (z + 0.5) * 62.5 - 500,
         });
       }
-    // Nonplayable highland skirt continues the northern/western/eastern horizon.
-    for (const side of ['north', 'west', 'east']) {
-      const positions: number[] = [],
-        surfaces: number[] = [],
-        indices: number[] = [];
-      // The first ring shares every heightfield edge vertex. A coarse first
-      // ring interpolated across the steep boundary left visible sky slits.
-      for (let row = 0; row <= 8; row++)
-        for (let i = 0; i <= (row === 0 ? 512 : 64); i++) {
-          const along = (i / (row === 0 ? 512 : 64)) * 1000 - 500,
-            d = (row / 8) * 250,
-            x = side === 'north' ? along : side === 'west' ? -500 - d : 500 + d,
-            z = side === 'north' ? -500 - d : along;
-          const edgeX = T.MathUtils.clamp(x, -500, 500),
-            edgeZ = T.MathUtils.clamp(z, -500, 500),
-            base = plainsTerrainHeight(edgeX, edgeZ);
-          const y =
-            base +
-            (row / 8) *
-              (35 + 55 * (0.5 + 0.5 * Math.sin(along / 67 + row * 0.7)));
-          positions.push(x, z > plainsCoast(edgeX) ? -12 : y, z);
-          surfaces.push(0, 0, 0.25 + row / 20);
-          if (row === 1 && i) {
-            const fine = (i - 1) * 8,
-              coarse = 513 + i - 1;
-            indices.push(fine, coarse, coarse + 1);
-            for (let j = 0; j < 8; j++)
-              indices.push(fine + j, coarse + 1, fine + j + 1);
-          } else if (row > 1 && i) {
-            const k = 513 + (row - 1) * 65 + i;
-            indices.push(k - 66, k - 1, k - 65, k - 65, k - 1, k);
-          }
+    // A continuous rounded escarpment shares its inner contour with collision.
+    // The buried first ring overlaps the terrain; the seaward end sinks below
+    // the existing ocean, so there is no box wall or open corner seam.
+    const boundaryMaterial = ownMaterial(
+      plainsBoulderMaterial(boulderColor, boulderHeight),
+    );
+    // The boulder shader's local UV scale is for small instanced stones.
+    // This mesh uses world metres: keep the same rock texture at cliff scale.
+    const compileBoundaryStone = boundaryMaterial.onBeforeCompile.bind(boundaryMaterial);
+    boundaryMaterial.onBeforeCompile = (shader, renderer) => {
+      compileBoundaryStone(shader, renderer);
+      shader.vertexShader = shader.vertexShader.replace(
+        'vStonePosition=position*2.5;', 'vStonePosition=position/14.0;',
+      );
+    };
+    boundaryMaterial.customProgramCacheKey = () => 'verdant-boundary-stone-v1';
+    const boundarySegments = 512;
+    const boundaryRings = [
+      [1.5, -1], [0, 0], [-1.8, 7], [-5, 16], [-11, 22],
+      [-22, 30], [-42, 39], [-80, 52], [-150, 64], [-260, 48],
+    ];
+    const boundaryPositions: number[] = [], boundaryColors: number[] = [],
+      boundaryUvs: number[] = [], boundaryIndices: number[] = [];
+    const boundaryTint = new T.Color();
+    for (let row = 0; row < boundaryRings.length; row++) {
+      const [clearance, rise] = boundaryRings[row];
+      for (let i = 0; i <= boundarySegments; i++) {
+        const angle = (i % boundarySegments) / boundarySegments * Math.PI * 2;
+        const foot = plainsBoundaryPoint(angle);
+        const crag = row < 2 ? 0 : Math.min(6, row * 0.6)
+          * Math.sin(foot.x / 13 + foot.z / 17 + row * 0.8);
+        const p = plainsBoundaryPoint(angle, clearance + crag);
+        const coast = plainsCoast(p.x) - p.z;
+        const coastBlend = T.MathUtils.smoothstep(coast, -18, 24);
+        const relief = 0.9 + 0.17 * Math.sin(foot.x / 31 + foot.z / 43)
+          + 0.09 * Math.sin(foot.x / 11 - foot.z / 17 + row * 0.55);
+        const base = plainsTerrainHeight(foot.x, foot.z);
+        const y = row === 0 ? plainsTerrainHeight(p.x, p.z) - 0.8
+          : (base + rise * relief) * coastBlend - 12 * (1 - coastBlend);
+        boundaryPositions.push(p.x, y, p.z);
+        boundaryTint.set(row < 2 ? '#879365' : row < 5 ? '#c1beb0' : '#b5b6a9');
+        boundaryTint.multiplyScalar(0.96 + 0.04 * Math.sin(foot.x / 13 + foot.z / 19));
+        boundaryColors.push(boundaryTint.r, boundaryTint.g, boundaryTint.b);
+        boundaryUvs.push(p.x / 4, (p.z + y) / 4);
+        if (row && i) {
+          const k = row * (boundarySegments + 1) + i;
+          boundaryIndices.push(k - boundarySegments - 2, k, k - 1,
+            k - boundarySegments - 2, k - boundarySegments - 1, k);
         }
-      const geo = ownGeometry(new T.BufferGeometry());
-      geo.setAttribute('position', new T.Float32BufferAttribute(positions, 3));
-      geo.setAttribute('surface', new T.Float32BufferAttribute(surfaces, 3));
-      geo.setIndex(indices);
-      geo.computeVertexNormals();
-      const mountain = new T.Mesh(geo, terrainMaterial);
-      // Do not change the shared terrain material's side (that doubled every chunk).
-      mountain.material = ownMaterial(terrainMaterial.clone());
-      mountain.material.onBeforeCompile = (shader, renderer) =>
-        terrainMaterial.onBeforeCompile(shader, renderer);
-      mountain.material.customProgramCacheKey = () =>
-        terrainMaterial.customProgramCacheKey();
-      mountain.material.side = T.DoubleSide;
-      root.add(mountain);
+      }
+    }
+    const boundaryGeometry = ownGeometry(new T.BufferGeometry());
+    boundaryGeometry.setAttribute('position', new T.Float32BufferAttribute(boundaryPositions, 3));
+    boundaryGeometry.setAttribute('color', new T.Float32BufferAttribute(boundaryColors, 3));
+    boundaryGeometry.setAttribute('uv', new T.Float32BufferAttribute(boundaryUvs, 2));
+    boundaryGeometry.setIndex(boundaryIndices);
+    boundaryGeometry.computeVertexNormals();
+    const boundaryNormals = boundaryGeometry.getAttribute('normal');
+    for (let row = 0; row < boundaryRings.length; row++) {
+      const a = row * (boundarySegments + 1), b = a + boundarySegments;
+      const normal = new T.Vector3().fromBufferAttribute(boundaryNormals, a)
+        .add(new T.Vector3().fromBufferAttribute(boundaryNormals, b)).normalize();
+      boundaryNormals.setXYZ(a, normal.x, normal.y, normal.z);
+      boundaryNormals.setXYZ(b, normal.x, normal.y, normal.z);
+    }
+    boundaryGeometry.computeBoundingSphere();
+    const boundary = new T.Mesh(boundaryGeometry, boundaryMaterial);
+    boundary.name = 'Verdant natural rock boundary';
+    boundary.receiveShadow = true;
+    root.add(boundary);
+    const boundaryRay = new T.Raycaster();
+    const boundaryCameraDirection = new T.Vector3();
+    const boundaryCameraPosition = new T.Vector3();
+    let boundaryCameraDistance = Infinity;
+    function constrainCamera(focus: T.Vector3, desired: T.Vector3, dt: number) {
+      boundaryCameraDirection.copy(desired).sub(focus);
+      const distance = boundaryCameraDirection.length();
+      if (distance < 0.001) return desired;
+      boundaryCameraDirection.multiplyScalar(1 / distance);
+      let allowed = distance;
+      if (plainsBoundaryClearance(focus.x, focus.z) < distance + 4) {
+        boundary.updateWorldMatrix(true, false);
+        boundaryRay.set(focus, boundaryCameraDirection);
+        boundaryRay.far = distance + 0.65;
+        const hit = boundaryRay.intersectObject(boundary, false)[0];
+        if (hit) allowed = Math.max(0.3, Math.min(distance, hit.distance - 0.65));
+        // A low orbit can pass underneath the raised rock foot. Keep that
+        // camera on the meadow side too, instead of letting it enter the ridge.
+        if (plainsBoundaryClearance(desired.x, desired.z) < 0.3) {
+          let low = 0, high = distance;
+          for (let i = 0; i < 16; i++) {
+            const d = (low + high) / 2;
+            if (plainsBoundaryClearance(focus.x + boundaryCameraDirection.x * d,
+              focus.z + boundaryCameraDirection.z * d) > 0.3) low = d;
+            else high = d;
+          }
+          allowed = Math.min(allowed, Math.max(0.1, low - 0.35));
+        }
+      }
+      boundaryCameraDistance = allowed < boundaryCameraDistance ? allowed
+        : boundaryCameraDistance + (allowed - boundaryCameraDistance) * (1 - Math.exp(-8 * dt));
+      boundaryCameraPosition.copy(focus).addScaledVector(boundaryCameraDirection, boundaryCameraDistance);
+      boundaryCameraPosition.y = Math.max(boundaryCameraPosition.y,
+        plainsGroundHeight(boundaryCameraPosition.x, boundaryCameraPosition.z) + 1.2);
+      return boundaryCameraPosition;
     }
     const waterTime = { value: 0 };
-    const waterMaterial = ownMaterial(
-      new T.MeshPhongMaterial({
-        color: '#329fa9',
-        specular: '#c4e3e3',
-        shininess: 110,
-        normalMap: waterNormal,
-        normalScale: new T.Vector2(0.48, 0.48),
-      }),
-    );
     const depthTexture = ownTexture(
       new T.DataTexture(heights, 513, 513, T.RedFormat, T.FloatType),
     );
     depthTexture.minFilter = depthTexture.magFilter = T.LinearFilter;
     depthTexture.needsUpdate = true;
-    waterMaterial.onBeforeCompile = (shader) => {
-      shader.uniforms.uGround = { value: depthTexture };
-      shader.uniforms.uWaterTime = waterTime;
-      shader.uniforms.uSkyTint = {
-        value: new T.Color(PLAINS_DAYLIGHT.horizon),
-      };
-      shader.uniforms.uOcean = { value: waterOcean };
-      shader.uniforms.uWaterColor = { value: waterColor };
-      shader.vertexShader = shader.vertexShader
-        .replace(
-          '#include <common>',
-          '#include <common>\nvarying vec2 vWaterXZ;',
-        )
-        .replace(
-          '#include <begin_vertex>',
-          '#include <begin_vertex>\nvWaterXZ=(modelMatrix*vec4(position,1.0)).xz;',
-        );
-      shader.fragmentShader = shader.fragmentShader
-        .replace(
-          '#include <common>',
-          '#include <common>\nuniform sampler2D uGround,uOcean,uWaterColor; uniform vec3 uSkyTint; uniform float uWaterTime; varying vec2 vWaterXZ;',
-        )
-        .replace(
-          '#include <color_fragment>',
-          `#include <color_fragment>
-        vec2 coord=(vWaterXZ+500.0)/1000.0;
-        float depth=any(lessThan(coord,vec2(0.0)))||any(greaterThan(coord,vec2(1.0)))?30.0:max(0.0,.12-texture2D(uGround,coord).r);
-        vec2 flow=vec2(-.045,.028)*uWaterTime;
-        float surfaceDetail=dot(texture2D(uWaterColor,vWaterXZ/12.0+flow*.2).rgb,vec3(.333));
-        diffuseColor.rgb=mix(vec3(.12,.49,.43),vec3(.018,.15,.22),smoothstep(0.0,14.0,depth))*(.85+surfaceDetail*.35);
-        float foam=(1.0-smoothstep(.12,.9,depth))*(.5+.5*sin(vWaterXZ.x*.8+vWaterXZ.y*.5-uWaterTime*1.7));
-        diffuseColor.rgb=mix(diffuseColor.rgb,vec3(.66,.84,.77),foam*.6);
-      `,
-        )
-        .replace(
-          '#include <normal_fragment_maps>',
-          `
-          vec3 n1=texture2D(normalMap,vWaterXZ/8.0+vec2(-.025,.018)*uWaterTime).xyz*2.0-1.0;
-          vec3 n2=texture2D(uOcean,vWaterXZ/19.0+vec2(.012,-.009)*uWaterTime).xyz*2.0-1.0;
-          vec3 mapN=normalize(vec3((n1.xy+n2.xy*.7)*normalScale,n1.z*n2.z));
-          normal=normalize(tbn*mapN);
-        `,
-        )
-        .replace(
-          '#include <opaque_fragment>',
-          `
-          float fresnel=pow(1.0-clamp(dot(normal,normalize(vViewPosition)),0.0,1.0),3.0);
-          outgoingLight=mix(outgoingLight,uSkyTint,fresnel*.48);
-          #include <opaque_fragment>
-        `,
-        );
-    };
-    waterNormal.repeat.set(95, 95);
-    const water = new T.Mesh(
-      ownGeometry(new T.PlaneGeometry(2400, 2400)),
-      waterMaterial,
+    const oakLoad = createPlainsOaks(depthTexture).then(
+      (forest) => {
+        if (disposed) {
+          forest.dispose();
+          return {
+            error: new Error('Verdant Plains map was disposed during loading'),
+          };
+        }
+        oaks = forest;
+        return { forest };
+      },
+      (error: unknown) => ({ error }),
     );
-    water.rotation.x = -Math.PI / 2;
-    water.position.y = 0.12;
+    const oceanGeometries = new Map<PlainsQuality, T.BufferGeometry>();
+    function oceanGeometry(value: PlainsQuality) {
+      let geometry = oceanGeometries.get(value);
+      if (!geometry) {
+        geometry = ownGeometry(plainsOceanGeometry(value));
+        oceanGeometries.set(value, geometry);
+      }
+      return geometry;
+    }
+    const water = new T.Mesh(oceanGeometry(quality), ownMaterial(plainsOceanMaterial(
+      depthTexture, waterNormal, waterOcean, waterColor, skyClouds, waterTime,
+    )));
     water.name = 'Verdant layered water';
     root.add(water);
-    const foamMaterial = ownMaterial(
-      new T.MeshBasicMaterial({
-        color: '#cbe9d3',
-        transparent: true,
-        opacity: 0.38,
-        depthWrite: false,
-        side: T.DoubleSide,
-      }),
-    );
-    function strip(
-      line: PlainsPoint[],
-      width: number,
-      y: (p: PlainsPoint) => number,
-      material: T.Material,
-    ) {
-      const positions: number[] = [],
-        indices: number[] = [];
-      line.forEach((p, i) => {
-        const a = line[Math.max(0, i - 1)],
-          b = line[Math.min(line.length - 1, i + 1)],
-          d = Math.hypot(b.x - a.x, b.z - a.z),
-          nx = -(b.z - a.z) / d,
-          nz = (b.x - a.x) / d;
-        for (const s of [-1, 1])
-          positions.push(p.x + nx * width * s, y(p), p.z + nz * width * s);
-        if (i)
-          indices.push(
-            i * 2 - 2,
-            i * 2,
-            i * 2 - 1,
-            i * 2 - 1,
-            i * 2,
-            i * 2 + 1,
-          );
-      });
-      const g = ownGeometry(new T.BufferGeometry());
-      g.setAttribute('position', new T.Float32BufferAttribute(positions, 3));
-      g.setIndex(indices);
-      g.computeVertexNormals();
-      const m = new T.Mesh(g, material);
-      root.add(m);
-      return m;
-    }
-    for (const side of [-1, 1])
-      strip(
-        PLAINS_RIVER.map((p, i) => {
-          const a = PLAINS_RIVER[Math.max(0, i - 1)],
-            b = PLAINS_RIVER[Math.min(PLAINS_RIVER.length - 1, i + 1)],
-            d = Math.hypot(b.x - a.x, b.z - a.z),
-            w = riverHalfWidth(p.x, p.z) - 4;
-          return {
-            x: p.x - ((b.z - a.z) / d) * w * side,
-            z: p.z + ((b.x - a.x) / d) * w * side,
-          };
-        }).filter((p) => p.z < plainsCoast(p.x) - 3),
-        0.65,
-        () => 0.18,
-        foamMaterial,
-      );
-    strip(
-      Array.from({ length: 201 }, (_, i) => ({
-        x: i * 5 - 500,
-        z: plainsCoast(i * 5 - 500) + 1,
-      })),
-      1,
-      () => 0.18,
-      foamMaterial,
-    );
     const woodMaterial = ownMaterial(
       new T.MeshStandardMaterial({
         map: wood,
@@ -546,32 +503,6 @@ export async function buildVerdantPlains(
       m.castShadow = m.receiveShadow = true;
       parent.add(m);
       return m;
-    }
-    const bridge = new T.Group();
-    bridge.name = 'Single river crossing';
-    bridge.position.set(PLAINS_BRIDGE.x, PLAINS_BRIDGE.height, PLAINS_BRIDGE.z);
-    bridge.rotation.y = Math.atan2(PLAINS_BRIDGE.dx, PLAINS_BRIDGE.dz);
-    root.add(bridge);
-    // Repeated selected pier segment, fitted to the authoritative deck plane.
-    const pier = models.get('pier')!;
-    const pierBounds = new T.Box3().setFromObject(pier),
-      pierSize = pierBounds.getSize(new T.Vector3());
-    for (let i = 0; i < 16; i++) {
-      const segment = pier.clone(true);
-      segment.scale.set(
-        8 / Math.max(0.1, pierSize.x),
-        0.36 / Math.max(0.1, pierSize.y),
-        4 / Math.max(0.1, pierSize.z),
-      );
-      segment.position.set(0, -0.36, -30 + i * 4);
-      bridge.add(segment);
-    }
-    // Continuous support under the authored planks avoids visual cracks.
-    box(bridge, 8, 0.2, 64, 0, -0.2, 0, woodMaterial);
-    for (const side of [-1, 1]) {
-      box(bridge, 0.16, 0.18, 64, side * 4, 1.35, 0, woodMaterial);
-      for (let z = -30; z <= 30; z += 6)
-        box(bridge, 0.22, 7, 0.22, side * 4, -1.8, z, woodMaterial);
     }
     const camp = new T.Group();
     camp.name = 'Arunika Rest';
@@ -790,8 +721,9 @@ export async function buildVerdantPlains(
       root.add(card);
       vegetation.push({ meshes, card, placements, triangles });
     }
-    oaks = await createPlainsOaks(depthTexture);
-    root.add(oaks.root);
+    const oakResult = await oakLoad;
+    if ('error' in oakResult) throw oakResult.error;
+    root.add(oakResult.forest.root);
     const navigation = new PlainsNavigation();
     // The existing visible character is ~369k triangles. A map-owned caster
     // keeps its silhouette shadow inexpensive without changing that model.
@@ -829,11 +761,25 @@ export async function buildVerdantPlains(
     densityTexture.needsUpdate = true;
     const grassGeometries: T.InstancedBufferGeometry[] = [];
     const grassTiles: T.Mesh<T.InstancedBufferGeometry>[] = [];
+    const grassBatches: Array<{
+      mesh: T.Mesh<T.InstancedBufferGeometry>;
+      counts: Record<PlainsQuality, number>;
+      bounds: T.Box3;
+      minX: number;
+      minZ: number;
+      maxX: number;
+      maxZ: number;
+    }> = [];
     const grassRoot = new T.Group();
     grassRoot.name = 'Grass dense field';
     root.add(grassRoot);
     const tileSize = PLAINS_GRASS_FIELD.tileSize;
     const sharedGrass = ownGeometry(plainsGrassGeometry());
+    const officeGrass = ownGeometry(plainsGrassGeometry(true));
+    const initialRange = plainsGrassRange(quality);
+    const grassRange = {
+      value: new T.Vector2(initialRange.outerStart, initialRange.outer),
+    };
     const maxGrass = plainsGrassTileCount('high');
     const patches = new Float32Array(maxGrass * 4);
     let grassSeed = 721;
@@ -851,7 +797,13 @@ export async function buildVerdantPlains(
         ],
         i * 4,
       );
-    const sharedPatches = new T.InstancedBufferAttribute(patches, 4);
+    const partitions = partitionPlainsGrass(patches, tileSize).map(
+      (partition) => ({
+        ...partition,
+        attribute: new T.InstancedBufferAttribute(partition.patches, 4),
+      }),
+    );
+    const sharedPatchBytes = patches.byteLength;
     const grassMaterial = ownMaterial(
       plainsGrassMaterial(
         depthTexture,
@@ -859,58 +811,74 @@ export async function buildVerdantPlains(
         grassPlayer,
         wind,
         grassTrail,
+        grassRange,
       ),
     );
     for (let tz = 0; tz < 16; tz++)
-      for (let tx = 0; tx < 16; tx++) {
-        let low = Infinity,
-          high = -Infinity,
-          maximumMask = 0;
-        // The mask/heightfield is static. Skip wholly forbidden tiles, conservatively
-        // include a one-texel border for filtering and bounds for wind/terrain height.
-        for (
-          let iz = Math.max(0, tz * 32 - 1);
-          iz <= Math.min(512, (tz + 1) * 32 + 1);
-          iz++
-        )
+      for (let tx = 0; tx < 16; tx++)
+        for (const partition of partitions) {
+          const originX = -500 + (tx + 0.5) * tileSize;
+          const originZ = -500 + (tz + 0.5) * tileSize;
+          const gridX = tx * 32 + partition.x * 16;
+          const gridZ = tz * 32 + partition.z * 16;
+          let low = Infinity,
+            high = -Infinity,
+            maximumMask = 0;
+          // The mask/heightfield is static. Skip wholly forbidden tiles, conservatively
+          // include a one-texel border for filtering and bounds for wind/terrain height.
           for (
-            let ix = Math.max(0, tx * 32 - 1);
-            ix <= Math.min(512, (tx + 1) * 32 + 1);
-            ix++
-          ) {
-            const k = iz * 513 + ix;
-            low = Math.min(low, heights[k]);
-            high = Math.max(high, heights[k]);
-            maximumMask = Math.max(maximumMask, grassMask[k]);
-          }
-        if (maximumMask <= 38) continue;
-        const geometry = ownGeometry(new T.InstancedBufferGeometry());
-        for (const [name, attribute] of Object.entries(sharedGrass.attributes))
-          geometry.setAttribute(name, attribute);
-        geometry.setAttribute('aGrassPatch', sharedPatches);
-        geometry.instanceCount = plainsGrassTileCount(quality);
-        geometry.boundingBox = new T.Box3(
-          new T.Vector3(-tileSize / 2 - 2, low - 1, -tileSize / 2 - 2),
-          new T.Vector3(tileSize / 2 + 2, high + 4, tileSize / 2 + 2),
-        );
-        geometry.boundingSphere = geometry.boundingBox.getBoundingSphere(
-          new T.Sphere(),
-        );
-        const mesh = new T.Mesh(geometry, grassMaterial);
-        mesh.name = `Grass tile ${tx},${tz}`;
-        mesh.position.set(
-          -500 + (tx + 0.5) * tileSize,
-          0,
-          -500 + (tz + 0.5) * tileSize,
-        );
-        mesh.frustumCulled = true;
-        grassGeometries.push(geometry);
-        grassTiles.push(mesh);
-        grassRoot.add(mesh);
-      }
+            let iz = Math.max(0, gridZ - 1);
+            iz <= Math.min(512, gridZ + 16 + 1);
+            iz++
+          )
+            for (
+              let ix = Math.max(0, gridX - 1);
+              ix <= Math.min(512, gridX + 16 + 1);
+              ix++
+            ) {
+              const k = iz * 513 + ix;
+              low = Math.min(low, heights[k]);
+              high = Math.max(high, heights[k]);
+              maximumMask = Math.max(maximumMask, grassMask[k]);
+            }
+          if (maximumMask <= 38) continue;
+          const geometry = ownGeometry(new T.InstancedBufferGeometry());
+          for (const [name, attribute] of Object.entries(
+            (quality === 'office' ? officeGrass : sharedGrass).attributes,
+          ))
+            geometry.setAttribute(name, attribute);
+          geometry.setAttribute('aGrassPatch', partition.attribute);
+          geometry.instanceCount = partition.counts[quality];
+          // Include simultaneous wind and contact displacement, including tall blades.
+          geometry.boundingBox = new T.Box3(
+            new T.Vector3(partition.minX - 3, low - 1, partition.minZ - 3),
+            new T.Vector3(partition.maxX + 3, high + 4, partition.maxZ + 3),
+          );
+          geometry.boundingSphere = geometry.boundingBox.getBoundingSphere(
+            new T.Sphere(),
+          );
+          const mesh = new T.Mesh(geometry, grassMaterial);
+          mesh.name = `Grass tile ${tx},${tz}:${partition.x},${partition.z}`;
+          mesh.position.set(originX, 0, originZ);
+          // We cull the padded box below, avoiding a second, looser sphere test.
+          mesh.frustumCulled = false;
+          grassBatches.push({
+            mesh,
+            counts: partition.counts,
+            bounds: geometry.boundingBox.clone().translate(mesh.position),
+            minX: originX + partition.minX,
+            minZ: originZ + partition.minZ,
+            maxX: originX + partition.maxX,
+            maxZ: originZ + partition.maxZ,
+          });
+          grassGeometries.push(geometry);
+          grassTiles.push(mesh);
+          grassRoot.add(mesh);
+        }
     const grassFrustum = new T.Frustum(),
       grassProjection = new T.Matrix4();
     let visibleGrassTiles = 0;
+    let submittedGrassInstances = 0;
     function updateGrassVisibility(camera: T.Camera, player: PlainsPoint) {
       grassFrustum.setFromProjectionMatrix(
         grassProjection.multiplyMatrices(
@@ -920,13 +888,23 @@ export async function buildVerdantPlains(
       );
       grassRoot.updateMatrixWorld(true);
       visibleGrassTiles = 0;
-      for (const mesh of grassTiles) {
-        const inRange =
-          Math.hypot(mesh.position.x - player.x, mesh.position.z - player.z) -
-            tileSize * Math.SQRT1_2 <=
-          PLAINS_GRASS_FIELD.outer;
-        mesh.visible = inRange && grassFrustum.intersectsObject(mesh);
-        if (mesh.visible) visibleGrassTiles++;
+      submittedGrassInstances = 0;
+      // Grass roots and terrain are fixed in world space for this map.
+      for (const { mesh, bounds, minX, minZ, maxX, maxZ } of grassBatches) {
+        const inRange = grassBatchInRange(
+          player.x,
+          player.z,
+          grassRange.value.y,
+          minX,
+          minZ,
+          maxX,
+          maxZ,
+        );
+        mesh.visible = inRange && grassFrustum.intersectsBox(bounds);
+        if (mesh.visible) {
+          visibleGrassTiles++;
+          submittedGrassInstances += mesh.geometry.instanceCount;
+        }
       }
     }
     let lastLod = '',
@@ -947,7 +925,7 @@ export async function buildVerdantPlains(
       let budget =
         currentQuality === 'high'
           ? 50000
-          : currentQuality === 'light'
+          : currentQuality === 'light' || currentQuality === 'office'
             ? 12000
             : 30000;
       const selected = vegetation.map(() => new Set<number>());
@@ -982,7 +960,7 @@ export async function buildVerdantPlains(
         group.meshes.forEach((mesh) => {
           mesh.count = count;
           mesh.visible = count > 0;
-          mesh.castShadow = currentQuality !== 'light';
+          mesh.castShadow = PLAINS_QUALITY[currentQuality].shadow > 0;
           mesh.instanceMatrix.needsUpdate = true;
         });
       });
@@ -997,7 +975,6 @@ export async function buildVerdantPlains(
         plainsGroundHeight(player.x, player.z),
         player.z,
       );
-      waterNormal.offset.set(time * 0.0015, time * 0.0008);
       flame.scale.set(
         1 + 0.08 * Math.sin(time * 7),
         0.85 + 0.15 * Math.sin(time * 11),
@@ -1042,12 +1019,18 @@ export async function buildVerdantPlains(
       for (let x = -500; x <= 500; x += 10) ctx.lineTo(p(x), p(plainsCoast(x)));
       ctx.lineTo(size, size);
       ctx.fill();
-      ctx.strokeStyle = '#62b6c0';
-      ctx.lineWidth = (30 / 1000) * size;
+      ctx.strokeStyle = '#858577';
+      ctx.lineWidth = Math.max(1.5, size * 0.012);
+      ctx.lineJoin = 'round';
       ctx.beginPath();
-      PLAINS_RIVER.forEach((q, i) =>
-        i ? ctx.lineTo(p(q.x), p(q.z)) : ctx.moveTo(p(q.x), p(q.z)),
-      );
+      let boundaryPenDown = false;
+      for (let i = 0; i <= 256; i++) {
+        const q = plainsBoundaryPoint(i / 256 * Math.PI * 2);
+        if (q.z >= plainsCoast(q.x) - 2) { boundaryPenDown = false; continue; }
+        if (boundaryPenDown) ctx.lineTo(p(q.x), p(q.z));
+        else ctx.moveTo(p(q.x), p(q.z));
+        boundaryPenDown = true;
+      }
       ctx.stroke();
       ctx.strokeStyle = '#d4c59a';
       ctx.lineWidth = 1.4;
@@ -1061,7 +1044,6 @@ export async function buildVerdantPlains(
       for (const [point, color] of [
         [PLAINS_ENTRY, '#ffdf8b'],
         [PLAINS_EXIT, '#bddbed'],
-        [PLAINS_BRIDGE, '#f3dca7'],
       ] as const) {
         ctx.fillStyle = color;
         ctx.fillRect(p(point.x) - 2, p(point.z) - 2, 4, 4);
@@ -1081,6 +1063,7 @@ export async function buildVerdantPlains(
       entry: PLAINS_ENTRY,
       navigation,
       groundHeight: plainsGroundHeight,
+      constrainCamera,
       move: navigation.move.bind(navigation),
       safe: plainsSafe,
       update,
@@ -1091,9 +1074,20 @@ export async function buildVerdantPlains(
       },
       setQuality(value: PlainsQuality) {
         currentQuality = value;
+        water.geometry = oceanGeometry(value);
+        const range = plainsGrassRange(value);
+        grassRange.value.set(range.outerStart, range.outer);
+        characterShadow.visible = PLAINS_QUALITY[value].shadow > 0;
         lastVegetation = '';
-        grassGeometries.forEach((g) => {
-          g.instanceCount = plainsGrassTileCount(value);
+        submittedGrassInstances = 0;
+        grassBatches.forEach(({ mesh, counts }) => {
+          const g = mesh.geometry;
+          g.instanceCount = counts[value];
+          if (mesh.visible) submittedGrassInstances += g.instanceCount;
+          for (const [name, attribute] of Object.entries(
+            (value === 'office' ? officeGrass : sharedGrass).attributes,
+          ))
+            g.setAttribute(name, attribute);
         });
         lastLod = '';
       },
@@ -1103,12 +1097,12 @@ export async function buildVerdantPlains(
         grass: grassGeometries.reduce((n, g) => n + g.instanceCount, 0),
         grassField: {
           density: PLAINS_QUALITY[currentQuality].grassDensity,
-          radius: PLAINS_GRASS_FIELD.outer,
+          radius: grassRange.value.y,
           tiles: grassTiles.length,
           visibleTiles: visibleGrassTiles,
           submittedTriangles:
-            visibleGrassTiles * plainsGrassTileCount(currentQuality) * 6,
-          sharedPatchBytes: patches.byteLength,
+            submittedGrassInstances * (currentQuality === 'office' ? 4 : 6),
+          sharedPatchBytes,
           lod: false,
         },
         textures: textures.size,

@@ -1,3 +1,5 @@
+import { WEAPON_TUNING } from './canonical-config.ts';
+import { calculateEquipmentStats } from './items.ts';
 import type { ItemData, StatBlock } from './items.ts';
 import type { ResolvedSkillAction } from './skill-action.ts';
 
@@ -61,15 +63,25 @@ export type WeaponAttackContext = {
   totalWeaponAttack: number;
 };
 
-export const weaponAttack = (item: ItemData | null) => item ? (item.baseStats.attack ?? 0) * (1 + item.enhancementLevel * .08) : 0;
+export const weaponAttack = (item: ItemData | null, hand: WeaponHand = 'MAIN', efficiency: number = WEAPON_TUNING.offHandBaseline) => item ?
+  (item.baseStats.attack ?? 0) * (1 + item.enhancementLevel * WEAPON_TUNING.enhancementPerLevel) *
+  (WEAPON_TUNING.contribution[item.equipmentType ?? ''] ?? 1) * (hand === 'OFF' ? efficiency : 1) : 0;
+export function offHandEfficiency(hero: { specialization: string | null; skillProgressionV3?: { skillRanks: Record<string, number> } }) {
+  const rogue = hero.specialization === 'rogue';
+  const curve = rogue ? WEAPON_TUNING.rogueMasteryByRank : hero.specialization === 'blade_master' ? WEAPON_TUNING.bladeMasteryByRank : null;
+  const rank = hero.skillProgressionV3?.skillRanks[rogue ? 'v3-rogue-dual-dagger-mastery' : 'v3-blade-master-twin-blade-mastery'] ?? 0;
+  const value = curve?.[rank - 1];
+  return value !== undefined && Number.isFinite(value) ? Math.max(WEAPON_TUNING.offHandBaseline, Math.min(WEAPON_TUNING.offHandMasteryCeiling, value)) : WEAPON_TUNING.offHandBaseline;
+}
 export function resolveWeaponAttackContext(
   main: ItemData | null,
   off: ItemData | null,
   mode: WeaponContributionMode = 'SINGLE_MAIN',
   sharedPhysicalCore = 0,
+  efficiency: number = WEAPON_TUNING.offHandBaseline,
 ): WeaponAttackContext {
   const mainHandWeaponAttack = weaponAttack(main);
-  const offHandWeaponAttack = weaponAttack(off);
+  const offHandWeaponAttack = weaponAttack(off, main ? 'OFF' : 'MAIN', efficiency);
   const totalWeaponAttack = mode === 'SINGLE_OFF' || mode === 'THROWN_OFF' ? offHandWeaponAttack : mode === 'DUAL_COMBINED' ? mainHandWeaponAttack + offHandWeaponAttack : mode === 'SINGLE_MAIN' || mode === 'THROWN_MAIN' ? mainHandWeaponAttack : 0;
   return { mode, sharedPhysicalCore, mainHandWeaponAttack, offHandWeaponAttack, totalWeaponAttack };
 }
@@ -106,9 +118,10 @@ export function composeSingleMainWeaponHits(
   main: ItemData | null,
   off: ItemData | null,
   weaponFactor = 1,
+  efficiency: number = WEAPON_TUNING.offHandBaseline,
 ) {
   const mainAttack = weaponAttack(main) * weaponFactor;
-  const offAttack = action.resolvedWeaponStyle === 'dual_sword' ? weaponAttack(off) * weaponFactor : 0;
+  const offAttack = action.resolvedWeaponStyle === 'dual_sword' ? weaponAttack(off, 'OFF', efficiency) * weaponFactor : 0;
   const sharedPhysicalCore = physicalAttack - mainAttack - offAttack;
   action.hitSequence = action.hitSequence.map((hit) => ({
     ...hit,
@@ -136,10 +149,7 @@ export function resolveUniqueEffects(main: ItemData | null, off: ItemData | null
 
 export function aggregateEquipmentStatOnce(main: ItemData | null, off: ItemData | null): StatBlock {
   const result: StatBlock = {};
-  for (const item of [main, off]) if (item) {
-    const factor = 1 + item.enhancementLevel * .08;
-    for (const block of [item.baseStats, item.bonusStats]) for (const [key, value] of Object.entries(block)) result[key as keyof StatBlock] = (result[key as keyof StatBlock] ?? 0) + (value ?? 0) * factor;
-    for (const socket of item.sockets) if (socket.rune) for (const [key, value] of Object.entries(socket.rune.affixes.reduce((stats, affix) => ({ ...stats, [affix.stat]: (stats[affix.stat] ?? 0) + affix.value }), {} as StatBlock))) result[key as keyof StatBlock] = (result[key as keyof StatBlock] ?? 0) + (value ?? 0) * factor;
-  }
+  for (const item of new Map([main, off].filter((item): item is ItemData => !!item).map(item => [item.id, item])).values())
+    for (const [key, value] of Object.entries(calculateEquipmentStats(item))) result[key as keyof StatBlock] = (result[key as keyof StatBlock] ?? 0) + (value ?? 0);
   return result;
 }

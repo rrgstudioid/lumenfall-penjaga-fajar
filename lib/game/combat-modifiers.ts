@@ -31,8 +31,13 @@ export type ModifierStat =
   | 'blockRate'
   | 'evasion'
   | 'damageReduction';
+export type TimingModifierStat = 'variableCastReduction' | 'fixedCastReduction';
 export type CombatModifier = {
   id: string;
+  /** Optional actual source owner. Legacy IDs already identify their local source. */
+  sourceOwner?: string;
+  /** Explicit independent relative-percent group; omission means normal group. */
+  statPercentGroup?: string;
   /** Normal V2 bonuses add; explicit payoff bonuses multiply total raw damage. */
   layer?: 'normal' | 'payoff';
   /** Same named payoff adds before multiplying; separate groups still multiply. */
@@ -55,8 +60,8 @@ export type CombatModifier = {
     positionAngles?: PositionAngles;
   };
   stats?: {
-    flat?: Partial<Record<ModifierStat, number>>;
-    percent?: Partial<Record<ModifierStat, number>>;
+    flat?: Partial<Record<ModifierStat | TimingModifierStat, number>>;
+    percent?: Partial<Record<ModifierStat | TimingModifierStat, number>>;
   };
   action?: {
     damagePercent?: number;
@@ -114,10 +119,18 @@ export const isManualGuarding = (host: ModifierHost) =>
   host.manualGuardActive === true;
 const finite = (n: number | undefined) => (Number.isFinite(n) ? n! : 0);
 const stages = { passive: 0, weapon: 1, temporary: 2, context: 3 };
-export const orderedModifiers = (mods: readonly CombatModifier[]) =>
-  [...mods].sort(
+export const orderedModifiers = (mods: readonly CombatModifier[]) => {
+  const sources = new Map<string, CombatModifier>();
+  for (const mod of mods) {
+    const key=JSON.stringify([mod.sourceOwner ?? null, mod.id]);
+    const existing=sources.get(key);
+    if (existing && JSON.stringify(existing)!==JSON.stringify(mod)) throw new Error('Conflicting modifier source identity: '+mod.id);
+    sources.set(key,mod);
+  }
+  return [...sources.values()].sort(
     (a, b) => stages[a.stage ?? 'passive'] - stages[b.stage ?? 'passive'],
   );
+};
 export function modifierMatches(
   mod: CombatModifier,
   ctx: ModifierContext,
@@ -192,31 +205,26 @@ export function applyStatModifiers(
 ): DerivedStats {
   const result = { ...stats };
   const ordered = orderedModifiers(mods);
-  let thresholdMaxHP = stats.maxHP;
-  if (ordered.some(m => m.condition?.hpThresholdBasis === 'unconditional_final')) {
-    for (const mod of ordered) {
-      if (!mod.stats || mod.condition?.hpAtOrBelow !== undefined || hasImpactCondition(mod) || !modifierMatches(mod, ctx)) continue;
-      thresholdMaxHP = Math.max(1, (thresholdMaxHP + finite(mod.stats.flat?.maxHP)) * (1 + Math.max(-100, finite(mod.stats.percent?.maxHP)) / 100));
+  // All eligible flat contributions once, then summed relative percentages in
+  // each declared group. Source stage is provenance, never an implicit multiplier.
+  const compose = (key: ModifierStat | TimingModifierStat, eligible: readonly CombatModifier[]) => {
+    let flat = 0;
+    const groups = new Map<string, number>();
+    for (const mod of eligible) {
+      flat += finite(mod.stats?.flat?.[key]);
+      const group = mod.statPercentGroup ?? 'normal';
+      if (!group.trim()) throw new Error('Ambiguous empty stat percent group');
+      const percent = mod.stats?.percent?.[key];
+      if (mod.statPercentGroup && percent !== undefined && !Number.isFinite(percent)) throw new Error('Invalid declared percent source');
+      groups.set(group, (groups.get(group) ?? 0) + finite(percent));
     }
-  }
-  for (const mod of ordered) {
-    if (
-      !mod.stats ||
-      hasImpactCondition(mod) ||
-      !modifierMatches(mod, mod.condition?.hpThresholdBasis === 'unconditional_final' ? {...ctx, maxHP:thresholdMaxHP} : ctx)
-    )
-      continue;
-    const keys = new Set([
-      ...Object.keys(mod.stats.flat ?? {}),
-      ...Object.keys(mod.stats.percent ?? {}),
-    ] as ModifierStat[]);
-    for (const key of keys)
-      result[key] = Math.max(
-        0,
-        (result[key] + finite(mod.stats.flat?.[key])) *
-          (1 + Math.max(-100, finite(mod.stats.percent?.[key])) / 100),
-      );
-  }
+    return Math.max(0, ((stats[key] ?? 0) + flat) * [...groups.values()].reduce((p, n) => p * Math.max(0, 1 + n / 100), 1));
+  };
+  const unconditional = ordered.filter(m => m.stats && !hasImpactCondition(m) && m.condition?.hpAtOrBelow === undefined && modifierMatches(m, ctx));
+  const thresholdMaxHP = Math.max(1, compose('maxHP', unconditional));
+  const eligible = ordered.filter(m => m.stats && !hasImpactCondition(m) && modifierMatches(m, m.condition?.hpThresholdBasis === 'unconditional_final' ? {...ctx, maxHP:thresholdMaxHP} : ctx));
+  const keys = new Set(eligible.flatMap(m => [...Object.keys(m.stats?.flat ?? {}), ...Object.keys(m.stats?.percent ?? {})]) as Array<ModifierStat | TimingModifierStat>);
+  for (const key of keys) result[key] = compose(key, eligible);
   result.criticalRate = Math.min(100, result.criticalRate);
   result.blockRate = Math.min(100, result.blockRate);
   result.maxHP = Math.max(1, result.maxHP);

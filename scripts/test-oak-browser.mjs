@@ -11,7 +11,6 @@ import {
   PLAINS_ENTRY,
   PLAINS_EXIT,
   PLAINS_POCKETS,
-  PLAINS_BRIDGE,
 } from '../lib/game/verdant-plains-layout.ts';
 const { chromium } = await import(
   pathToFileURL(
@@ -152,6 +151,10 @@ try {
     { timeout: 120000 },
   );
   await page.locator('.game-shell.in-world').waitFor({ timeout: 120000 });
+  if (process.env.OFFICE_PROFILE === '1') {
+    check('new browser starts with Office quality', await page.evaluate(() => window.__plainsQA.plains.quality === 'office'));
+  }
+  await page.evaluate(() => window.__plainsQA.setPlainsQuality('balanced', false));
   await page.waitForTimeout(1500);
   await page.evaluate(() => {
     const g = window.__plainsQA,
@@ -197,11 +200,15 @@ try {
     );
   check('uniform dense grass shares buffers and keeps the same blade detail in all tiles',await page.evaluate(()=>{
     const g=window.__plainsQA, tiles=g.plains.root.getObjectByName('Grass dense field').children;
-    const first=tiles[0].geometry;
-    return tiles.every(m=>m.geometry.getAttribute('position').count===18 &&
-      m.geometry.instanceCount===first.instanceCount &&
-      m.geometry.getAttribute('aGrassPatch')===first.getAttribute('aGrassPatch') && m.frustumCulled) &&
-      first.instanceCount/(62.5**2)>=90000/6400;
+    const attributes=new Map();
+    for(const mesh of tiles){
+      const geometry=mesh.geometry, attribute=geometry.getAttribute('aGrassPatch');
+      if(geometry.getAttribute('position').count!==18 || mesh.frustumCulled) return false;
+      if(attributes.has(attribute) && attributes.get(attribute)!==geometry.instanceCount) return false;
+      attributes.set(attribute,geometry.instanceCount);
+    }
+    return attributes.size===4 && [...attributes.values()].reduce((n,c)=>n+c,0)===54932 &&
+      [...attributes.keys()].reduce((n,a)=>n+a.array.byteLength,0)===1757824;
   }));
   // Authoring views under the actual map's sun, sky, fog and tone mapping.
   let orbit;
@@ -318,20 +325,20 @@ try {
     { width: 2560, height: 1440 },
   ]) {
     await page.setViewportSize(viewport);
-    for (const quality of ['light', 'balanced', 'high']) {
+    for (const quality of (process.env.OFFICE_ONLY === '1' ? ['office'] : process.env.OFFICE_PROFILE === '1' ? ['office', 'light', 'balanced', 'high'] : ['light', 'balanced', 'high'])) {
       await page.evaluate(
         (q) => window.__plainsQA.setPlainsQuality(q),
         quality,
       );
       const route =
-        quality === 'balanced'
+        quality === 'balanced' || quality === 'office'
           ? [
               PLAINS_ENTRY,
               ...PLAINS_POCKETS,
               PLAINS_EXIT,
               {
-                x: PLAINS_BRIDGE.x - PLAINS_BRIDGE.dx * 42,
-                z: PLAINS_BRIDGE.z - PLAINS_BRIDGE.dz * 42,
+                x: 103.2,
+                z: -48.49363,
               },
             ]
           : [PLAINS_ENTRY, PLAINS_OAKS.find((p) => p.zone === 'southeast')];
@@ -382,6 +389,7 @@ try {
             oakCalls: Math.max(...oakCalls),
             map: g.plains.metrics(),
             memory: g.renderer.info.memory,
+            diagnostics: g.getPerformanceDiagnostics?.(),
           };
         });
         await page.keyboard.up('w');
@@ -389,9 +397,15 @@ try {
         check(
           `${quality} oak render budget ${viewport.width} ${point.x}`,
           sample.oakTriangles <=
-            { light: 80000, balanced: 180000, high: 300000 }[quality] &&
+            { office: 40000, light: 80000, balanced: 180000, high: 300000 }[quality] &&
             sample.oakCalls <= 40,
         );
+        if (quality === 'office') {
+          const buffer = sample.diagnostics.drawingBuffer;
+          check('Office 3D pixel budget and grass range', buffer.width * buffer.height <= 1280 * 720 && sample.map.grassField.radius === 100);
+          check('Office preserves all oak and population', sample.map.oaks.count === 30 && await page.evaluate(() => window.__plainsQA.enemies.length === 497));
+          await page.screenshot({ path: out + `/office-${viewport.width}-${point.x}.png` });
+        }
       }
     }
   }
@@ -402,6 +416,32 @@ try {
   const cpu95 = Math.max(...performance.map((p) => p.cpuP95));
   check('oak CPU p95 below 0.5ms', cpu95 <= 0.5);
   if (process.env.OAK_PROFILE_ONLY) {
+    if (process.env.OFFICE_PROFILE === '1') {
+      await page.keyboard.press('Escape');
+      await page.getByRole('button', { name: 'Options', exact: true }).click();
+      await page.getByRole('button', { name: 'Graphics', exact: true }).click();
+      assert.equal(await page.getByRole('radio').count(), 4);
+      await page.getByRole('radio', { name: 'Low', exact: true }).check();
+      await page.getByText('Diagnostik performa', { exact: true }).click();
+      await page.getByRole('button', { name: 'Ambil laporan performa', exact: true }).click();
+      const report = JSON.parse(await page.getByLabel('Laporan performa').inputValue());
+      check('graphics menu exposes local diagnostics and Office choice', report.quality === 'office' && report.gpu && !report.gpuTimeMeasured);
+      await page.screenshot({ path: out + '/graphics-diagnostics.png' });
+      await page.reload({ waitUntil: 'domcontentloaded' });
+      await page.getByRole('button', { name: 'CONTINUE', exact: true }).click();
+      await page.waitForFunction(() => window.__plainsQA?.plains && !window.__plainsQA.transitioning, null, { timeout: 120000 });
+      check('Office setting survives reload', await page.evaluate(() => window.__plainsQA.plains.quality === 'office'));
+      const resources = [];
+      for (let i = 0; i < 10; i++) {
+        await page.evaluate(() => window.__plainsQA.setPlainsQuality('high', false));
+        await page.waitForTimeout(80);
+        await page.evaluate(() => window.__plainsQA.setPlainsQuality('office', false));
+        await page.waitForTimeout(80);
+        resources.push(await page.evaluate(() => ({ ...window.__plainsQA.renderer.info.memory })));
+      }
+      check('ten quality switches do not accumulate geometry or textures', resources.at(-1).geometries === resources[1].geometries && resources.at(-1).textures === resources[1].textures);
+      await writeFile(out + '/quality-resources.json', JSON.stringify(resources, null, 2));
+    }
     check('profile has no runtime errors', errors.length === 0);
     await writeFile(
       out + '/profile-checks.json',

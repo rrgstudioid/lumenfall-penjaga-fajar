@@ -31,21 +31,21 @@ await test('development capability accepts two real one-hand swords and preserve
   hero.inventory.push(main, off);
   assert.equal(equipItem(hero, main.id, 'mainHand').ok, true); assert.equal(equipItem(hero, off.id, 'offHand').ok, true);
   const context = resolveWeaponAttackContext(main, off, 'DUAL_COMBINED', 200);
-  assert.equal(context.mainHandWeaponAttack, 100); assert.equal(context.offHandWeaponAttack, 70); assert.equal(context.totalWeaponAttack, 170);
+  assert.equal(context.mainHandWeaponAttack, 90); assert.equal(context.offHandWeaponAttack, 31.5); assert.equal(context.totalWeaponAttack, 121.5);
   const stats = aggregateEquipmentStatOnce(main, off); assert.equal(stats.str, 15); assert.equal(stats.critRate, 5);
   assert.equal(resolveUniqueEffects(main, off).find(e => e.id === 'effect-x')?.magnitude, 10);
 });
 
 await test('weapon modes keep SINGLE_MAIN isolated and sequence shares character core once', () => {
   const main = weapon('dw-context-main', 100), off = weapon('dw-context-off', 70);
-  assert.equal(resolveWeaponAttackContext(main, off, 'SINGLE_MAIN', 200).totalWeaponAttack, 100);
-  assert.equal(resolveWeaponAttackContext(main, { ...off, baseStats: { attack: 170 } }, 'SINGLE_MAIN', 200).totalWeaponAttack, 100);
+  assert.equal(resolveWeaponAttackContext(main, off, 'SINGLE_MAIN', 200).totalWeaponAttack, 90);
+  assert.equal(resolveWeaponAttackContext(main, { ...off, baseStats: { attack: 170 } }, 'SINGLE_MAIN', 200).totalWeaponAttack, 90);
   const sequence: WeaponHitDefinition[] = [
     { weaponHand: 'MAIN', sharedContributionWeight: .6, weaponContributionCoefficient: 1, skillCoefficient: .8 },
     { weaponHand: 'OFF', sharedContributionWeight: .4, weaponContributionCoefficient: 1, skillCoefficient: .8 },
   ]; assert.equal(sequence.reduce((sum, hit) => sum + hit.sharedContributionWeight, 0), 1);
   const resolved = resolveWeaponAttackContext(main, off, 'DUAL_SEQUENCE', 200);
-  assert.equal(resolved.mainHandWeaponAttack, 100); assert.equal(resolved.offHandWeaponAttack, 70); assert.equal(resolved.totalWeaponAttack, 0);
+  assert.equal(resolved.mainHandWeaponAttack, 90); assert.equal(resolved.offHandWeaponAttack, 31.5); assert.equal(resolved.totalWeaponAttack, 0);
 });
 
 await test('two-hand conflicts reject without deleting either item; shield remains a valid normal off-hand', () => {

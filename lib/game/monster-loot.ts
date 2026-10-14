@@ -22,6 +22,8 @@ export const RUNE_DROP_RARITIES:Record<MonsterVariant,Weighted<RuneRarity>[]> = 
 };
 export const BOSS_RUNE_DROPS:Record<string,string> = {'verdant-plains':'rune-akar-purba','ironveil-mines':'rune-penjaga-langit','whispering-wilds':'rune-bayangan-caroq','frostfire-highlands':'rune-inti-bara','sunken-ruins':'rune-mata-jayantara','meteorfall-citadel':'rune-raja-meteor'};
 BOSS_RUNE_DROPS['verdant-plains-v2']='rune-akar-purba';
+BOSS_RUNE_DROPS['deep-ocean-underwater-v1']='rune-mata-jayantara';
+BOSS_RUNE_DROPS['abysal-trench-underwater-v1']='rune-mata-jayantara';
 export function weightedPick<T>(entries:Weighted<T>[],rng:()=>number=Math.random):T {
   const total=entries.reduce((sum,entry)=>sum+Math.max(0,entry.weight),0);
   if(!entries.length||total<=0)throw new Error('Empty loot pool');
@@ -34,7 +36,7 @@ export function monsterDropChance(monster:Pick<MonsterDefinition,'dropRate'>,ite
 }
 export function equipmentDropPool(fieldId:string,specialization:string|null=null):Weighted<string>[] {
   const field=fieldContent(fieldId);
-  return Object.values(ITEM_CATALOG).filter(item=>['weapon','armor','accessory'].includes(item.category)&&item.equipSlot&&!item.isQuestItem&&!item.isSoulbound&&
+  return Object.values(ITEM_CATALOG).filter(item=>item.templateId!=='dragon-veil-wings'&&['weapon','armor','accessory'].includes(item.category)&&item.equipSlot&&!item.isQuestItem&&!item.isSoulbound&&
     item.levelRequirement<=field.maxLevel&&(!item.requiredSpecialJob||item.requiredSpecialJob===specialization)&&
     (!item.templateId.startsWith('field-')||item.templateId.startsWith(`field-${field.id}-`)))
     .map(item=>({value:item.templateId,weight:item.templateId.startsWith('field-')?3:1}));

@@ -4,7 +4,7 @@ import { ECLIPSE_DURATION, ECLIPSE_TICK_INTERVAL, ECLIPSE_PROFILES, ECLIPSE_STAC
 type Target = { hp: number; max: number };
 type EclipseRecord = { casterId:string; targetId:string; rank:number; expiresAt:number; nextTickAt:number; ticks:number;
   multiplier:number; snapshot:PoisonSnapshot };
-export type EclipseTick = { rawDamage:number; snapshot:PoisonSnapshot; damageKind:'dot'; canCrit:false; casterId:string };
+export type EclipseTick = { rawDamage:number; snapshot:PoisonSnapshot; damageKind:'dot'; damageType:'physical'; canCrit:true; critException:'assassin_skill_poison'; casterId:string };
 const owner = (actor:PoisonActor) => actor.characterId ?? actor.slotId;
 
 /** All Assasin-specific state stays out of Hero/save. The existing normal Poison
@@ -76,7 +76,7 @@ export class AssasinCombatState<T extends Target> {
       const roll=p.min+(p.max-p.min)*Math.max(0,Math.min(1,this.rng()));
       const rawDamage=(roll*10+due.snapshot.physicalAttack*p.physical+Math.max(0,due.snapshot.effectiveDex-15)*p.dex)*
         (1+.05*(due.rank-1))*due.multiplier;
-      this.dealTick(target,{rawDamage,snapshot:{...due.snapshot},damageKind:'dot',canCrit:false,casterId:due.casterId});
+      this.dealTick(target,{rawDamage,snapshot:{...due.snapshot},damageKind:'dot',damageType:'physical',canCrit:true,critException:p.critException,casterId:due.casterId});
       if (target.hp<=0) { this.clearTarget(target); return; }
       if (this.eclipses.get(target)!==records) return;
     }

@@ -1,9 +1,34 @@
+import { mineMonsterSpawns, mineSafe, moveMineMonster } from './ironveil-interior-population';
+import { MINE_ID, MINE_ENTRY, MINE_EXIT, MineNavigation, mineGroundHeight, mineLineOfSight } from './ironveil-interior-layout';
+import { IRONVEIL_ID, IRONVEIL_TRANSITION, ironveilGroundHeight, ironveilWalkable } from './ironveil-mines-layout';
+import { IRONVEIL_DAYLIGHT } from './ironveil-mines-sky';
+import { moveIronveilMonster } from './ironveil-mines-population';
+import { SUNKEN_ID, sunkenGroundHeight, sunkenWalkable } from './sunken-ruins-layout';
+import { DEEP_OCEAN_ID, ABYSAL_TRENCH_ID, isUnderwaterSubmap } from './underwater-regions';
+import { isSeaSerpent, GUARDIAN_ATTACKS, BOSS_ATTACKS, serpentStrikeContains, type SerpentStrike } from './sea-serpent-combat';
+import { createSerpentBody, type SerpentVisual } from './sea-serpent-model';
+import { abysalTrenchGroundHeight, abysalTrenchWalkable } from './abysal-trench-layout';
+import { deepOceanGroundHeight, deepOceanWalkable } from './deep-ocean-layout';
+import { SUNKEN_LIGHT, DEEP_OCEAN_LIGHT, ABYSAL_TRENCH_LIGHT, SUNKEN_ABYSS_FOG, DEEP_OCEAN_TRENCH_VIEW } from './sunken-ruins-quality';
+import { WILDS_ID, WILDS_PORTALS, wildsGroundHeight, wildsWalkable } from './whispering-wilds-layout';
+import { type WildsQuality } from './whispering-wilds-quality';
+import { loadGraphicsQuality, saveGraphicsQuality, type GraphicsQuality } from './graphics-quality';
+import { WILDS_NIGHT } from './whispering-wilds-sky';
 import { PLAINS_ID, PLAINS_EXIT, plainsGroundHeight, plainsWalkable } from './verdant-plains-layout';
-import { PLAINS_QUALITY, PLAINS_QUALITY_KEY, type PlainsQuality } from './verdant-plains-quality';
-import { PLAINS_DAYLIGHT } from './verdant-plains-sky';
+import { FROSTFIRE_ID, frostHeight, frostWalkable, frostCameraFloor } from './frostfire-highlands-layout';
+import { FROST_STORM } from './frostfire-weather';
+import { PLAINS_QUALITY, PLAINS_QUALITY_LABELS, plainsPixelRatio, type PlainsQuality } from './verdant-plains-quality';
+import { RenderPerformance } from './render-performance';
+import { PLAINS_DAYLIGHT, FROST_DAWN } from './verdant-plains-sky';
 import { UIInputBlockers, isEditableTarget } from './ui-input';
 import { CHAT_MESSAGE_LIMIT } from './chat';
 import * as T from 'three';
+import { openBasicReferenceBinding, prepareBasicReferenceAttack, type BasicReferenceBinding } from './basic-attack-reference-v2.ts';
+import { sampleRawAttackExecution, type AttackExecutionSnapshot, type FoundationFailure, type SampledRawExecution } from './attack-range-v2.ts';
+import { QUICK_SLASH_REFERENCE, openQuickSlashBinding, prepareQuickSlash, type QuickSlashBinding } from './quick-slash-reference-v2.ts';
+import { POWER_STRIKE_REFERENCE, openPowerStrikeBinding, preparePowerStrike, currentPowerStrikeBinding, coherentHigherPowerRank, type PowerStrikeBinding } from './power-strike-reference-v2.ts';
+import { ADVENTURER_RANKS_REFERENCE, adventurerReferenceSkillMetadata, adventurerRangePresentation, adventurerOwnedItemRangePresentation, adventurerLifecycleSignature, openAdventurerRanksBinding, prepareAdventurerRanks, prepareAdventurerBasic, currentAdventurerRanksBinding, type AdventurerRanksBinding } from './adventurer-ranks-reference-v2.ts';
+import { WARRIOR_REFERENCE, warriorReferenceSkillMetadata, warriorLifecycleSignature, openWarriorBinding, readWarriorBinding, prepareWarriorReference, recordCommittedWarriorBuffs, type WarriorBinding } from './warrior-reference-v3.ts';
 import type { RogueAmbushState } from './rogue-ambush.ts';
 import { AssasinPoisonState } from './assasin-poison.ts';
 import { AssasinCombatState } from './assasin-combat.ts';
@@ -28,6 +53,7 @@ import { FOLLOW_CAMERA, createFollowCamera, followWheelDistance, stepFollowCamer
 import { CITY_SCALE, regionScale, fieldSpawns, isFieldSafe, regionHalfExtent, monsterRespawnKey, restoreRespawnDeadline } from './field-layout';
 import { getNpcServiceLabel, forgeAccessReason } from './regions';
 import { createMonsterBody } from './monster-models';
+import { oceanContactPoint } from './deep-ocean-monster-models';
 import { commitDrop, getInventorySlots, type DragSource, type DropTarget } from './drag-drop';
 import { BgmPlayer, loadAudioSettings, saveAudioSettings, resolveBgmTrack, type AudioSettings, type BgmStatus } from './bgm';
 import { createCharacterModel, disposeCharacterModel, updateCharacterAura, updateCharacterBillboards, type CharacterModel } from './character-model';
@@ -51,6 +77,8 @@ import {
   deleteCharacter,
   discardItem as discardInventoryItem,
   derivedStats,
+  reconcileResourceMaximums,
+  recoverActiveResources,
   calculateBaseStats,
   calculateEquipmentStats,
   combatModifiersFor,combatSupportFor,modifierContextFor,
@@ -106,7 +134,8 @@ import {
   type SpecializationId,
 } from './rules';
 import { MASTERY_EFFECTS, type SkillDefinition } from './skills';
-import { COMBAT_MECHANICS, criticalChance, evasionChance, blockChance, barrierAmount, resolveHitAgainstEvasion } from './combat-mechanics';
+import { COMBAT_MECHANICS, criticalChance, evasionChance, passiveBlockChance, barrierAmount, resolveHitAgainstEvasion } from './combat-mechanics';
+import { resolveCriticalDamage } from './combat-resolver.ts';
 import { SkillHitQueue, selectSkillTargets, skillHitDamage, inFrontalArc as _inFrontalArc, type ResolvedSkillAction } from './skill-action';
 import { applySourceOwnedStatus, applyStatus, clearExpiredSourceStatuses, effectiveArmorBreakStrength, getActiveStatusApplications, hasActiveStatusFromSource, hasStatus, getStatus, DefenseEvents, counterContextAllowed, type DefenseResult, type SourceOwnedStatus } from './combat-status';
 import {addTemporaryModifier,tickTemporaryModifiers,receivedMultiplier,resolveTargetHit,NO_COUNTER,setManualGuard} from './combat-modifiers';
@@ -230,6 +259,10 @@ export type CombatFeedbackSnapshot = {
   event?: { label: string; tone: 'block' | 'parry' | 'break' | 'payoff'; remaining: number };
 };
 type Enemy = {
+  serpentStrike?:SerpentStrike;
+  serpentAttackIndex?:number;
+  serpentTell?:T.Mesh;
+  rewardless?: boolean;
   spawnGeneration?:number;
   pickBounds?:T.Box3;
   statusEffects?: Record<string,number>;
@@ -268,7 +301,26 @@ type Enemy = {
   movementSpeed: number;
 };
 type GroundLoot = { id: string; item: ItemData; group: T.Group; label: HTMLSpanElement };
-type GroundGold = { id: string; amount: number; group: T.Group; label: HTMLSpanElement };
+type GroundGold = {
+  id: string;
+  amount: number;
+  group: T.Group;
+  label: HTMLSpanElement;
+  fallback: T.Mesh<T.CylinderGeometry, T.MeshStandardMaterial> | null;
+  materials: T.Material[];
+};
+
+function disposeGroundGold(drop: GroundGold) {
+  drop.group.removeFromParent();
+  drop.label.remove();
+  if (drop.fallback) {
+    drop.fallback.geometry.dispose();
+    drop.fallback.material.dispose();
+    drop.fallback = null;
+  }
+  for (const material of drop.materials) material.dispose();
+  drop.materials.length = 0;
+}
 type Particle = {
   mesh: T.Mesh;
   velocity: T.Vector3;
@@ -292,6 +344,9 @@ export class Game {
   terrainSurface: T.Mesh | null = null;
   plains: Awaited<ReturnType<typeof import('./verdant-plains-map').buildVerdantPlains>> | null = null;
   private plainsShadowState = new WeakMap<T.Mesh,boolean>();
+  private renderPerformance = new RenderPerformance();
+  private plainsShadowCheckAt = 0;
+  private interiorMinimapLastDrawAt = -Infinity;
   private setPlainsCharacterShadows(active:boolean) {
     this.actor.traverse(object=>{if(object instanceof T.Mesh){
       if(active){if(!this.plainsShadowState.has(object))this.plainsShadowState.set(object,object.castShadow);object.castShadow=false;}
@@ -299,23 +354,53 @@ export class Game {
     }});
   }
   get isPlains() {return !this.hero.inCity&&this.hero.currentField===PLAINS_ID;}
+  get isMineInterior() {return !this.hero.inCity&&this.hero.currentField===IRONVEIL_ID&&this.hero.interiorId===MINE_ID;}
+  get activeLocationId() {return this.hero.inCity?this.hero.currentCity:this.hero.interiorId??this.hero.currentField;}
+  get isIronveil() {return !this.hero.inCity&&this.hero.currentField===IRONVEIL_ID&&!this.hero.interiorId;}
+  mineInterior: Awaited<ReturnType<typeof import('./ironveil-interior-map').buildIronveilInterior>> | null = null;
+  ironveil: Awaited<ReturnType<typeof import('./ironveil-mines-map').buildIronveilMines>> | null = null;
+  private readonly sunkenAbyssFog = new T.Color(SUNKEN_ABYSS_FOG);
+  private readonly deepOceanTrenchFog = new T.Color(DEEP_OCEAN_TRENCH_VIEW.background);
+  sunken: Awaited<ReturnType<typeof import('./sunken-ruins-map').buildSunkenRuins>> | null = null;
+  get isSunken() {return !this.hero.inCity&&(this.hero.currentField===SUNKEN_ID||isUnderwaterSubmap(this.hero.currentField));}
+  get isWilds() {return !this.hero.inCity&&this.hero.currentField===WILDS_ID;}
+  graphicsQuality: GraphicsQuality = loadGraphicsQuality();
+  wilds: Awaited<ReturnType<typeof import('./whispering-wilds-map').buildWhisperingWilds>> | null = null;
+  get isFrostfire() {return !this.hero.inCity&&this.hero.currentField===FROSTFIRE_ID;}
+  frostfire: Awaited<ReturnType<typeof import('./frostfire-highlands-map').buildFrostfireHighlands>> | null = null;
   arunikaMaterials: ArunikaMaterials | null = null;
   averion: Awaited<ReturnType<typeof import('./averion-map').buildStage03>> | null = null;
   private averionUseSpawn = false;
   private averionCameraDistance = 9;
   get isAverion() { return this.hero.inCity && this.hero.currentCity === 'averion'; }
   get fieldTerrain() { return this.hero.inCity ? undefined : FIELD_TERRAINS[this.hero.currentField]; }
-  get nearSanctuary() {if(this.isAverion||this.isPlains)return false;const p=this.fieldTerrain?.sanctuary??{x:0,z:0};return Math.hypot(this.hero.x-p.x,this.hero.z-p.z)<5.3;}
+  get nearSanctuary() {if(this.isAverion||this.isPlains||this.isFrostfire||this.isWilds||this.isSunken||this.isIronveil||this.isMineInterior)return false;const p=this.fieldTerrain?.sanctuary??{x:0,z:0};return Math.hypot(this.hero.x-p.x,this.hero.z-p.z)<5.3;}
   groundHeight(x:number,z:number) {
+    if(this.isMineInterior)return mineGroundHeight(x,z);
+    if(this.isIronveil)return ironveilGroundHeight(x,z);
+    if(this.isWilds)return wildsGroundHeight(x,z);
+    if(this.isSunken)return this.hero.currentField===ABYSAL_TRENCH_ID?abysalTrenchGroundHeight(x,z):this.hero.currentField===DEEP_OCEAN_ID?deepOceanGroundHeight(x,z):sunkenGroundHeight(x,z);
+    if(this.isFrostfire)return frostHeight(x,z);
     if(this.isPlains)return plainsGroundHeight(x,z);
     if(this.isAverion)return this.averion?.groundHeight(x,z)??this.actor.position.y;
     const t=this.fieldTerrain;return t?terrainHeight(t,x,z):0;
   }
   groundDistance(a:T.Vector3,b:T.Vector3) {
     // Preserve the old flat-ground combat ranges when actors stand on different elevations.
-    return this.fieldTerrain||this.isAverion||this.isPlains?Math.hypot(a.x-b.x,a.z-b.z):a.distanceTo(b);
+    return this.fieldTerrain||this.isAverion||this.isPlains||this.isFrostfire||this.isWilds||this.isSunken||this.isIronveil||this.isMineInterior?Math.hypot(a.x-b.x,a.z-b.z):a.distanceTo(b);
+  }
+  enemyContact(enemy:Enemy,origin:{x:number;z:number}=this.actor.position) {
+    return oceanContactPoint(origin,enemy.group.position,enemy.group.rotation.y,enemy.group.children[0]?.userData.combatShape);
+  }
+  enemyRange(enemy:Enemy,origin:{x:number;z:number}=this.actor.position) {
+    return targetDistance(origin,this.enemyContact(enemy,origin));
   }
   placeActor() {
+    if(this.isSunken){this.actor.visible=!!this.sunken;if(!this.sunken)return;Object.assign(this.hero,this.sunken.navigation.restore(this.hero));}
+    if(this.isMineInterior){this.actor.visible=!!this.mineInterior;if(!this.mineInterior)return;Object.assign(this.hero,this.mineInterior.navigation.restore(this.hero));}
+    if(this.isIronveil){this.actor.visible=!!this.ironveil;if(!this.ironveil)return;Object.assign(this.hero,this.ironveil.navigation.restore(this.hero));}
+    if(this.isWilds){this.actor.visible=!!this.wilds;if(!this.wilds)return;Object.assign(this.hero,this.wilds.navigation.restore(this.hero));}
+    if(this.isFrostfire){this.actor.visible=!!this.frostfire;if(!this.frostfire)return;Object.assign(this.hero,this.frostfire.navigation.restore(this.hero));}
     if(this.isPlains){this.actor.visible=!!this.plains;if(!this.plains)return;if(!this.plains.navigation.valid(this.hero))Object.assign(this.hero,this.plains.navigation.restore(this.hero));}
     if(this.isAverion) {
       this.actor.visible=!!this.averion;
@@ -328,7 +413,31 @@ export class Game {
   }
   moveEnemy(e:Enemy,dx:number,dz:number) {
     const t=this.fieldTerrain;
-    const radius=e.boss?1.8:.55;
+    const radius=e.group.children[0]?.userData.navigationRadius??(e.boss?1.8:.55);
+    if(this.isMineInterior){if(!this.mineInterior)return;const p=moveMineMonster(e.group.position,dx,dz,radius);e.group.position.set(p.x,this.groundHeight(p.x,p.z),p.z);return;}
+    if(this.isIronveil){
+      if(!this.ironveil)return;
+      const p=moveIronveilMonster(e.group.position,dx,dz,radius);
+      e.group.position.set(p.x,this.groundHeight(p.x,p.z),p.z);return;
+    }
+    if(this.isSunken){
+      if(!this.sunken)return;
+      const p=this.sunken.navigationForMonster(e.boss).move(e.group.position,dx,dz,radius);
+      if(!isFieldSafe(this.hero.currentField,p.x,p.z,e.group.children[0]?.userData.navigationRadius??1))e.group.position.set(p.x,this.groundHeight(p.x,p.z),p.z);
+      return;
+    }
+    if(this.isWilds){
+      if(!this.wilds)return;
+      const p=this.wilds.navigation.move(e.group.position,dx,dz,radius);
+      if(!isFieldSafe(WILDS_ID,p.x,p.z,1))e.group.position.set(p.x,this.groundHeight(p.x,p.z),p.z);
+      return;
+    }
+    if(this.isFrostfire){
+      if(!this.frostfire)return;
+      const p=this.frostfire.navigation.move(e.group.position,dx,dz,radius);
+      if(!isFieldSafe(FROSTFIRE_ID,p.x,p.z,1))e.group.position.set(p.x,this.groundHeight(p.x,p.z),p.z);
+      return;
+    }
     if(this.isPlains){
       if(!this.plains)return;
       const p=this.plains.navigation.move(e.group.position,dx,dz,radius);
@@ -342,8 +451,14 @@ export class Game {
     e.group.position.set(p.x,this.groundHeight(p.x,p.z),p.z);
   }
   followTerrain(e:Enemy,target:GroundPoint,speed:number,dt:number) {
-    const t=this.fieldTerrain,radius=e.boss?1.8:.55;
+    const t=this.fieldTerrain,radius=e.group.children[0]?.userData.navigationRadius??(e.boss?1.8:.55);
     let waypoint=target;
+    if(this.isSunken&&this.sunken){
+      if(!e.navigation||e.navigation.until<this.elapsed||Math.hypot(e.navigation.target.x-target.x,e.navigation.target.z-target.z)>3)
+        e.navigation={route:this.sunken.navigationForMonster(e.boss).route(e.group.position,target,radius),until:this.elapsed+.7,target:{x:target.x,z:target.z}};
+      while(e.navigation.route.length&&Math.hypot(e.navigation.route[0].x-e.group.position.x,e.navigation.route[0].z-e.group.position.z)<.45)e.navigation.route.shift();
+      waypoint=e.navigation.route[0]??target;
+    }
     if(t) {
       if(!e.navigation||e.navigation.until<this.elapsed) {
         const direct=moveOnTerrain(t,e.group.position,target.x-e.group.position.x,target.z-e.group.position.z,radius,true);
@@ -375,6 +490,8 @@ export class Game {
   worldLightRig = new T.Group();
   freeCamera = new T.OrthographicCamera(-25, 25, 20, -20, 0.1, 160);
   followCamera = new T.PerspectiveCamera(FOLLOW_CAMERA.fov, 1, 0.1, 160);
+  mineFreeCamera = new T.PerspectiveCamera(70, 1, 0.1, 350);
+  cameraOrbitTarget = new T.Vector3();
   camera: T.OrthographicCamera | T.PerspectiveCamera = this.freeCamera;
   cameraMode: CameraMode = 'free';
   followView = createFollowCamera(0);
@@ -393,12 +510,16 @@ export class Game {
   private poisonTime = 0;
   readonly assasinPoison = new AssasinPoisonState<Enemy>((target, tick) => {
     if (tick.rawDamage <= 0 || !this.enemies.includes(target) || target.hp <= 0) return;
-    this.hurtEnemy(target, tick.rawDamage, 0, 'physical', { ...tick.snapshot, magicPenetration: 0 }, tick.snapshot.level, 'poison_dot');
+    const damage = resolveCriticalDamage(tick.rawDamage, { ...tick,
+      criticalRate: tick.snapshot.criticalRate, criticalDamage: tick.snapshot.criticalDamage }, () => this.rand());
+    this.hurtEnemy(target, damage, 0, 'physical', { ...tick.snapshot, magicPenetration: 0 }, tick.snapshot.level, 'poison_dot');
   }, () => this.rand());
   private poisonExecutions = new WeakMap<ResolvedSkillAction, NonNullable<ReturnType<AssasinPoisonState<Enemy>['beginExecution']>>>();
   readonly assasinCombat = new AssasinCombatState<Enemy>(this.assasinPoison, (target,tick) => {
-    if (tick.rawDamage>0 && this.enemies.includes(target) && target.hp>0)
-      this.hurtEnemy(target,tick.rawDamage,0,'physical',{...tick.snapshot,magicPenetration:0},tick.snapshot.level,'poison_dot');
+    if (tick.rawDamage <= 0 || !this.enemies.includes(target) || target.hp <= 0) return;
+    const damage = resolveCriticalDamage(tick.rawDamage, { ...tick,
+      criticalRate: tick.snapshot.criticalRate, criticalDamage: tick.snapshot.criticalDamage }, () => this.rand());
+    this.hurtEnemy(target,damage,0,'physical',{...tick.snapshot,magicPenetration:0},tick.snapshot.level,'poison_dot');
   },()=>this.rand());
   private assasinExecutions = new WeakMap<ResolvedSkillAction,ReturnType<AssasinCombatState<Enemy>['beginExecution']>>();
   private assasinDaggers: Array<{ mesh:T.Mesh<T.OctahedronGeometry,T.MeshBasicMaterial>; origin:T.Vector3; target:TargetIdentity; age:number; delay:number; duration:number }> = [];
@@ -414,6 +535,10 @@ export class Game {
   raycaster = new T.Raycaster();
   pointer = new T.Vector2();
   aim = new T.Vector3();
+  private movementInput = new T.Vector3();
+  private frameProjection = new T.Vector3();
+  private cameraFocusScratch = new T.Vector3();
+  private cameraDirectionScratch = new T.Vector3();
   ground = new T.Plane(new T.Vector3(0, 1, 0), 0);
   pointerActive = false;
   attacking = false;
@@ -452,7 +577,147 @@ export class Game {
   /** Transient only: the next valid Blade Master basic attack hand. */
   dualBasicNextHand: 'MAIN' | 'OFF' = 'MAIN';
   dualBasicEquipmentSignature = '';
+  #basicReferenceSelected = false;
+  #basicReferenceBinding?: BasicReferenceBinding;
+  #basicReferenceFailure?: FoundationFailure;
+  #quickSlashReferenceSelected = false;
+  #quickSlashReferenceBinding?: QuickSlashBinding;
+  #quickSlashReferenceFailure?: FoundationFailure;
+  #quickSlashResult?: FoundationFailure | Readonly<{ ok: true; execution: AttackExecutionSnapshot; sample: SampledRawExecution }>;
+  getDevelopmentQuickSlashResult() { return this.#quickSlashResult; }
+  #quickSlashExecutions = new WeakMap<ResolvedSkillAction, { hero: Hero; actorId: string }>();
+  #powerStrikeReferenceSelected = false;
+  #powerStrikeReferenceBinding?: PowerStrikeBinding;
+  #powerStrikeReferenceFailure?: FoundationFailure;
+  #powerStrikeResult?: FoundationFailure | Readonly<{ ok: true; execution: AttackExecutionSnapshot; sample: SampledRawExecution }>;
+  #powerStrikeExecutions = new WeakMap<ResolvedSkillAction, { hero: Hero; actorId: string; slotId: string }>();
+  getDevelopmentPowerStrikeResult() { return this.#powerStrikeResult; }
+  /** Independent, nonpersistent Power R1 opt-in; paid Lv2 context only. */
+  enableDevelopmentPowerStrikeReference() {
+    if (process.env.NODE_ENV !== 'development') return Object.freeze({ ok: false as const, code: 'DEVELOPMENT_ONLY', path: 'route', reason: 'Power Strike reference is development-only.' });
+    this.#powerStrikeReferenceSelected = true;
+    const opened = openPowerStrikeBinding(this);
+    this.#powerStrikeReferenceBinding = opened.ok ? opened.value : undefined;
+    this.#powerStrikeReferenceFailure = opened.ok ? undefined : opened;
+    return opened.ok ? Object.freeze({ ok: true as const, version: opened.value.version }) : opened;
+  }
+  /** Nonpersistent opt-in for the single owner-approved development reference. */
+  enableDevelopmentQuickSlashReference() {
+    if (process.env.NODE_ENV !== 'development') return Object.freeze({ ok: false as const, code: 'DEVELOPMENT_ONLY', path: 'route', reason: 'Quick Slash reference is development-only.' });
+    this.#quickSlashReferenceSelected = true;
+    const opened = openQuickSlashBinding(this);
+    this.#quickSlashReferenceBinding = opened.ok ? opened.value : undefined;
+    this.#quickSlashReferenceFailure = opened.ok ? undefined : opened;
+    return opened.ok ? Object.freeze({ ok: true as const, version: opened.value.version }) : opened;
+  }
+  /** Explicit development-only route; never selected by a save, item or UI. */
+  enableDevelopmentBasicReferenceB() {
+    if (process.env.NODE_ENV !== 'development') return Object.freeze({ ok: false as const, code: 'DEVELOPMENT_ONLY', path: 'route', reason: 'Reference B is development-only.' });
+    this.#basicReferenceSelected = true;
+    const opened = openBasicReferenceBinding(this);
+    this.#basicReferenceBinding = opened.ok ? opened.value : undefined;
+    this.#basicReferenceFailure = opened.ok ? undefined : opened;
+    return opened.ok ? Object.freeze({ ok: true as const, version: opened.value.version }) : opened;
+  }
   elapsed = 0;
+  #adventurerRanksSelected = false;
+  #adventurerRenewal?: {hero: Hero; signature: string};
+  #adventurerRenewalEvent?: Readonly<{reason:string;ok:boolean}>;
+  #adventurerRegionTransaction?: object;
+  /** Read-only lifecycle availability; never opens or repairs a binding. */
+  isDevelopmentDiagnosticLifecycleAvailable() {
+    return this.started && !this.dead && !this.disposed && !this.transitioning && !this.regionLoadError;
+  }
+  getDevelopmentAdventurerRenewal() { return this.#adventurerRenewalEvent; }
+  getDevelopmentAdventurerRange() {
+    if(!this.#adventurerRanksSelected)return null;
+    if(this.dead || this.disposed)return Object.freeze({ok:false as const,code:'INACTIVE_LIFECYCLE',path:'hero',reason:'Range unavailable'});
+    return adventurerRangePresentation(this.#adventurerRanksBinding,this);
+  }
+  getDevelopmentAdventurerItemRange(item: Partial<ItemData>) {
+    const range=this.getDevelopmentAdventurerRange();
+    if(!this.hero.inventory.includes(item as ItemData))return null;
+    if(range?.ok && item.id===range.value.itemId)return range.value.weapon;
+    return this.#adventurerRanksSelected && !this.dead && !this.disposed && this.#beginAdventurerTransaction()
+      ? adventurerOwnedItemRangePresentation(this.hero,item as ItemData) : null;
+  }
+  #beginAdventurerTransaction() {
+    if(this.#warriorSelected)return !!this.#warriorRenewal && this.#warriorRenewal.hero===this.hero && this.#warriorRenewal.signature===warriorLifecycleSignature(this.hero);
+    return !!this.#adventurerRenewal && this.#adventurerRenewal.hero===this.hero &&
+      this.#adventurerRenewal.signature===adventurerLifecycleSignature(this.hero);
+  }
+  #renewAdventurerTransaction(authorized: boolean, reason: string) {
+    if(!authorized)return;
+    if(this.#warriorSelected) {
+      const opened=!this.dead&&!this.disposed ? openWarriorBinding(this,this.#warriorSourceBinding) : undefined;
+      this.#warriorBinding=opened?.ok ? opened.value : undefined;
+      if(opened?.ok)this.#warriorSourceBinding=opened.value;
+      this.#warriorFailure=opened&&!opened.ok ? opened : Object.freeze({ok:false,code:'REFERENCE_REBIND_REQUIRED',path:'lifecycle',reason:'Inactive Warrior lifecycle'});
+      this.#warriorRenewal={hero:this.hero,signature:warriorLifecycleSignature(this.hero)};
+      this.#warriorRenewalEvent=Object.freeze({reason,ok:opened?.ok===true});return;
+    }
+    const opened=!this.dead && !this.disposed ? openAdventurerRanksBinding(this) : undefined;
+    this.#adventurerRanksBinding=opened?.ok ? opened.value : undefined;
+    this.#adventurerRanksFailure=opened && !opened.ok ? opened : Object.freeze({ok:false,code:'REFERENCE_REBIND_REQUIRED',path:'lifecycle',reason:'Inactive lifecycle'});
+    // Track only the exact output of this authoritative transaction, including
+    // an unsupported unequip state. Returning through a valid operation still
+    // requires the complete producer proof; presentation never renews authority.
+    this.#adventurerRenewal={hero:this.hero,signature:adventurerLifecycleSignature(this.hero)};
+    this.#adventurerRenewalEvent=Object.freeze({reason,ok:opened?.ok===true});
+  }
+  #adventurerRanksBinding?: AdventurerRanksBinding;
+  #adventurerRanksFailure?: FoundationFailure;
+  #adventurerRanksResult?: FoundationFailure | Readonly<{ ok: true; execution: AttackExecutionSnapshot; sample: SampledRawExecution }>;
+  #adventurerRanksExecutions = new WeakMap<ResolvedSkillAction, { hero: Hero; actorId: string; slotId: string }>();
+  getDevelopmentAdventurerRanksResult() { return this.#adventurerRanksResult; }
+  getDevelopmentAdventurerSkillMetadata(id: string, rank = Math.max(1,this.hero.skillLevels[id]??0)) {
+    if(this.#warriorSelected)return warriorReferenceSkillMetadata(id,rank);
+    return this.#adventurerRanksSelected ? adventurerReferenceSkillMetadata(id,rank) : null;
+  }
+  #warriorSelected=false;
+  #warriorBinding?:WarriorBinding;
+  #warriorSourceBinding?:WarriorBinding;
+  #warriorFailure?:FoundationFailure;
+  #warriorRenewal?:{hero:Hero;signature:string};
+  #warriorRenewalEvent?:Readonly<{reason:string;ok:boolean}>;
+  #warriorCounterReceipt?:{hero:Hero;event:NonNullable<DefenseEvents['lastDefenseEvent']>};
+  #warriorExecutions=new WeakMap<ResolvedSkillAction,{hero:Hero;actorId:string;slotId:string;level:number;targets:Enemy[];identities:Map<Enemy,TargetIdentity>}>();
+  #warriorResult?:FoundationFailure|Readonly<{ok:true;rank:number;level:number;execution?:AttackExecutionSnapshot;sample?:SampledRawExecution}>;
+  getDevelopmentWarriorResult(){return this.#warriorResult;}
+  getDevelopmentWarriorRenewal(){return this.#warriorRenewalEvent;}
+  getDevelopmentWarriorAvailability(){
+    return this.#warriorSelected ? !this.isDevelopmentDiagnosticLifecycleAvailable() ? Object.freeze({ok:false as const,code:'INACTIVE_LIFECYCLE',path:'hero',reason:'Warrior unavailable'}) : readWarriorBinding(this.#warriorBinding,this) : null;
+  }
+  enableDevelopmentWarriorReference(options?:{lifecycleRenewal:true}) {
+    if(process.env.NODE_ENV!=='development')return Object.freeze({ok:false as const,code:'DEVELOPMENT_ONLY',path:'route',reason:'Warrior reference is development-only.'});
+    this.#warriorSelected=true;
+    if(this.#adventurerRanksSelected||this.#quickSlashReferenceSelected||this.#powerStrikeReferenceSelected||this.#basicReferenceSelected){
+      this.#warriorBinding=undefined;
+      return this.#warriorFailure=Object.freeze({ok:false,code:'AMBIGUOUS_REFERENCE_ROUTE',path:'route',reason:'Warrior and Adventurer opt-ins are mutually exclusive.'});
+    }
+    const opened=!this.dead&&!this.disposed ? openWarriorBinding(this) : undefined;
+    this.#warriorBinding=opened?.ok?opened.value:undefined;
+    this.#warriorSourceBinding=this.#warriorBinding;
+    this.#warriorFailure=opened&&!opened.ok?opened:Object.freeze({ok:false,code:'INACTIVE_LIFECYCLE',path:'hero',reason:'Warrior inactive.'});
+    this.#warriorRenewal=opened?.ok&&options?.lifecycleRenewal ? {hero:this.hero,signature:warriorLifecycleSignature(this.hero)}:undefined;
+    return opened?.ok?Object.freeze({ok:true as const,version:opened.value.version}):this.#warriorFailure;
+  }
+  /** Combined reference only. Rebinding never edits cooldowns or persistent state. */
+  enableDevelopmentAdventurerRanksReference(options?: {lifecycleRenewal: true}) {
+    if (process.env.NODE_ENV !== 'development') return Object.freeze({ ok: false as const, code: 'DEVELOPMENT_ONLY', path: 'route', reason: 'Combined ranks reference is development-only.' });
+    this.#adventurerRanksSelected = true;
+    if (this.#quickSlashReferenceSelected || this.#powerStrikeReferenceSelected || this.#basicReferenceSelected) {
+      this.#adventurerRanksBinding = undefined;
+      this.#adventurerRanksFailure = Object.freeze({ok: false, code: 'AMBIGUOUS_REFERENCE_ROUTE', path: 'route', reason: 'Standalone and combined opt-ins are mutually exclusive.'});
+      return this.#adventurerRanksFailure;
+    }
+    const opened = openAdventurerRanksBinding(this);
+    this.#adventurerRanksBinding = opened.ok ? opened.value : undefined;
+    this.#adventurerRanksFailure = opened.ok ? undefined : opened;
+    this.#adventurerRenewal=opened.ok && options?.lifecycleRenewal===true
+      ? {hero:this.hero,signature:adventurerLifecycleSignature(this.hero)} : undefined;
+    return opened.ok ? Object.freeze({ok: true as const, version: opened.value.version}) : opened;
+  }
   lastTime = 0;
   frame = 0;
   emitTimer = 0;
@@ -521,14 +786,18 @@ export class Game {
   registerTargetEnemy(enemy:Enemy){
     this.targetEntities??=new Map();
     this.targetEntities.set(enemy.id,enemy);
-    enemy.group.updateWorldMatrix(true,true);
+    // SkinnedMesh.updateMatrixWorld also refreshes bindMatrixInverse. Without
+    // it, deep map Y offsets can be baked a second time into picking bounds.
+    enemy.group.updateMatrixWorld(true);
+    enemy.group.traverse(o=>{if(o instanceof T.SkinnedMesh)o.computeBoundingBox();});
     const body=enemy.group.children[0];
     const box=body?new T.Box3().setFromObject(body):new T.Box3();
     if(box.isEmpty())box.set(new T.Vector3(-.6,0,-.6),new T.Vector3(.6,2.4,.6)).translate(enemy.group.position);
     box.translate(enemy.group.position.clone().negate());
     const size=box.getSize(new T.Vector3()),center=box.getCenter(new T.Vector3());
     size.x=Math.max(.9,size.x);size.y=Math.max(1.5,size.y);size.z=Math.max(.9,size.z);
-    enemy.pickBounds=box.setFromCenterAndSize(center,size).expandByVector(new T.Vector3(.15,.1,.15));
+    enemy.pickBounds=box.setFromCenterAndSize(center,size).expandByVector(new T.Vector3(.15,this.isSunken?.35:.1,.15));
+    if(isSeaSerpent(enemy.definition?.id))enemy.pickBounds.expandByVector(new T.Vector3(enemy.boss?8:3,enemy.boss?9:3,enemy.boss?4:2));
     this.validateCurrentTarget();
   }
   unregisterTargetEnemy(enemy:Enemy){
@@ -576,7 +845,7 @@ export class Game {
   resolveCurrentTarget(range:number):{target?:Enemy;reason?:TargetFailure}{
     const had=!!this.currentTarget,target=this.getCurrentTarget();
     if(!target)return {reason:had?'TARGET_INVALID':'NO_TARGET'};
-    if(targetDistance(this.actor.position,target.group.position)>range)return {reason:'TARGET_OUT_OF_RANGE'};
+    if(this.enemyRange(target)>range)return {reason:'TARGET_OUT_OF_RANGE'};
     return {target};
   }
   failTarget(reason:TargetFailure|'ACTION_LOCKED'|'TEMPO_REQUIRED'){
@@ -638,8 +907,7 @@ export class Game {
   private updateRogueConcealmentPresentation() {
     const vanish = this.vanish.status(this.hero);
     this.updateVanishPresentation(!!vanish);
-    const concealed = vanish;
-    if (!concealed) {
+    if (!vanish) {
       this.clearRogueConcealmentPresentation();
       return;
     }
@@ -742,15 +1010,25 @@ export class Game {
     this.personalMarks?.update(dt);
     this.updateTargetPresentation();
     tickTemporaryModifiers(this.hero,dt);
-    this.hero.hp = Math.min(this.hero.hp, maxHP(this.hero));
+    reconcileResourceMaximums(this.hero);
     this.syncCombatModifiers();
-    this.hero.hp=Math.min(this.hero.hp,derivedStats(this.hero).maxHP);
+    reconcileResourceMaximums(this.hero);
     this.skillHits.update(dt);
     this.updateAssasinProjectiles(dt);
     this.updateThiefMovement(dt);
     this.updateRogueConcealmentPresentation();
   }
   clearSkillRuntime() {
+    this.#adventurerRegionTransaction=undefined;
+    if(this.#warriorSelected){
+      this.#warriorBinding=undefined;this.#warriorSourceBinding=undefined;this.#warriorCounterReceipt=undefined;
+      this.#warriorFailure=Object.freeze({ok:false,code:'REFERENCE_REBIND_REQUIRED',path:'lifecycle',reason:'Warrior runtime was reset.'});
+      for(const id of WARRIOR_REFERENCE.skills)delete this.hero.activeBuffs[id];
+    }
+    if(this.#adventurerRanksSelected) {
+      this.#adventurerRanksBinding=undefined;
+      this.#adventurerRanksFailure=Object.freeze({ok:false,code:'REFERENCE_REBIND_REQUIRED',path:'lifecycle',reason:'Development context needs explicit readmission after runtime reset.'});
+    }
     this.vanish.end(this.hero.hp <= 0 ? 'DEATH' : 'RESET');
     this.assasinExecutions=new WeakMap();
     this.clearAssasinProjectiles();
@@ -1238,13 +1516,20 @@ export class Game {
     floor.castShadow = false;
   }
   buildHero() {
-    const model=createCharacterModel(this.hero);
+    const model=createCharacterModel(this.hero,{renderer:this.renderer});
     this.characterModel = model;
     this.actor=model.actor;this.arm=model.arm;this.legs=model.legs;this.aura=model.aura;
+    model.animator.update(0,{movementMode:this.isSunken?'underwater':'ground'});
     this.scene.add(this.actor);
+    if (this.isPlains) this.setPlainsCharacterShadows(true);
+    void model.ready.then(() => {
+      if (!this.disposed && this.characterModel === model && this.isPlains)
+        this.setPlainsCharacterShadows(true);
+    }).catch(() => { /* Character loading already reports its own failure. */ });
   }
   buildEnemies() {
     if(this.isAverion)return;
+    if(this.isMineInterior){for(const spawn of mineMonsterSpawns())this.makeEnemy(spawn.id,spawn.x,spawn.z,false,spawn.definition);this.bossSpawned=true;return;}
     if (this.hero.inCity) {
       this.buildTrainingDummies();
       return;
@@ -1356,7 +1641,9 @@ export class Game {
     g.position.set(x, this.groundHeight(x,z), z);
     this.scene.add(g);
     const variant = definition?.variant ?? (boss ? 'boss' : 'normal');
-    const body = createMonsterBody(definition ?? {id:'verdant-plains-0',variant,visualScale:boss?2.35:1});
+    const body = isSeaSerpent(definition?.id) ? createSerpentBody(definition!.id) : createMonsterBody(definition ?? {id:'verdant-plains-0',variant,visualScale:boss?2.35:1});
+    if(isSeaSerpent(definition?.id)&&!this.transitioning)this.sunken?.attachSerpent(body);
+    if(this.isSunken)body.position.y=.65;
     g.add(body);
     if (variant !== 'normal') {
       const aura = this.mesh(new T.RingGeometry(boss?2.5:1.1,boss?2.65:1.22,24),
@@ -1364,7 +1651,7 @@ export class Game {
       aura.rotation.x=-Math.PI/2;aura.castShadow=false;aura.receiveShadow=false;
     }
     const ring = this.mesh(
-      new T.RingGeometry(0.1, variant === 'boss' ? 5.6 : variant === 'elite' ? 2.2 : 1.4, 40),
+      new T.RingGeometry(0.1, body.userData.combatShape ? definition!.attackRange+body.userData.combatShape.radius : variant === 'boss' ? 5.6 : variant === 'elite' ? 2.2 : 1.4, 40),
       new T.MeshBasicMaterial({
         color: definition?.nameColor ?? (boss ? '#d3a5e8' : '#ecaa78'),
         transparent: true,
@@ -1484,7 +1771,14 @@ export class Game {
     label.className = 'floating reward';
     label.textContent = `${amount} Gold Coins`;
     this.labelHost.appendChild(label);
-    const drop: GroundGold = { id: `gold-${Date.now()}-${this.groundGold.length}`, amount, group, label };
+    const drop: GroundGold = {
+      id: `gold-${Date.now()}-${this.groundGold.length}`,
+      amount,
+      group,
+      label,
+      fallback,
+      materials: [],
+    };
     this.groundGold.push(drop);
     loadGoldCoin().then(source => {
       if (this.disposed || !this.groundGold.includes(drop)) return;
@@ -1502,12 +1796,16 @@ export class Game {
           metalness: 0.9,
           roughness: 0.0,
         });
+        drop.materials.push(goldMaterial);
         object.material = Array.isArray(object.material)
           ? object.material.map(() => goldMaterial)
           : goldMaterial;
       });
       model.position.y = 0.28;
       group.remove(fallback);
+      fallback.geometry.dispose();
+      fallback.material.dispose();
+      drop.fallback = null;
       group.add(model);
     }).catch(() => undefined);
   }
@@ -1527,8 +1825,7 @@ export class Game {
     }
     if (nearestGold) {
       this.hero.gold += nearestGold.amount;
-      this.scene.remove(nearestGold.group);
-      nearestGold.label.remove();
+      disposeGroundGold(nearestGold);
       this.groundGold = this.groundGold.filter(drop => drop !== nearestGold);
       this.message(`Gold diambil: ${nearestGold.amount} Gold Coins`);
       this.save();
@@ -1571,21 +1868,18 @@ export class Game {
       });
     }
     this.groundLoot = [];
-    for (const gold of this.groundGold) {
-      this.scene.remove(gold.group);
-      gold.label.remove();
-    }
+    for (const gold of this.groundGold) disposeGroundGold(gold);
     this.groundGold = [];
   }
   spawnBoss(notify = true) {
-    if (this.hero.inCity||!FIELDS[this.hero.currentField]?.fieldBoss) return;
+    if (this.hero.inCity||this.isMineInterior||!FIELDS[this.hero.currentField]?.fieldBoss) return;
     const existing = this.enemies.find(enemy => enemy.boss);
     if (existing) { this.bossSpawned = true; return; }
     this.bossSpawned = true;
     const spawn=fieldSpawns(FIELDS[this.hero.currentField]).find(s=>s.id===100)!;
     this.makeEnemy(spawn.id, spawn.x, spawn.z, true, spawn.definition);
     if (notify)
-      this.message(`${FIELDS[this.hero.currentField].fieldBoss?.name} terbangun. Cari arena di utara.`);
+      this.message(this.isWilds ? 'Forest Warden has awakened at the circular altar.' : `${FIELDS[this.hero.currentField].fieldBoss?.name} terbangun. Cari arena di utara.`);
   }
   snapshot(): Snapshot {
     const derived = derivedStats(this.hero);
@@ -1662,7 +1956,7 @@ export class Game {
       })),
       bossActive: this.enemies.some(e => e.boss && e.hp > 0),
       bossRespawn: Math.ceil(this.enemies.find(e => e.boss)?.respawn ?? 0),
-      bossName: FIELDS[this.hero.currentField]?.fieldBoss?.name ?? '',
+      bossName: this.isMineInterior ? '' : FIELDS[this.hero.currentField]?.fieldBoss?.name ?? '',
       combo: this.combo,
       mana: this.hero.mana,
       maxMana: derived.maxMana,
@@ -1671,16 +1965,22 @@ export class Game {
       skillViews,
       classQuest,
       cityName: CITIES[this.hero.currentCity].displayName,
-      fieldName: FIELDS[this.hero.currentField].displayName,
-      recommendedLevel: FIELDS[this.hero.currentField].recommendedLevel,
-      mapId: this.hero.inCity ? this.hero.currentCity : this.hero.currentField,
+      fieldName: this.isMineInterior ? 'Ironveil Mines \u00b7 Interior' : FIELDS[this.hero.currentField].displayName,
+      recommendedLevel: this.isMineInterior ? '12\u201324' : FIELDS[this.hero.currentField].recommendedLevel,
+      mapId: this.activeLocationId,
       inCity: this.hero.inCity,
     };
   }
   buildRegionDecor() {
+    this.renderPerformance.reset();
     const buildToken=++this.regionBuildToken;
     this.setPlainsCharacterShadows(false);
     if(this.plains){this.plains.dispose();this.plains=null;}
+    if(this.frostfire){this.frostfire.dispose();this.frostfire=null;}
+    if(this.ironveil){this.ironveil.dispose();this.ironveil=null;}
+    if(this.mineInterior){this.mineInterior.dispose();this.mineInterior=null;}
+    if(this.wilds){this.wilds.dispose();this.wilds=null;}
+    if(this.sunken){this.sunken.dispose();this.sunken=null;}
     this.renderer.shadowMap.enabled=true;this.renderer.setPixelRatio(Math.min(devicePixelRatio,1.25));
     if(this.averion){this.averion.root.removeFromParent();this.averion.dispose();this.averion=null;}
     this.regionLoads = [];
@@ -1695,7 +1995,7 @@ export class Game {
     this.scene.remove(this.regionDecor);
     this.regionDecor.traverse(object => { if(object instanceof T.Mesh){object.geometry.dispose(); const materials=Array.isArray(object.material)?object.material:[object.material]; materials.forEach(material=>material.dispose());} });
     this.regionDecor = new T.Group(); this.scene.add(this.regionDecor);
-    this.followCamera.far=this.freeCamera.far=this.isPlains?1400:this.isAverion?650:160;
+    this.followCamera.far=this.freeCamera.far=this.isPlains||this.isFrostfire||this.isWilds||this.isSunken||this.isIronveil||this.isMineInterior?1400:this.isAverion?650:160;
     this.followCamera.updateProjectionMatrix();this.freeCamera.updateProjectionMatrix();
     this.worldLightRig.traverse(o=>{
       if(o instanceof T.HemisphereLight){o.intensity=this.isPlains?PLAINS_DAYLIGHT.ambientIntensity:this.isAverion?1.2:2.2;o.color.set(this.isPlains?PLAINS_DAYLIGHT.ambientSky:this.isAverion?'#eef5ff':'#f2f8d6');o.groundColor.set(this.isPlains?PLAINS_DAYLIGHT.ambientGround:this.isAverion?'#687b55':'#3f5d45');}
@@ -1713,6 +2013,7 @@ export class Game {
     const color = this.hero.inCity ? this.hero.currentCity==='arunika'?'#dfe9bb':'#d8d9d0' : field.color;
     this.scene.background = new T.Color(color); this.scene.fog = null;
     this.worldLightRig.visible=true;
+    this.setGraphicsQuality(this.graphicsQuality,false);
     this.renderer.toneMappingExposure = 1.1;
     const scale=regionScale(this.hero.inCity);
     this.terrain.scale.set(scale,1,scale);
@@ -1721,12 +2022,104 @@ export class Game {
     const sanctuary=this.fieldTerrain?.sanctuary??{x:0,z:0};
     this.shrine.position.set(sanctuary.x,this.groundHeight(sanctuary.x,sanctuary.z),sanctuary.z);
     this.shrine.visible=true;
+    if(this.isMineInterior) {
+      this.terrain.visible=false;this.shrine.visible=false;this.actor.visible=false;
+      this.scene.background=new T.Color('#08090b');this.scene.fog=new T.Fog('#08090b',130,240);
+      this.worldLightRig.visible=false;this.renderer.shadowMap.enabled=false;this.renderer.toneMappingExposure=1.15;
+      this.followCamera.far=this.freeCamera.far=350;this.followCamera.updateProjectionMatrix();this.freeCamera.updateProjectionMatrix();
+      this.regionLoads.push(import('./ironveil-interior-map').then(m=>m.buildIronveilInterior(this.graphicsQuality)).then(map=>{
+        if(this.disposed||buildToken!==this.regionBuildToken){map.dispose();return;}
+        this.mineInterior=map;this.regionDecor.add(map.root);this.setGraphicsQuality(this.graphicsQuality,false);
+        const element=document.createElement('div');element.className='npc-label';
+        const badge=document.createElement('button');badge.type='button';badge.className='npc-service-badge';badge.textContent='To Outside Mines';badge.style.pointerEvents='auto';badge.style.cursor='pointer';badge.addEventListener('click',()=>this.interactIronveilExit());element.appendChild(badge);this.labelHost.appendChild(element);
+        this.portalLabels.push({...MINE_EXIT,element,name:'Mine exit',labelHeight:6});
+        this.placeActor();this.cameraFocus.copy(this.actor.position);map.update(this.hero);this.drawMap();
+      }).catch(error=>{if(!this.disposed&&buildToken===this.regionBuildToken)this.regionLoadError=error;throw error;}));
+      void this.regionLoads.at(-1)!.catch(()=>{});return;
+    }
+    if(this.isIronveil) {
+      this.terrain.visible=false;this.shrine.visible=false;this.actor.visible=false;
+      this.scene.background=new T.Color(IRONVEIL_DAYLIGHT.horizon);this.scene.fog=null;
+      this.renderer.toneMappingExposure=IRONVEIL_DAYLIGHT.exposure;
+      this.worldLightRig.traverse(o=>{
+        if(o instanceof T.HemisphereLight){o.color.set(IRONVEIL_DAYLIGHT.ambientSky);o.groundColor.set(IRONVEIL_DAYLIGHT.ambientGround);o.intensity=IRONVEIL_DAYLIGHT.ambientIntensity;}
+        if(o instanceof T.DirectionalLight){o.color.set(IRONVEIL_DAYLIGHT.sunColor);o.intensity=IRONVEIL_DAYLIGHT.sunIntensity;}
+      });
+      this.regionLoads.push(import('./ironveil-mines-map').then(m=>m.buildIronveilMines(this.graphicsQuality)).then(map=>{
+        if(this.disposed||buildToken!==this.regionBuildToken){map.dispose();return;}
+        this.ironveil=map;this.regionDecor.add(map.root);this.setGraphicsQuality(this.graphicsQuality,false);
+        const element=document.createElement('div');element.className='npc-label';
+        const badge=document.createElement('button');badge.type='button';badge.className='npc-service-badge';badge.textContent=IRONVEIL_TRANSITION.label;badge.style.pointerEvents='auto';badge.style.cursor='pointer';badge.title='Approach the doorway and click to enter the mines.';badge.addEventListener('click',()=>this.interactIronveilEntrance());element.appendChild(badge);this.labelHost.appendChild(element);
+        this.portalLabels.push({...IRONVEIL_TRANSITION.anchor,element,name:'Mine entrance',labelHeight:6});
+        this.placeActor();this.cameraFocus.copy(this.actor.position);map.update(this.camera);this.drawMap();
+      }).catch(error=>{if(!this.disposed&&buildToken===this.regionBuildToken)this.regionLoadError=error;throw error;}));
+      void this.regionLoads.at(-1)!.catch(()=>{});return;
+    }
+    if(this.isSunken) {
+      const abysalTrench=this.hero.currentField===ABYSAL_TRENCH_ID,deepOcean=isUnderwaterSubmap(this.hero.currentField),light=abysalTrench?ABYSAL_TRENCH_LIGHT:deepOcean?DEEP_OCEAN_LIGHT:SUNKEN_LIGHT;
+      this.terrain.visible=false;this.shrine.visible=false;this.actor.visible=false;
+      this.scene.background=new T.Color(light.background);this.scene.fog=new T.Fog(light.background,light.fogNear,light.fogFar);this.renderer.toneMappingExposure=light.exposure;
+      this.worldLightRig.traverse(o=>{
+        if(o instanceof T.HemisphereLight){o.color.set(light.sky);o.groundColor.set(light.ground);o.intensity=light.ambientIntensity;}
+        if(o instanceof T.DirectionalLight){o.color.set(light.sun);o.intensity=light.sunIntensity;}
+      });
+      this.regionLoads.push(import('./sunken-ruins-map').then(m=>m.buildSunkenRuins(this.graphicsQuality,{deepOcean,abysalTrench})).then(map=>{
+        if(this.disposed||buildToken!==this.regionBuildToken){map.dispose();return;}
+        this.sunken=map;this.regionDecor.add(map.root);this.setGraphicsQuality(this.graphicsQuality,false);
+        const camp=FIELD_NPCS[this.hero.currentField];
+        if(camp){
+          const person=new T.Group();person.position.set(camp.x,this.groundHeight(camp.x,camp.z),camp.z);person.userData.npcId=camp.id;this.regionDecor.add(person);
+          this.mesh(new T.CylinderGeometry(.35,.45,1.2,6),this.mat('#d0a95c'),person,0,.65,0);
+          this.mesh(new T.SphereGeometry(.3,8,6),this.mat('#cda07a'),person,0,1.5,0);
+          this.addNpcLabel(camp);
+        }
+        for(const p of map.portals){
+          const element=document.createElement('div');element.className='npc-label';
+          const badge=document.createElement('button');badge.type='button';badge.className='npc-service-badge';badge.textContent=p.name;
+          badge.style.pointerEvents='auto';badge.style.cursor='pointer';
+          badge.addEventListener('click',()=>{if(this.transitioning||this.regionLoadError||this.dead)return;if(Math.hypot(this.hero.x-p.x,this.hero.z-p.z)>4.5)this.message('Dekati portal untuk berpindah wilayah.');else void this.changeRegion(p.destination,p.id);});
+          element.appendChild(badge);this.labelHost.appendChild(element);this.portalLabels.push({...p,element,labelHeight:3.8});
+        }
+        for(const e of this.enemies)if(isSeaSerpent(e.definition?.id)){map.attachSerpent(e.group.children[0] as T.Mesh);this.registerTargetEnemy(e);}
+        this.placeActor();this.cameraFocus.copy(this.actor.position);map.update(this.camera,this.hero,0);this.drawMap();
+      }).catch(error=>{if(!this.disposed&&buildToken===this.regionBuildToken)this.regionLoadError=error;throw error;}));
+      void this.regionLoads.at(-1)!.catch(()=>{});return;
+    }
+    if(this.isWilds) {
+      this.terrain.visible=false;this.shrine.visible=false;this.actor.visible=false;
+      this.scene.background=new T.Color(WILDS_NIGHT.horizon);this.scene.fog=new T.Fog(WILDS_NIGHT.horizon,WILDS_NIGHT.fogNear,WILDS_NIGHT.fogFar);this.renderer.toneMappingExposure=WILDS_NIGHT.exposure;
+      this.worldLightRig.traverse(o=>{
+        if(o instanceof T.HemisphereLight){o.color.set(WILDS_NIGHT.ambientSky);o.groundColor.set(WILDS_NIGHT.ambientGround);o.intensity=WILDS_NIGHT.ambientIntensity;}
+        if(o instanceof T.DirectionalLight){o.color.set(WILDS_NIGHT.sunColor);o.intensity=WILDS_NIGHT.sunIntensity;}
+      });
+      this.regionLoads.push(import('./whispering-wilds-map').then(m=>m.buildWhisperingWilds(this.graphicsQuality)).then(map=>{
+        if(this.disposed||buildToken!==this.regionBuildToken){map.dispose();return;}
+        this.wilds=map;this.regionDecor.add(map.root);this.setGraphicsQuality(this.graphicsQuality,false);
+        for(const p of WILDS_PORTALS){const element=document.createElement('div');element.className='npc-label';const badge=document.createElement('div');badge.className='npc-service-badge';badge.textContent=p.name+' ? Click to travel';element.appendChild(badge);this.labelHost.appendChild(element);this.portalLabels.push({...p,element,labelHeight:6});}
+        this.placeActor();this.cameraFocus.copy(this.actor.position);map.update(this.camera,this.hero,0,this.renderer.getPixelRatio());this.drawMap();
+      }).catch(error=>{if(!this.disposed&&buildToken===this.regionBuildToken)this.regionLoadError=error;throw error;}));
+      void this.regionLoads.at(-1)!.catch(()=>{});return;
+    }
+    if(this.isFrostfire) {
+      this.terrain.visible=false;this.shrine.visible=false;this.actor.visible=false;
+      this.scene.background=new T.Color(FROST_STORM.fogColor);this.scene.fog=new T.FogExp2(FROST_STORM.fogColor,FROST_STORM.fogDensity);
+      this.worldLightRig.traverse(o=>{
+        if(o instanceof T.HemisphereLight){o.color.set(FROST_DAWN.ambientSky);o.groundColor.set(FROST_DAWN.ambientGround);o.intensity=FROST_DAWN.ambientIntensity;}
+        if(o instanceof T.DirectionalLight){o.color.set(FROST_DAWN.sunColor);o.intensity=FROST_DAWN.sunIntensity;Object.assign(o.shadow.camera,{left:-42,right:42,top:42,bottom:-42,near:.1,far:240});o.shadow.camera.updateProjectionMatrix();}
+      });
+      this.regionLoads.push(import('./frostfire-highlands-map').then(module=>module.buildFrostfireHighlands()).then(map=>{
+        if(this.disposed||buildToken!==this.regionBuildToken){map.dispose();return;}
+        this.frostfire=map;this.regionDecor.add(map.root);this.placeActor();this.cameraFocus.copy(this.actor.position);map.update(this.camera,this.hero,0,false,this.renderer.getPixelRatio());this.drawMap();
+      }).catch(error=>{if(!this.disposed&&buildToken===this.regionBuildToken)this.regionLoadError=error;throw error;}));
+      void this.regionLoads.at(-1)!.catch(()=>{});
+      return;
+    }
     if(this.isPlains) {
       this.terrain.visible=false;this.shrine.visible=false;this.actor.visible=false;
       this.scene.background=new T.Color(PLAINS_DAYLIGHT.horizon);this.scene.fog=new T.Fog(PLAINS_DAYLIGHT.horizon,290,1000);
-      this.regionLoads.push(import('./verdant-plains-map').then(module=>module.buildVerdantPlains()).then(map=>{
+      this.regionLoads.push(import('./verdant-plains-map').then(module=>module.buildVerdantPlains(this.graphicsQuality)).then(map=>{
         if(this.disposed||buildToken!==this.regionBuildToken){map.dispose();return;}
-        this.plains=map;this.regionDecor.add(map.root);this.setPlainsQuality(map.quality,false);
+        this.plains=map;this.regionDecor.add(map.root);this.setGraphicsQuality(this.graphicsQuality,false);this.setPlainsCharacterShadows(true);
         const element=document.createElement('div');element.className='npc-label';
         const badge=document.createElement('div');badge.className='npc-service-badge';badge.textContent='Averion · Click to travel';element.appendChild(badge);this.labelHost.appendChild(element);
         this.portalLabels.push({...PLAINS_EXIT,element,name:'Averion',labelHeight:6});
@@ -1826,7 +2219,7 @@ export class Game {
       }
       for(let i=0;i<12;i++) {
         const x=(i%2?1:-1)*(20+i%3*4),z=-30+i*5;
-        const geometry=this.hero.currentField==='whispering-wilds'?new T.CylinderGeometry(.4,.6,8,6):new T.BoxGeometry(2+i%3,3+i%4,2);
+        const geometry=new T.BoxGeometry(2+i%3,3+i%4,2);
         this.mesh(geometry,this.mat(field.color),this.regionDecor,x*scale,2,z*scale);
       }
     }
@@ -1851,12 +2244,32 @@ export class Game {
       }
     }));
   }
-  changeRegion(id:string) {
+  changeRegion(id:string,portalId?:string) {
     if(this.transitioning) return false;
-    const result=travel(this.hero,id); if(!result.ok){this.message(result.reason);return false;}
+    const fromWilds=this.isWilds;
+    const ironveilTravel=this.isIronveil||id===IRONVEIL_ID;
+    const result=travel(this.hero,id,portalId); if(!result.ok){this.message(fromWilds?`Requires level ${(CITIES[id]??FIELDS[id])?.minLevel??1}.`:result.reason);return false;}
+    if(fromWilds||id===WILDS_ID)result.reason=`Arrived at ${id===WILDS_ID?'Whispering Wilds':WILDS_PORTALS.find(p=>p.destination===id)?.name??id}.`;
+    if(ironveilTravel)result.reason=`Arrived at ${CITIES[id]?.displayName??FIELDS[id]?.displayName??id}.`;
     const destinationLabel = CITIES[id]?.displayName ?? FIELDS[id]?.displayName ?? 'Area baru';
     this.averionUseSpawn=id==='averion';
+    return this.loadActiveLocation(id,destinationLabel,result.reason);
+  }
+  retryLocationLoad() {
+    if(this.transitioning||!this.regionLoadError)return false;
+    return this.loadActiveLocation(this.activeLocationId,this.isMineInterior?'Ironveil Mines \u00b7 Interior':FIELDS[this.hero.currentField]?.displayName??'Map','Map loaded.');
+  }
+  private loadActiveLocation(id:string,destinationLabel:string,message:string) {
+    // Capture only a current, fully admitted policy. Retrying a failed load does
+    // not recover discarded intent. This object never escapes the transaction.
+    const prior=this.#beginAdventurerTransaction() && (this.#warriorSelected ? this.getDevelopmentWarriorAvailability()?.ok : this.getDevelopmentAdventurerRange()?.ok)
+      ? {hero:this.hero,item:this.hero.inventory.find(item=>item.id===this.hero.equipment.mainHand),
+         signature:this.#warriorSelected?warriorLifecycleSignature(this.hero):adventurerLifecycleSignature(this.hero)} : undefined;
     this.clearSkillRuntime();
+    this.#adventurerRenewal=undefined;
+    this.#warriorRenewal=undefined;
+    const transaction={};
+    this.#adventurerRegionTransaction=transaction;
     this.assasinPoison.clear(); this.assasinCombat.clear(); // Old target instances leave the loaded world.
     this.closeNpcMenu();
     this.transitioning=true;this.clearInput();
@@ -1864,25 +2277,35 @@ export class Game {
     void (async () => {
       try {
         this.clearGroundLoot();
-        for(const enemy of this.enemies){this.scene.remove(enemy.group);enemy.group.traverse(object=>{if(object instanceof T.Mesh){object.geometry.dispose();const materials=Array.isArray(object.material)?object.material:[object.material];materials.forEach(material=>material.dispose());}});}
+        for(const enemy of this.enemies)this.disposeEnemyVisual(enemy);
         this.enemyLabels.forEach(label=>label.remove());this.enemyLabels.clear();this.enemies=[];this.targetEntities.clear();this.bossSpawned=false;
         this.buildEnemies();
         this.buildRegionDecor();
+        const generation=this.regionBuildToken;
         this.placeActor();
         this.cameraFocus.copy(this.actor.position);
         await this.waitForRegionLoads();
+        if(this.disposed || this.#adventurerRegionTransaction!==transaction || generation!==this.regionBuildToken || this.activeLocationId!==id)return;
         this.invincible=2;
         this.transitioning=false;
+        if(prior && this.started && !this.dead && prior.hero===this.hero &&
+            prior.item===this.hero.inventory.find(item=>item.id===this.hero.equipment.mainHand) &&
+            prior.signature===(this.#warriorSelected?warriorLifecycleSignature(this.hero):adventurerLifecycleSignature(this.hero)))
+          this.#renewAdventurerTransaction(true,'successful region transaction');
         this.save();
-        this.message(result.reason);
+        this.message(message);
       } catch (error) {
+        if(this.disposed || this.#adventurerRegionTransaction!==transaction)return;
         console.warn('Gagal memuat region tujuan.', error);
         this.regionLoadError=error instanceof Error?error:new Error(String(error));
-        this.message('Map tujuan belum siap sepenuhnya. Silakan coba lagi sebentar.');
+        this.message((id===IRONVEIL_ID||id===MINE_ID)?'Unable to load Ironveil Mines. Please retry.':id===WILDS_ID?'Unable to load Whispering Wilds. Please retry.':'Map tujuan belum siap sepenuhnya. Silakan coba lagi sebentar.');
       } finally {
-        this.transitioning=false;
-        this.onMapTransition?.({ id, loading: false, label: destinationLabel, error: this.regionLoadError ? 'ERROR: Map gagal dimuat. Periksa koneksi, lalu tekan Retry.' : undefined });
-        this.emit();
+        if(!this.disposed && (!this.#adventurerRegionTransaction || this.#adventurerRegionTransaction===transaction)) {
+          this.#adventurerRegionTransaction=undefined;
+          this.transitioning=false;
+          this.onMapTransition?.({ id, loading: false, label: destinationLabel, error: this.regionLoadError ? ((id===IRONVEIL_ID||id===MINE_ID)?'Unable to load Ironveil Mines. Check the connection and retry.':id===WILDS_ID?'Unable to load Whispering Wilds. Check the connection and retry.':'ERROR: Map gagal dimuat. Periksa koneksi, lalu tekan Retry.') : undefined });
+          this.emit();
+        }
       }
     })();
     return true;
@@ -1931,7 +2354,9 @@ export class Game {
   }
   npcBuy(templateId:string,quantity=1) {
     const npc=this.currentNpc;if(!npc||!this.activeNpcMenu||!npc.services.includes('buy')){this.message('NPC ini tidak menyediakan layanan beli.');return false;}
+    const renewal=this.#beginAdventurerTransaction();
     const result=npc.fieldId?buyFieldShopItem(this.hero,npc.fieldId,templateId,quantity):buyShopItem(this.hero,templateId,npc.service,quantity);
+    if(result.ok)this.#renewAdventurerTransaction(renewal,'npcBuy');
     this.save();this.message(result.reason);return result.ok;
   }
   npcSell(itemId:string,quantity:number) {
@@ -1971,12 +2396,14 @@ export class Game {
         }
         simulatedInventory=preview.inventory;
       }
+      const renewal=this.#beginAdventurerTransaction();
       const quest=completeRegionQuest(this.hero,id);
       result={ok:quest.ok,reason:quest.reason};
       if(quest.ok){
         for(const rewardItem of rewardItems)this.hero.inventory=addItemToInventory(this.hero.inventory,rewardItem,this.hero.inventoryCapacity).inventory;
         this.hero.gold+=quest.reward.gold;
         gainXP(this.hero,quest.reward.xp);
+        this.#renewAdventurerTransaction(renewal,'quest gainXP');
         const itemSummary=rewardItems.map(item=>`${item.name} x${item.quantity}`).join(', ');
         const rewardSummary=[quest.reward.xp?`${quest.reward.xp} EXP`:'',quest.reward.gold?`${quest.reward.gold} GOLD`:'',itemSummary].filter(Boolean).join(' dan ');
         result.reason=`Quest selesai! Kamu mendapatkan ${rewardSummary}.`;
@@ -2037,8 +2464,7 @@ export class Game {
     this.skillCooldowns = {};
     this.clearInput();
     for (const enemy of this.enemies) {
-      this.scene.remove(enemy.group);
-      enemy.group.traverse(object=>{if(object instanceof T.Mesh){object.geometry.dispose();const materials=Array.isArray(object.material)?object.material:[object.material];materials.forEach(material=>material.dispose());}});
+      this.disposeEnemyVisual(enemy);
       this.enemyLabels.get(enemy.id)?.remove();
     }
     this.enemies = [];
@@ -2069,10 +2495,15 @@ export class Game {
   }
   restoreSavedPosition() {
     refreshUnlocks(this.hero);
+    if(this.isMineInterior){Object.assign(this.hero,new MineNavigation().restore(this.hero));this.hero.lastSafePosition={x:this.hero.x,z:this.hero.z};return;}
     // Validate Averion saves against its collision package once it has loaded.
     if(this.isAverion)return;
     const valid = (position: { x: number; z: number }) => {
       if (!Number.isFinite(position.x) || !Number.isFinite(position.z)) return false;
+      if(this.isIronveil)return ironveilWalkable(position);
+      if(this.isWilds)return this.wilds?.navigation.valid(position)??wildsWalkable(position);
+      if(this.isSunken)return this.sunken?.navigation.valid(position)??(this.hero.currentField===ABYSAL_TRENCH_ID?abysalTrenchWalkable(position):isUnderwaterSubmap(this.hero.currentField)?deepOceanWalkable(position):sunkenWalkable(position));
+      if(this.isFrostfire)return frostWalkable(position);
       if(this.isPlains)return plainsWalkable(position);
       const extent = regionHalfExtent(this.hero.inCity);
       if (Math.abs(position.x) > extent - 1 || Math.abs(position.z) > extent - 1) return false;
@@ -2119,7 +2550,8 @@ export class Game {
     this.renderer.domElement.focus({ preventScroll: true });
     this.emit();
     this.lastTime = 0;
-    if (!this.frame) this.frame = requestAnimationFrame(this.tick);
+    if (!document.hidden && !this.frame)
+      this.frame = requestAnimationFrame(this.tick);
   }
   returnToCharacterSelection() {
     this.returnToMainMenu();
@@ -2159,7 +2591,7 @@ export class Game {
     else this.keys.delete(key);
   }
   save() {
-    if (!this.started || this.dead || this.transitioning || this.regionLoadError || ((this.isAverion&&!this.averion)||(this.isPlains&&!this.plains))) return;
+    if (!this.started || this.dead || this.transitioning || this.regionLoadError || ((this.isAverion&&!this.averion)||(this.isPlains&&!this.plains)||(this.isFrostfire&&!this.frostfire)||(this.isWilds&&!this.wilds)||(this.isSunken&&!this.sunken)||(this.isIronveil&&!this.ironveil)||(this.isMineInterior&&!this.mineInterior))) return;
     this.hero.stamina = this.stamina;
     this.hero.lastPlayedAt = Date.now();
     this.hero.lastSafePosition = { x: this.hero.x, z: this.hero.z };
@@ -2171,11 +2603,13 @@ export class Game {
     }
   }
   respawn() {
+    const renewal=this.#beginAdventurerTransaction();
     this.closeNpcMenu();
     this.hero.hp = maxHP(this.hero);
     this.hero.x = 0;
     this.hero.z = this.hero.inCity ? 7 : 26;
-    if(this.fieldTerrain||this.isPlains)Object.assign(this.hero,FIELDS[this.hero.currentField].entry);
+    if(this.fieldTerrain||this.isPlains||this.isFrostfire||this.isWilds||this.isSunken||this.isIronveil||this.isMineInterior)Object.assign(this.hero,FIELDS[this.hero.currentField].entry);
+    if(this.isMineInterior)Object.assign(this.hero,MINE_ENTRY);
     this.placeActor();
     this.cameraFocus.copy(this.actor.position);
     this.dead = false;
@@ -2187,15 +2621,17 @@ export class Game {
     this.clearInput();
     for (const e of this.enemies) {
       e.group.position.copy(e.home);
+      this.clearSerpentAttack(e);
       e.windup = 0;
       e.cooldown = 2;
-      if(this.isPlains&&e.hp<=0){e.group.visible=false;continue;}
+      if((this.isPlains||this.isMineInterior||isSeaSerpent(e.definition?.id))&&e.hp<=0){e.group.visible=false;continue;}
       e.hp = e.max;
       e.group.visible = true;
       e.respawn = 0;
     }
+    this.#renewAdventurerTransaction(renewal,'respawn');
     this.save();
-    this.message(this.isPlains?'Kamu kembali di Arunika Rest. Progresmu tetap tersimpan.':'Kamu kembali di Kuil Fajar. Progresmu tetap tersimpan.');
+    this.message(this.isMineInterior?'You returned to the mine entrance. Progress is preserved.':this.isPlains?'Kamu kembali di Arunika Rest. Progresmu tetap tersimpan.':'Kamu kembali di Kuil Fajar. Progresmu tetap tersimpan.');
   }
   chooseCoreJob(coreJob: CoreJobId | 'thief') {
     if (!this.atJobTrainer('core')) return false;
@@ -2254,12 +2690,15 @@ export class Game {
     return false;
   }
   learnSkill(skillId: string) {
+    const previous=this.hero,renewal=this.#beginAdventurerTransaction();
     this.hero={...this.hero};
     if (learnSkill(this.hero, skillId)) {
+      this.#renewAdventurerTransaction(renewal,'learnSkill');
       this.save();
       this.emit();
       return true;
     }
+    if(renewal)this.hero=previous;
     this.message(
       'Skill belum terbuka, sudah maksimal, atau Skill Point tidak cukup.',
     );
@@ -2278,11 +2717,13 @@ export class Game {
     return false;
   }
   equipItem(itemId: string, targetSlot?: EquipSlot) {
+    const renewal=this.#beginAdventurerTransaction();
     const result = equipInventoryItem(this.hero, itemId, targetSlot);
     if (!result.ok) this.message(result.reason);
     if (result.ok) {
       this.syncCombatModifiers();
       this.rebuildHeroAppearance();
+      this.#renewAdventurerTransaction(renewal,'equipItem');
       this.save();
       this.emit();
     }
@@ -2304,11 +2745,13 @@ export class Game {
     return true;
   }
   unequipItem(slot: EquipSlot) {
+    const renewal=this.#beginAdventurerTransaction();
     const result = unequipInventoryItem(this.hero, slot);
     if (!result.ok) this.message(result.reason);
     if (result.ok) {
       this.syncCombatModifiers();
       this.rebuildHeroAppearance();
+      this.#renewAdventurerTransaction(renewal,'unequipItem');
       this.save();
       this.emit();
     }
@@ -2329,11 +2772,18 @@ export class Game {
     return this.commitRuneAction(hero=>removeInventoryRune(hero,equipmentId,socketIndex,this.forgeNpcId));
   }
   useItem(itemId: string) {
+    // Only the explicitly selected Warrior policy renews through this exact
+    // original consumable transaction; item IDs alone never authorize a bind.
+    const warriorRenewal=this.#warriorSelected && this.#beginAdventurerTransaction() && this.getDevelopmentWarriorAvailability()?.ok===true;
+    const warriorPrior=warriorRenewal ? this.hero : undefined;
+    const warriorSignature=warriorPrior ? warriorLifecycleSignature(warriorPrior) : undefined;
     this.hero={...this.hero,stamina:this.stamina};
     const result = consumeInventoryItem(this.hero, itemId);
+    if(!result.ok && warriorPrior && warriorLifecycleSignature(this.hero)===warriorSignature)this.hero=warriorPrior;
     if (!result.ok) this.message(result.reason);
     if (result.ok) {
       this.stamina=this.hero.stamina;
+      this.#renewAdventurerTransaction(warriorRenewal,'useItem');
       this.sound(600,0.18);
       this.effect(this.actor.position,'#a3f1b3',8);
       this.save();
@@ -2343,10 +2793,12 @@ export class Game {
   }
   commitUIDrop(source: DragSource, target: DropTarget) {
     if (!this.started || this.dead) return false;
+    const renewal=this.#beginAdventurerTransaction();
     const result = commitDrop(this.hero, source, target);
     if (result.ok) {
       this.hero = result.hero;
       if (target.type === 'equipment') this.rebuildHeroAppearance();
+      this.#renewAdventurerTransaction(renewal,'commitUIDrop');
       this.save();
       this.emit();
       if (target.type === 'inventory')
@@ -2356,51 +2808,64 @@ export class Game {
     return result.ok;
   }
   savePrimaryHotbar() {
+    this.#commitHotbarRenewal(false,'manual hotbar save');
+  }
+  #commitHotbarRenewal(renewal: boolean, reason: string) {
     this.hero=validatePrimaryHotbar(this.hero);
+    this.#renewAdventurerTransaction(renewal,reason);
     this.save();this.emit();
   }
   assignPrimaryHotbarSlot(slotIndex:number,entryId:string) {
     if(!this.started||this.dead)return false;
+    const renewal=this.#beginAdventurerTransaction();
     const result=assignHotbarSlot(this.hero,slotIndex,entryId);
-    if(result.ok){this.hero=result.hero;this.savePrimaryHotbar();}
+    if(result.ok){this.hero=result.hero;this.#commitHotbarRenewal(renewal,'assignPrimaryHotbarSlot');}
     if(!result.ok)this.message(result.reason);return result.ok;
   }
   swapPrimaryHotbarSlots(source:number,target:number) {
     if(!this.started||this.dead)return;
-    this.hero=swapHotbarSlots(this.hero,source,target);this.savePrimaryHotbar();
+    const renewal=this.#beginAdventurerTransaction();
+    this.hero=swapHotbarSlots(this.hero,source,target);this.#commitHotbarRenewal(renewal,'swapPrimaryHotbarSlots');
   }
   removePrimaryHotbarSlot(index:number) {
     if(!this.started||this.dead)return;
-    this.hero=removeHotbarSlot(this.hero,index);this.savePrimaryHotbar();
+    const renewal=this.#beginAdventurerTransaction();
+    this.hero=removeHotbarSlot(this.hero,index);this.#commitHotbarRenewal(renewal,'removePrimaryHotbarSlot');
   }
   savePrimaryHotbarLayout(layout:HotbarLayout) {
     if(!this.started||this.dead)return;
     if(layout&&(!Number.isFinite(layout.x)||!Number.isFinite(layout.y)))return;
+    const renewal=this.#beginAdventurerTransaction();
     this.hero={...this.hero,primaryHotbarLayout:layout?{x:Math.max(0,layout.x),y:Math.max(0,layout.y)}:null};
-    this.savePrimaryHotbar();
+    this.#commitHotbarRenewal(renewal,'savePrimaryHotbarLayout');
   }
   assignQuickHotbarSlot(id:QuickHotbarId,entryId:string) {
     if(!this.started||this.dead)return false;
+    const renewal=this.#beginAdventurerTransaction();
     const result=assignQuickSlot(this.hero,id,entryId);
-    if(result.ok){this.hero=result.hero;this.savePrimaryHotbar();}
+    if(result.ok){this.hero=result.hero;this.#commitHotbarRenewal(renewal,'assignQuickHotbarSlot');}
     if(!result.ok)this.message(result.reason);return result.ok;
   }
   removeQuickHotbarSlot(id:QuickHotbarId) {
     if(!this.started||this.dead)return;
-    this.hero=removeQuickSlot(this.hero,id);this.savePrimaryHotbar();
+    const renewal=this.#beginAdventurerTransaction();
+    this.hero=removeQuickSlot(this.hero,id);this.#commitHotbarRenewal(renewal,'removeQuickHotbarSlot');
   }
   moveQuickHotbarEntry(source:QuickHotbarId,target:QuickHotbarId) {
     if(!this.started||this.dead)return;
-    this.hero=moveQuickEntry(this.hero,source,target);this.savePrimaryHotbar();
+    const renewal=this.#beginAdventurerTransaction();
+    this.hero=moveQuickEntry(this.hero,source,target);this.#commitHotbarRenewal(renewal,'moveQuickHotbarEntry');
   }
   saveQuickHotbarLayout(id:QuickHotbarId,position:HotbarLayout) {
     if(!this.started || this.dead || (position && (!Number.isFinite(position.x)||!Number.isFinite(position.y))))return;
+    const renewal=this.#beginAdventurerTransaction();
     this.hero={...this.hero,quickHotbars:{...this.hero.quickHotbars,[id]:{...this.hero.quickHotbars[id],position}}};
-    this.savePrimaryHotbar();
+    this.#commitHotbarRenewal(renewal,'saveQuickHotbarLayout');
   }
   resetHotbarLayouts() {
     if(!this.started||this.dead)return;
-    this.hero=resetLayouts(this.hero);this.save();this.emit();
+    const renewal=this.#beginAdventurerTransaction();
+    this.hero=resetLayouts(this.hero);this.#renewAdventurerTransaction(renewal,'resetHotbarLayouts');this.save();this.emit();
   }
   setUIInputBlocked(owner: string, active: boolean) {
     this.uiInputBlockers.set(owner, active);
@@ -2527,8 +2992,9 @@ export class Game {
     return result.ok;
   }
   allocateStatPoint(stat: keyof AllocatedStats) {
+    const renewal=this.#beginAdventurerTransaction();
     const result=allocateStatPointRules(this.hero,stat);
-    if(result.ok){this.hero=result.hero;this.save();}
+    if(result.ok){this.hero=result.hero;this.#renewAdventurerTransaction(renewal,'allocateStatPoint');this.save();}
     if(!result.ok)this.message(result.reason);this.emit();return result.ok;
   }
   resetSkillPoints() {
@@ -2584,7 +3050,7 @@ export class Game {
   private queueAssasinProjectile(target:TargetIdentity,origin:T.Vector3,delay:number,duration:number,off:boolean) {
     const mesh=new T.Mesh(new T.OctahedronGeometry(1,0),new T.MeshBasicMaterial({color:'#b1c791'}));
     mesh.scale.set(.055,.32,.035);
-    const launch=origin.clone().add(new T.Vector3(off ? -.2 : .2,1.1,0));
+    const launch=this.isSunken?(off?this.characterModel.sockets.leftHand:this.characterModel.sockets.rightHand).getWorldPosition(new T.Vector3()):origin.clone().add(new T.Vector3(off ? -.2 : .2,1.1,0));
     mesh.position.copy(launch); mesh.visible=false; this.scene.add(mesh);
     this.assasinDaggers.push({mesh,origin:launch,target,age:0,delay,duration});
   }
@@ -2600,7 +3066,7 @@ export class Game {
         p.mesh.removeFromParent(); p.mesh.geometry.dispose(); p.mesh.material.dispose(); return false;
       }
       if (p.age<p.delay) return true;
-      const destination=target.group.position.clone().add(new T.Vector3(0,1,0));
+      const destination=target.group.position.clone().add(new T.Vector3(0,1+(this.isSunken?target.group.children[0].position.y:0),0));
       p.mesh.visible=true; p.mesh.position.lerpVectors(p.origin,destination,(p.age-p.delay)/p.duration);
       p.mesh.quaternion.setFromUnitVectors(new T.Vector3(0,1,0),destination.sub(p.origin).normalize());
       return true;
@@ -2621,6 +3087,45 @@ export class Game {
   restoreMana(amount:number) {return restoreManaRules(this.hero,amount);}
   castSkill(idOrSlot: string | 1 | 2 | 3 | 4) {
     if (typeof idOrSlot === 'string') idOrSlot = heroFamilySkillReference(this.hero, idOrSlot) ?? '';
+    if(this.#warriorSelected) {
+      const requested=activeSkills(this.hero).find(candidate=>typeof idOrSlot==='string'?candidate.id===idOrSlot:candidate.slot===idOrSlot);
+      if(WARRIOR_REFERENCE.skills.includes(typeof idOrSlot==='string'?idOrSlot:requested?.id??'')){
+        this.#warriorResult=this.#adventurerRanksSelected||this.#quickSlashReferenceSelected||this.#powerStrikeReferenceSelected||this.#basicReferenceSelected
+          ? Object.freeze({ok:false,code:'AMBIGUOUS_REFERENCE_ROUTE',path:'route',reason:'Conflicting development opt-ins.'}) : this.castDevelopmentWarriorReference(requested);
+        return this.#warriorResult.ok;
+      }
+    }
+    if (this.#adventurerRanksSelected && (idOrSlot === 1 || idOrSlot === 2 || typeof idOrSlot === 'string' && ADVENTURER_RANKS_REFERENCE.skills.includes(idOrSlot))) {
+      if (this.#quickSlashReferenceSelected || this.#powerStrikeReferenceSelected || this.#basicReferenceSelected) {
+        this.#adventurerRanksResult = Object.freeze({ok: false, code: 'AMBIGUOUS_REFERENCE_ROUTE', path: 'route', reason: 'Standalone and combined opt-ins are mutually exclusive.'});
+      } else {
+        const requested = activeSkills(this.hero).find(candidate => typeof idOrSlot === 'string' ? candidate.id === idOrSlot : candidate.slot === idOrSlot);
+        this.#adventurerRanksResult = this.castDevelopmentAdventurerRanksReference(requested);
+      }
+      return this.#adventurerRanksResult.ok;
+    }
+    if (this.#powerStrikeReferenceSelected) {
+      this.#powerStrikeResult = undefined;
+      const requested = activeSkills(this.hero).find(candidate => typeof idOrSlot === 'string' ? candidate.id === idOrSlot : candidate.slot === idOrSlot);
+      if ((requested?.id === POWER_STRIKE_REFERENCE.skillId || idOrSlot === POWER_STRIKE_REFERENCE.skillId || idOrSlot === 2 && !requested) &&
+          !coherentHigherPowerRank(this.hero)) {
+        this.#powerStrikeResult = this.castDevelopmentPowerStrikeReference(requested);
+        return this.#powerStrikeResult.ok;
+      }
+    }
+    if (this.#quickSlashReferenceSelected) {
+      this.#quickSlashResult = undefined;
+      const requested = activeSkills(this.hero).find(candidate => typeof idOrSlot === 'string' ? candidate.id === idOrSlot : candidate.slot === idOrSlot);
+      const mirror = this.hero.skillLevels[QUICK_SLASH_REFERENCE.skillId];
+      const canonical = this.hero.skillProgressionV3?.skillRanks[QUICK_SLASH_REFERENCE.skillId];
+      // Consistent ranks 2–5 keep the existing route. Missing/mismatched R1
+      // authorization never silently falls back to legacy arithmetic.
+      const legacyHigherRank = mirror === canonical && Number.isInteger(mirror) && mirror >= 2 && mirror <= 5;
+      if ((requested?.id === QUICK_SLASH_REFERENCE.skillId || idOrSlot === QUICK_SLASH_REFERENCE.skillId || idOrSlot === 1 && !requested) && !legacyHigherRank) {
+        this.#quickSlashResult = this.castDevelopmentQuickSlashReference(requested);
+        return this.#quickSlashResult.ok;
+      }
+    }
     if(this.thiefMovement || this.actionLock?.active(this.combatTime))return this.failTarget('ACTION_LOCKED');
     if(isStunned(this.hero,this.combatTime)){this.message('Karakter sedang Stun.');return false;}
     if (!this.started || this.paused || this.dead || this.hotbarInteracting) return false;
@@ -2676,12 +3181,12 @@ export class Game {
     // frontal/area/self behavior and never auto-approach anything.
     const selection=requiresSelectedTarget?this.resolveCurrentTarget(Infinity):{};
     if(selection.reason)return this.failTarget(selection.reason);
-    if (skill.assasin && selection.target && this.groundDistance(this.actor.position,selection.target.group.position)>preview.range) return this.failTarget('TARGET_OUT_OF_RANGE');
+    if (skill.assasin && selection.target && this.enemyRange(selection.target)>preview.range) return this.failTarget('TARGET_OUT_OF_RANGE');
     const rogueInput = skill.rogueMovement === 'INPUT_REPOSITION' ? this.moveVector() : undefined;
     if (rogueInput && rogueInput.lengthSq() < 1e-8) { this.message('Pilih arah gerak untuk Slipstep.'); return false; }
-    if (skill.tags?.includes('v3-rogue') && !skill.nonDamaging && selection.target && this.groundDistance(this.actor.position, selection.target.group.position) > preview.range)
+    if (skill.tags?.includes('v3-rogue') && !skill.nonDamaging && selection.target && this.enemyRange(selection.target) > preview.range)
       return this.failTarget('TARGET_OUT_OF_RANGE');
-    if (skill.tags?.includes('v3-thief') && selection.target && this.groundDistance(this.actor.position, selection.target.group.position) > preview.range)
+    if (skill.tags?.includes('v3-thief') && selection.target && this.enemyRange(selection.target) > preview.range)
       return this.failTarget('TARGET_OUT_OF_RANGE');
     if (isIronCharge) this.traceDevelopment('target_snapshot', {
       targetId: selection.target?.id ?? null,
@@ -2746,8 +3251,303 @@ export class Game {
   equippedWeaponType() {
     return equippedWeaponType(this.hero);
   }
+  private castDevelopmentQuickSlashReference(definition?: SkillDefinition) {
+    const reject = (code: string, path = 'cast') => Object.freeze({ ok: false as const, code, path, reason: `Quick Slash reference rejected: ${code}` });
+    if (!this.started || this.paused || this.dead || this.disposed || this.hotbarInteracting || this.transitioning || this.regionLoadError ||
+        this.isAverion && !this.averion || this.isPlains && !this.plains || !Number.isFinite(this.hero.hp) || this.hero.hp <= 0)
+      return reject('REFERENCE_ACTION_UNAVAILABLE');
+    if (this.thiefMovement || this.actionLock?.active(this.combatTime) || isStunned(this.hero, this.combatTime)) return reject('ACTION_LOCKED');
+    if (!definition) return reject('SKILL_UNAVAILABLE');
+    const prepared = this.#quickSlashReferenceBinding
+      ? prepareQuickSlash(this.#quickSlashReferenceBinding, this, definition) : this.#quickSlashReferenceFailure!;
+    if (!prepared.ok) return prepared;
+    const { snapshot, action, stats, hero } = prepared.value;
+    const cooldownKey = heroSkillCooldownKey(hero, definition.id);
+    const remaining = this.skillCooldowns[cooldownKey] ?? 0;
+    if (!Number.isFinite(remaining) || remaining < 0) return reject('INVALID_COOLDOWN');
+    if (!Number.isFinite(hero.mana) || hero.mana < action.manaCost) return reject('INSUFFICIENT_MANA');
+    const validation = canCastSkillRules(hero, definition.id, this.skillCooldowns, this.equippedWeaponType(), action.manaCost);
+    if (!validation.ok) return reject('CAST_NOT_ALLOWED');
+    const selected = this.resolveCurrentTarget(Infinity);
+    if (selected.reason || !selected.target) return reject(selected.reason ?? 'NO_TARGET');
+    const target = selected.target, identity = targetIdentity(target, this.regionBuildToken);
+    // Plan the unchanged collision-aware approach on plain positions. A failed
+    // approach, admission, resource check or RNG sample cannot move/focus Game.
+    const steps: { x: number; z: number }[] = [];
+    let pose = { x: this.actor.position.x, z: this.actor.position.z };
+    if (pose.x !== hero.x || pose.z !== hero.z) return reject('SPATIAL_CONTEXT_MISMATCH');
+    const dx = target.group.position.x - pose.x, dz = target.group.position.z - pose.z;
+    const distance = Math.hypot(dx, dz);
+    if (!Number.isFinite(distance)) return reject('TARGET_INVALID');
+    let remainingDistance = Math.max(0, distance - action.range);
+    while (remainingDistance > 1e-6) {
+      const step = Math.min(.25, remainingDistance);
+      const moveX = dx / distance * step, moveZ = dz / distance * step;
+      const next = moveWithTreeCollisions(pose, moveX, moveZ, this.treeColliders,
+        (from, x, z) => this.moveHeroOnGround(from, x, z), (x, z) => this.groundHeight(x, z));
+      const progressed = Math.hypot(next.x - pose.x, next.z - pose.z);
+      if (!Number.isFinite(progressed) || progressed <= 1e-7) break;
+      steps.push({ x: moveX, z: moveZ });
+      pose = next; remainingDistance -= progressed;
+    }
+    if (Math.hypot(target.group.position.x - pose.x, target.group.position.z - pose.z) > action.range + 1e-4)
+      return reject('TARGET_OUT_OF_RANGE');
+    const sampled = sampleRawAttackExecution(snapshot, () => this.rand());
+    if (!sampled.ok) return sampled;
+    // A synchronous authoritative RNG may throw; no commitment precedes it.
+    // Exact actor/target correlation is checked again without rereading budget.
+    if (this.hero !== hero || hero.characterId !== snapshot.owner.actorId || this.getCastTarget(identity) !== target)
+      return reject('STALE_COMMITMENT');
+    if (!this.consumeMana(action.manaCost)) return reject('INSUFFICIENT_MANA');
+    const hit = action.hitSequence[0];
+    hit.composedPhysicalPower = sampled.value.hits[0].raw;
+    hit.weaponHand = 'MAIN';
+    Object.freeze(hit); Object.freeze(action.hitSequence);
+    action.targetIdentity = identity;
+    this.#quickSlashExecutions.set(action, { hero, actorId: snapshot.owner.actorId });
+    this.commitVanishOffense(); this.lastActionFailure = null;
+    breakStealth(hero, 'offensive_skill'); this.updateStealthPresentation();
+    for (const step of steps) this.move(step.x, step.z);
+    this.faceTarget(target);
+    this.actionLock ??= new ActionLock();
+    this.actionLock.start(this.combatTime, action.actionLockDuration ?? 0, action.movementAllowedDuringLock);
+    this.skillCooldowns[cooldownKey] = action.cooldown;
+    this.applySkill(definition, 1, undefined, action, stats);
+    this.updateRogueConcealmentPresentation(); this.save(); this.emit();
+    return Object.freeze({ ok: true as const, execution: snapshot, sample: sampled.value });
+  }
+  private castDevelopmentPowerStrikeReference(definition?: SkillDefinition) {
+    const reject = (code: string, path = 'cast') => Object.freeze({ ok: false as const, code, path, reason: `Power Strike reference rejected: ${code}` });
+    if (!this.started || this.paused || this.dead || this.disposed || this.hotbarInteracting || this.transitioning || this.regionLoadError ||
+        this.isAverion && !this.averion || this.isPlains && !this.plains || !Number.isFinite(this.hero.hp) || this.hero.hp <= 0)
+      return reject('REFERENCE_ACTION_UNAVAILABLE');
+    if (this.thiefMovement || this.actionLock?.active(this.combatTime) || isStunned(this.hero, this.combatTime)) return reject('ACTION_LOCKED');
+    if (!definition) return reject('SKILL_UNAVAILABLE');
+    const prepared = this.#powerStrikeReferenceBinding
+      ? preparePowerStrike(this.#powerStrikeReferenceBinding, this, definition) : this.#powerStrikeReferenceFailure!;
+    if (!prepared.ok) return prepared;
+    const { snapshot, action, stats, hero } = prepared.value;
+    const cooldownKey = heroSkillCooldownKey(hero, definition.id);
+    const remaining = this.skillCooldowns[cooldownKey] ?? 0;
+    if (!Number.isFinite(remaining) || remaining < 0) return reject('INVALID_COOLDOWN');
+    if (!Number.isFinite(hero.mana) || hero.mana < action.manaCost) return reject('INSUFFICIENT_MANA');
+    const validation = canCastSkillRules(hero, definition.id, this.skillCooldowns, this.equippedWeaponType(), action.manaCost);
+    if (!validation.ok) return reject('CAST_NOT_ALLOWED');
+    const selected = this.resolveCurrentTarget(Infinity);
+    if (selected.reason || !selected.target) return reject(selected.reason ?? 'NO_TARGET');
+    const target = selected.target, identity = targetIdentity(target, this.regionBuildToken);
+    if (!this.enemies.includes(target) || this.currentTarget?.id !== target.id || this.getCastTarget(identity) !== target)
+      return reject('TARGET_INVALID');
+    const initialPosition = { x: this.actor.position.x, z: this.actor.position.z };
+    const targetPosition = { x: target.group.position.x, z: target.group.position.z };
+    // Plan the unchanged collision-aware approach on plain positions. A failed
+    // approach, admission, resource check or RNG sample cannot move/focus Game.
+    const steps: { x: number; z: number }[] = [];
+    let pose = { x: this.actor.position.x, z: this.actor.position.z };
+    if (pose.x !== hero.x || pose.z !== hero.z) return reject('SPATIAL_CONTEXT_MISMATCH');
+    const dx = target.group.position.x - pose.x, dz = target.group.position.z - pose.z;
+    const distance = Math.hypot(dx, dz);
+    if (!Number.isFinite(distance)) return reject('TARGET_INVALID');
+    let remainingDistance = Math.max(0, distance - action.range);
+    while (remainingDistance > 1e-6) {
+      const step = Math.min(.25, remainingDistance);
+      const moveX = dx / distance * step, moveZ = dz / distance * step;
+      const next = moveWithTreeCollisions(pose, moveX, moveZ, this.treeColliders,
+        (from, x, z) => this.moveHeroOnGround(from, x, z), (x, z) => this.groundHeight(x, z));
+      const progressed = Math.hypot(next.x - pose.x, next.z - pose.z);
+      if (!Number.isFinite(progressed) || progressed <= 1e-7) break;
+      steps.push({ x: moveX, z: moveZ });
+      pose = next; remainingDistance -= progressed;
+    }
+    if (Math.hypot(target.group.position.x - pose.x, target.group.position.z - pose.z) > action.range + 1e-4)
+      return reject('TARGET_OUT_OF_RANGE');
+    const sampled = sampleRawAttackExecution(snapshot, () => this.rand());
+    if (!sampled.ok) return sampled;
+    // A synchronous authoritative RNG may throw; no commitment precedes it.
+    // Exact actor/target correlation is checked again without rereading budget.
+    if (!currentPowerStrikeBinding(this.#powerStrikeReferenceBinding!, this) ||
+        this.hero !== hero || hero.characterId !== snapshot.owner.actorId || this.getCastTarget(identity) !== target ||
+        target.id !== identity.id || !this.enemies.includes(target) ||
+        this.actor.position.x !== initialPosition.x || this.actor.position.z !== initialPosition.z ||
+        target.group.position.x !== targetPosition.x || target.group.position.z !== targetPosition.z ||
+        !this.started || this.paused || this.dead || this.disposed || this.transitioning || this.regionLoadError || this.hotbarInteracting ||
+        this.thiefMovement || this.actionLock?.active(this.combatTime) || isStunned(hero, this.combatTime) ||
+        !Number.isFinite(hero.hp) || hero.hp <= 0 || !Number.isFinite(hero.mana) || hero.mana < action.manaCost ||
+        !Number.isFinite(this.skillCooldowns[cooldownKey] ?? 0) || (this.skillCooldowns[cooldownKey] ?? 0) !== 0)
+      return reject('STALE_COMMITMENT');
+    if (!this.consumeMana(action.manaCost)) return reject('INSUFFICIENT_MANA');
+    const hit = action.hitSequence[0];
+    hit.composedPhysicalPower = sampled.value.hits[0].raw;
+    hit.weaponHand = 'MAIN';
+    Object.freeze(hit); Object.freeze(action.hitSequence);
+    action.targetIdentity = identity;
+    this.#powerStrikeExecutions.set(action, { hero, actorId: snapshot.owner.actorId, slotId: hero.slotId });
+    this.commitVanishOffense(); this.lastActionFailure = null;
+    breakStealth(hero, 'offensive_skill'); this.updateStealthPresentation();
+    for (const step of steps) this.move(step.x, step.z);
+    this.faceTarget(target);
+    this.actionLock ??= new ActionLock();
+    this.actionLock.start(this.combatTime, action.actionLockDuration ?? 0, action.movementAllowedDuringLock);
+    this.skillCooldowns[cooldownKey] = action.cooldown;
+    this.applySkill(definition, 1, undefined, action, stats);
+    this.updateRogueConcealmentPresentation(); this.save(); this.emit();
+    return Object.freeze({ ok: true as const, execution: snapshot, sample: sampled.value });
+  }
+  private castDevelopmentAdventurerRanksReference(definition?: SkillDefinition) {
+    const reject = (code: string, path = 'cast') => Object.freeze({ ok: false as const, code, path, reason: `Adventurer ranks reference rejected: ${code}` });
+    if (!this.started || this.paused || this.dead || this.disposed || this.hotbarInteracting || this.transitioning || this.regionLoadError ||
+        this.isAverion && !this.averion || this.isPlains && !this.plains || !Number.isFinite(this.hero.hp) || this.hero.hp <= 0)
+      return reject('REFERENCE_ACTION_UNAVAILABLE');
+    if (this.thiefMovement || this.actionLock?.active(this.combatTime) || isStunned(this.hero, this.combatTime)) return reject('ACTION_LOCKED');
+    if (!definition) return reject('SKILL_UNAVAILABLE');
+    const prepared = this.#adventurerRanksBinding
+      ? prepareAdventurerRanks(this.#adventurerRanksBinding, this, definition) : this.#adventurerRanksFailure!;
+    if (!prepared.ok) return prepared;
+    const { snapshot, action, stats, hero, rank } = prepared.value;
+    const cooldownKey = heroSkillCooldownKey(hero, definition.id);
+    const remaining = this.skillCooldowns[cooldownKey] ?? 0;
+    if (!Number.isFinite(remaining) || remaining < 0) return reject('INVALID_COOLDOWN');
+    if (!Number.isFinite(hero.mana) || hero.mana < action.manaCost) return reject('INSUFFICIENT_MANA');
+    const validation = canCastSkillRules(hero, definition.id, this.skillCooldowns, this.equippedWeaponType(), action.manaCost);
+    if (!validation.ok) return reject('CAST_NOT_ALLOWED');
+    const selected = this.resolveCurrentTarget(Infinity);
+    if (selected.reason || !selected.target) return reject(selected.reason ?? 'NO_TARGET');
+    const target = selected.target, identity = targetIdentity(target, this.regionBuildToken);
+    if (!this.enemies.includes(target) || this.currentTarget?.id !== target.id || this.getCastTarget(identity) !== target)
+      return reject('TARGET_INVALID');
+    const initialPosition = { x: this.actor.position.x, z: this.actor.position.z };
+    const targetPosition = { x: target.group.position.x, z: target.group.position.z };
+    // Plan the unchanged collision-aware approach on plain positions. A failed
+    // approach, admission, resource check or RNG sample cannot move/focus Game.
+    const steps: { x: number; z: number }[] = [];
+    let pose = { x: this.actor.position.x, z: this.actor.position.z };
+    if (pose.x !== hero.x || pose.z !== hero.z) return reject('SPATIAL_CONTEXT_MISMATCH');
+    const dx = target.group.position.x - pose.x, dz = target.group.position.z - pose.z;
+    const distance = Math.hypot(dx, dz);
+    if (!Number.isFinite(distance)) return reject('TARGET_INVALID');
+    let remainingDistance = Math.max(0, distance - action.range);
+    while (remainingDistance > 1e-6) {
+      const step = Math.min(.25, remainingDistance);
+      const moveX = dx / distance * step, moveZ = dz / distance * step;
+      const next = moveWithTreeCollisions(pose, moveX, moveZ, this.treeColliders,
+        (from, x, z) => this.moveHeroOnGround(from, x, z), (x, z) => this.groundHeight(x, z));
+      const progressed = Math.hypot(next.x - pose.x, next.z - pose.z);
+      if (!Number.isFinite(progressed) || progressed <= 1e-7) break;
+      steps.push({ x: moveX, z: moveZ });
+      pose = next; remainingDistance -= progressed;
+    }
+    if (Math.hypot(target.group.position.x - pose.x, target.group.position.z - pose.z) > action.range + 1e-4)
+      return reject('TARGET_OUT_OF_RANGE');
+    const sampled = sampleRawAttackExecution(snapshot, () => this.rand());
+    if (!sampled.ok) return sampled;
+    // A synchronous authoritative RNG may throw; no commitment precedes it.
+    // Exact actor/target correlation is checked again without rereading budget.
+    if (!currentAdventurerRanksBinding(this.#adventurerRanksBinding!, this) ||
+        this.hero !== hero || hero.characterId !== snapshot.owner.actorId || this.getCastTarget(identity) !== target ||
+        target.id !== identity.id || !this.enemies.includes(target) ||
+        this.actor.position.x !== initialPosition.x || this.actor.position.z !== initialPosition.z ||
+        target.group.position.x !== targetPosition.x || target.group.position.z !== targetPosition.z ||
+        !this.started || this.paused || this.dead || this.disposed || this.transitioning || this.regionLoadError || this.hotbarInteracting ||
+        this.thiefMovement || this.actionLock?.active(this.combatTime) || isStunned(hero, this.combatTime) ||
+        !Number.isFinite(hero.hp) || hero.hp <= 0 || !Number.isFinite(hero.mana) || hero.mana < action.manaCost ||
+        !Number.isFinite(this.skillCooldowns[cooldownKey] ?? 0) || (this.skillCooldowns[cooldownKey] ?? 0) !== 0)
+      return reject('STALE_COMMITMENT');
+    if (!this.consumeMana(action.manaCost)) return reject('INSUFFICIENT_MANA');
+    const hit = action.hitSequence[0];
+    hit.composedPhysicalPower = sampled.value.hits[0].raw;
+    hit.weaponHand = 'MAIN';
+    Object.freeze(hit); Object.freeze(action.hitSequence);
+    action.targetIdentity = identity;
+    this.#adventurerRanksExecutions.set(action, { hero, actorId: snapshot.owner.actorId, slotId: hero.slotId });
+    this.commitVanishOffense(); this.lastActionFailure = null;
+    breakStealth(hero, 'offensive_skill'); this.updateStealthPresentation();
+    for (const step of steps) this.move(step.x, step.z);
+    this.faceTarget(target);
+    this.actionLock ??= new ActionLock();
+    this.actionLock.start(this.combatTime, action.actionLockDuration ?? 0, action.movementAllowedDuringLock);
+    this.skillCooldowns[cooldownKey] = action.cooldown;
+    this.applySkill(definition, rank, undefined, action, stats);
+    this.updateRogueConcealmentPresentation(); this.save(); this.emit();
+    return Object.freeze({ ok: true as const, execution: snapshot, sample: sampled.value });
+  }
+  private castDevelopmentWarriorReference(definition?:SkillDefinition) {
+    const reject=(code:string,path='cast')=>Object.freeze({ok:false as const,code,path,reason:`Warrior reference rejected: ${code}`});
+    const ready=()=>this.started&&!this.paused&&!this.dead&&!this.disposed&&!this.hotbarInteracting&&!this.transitioning&&!this.regionLoadError&&(!this.isAverion||!!this.averion)&&(!this.isPlains||!!this.plains)&&(!this.isSunken||!!this.sunken)&&(!this.isIronveil||!!this.ironveil)&&(!this.isMineInterior||!!this.mineInterior)&&Number.isFinite(this.hero.hp)&&this.hero.hp>0;
+    if(!ready())return reject('REFERENCE_ACTION_UNAVAILABLE');
+    if(this.thiefMovement||this.actionLock.active(this.combatTime)||isStunned(this.hero,this.combatTime))return reject('ACTION_LOCKED');
+    if(!definition)return reject('SKILL_UNAVAILABLE');
+    const receipt=this.#warriorCounterReceipt;
+    const counter=definition.counterPolicy ? this.defenseEvents.snapshot(definition.counterPolicy.accepted,definition.counterPolicy.windowMs,this.combatTime*1000) : NO_COUNTER;
+    const counterValid=()=>!definition.counterPolicy || !!receipt&&receipt.hero===this.hero&&receipt.event===this.defenseEvents.lastDefenseEvent&&counterContextAllowed(counter,definition.counterPolicy.accepted)&&this.defenseEvents.recent(counter.result,definition.counterPolicy.windowMs,this.combatTime*1000);
+    if(!counterValid())return reject('COUNTER_REQUIRED');
+    const definitionProof=JSON.stringify(definition);
+    const prepared=this.#warriorBinding ? prepareWarriorReference(this.#warriorBinding,this,definition,counter) : this.#warriorFailure!;
+    if(!prepared.ok)return prepared;
+    const {snapshot,action,stats,hero,rank,level}=prepared.value;
+    const key=heroSkillCooldownKey(hero,definition.id),cd=this.skillCooldowns[key]??0;
+    if(!Number.isFinite(cd)||cd<0)return reject('INVALID_COOLDOWN');
+    if(!Number.isFinite(hero.mana)||hero.mana<action.manaCost)return reject('INSUFFICIENT_MANA');
+    if(!canCastSkillRules(hero,definition.id,this.skillCooldowns,this.equippedWeaponType(),action.manaCost).ok)return reject('CAST_NOT_ALLOWED');
+    const start={x:this.actor.position.x,z:this.actor.position.z};
+    if(start.x!==hero.x||start.z!==hero.z)return reject('SPATIAL_CONTEXT_MISMATCH');
+    const single=action.targetType==='single',charge=action.effect==='dash_damage';
+    const selection=single?this.resolveCurrentTarget(Infinity):{};
+    if(single&&(!selection.target||selection.reason))return reject(selection.reason??'NO_TARGET');
+    const selected=selection.target;
+    const steps:{x:number;z:number}[]=[];
+    let pose={...start};
+    if(selected) {
+      const contact=this.enemyContact(selected,pose);
+      const dx=contact.x-pose.x,dz=contact.z-pose.z,distance=Math.hypot(dx,dz);
+      if(!Number.isFinite(distance)||charge&&distance>action.range)return reject('TARGET_OUT_OF_RANGE');
+      let remaining=Math.max(0,distance-(charge?action.dash!.stopDistance:action.range));
+      while(remaining>1e-6) {
+        const step=Math.min(.25,remaining),x=dx/distance*step,z=dz/distance*step;
+        const next=moveWithTreeCollisions(pose,x,z,this.treeColliders,(from,mx,mz)=>this.moveHeroOnGround(from,mx,mz),(px,pz)=>this.groundHeight(px,pz));
+        const progress=Math.hypot(next.x-pose.x,next.z-pose.z);
+        if(!Number.isFinite(progress)||progress<=1e-7)break;
+        steps.push({x,z});pose=next;remaining-=progress;
+      }
+      if(this.enemyRange(selected,pose)>(charge?action.dash!.stopDistance:action.range)+1e-4)return reject('TARGET_OUT_OF_RANGE');
+    }
+    const forward=selected ? {x:selected.group.position.x-pose.x,z:selected.group.position.z-pose.z} : {x:this.direction.x,z:this.direction.z};
+    const targets=action.nonDamaging?[]:selectSkillTargets({action,origin:pose,forward,candidates:this.enemies.map(e=>({target:e,id:String(e.id),position:this.enemyContact(e,pose),alive:e.hp>0&&this.getCastTarget(targetIdentity(e,this.regionBuildToken))===e})),selected:selected?{target:selected,id:String(selected.id),position:this.enemyContact(selected,pose),alive:selected.hp>0}:null});
+    if(!action.nonDamaging&&!targets.length)return reject('NO_VALID_TARGET');
+    const identities=new Map(targets.map(e=>[e,targetIdentity(e,this.regionBuildToken)]));
+    const positions=targets.map(e=>({e,x:e.group.position.x,z:e.group.position.z}));
+    if(targets.some(e=>!this.enemies.includes(e)||this.getCastTarget(identities.get(e))!==e))return reject('TARGET_INVALID');
+    let sampled:ReturnType<typeof sampleRawAttackExecution>|undefined;
+    try{sampled=snapshot?sampleRawAttackExecution(snapshot,()=>this.rand()):undefined;}
+    catch{return reject('ATTACK_RNG_EXCEPTION_AFTER_ONE_ATTEMPT');}
+    if(sampled&&!sampled.ok)return sampled;
+    if(!readWarriorBinding(this.#warriorBinding,this).ok||JSON.stringify(definition)!==definitionProof||this.hero!==hero||!ready()||!counterValid()||
+      this.actor.position.x!==start.x||this.actor.position.z!==start.z||positions.some(p=>p.e.group.position.x!==p.x||p.e.group.position.z!==p.z||this.getCastTarget(identities.get(p.e))!==p.e||!this.enemies.includes(p.e))||
+      !Number.isFinite(hero.mana)||hero.mana<action.manaCost||(this.skillCooldowns[key]??0)!==0||this.actionLock.active(this.combatTime)||isStunned(hero,this.combatTime))return reject('STALE_COMMITMENT');
+    if(!this.consumeMana(action.manaCost))return reject('INSUFFICIENT_MANA');
+    if(definition.counterPolicy){this.defenseEvents.consume(counter.result,definition.counterPolicy.windowMs,this.combatTime*1000);this.#warriorCounterReceipt=undefined;}
+    if(sampled?.ok) {
+      const hit=action.hitSequence[0];hit.composedPhysicalPower=sampled.value.hits[0].raw;hit.weaponHand='MAIN';Object.freeze(hit);Object.freeze(action.hitSequence);
+    }
+    if(selected)action.targetIdentity=identities.get(selected);
+    this.#warriorExecutions.set(action,{hero,actorId:hero.characterId,slotId:hero.slotId,level,targets,identities});
+    this.lastActionFailure=null;
+    if(!action.nonDamaging){breakStealth(hero,'offensive_skill');this.updateStealthPresentation();}
+    if(!charge)for(const step of steps)this.move(step.x,step.z);
+    if(selected)this.faceTarget(selected);
+    this.actionLock.start(this.combatTime,action.actionLockDuration??0,action.movementAllowedDuringLock);
+    this.skillCooldowns[key]=action.cooldown;
+    this.applySkill(definition,rank,undefined,action,stats);
+    recordCommittedWarriorBuffs(this.#warriorBinding!,this,action);
+    this.save();this.emit();
+    return Object.freeze({ok:true as const,rank,level,execution:snapshot,sample:sampled?.ok?sampled.value:undefined});
+  }
   applySkill(definition: SkillDefinition, level: number, mastery?: MasteryChoice, action?: ResolvedSkillAction, stats=derivedStats(this.hero),consumedWindows:readonly string[]=[], movementComplete = false, rogueInput?: T.Vector3) {
     const skill=action??resolveHeroSkill(this.hero,definition,level,stats);
+    const quickSlashExecution = this.#quickSlashExecutions.get(skill);
+    const powerStrikeExecution = this.#powerStrikeExecutions.get(skill);
+    const adventurerRanksExecution = this.#adventurerRanksExecutions.get(skill);
+    const warriorExecution = this.#warriorExecutions.get(skill);
+    const referenceFinalImpact = !!quickSlashExecution || !!powerStrikeExecution || !!adventurerRanksExecution || !!warriorExecution;
     if (this.hero.skillArchitectureVersion===3 && !thiefSkillJobAllowed(this.hero,definition.specialization ?? definition.job)) return;
     if (skill.vanish) {
       this.vanish.activate(this.hero, skill.id, skill.vanish, skill.cooldown, heroSkillCooldownKey(this.hero, skill.id));
@@ -2761,7 +3561,8 @@ export class Game {
       assasinExecution=this.assasinCombat.beginExecution(this.hero,skill.id,skill.assasin,level,()=>{
         const currentStats=derivedStats(this.hero),base=calculateBaseStats(this.hero),gear=calculateEquipmentStats(this.hero);
         return {profile:VENOM_PROFILES[venomMasteryRank(this.hero)-1],snapshot:{physicalAttack:currentStats.physicalAttack,effectiveDex:base.dex+(gear.dex ?? 0),
-          level:this.hero.level,physicalPenetration:currentStats.physicalPenetration,bossDamage:currentStats.bossDamage,eliteDamage:currentStats.eliteDamage}};
+          level:this.hero.level,physicalPenetration:currentStats.physicalPenetration,bossDamage:currentStats.bossDamage,eliteDamage:currentStats.eliteDamage,
+          criticalRate:currentStats.criticalRate,criticalDamage:currentStats.criticalDamage}};
       });
       this.assasinExecutions.set(skill,assasinExecution);
       const target=this.getCastTarget(skill.targetIdentity);
@@ -2785,6 +3586,7 @@ export class Game {
       const session = this.assasinPoison.beginExecution(this.hero, skill.skillId, skill.assasinPoison, level, {
         physicalAttack: stats.physicalAttack, effectiveDex: calculateBaseStats(this.hero).dex + (calculateEquipmentStats(this.hero).dex ?? 0),
         level: this.hero.level, physicalPenetration: stats.physicalPenetration, bossDamage: stats.bossDamage, eliteDamage: stats.eliteDamage,
+        criticalRate: stats.criticalRate, criticalDamage: stats.criticalDamage,
       });
       if (!session) return;
       this.poisonExecutions.set(skill, session); poisonExecution = session;
@@ -2804,7 +3606,7 @@ export class Game {
       const reposition = skill.rogueMovement === 'INPUT_REPOSITION';
       const direction = reposition ? rogueInput : target.group.position.clone().sub(this.actor.position).setY(0).normalize();
       if (!direction || direction.lengthSq() < 1e-8) return;
-      const distance = reposition ? skill.movementDistance ?? 0 : Math.min(skill.movementDistance ?? 5, Math.max(0, this.groundDistance(this.actor.position, target.group.position) - 1.2));
+      const distance = reposition ? skill.movementDistance ?? 0 : Math.min(skill.movementDistance ?? 5, Math.max(0, this.enemyRange(target) - 1.2));
       this.startThiefMovement(direction, distance,
         () => this.started && !this.dead && !this.disposed && this.hero.characterId === actorId && region === this.regionBuildToken &&
           thiefJobCapabilities(this.hero).canUseRogueSkills && this.getCastTarget(skill.targetIdentity) === target && skillWeaponAllowed(this.hero, definition),
@@ -2815,7 +3617,6 @@ export class Game {
       return;
     }
     if (rogue && skill.nonDamaging) {
-      // Rogue utility never becomes a saved activeBuff.
       this.characterModel.animator.play('magic_cast', .3);
       this.message(`${skill.name} digunakan.`);
       return;
@@ -2825,7 +3626,7 @@ export class Game {
       const target = this.getCastTarget(skill.targetIdentity);
       if (!target) return;
       const direction = target.group.position.clone().sub(this.actor.position).setY(0).normalize();
-      const distance = Math.min(skill.range, Math.max(0, this.groundDistance(this.actor.position, target.group.position) - 1.2));
+      const distance = Math.min(skill.range, Math.max(0, this.enemyRange(target) - 1.2));
       this.startThiefMovement(direction, distance,
         () => !this.dead && !this.disposed && this.getCastTarget(skill.targetIdentity) === target && target.hp > 0 && skillWeaponAllowed(this.hero, definition),
         () => { this.actionLock.start(this.combatTime, skill.actionLockDuration ?? .3, false); this.applySkill(definition, level, mastery, skill, stats, consumedWindows, true); });
@@ -2851,9 +3652,8 @@ export class Game {
     const isBerserkerDamage = skill.tags.includes('v3-berserker');
     const isEarthSplitter = skill.skillId === 'v3-berserker-earth-splitter';
     const bladeImpact = new BladeMasterImpactSession(skill.skillId,this.transientCombat,this.combatTime);
-    const maxBeforeBuff = maxHP(this.hero);
     for(const buff of skill.temporaryBuffs??[])addTemporaryModifier(this.hero,buff.modifier,buff.duration);
-    if (skill.skillId === 'v3-berserker-iron-blood') this.hero.hp = Math.min(maxHP(this.hero), Math.round(this.hero.hp * maxHP(this.hero) / Math.max(1, maxBeforeBuff)));
+    reconcileResourceMaximums(this.hero);
     if (isBerserkerTrance) {
       const tranceRank = Math.max(1, Math.min(3, level));
       const duration = [0, 12, 14, 16][tranceRank];
@@ -2879,7 +3679,7 @@ export class Game {
     const targetCandidate = target ? {
       target,
       id: String(target.id),
-      position: { x: target.group.position.x, z: target.group.position.z },
+      position: this.enemyContact(target),
       alive: target.hp > 0,
     } : null;
     const acquireTargets = () => selectSkillTargets({
@@ -2889,13 +3689,13 @@ export class Game {
       candidates: this.enemies.map((enemy) => ({
         target: enemy,
         id: String(enemy.id),
-        position: { x: enemy.group.position.x, z: enemy.group.position.z },
+        position: this.enemyContact(enemy),
         alive: enemy.hp > 0 && (!isEarthSplitter || this.getCastTarget(targetIdentity(enemy, this.regionBuildToken)) === enemy),
       })),
       selected: targetCandidate,
     });
     // Moving radial sequences acquire enemies at each impact, not at cast start.
-    const targets = isEarthSplitter ? [] : acquireTargets();
+    const targets = warriorExecution ? warriorExecution.targets : isEarthSplitter ? [] : acquireTargets();
     this.traceV3Damage(skill.skillId, 'impact_scheduled', {
       targetIds: targets.map(enemy => enemy.id),
       scheduledImpacts: skill.hitSequence.length,
@@ -2951,7 +3751,7 @@ export class Game {
       if (skill.skillId === 'v3-blade-master-blade-rush') bladeRushPassDirection = dir.clone();
       if(skill.dash){
         // Small steps reuse terrain/tree collision; never teleport through blockers.
-        let remaining=Math.max(0,this.groundDistance(target.group.position,this.actor.position)-skill.dash.stopDistance);
+        let remaining=Math.max(0,this.enemyRange(target)-skill.dash.stopDistance);
         remaining=Math.min(remaining,skill.range);
         while(remaining>0){const step=Math.min(.25,remaining);this.move(dir.x*step,dir.z*step);remaining-=step;}
       }else this.move(dir.x*Math.min(4,skill.range),dir.z*Math.min(4,skill.range));
@@ -2987,7 +3787,7 @@ export class Game {
       );
     }
     const buildToken=this.regionBuildToken;
-    const attackerLevel=this.hero.level;
+    const attackerLevel=warriorExecution?.level??this.hero.level;
     const refreshFrenzyGuard = () => {
       const trance = this.transientCombat.berserkerTrance;
       if (isBerserkerDamage && successfulTargets >= 3 && trance && trance.expiresAt > this.combatTime)
@@ -3000,7 +3800,7 @@ export class Game {
     for (const enemy of targets) {
       let alive=true;
       const spawn=enemy.respawnDeadline;
-      const castTargetIdentity=isEarthSplitter?targetIdentity(enemy,buildToken):skill.targetIdentity??targetIdentity(enemy,buildToken);
+      const castTargetIdentity=warriorExecution?.identities.get(enemy)??(isEarthSplitter?targetIdentity(enemy,buildToken):skill.targetIdentity??targetIdentity(enemy,buildToken));
       const isIronCharge = skill.skillId === 'v3-warrior-iron-charge';
       const dashImpactRange = skill.dash ? Math.max(skill.dash.impactRange, skill.dash.stopDistance) : 0;
       let impactInvalidReported = false;
@@ -3013,8 +3813,8 @@ export class Game {
           targetIdentityValid: this.getCastTarget(castTargetIdentity) === enemy,
           attackerCanAct: !(thief || rogue || skill.assasin) || !isStunned(this.hero, this.combatTime),
           lineageJobValid: !(thief || rogue || skill.assasin) || (this.hero.characterId ?? this.hero.slotId)===castOwner && thiefSkillJobAllowed(this.hero,definition.specialization ?? definition.job) && isSkillUnlocked(this.hero,definition),
-          impactRangeValid: skill.assasin ? this.groundDistance(launchOrigin,enemy.group.position)<=skill.range && skillWeaponAllowed(this.hero,definition) : rogue ? this.hasClearDashImpact(enemy.group.position, skill.rogueMovement === 'APPROACH' ? 3.5 : skill.range) && skillWeaponAllowed(this.hero, definition)
-            : thief ? this.hasClearDashImpact(enemy.group.position, thief.mechanics.movement?.approach ? 3.5 : skill.range) && skillWeaponAllowed(this.hero, definition) : !skill.dash || this.hasClearDashImpact(enemy.group.position, dashImpactRange),
+          impactRangeValid: skill.assasin ? this.enemyRange(enemy,launchOrigin)<=skill.range && skillWeaponAllowed(this.hero,definition) : rogue ? this.hasClearDashImpact(this.enemyContact(enemy), skill.rogueMovement === 'APPROACH' ? 3.5 : skill.range) && skillWeaponAllowed(this.hero, definition)
+            : thief ? this.hasClearDashImpact(this.enemyContact(enemy), thief.mechanics.movement?.approach ? 3.5 : skill.range) && skillWeaponAllowed(this.hero, definition) : !skill.dash || this.hasClearDashImpact(this.enemyContact(enemy), dashImpactRange),
         };
         const valid = Object.values(checks).every(Boolean);
         if (isIronCharge && !valid && !impactInvalidReported) {
@@ -3024,7 +3824,11 @@ export class Game {
         return valid;
       };
       this.skillHits.schedule(hits,
-        ()=>alive&&!this.disposed&&!this.dead&&buildToken===this.regionBuildToken&&enemy.respawnDeadline===spawn&&validImpact(),
+        ()=>alive&&!this.disposed&&!this.dead&&buildToken===this.regionBuildToken&&enemy.respawnDeadline===spawn&&validImpact()&&
+          (!quickSlashExecution || this.hero === quickSlashExecution.hero && this.hero.characterId === quickSlashExecution.actorId && this.hero.hp > 0) &&
+          (!powerStrikeExecution || this.hero === powerStrikeExecution.hero && this.hero.characterId === powerStrikeExecution.actorId && this.hero.slotId === powerStrikeExecution.slotId && this.hero.hp > 0 && enemy.id === castTargetIdentity.id) &&
+          (!adventurerRanksExecution || this.hero === adventurerRanksExecution.hero && this.hero.characterId === adventurerRanksExecution.actorId && this.hero.slotId === adventurerRanksExecution.slotId && this.hero.hp > 0 && enemy.id === castTargetIdentity.id) &&
+          (!warriorExecution || this.hero === warriorExecution.hero && this.hero.characterId === warriorExecution.actorId && this.hero.slotId === warriorExecution.slotId && this.hero.hp > 0 && enemy.id === castTargetIdentity.id && this.groundDistance(this.actor.position,enemy.group.position)<=(skill.dash?Math.max(skill.dash.impactRange,skill.dash.stopDistance):skill.targetType==='single'?skill.range:skill.radius)+1e-4),
         snapshotHit=>{
       const impactIndex = stompIndex ?? skill.hitSequence.indexOf(snapshotHit);
       this.traceV3Damage(skill.skillId, 'impact_callback', {
@@ -3112,9 +3916,9 @@ export class Game {
       const beforeHP=enemy.hp;
       const appliedDamage = this.hurtEnemy(
         enemy,
-        Math.round(amount),
+        referenceFinalImpact ? amount : Math.round(amount),
         hit.knockbackStrength,
-        hit.damageType, stats, attackerLevel,
+        hit.damageType, stats, attackerLevel, 'direct', referenceFinalImpact ? 'REFERENCE_B_FINAL' : 'LEGACY',
       );
       const dummyImpact = enemy.dummy && amount > 0;
       this.traceV3Damage(skill.skillId, 'hp_mutation', {
@@ -3418,9 +4222,28 @@ export class Game {
         .normalize();
   }
   attack(autoAim = false) {
+    const selectedReference = this.#basicReferenceSelected || this.#adventurerRanksSelected;
+    if (selectedReference && (!this.started || this.paused || this.dead || this.hero.hp <= 0 || this.hotbarInteracting || this.disposed || this.transitioning || this.regionLoadError))
+      return Object.freeze({ ok: false as const, code: 'REFERENCE_ACTION_UNAVAILABLE' });
     if(isStunned(this.hero,this.combatTime)){this.message('Karakter sedang Stun.');return;}
     if(this.thiefMovement || this.actionLock?.active(this.combatTime))return this.failTarget('ACTION_LOCKED');
     if (this.attackTimer > 0) return;
+    // Validate stored presentation state before computing the legitimate cycle.
+    // Never normalize corrupted selected-reference indices into a valid event.
+    if (this.#adventurerRanksSelected && (!Number.isInteger(this.combo) || this.combo < 0 || this.combo > 3 ||
+        !Number.isFinite(this.comboWindow) || this.comboWindow < 0 || this.comboWindow > 0 && this.combo === 0))
+      return Object.freeze({ok:false as const,code:'UNSUPPORTED_COMBO',reason:'Invalid Basic presentation state'});
+    const nextCombo = this.comboWindow > 0 ? (this.combo % 3) + 1 : 1;
+    const referencePreparation = this.#adventurerRanksSelected
+      ? this.#adventurerRanksBinding
+        ? prepareAdventurerBasic(this.#adventurerRanksBinding, this, nextCombo)
+        : this.#adventurerRanksFailure!
+      : this.#basicReferenceSelected
+      ? this.#basicReferenceBinding
+        ? prepareBasicReferenceAttack(this.#basicReferenceBinding, this, this.comboWindow > 0 ? (this.combo % 3) + 1 : 1)
+        : this.#basicReferenceFailure!
+      : undefined;
+    if (referencePreparation && !referencePreparation.ok) { this.message(referencePreparation.reason); return referencePreparation; }
     const equippedWeapon=itemById(this.hero.inventory,this.hero.equipment.mainHand);
     const offhandWeapon=itemById(this.hero.inventory,this.hero.equipment.offHand);
     const daggerEquipment = daggerEquipmentForHero(this.hero);
@@ -3429,7 +4252,7 @@ export class Game {
       equippedWeapon?.equipmentType === 'one_hand_sword' && offhandWeapon?.equipmentType === 'one_hand_sword' && equippedWeapon.id !== offhandWeapon.id,
     );
     const equipmentSignature = `${this.hero.equipment.mainHand ?? ''}:${this.hero.equipment.offHand ?? ''}`;
-    if (equipmentSignature !== this.dualBasicEquipmentSignature) {
+    if (!referencePreparation && equipmentSignature !== this.dualBasicEquipmentSignature) {
       this.dualBasicEquipmentSignature = equipmentSignature;
       this.dualBasicNextHand = 'MAIN';
     }
@@ -3437,8 +4260,26 @@ export class Game {
     const isBow=equippedWeapon?.equipmentType==='bow'||equippedWeapon?.attackType==='ranged';
     const hard=usesHardTargeting(this.hero);
     const selection=hard?this.resolveCurrentTarget(Infinity):{};
-    if(selection.target&&targetDistance(this.actor.position,selection.target.group.position)>(isBow?Math.max(11,combatProfile(this.hero).range):selection.target.boss?4.3:combatProfile(this.hero).range))selection.reason='TARGET_OUT_OF_RANGE';
+    if(selection.target&&this.enemyRange(selection.target)>(isBow?Math.max(11,combatProfile(this.hero).range):selection.target.boss?4.3:combatProfile(this.hero).range))selection.reason='TARGET_OUT_OF_RANGE';
     if(selection.reason)return this.failTarget(selection.reason);
+    let referenceSample: SampledRawExecution | undefined;
+    if (referencePreparation?.ok) {
+      const sampled = sampleRawAttackExecution(referencePreparation.value.snapshot, () => this.rand());
+      if (!sampled.ok) { this.message(sampled.reason); return sampled; }
+      if (this.#adventurerRanksSelected && (!this.#adventurerRanksBinding || !currentAdventurerRanksBinding(this.#adventurerRanksBinding, this)))
+        return Object.freeze({ok:false as const,code:'STALE_ACTOR_EPOCH',reason:'Reference identity changed during attack sampling'});
+      if (this.#adventurerRanksSelected && (this.dead || this.paused || this.disposed || this.hero.hp<=0 ||
+          hard && (!selection.target || this.resolveCurrentTarget(Infinity).target !== selection.target ||
+          this.enemyRange(selection.target)>(selection.target.boss?4.3:combatProfile(this.hero).range))))
+        return Object.freeze({ok:false as const,code:'REFERENCE_TARGET_CHANGED',reason:'Reference target/action changed during attack sampling'});
+      referenceSample = sampled.value;
+      // No facing, equipment cycle, timer, combo or animation mutation before
+      // admitted preparation, target/range guards and successful attack sampling.
+      if (equipmentSignature !== this.dualBasicEquipmentSignature) {
+        this.dualBasicEquipmentSignature = equipmentSignature;
+        this.dualBasicNextHand = 'MAIN';
+      }
+    }
     this.lastActionFailure=null;
     if(isBow){
       const arrows=this.hero.inventory.find(item=>item.templateId===(this.hero.selectedAmmo??'arrows')&&item.quantity>0);
@@ -3450,7 +4291,7 @@ export class Game {
     else if (autoAim || !this.pointerActive) this.targetNearest();
     else {
       this.raycaster.setFromCamera(this.pointer, this.camera);
-      const hit=this.isPlains&&this.plains ? this.raycaster.intersectObject(this.plains.root,true).find(h=>h.object.visible)?.point : this.terrainSurface?this.raycaster.intersectObject(this.terrainSurface)[0]?.point:this.raycaster.ray.intersectPlane(this.ground,this.aim);
+      const hit=this.isSunken&&this.sunken ? this.raycaster.intersectObject(this.sunken.surfaces,true).find(h=>h.object.visible)?.point : this.isMineInterior&&this.mineInterior ? this.raycaster.intersectObject(this.mineInterior.surfaces,true)[0]?.point : this.isIronveil&&this.ironveil ? this.raycaster.intersectObject(this.ironveil.surfaces,true)[0]?.point : this.isWilds&&this.wilds ? this.raycaster.intersectObject(this.wilds.surfaces,true).find(h=>h.object.visible||h.object.userData.bridge)?.point : this.isFrostfire&&this.frostfire ? this.raycaster.intersectObject(this.frostfire.surfaces,true)[0]?.point : this.isPlains&&this.plains ? this.raycaster.intersectObject(this.plains.root,true).find(h=>h.object.visible)?.point : this.terrainSurface?this.raycaster.intersectObject(this.terrainSurface)[0]?.point:this.raycaster.ray.intersectPlane(this.ground,this.aim);
       if (hit) {
         this.aim.copy(hit);
         const d = this.aim.clone().sub(this.actor.position).setY(0);
@@ -3465,18 +4306,20 @@ export class Game {
     const profile = combatProfile(this.hero);
     this.attackTimer =
       this.combo === 3 ? profile.cooldown + COMBAT_MECHANICS.comboFinisherDelay : profile.cooldown;
-    this.attackTimer /= derivedStats(this.hero).attackSpeed / 100;
+    this.attackTimer /= (referencePreparation?.ok ? referencePreparation.value.stats : derivedStats(this.hero)).attackSpeed / 100;
     this.swing = 0.3;
     this.characterModel.animator.play(isBow ? 'ranged_attack' : 'basic_attack', .3);
-    const stats = derivedStats(this.hero);
-    const attackPowerForHand = daggerEquipment.state !== 'NO_DAGGER'
+    const stats = referencePreparation?.ok ? referencePreparation.value.stats : derivedStats(this.hero);
+    const referenceLevel = referencePreparation?.ok && 'level' in referencePreparation.value && typeof referencePreparation.value.level === 'number'
+      ? referencePreparation.value.level : referenceSample ? 1 : this.hero.level;
+    const attackPowerForHand = referenceSample ? referenceSample.totalRaw : daggerEquipment.state !== 'NO_DAGGER'
       ? basicAttackPower(this.hero, basicHand)
       : dualBasicActive
       ? (() => { const context = resolveWeaponAttackContext(equippedWeapon, offhandWeapon, basicHand === 'MAIN' ? 'SINGLE_MAIN' : 'SINGLE_OFF'); const shared = stats.physicalAttack - context.mainHandWeaponAttack - context.offHandWeaponAttack; return Math.max(0, shared + (basicHand === 'MAIN' ? context.mainHandWeaponAttack : context.offHandWeaponAttack)); })()
       : basicAttackPower(this.hero);
     const baseDamage =
       attackPowerForHand *
-      (this.combo === 3 ? COMBAT_MECHANICS.comboFinisherDamage : 1);
+      (referenceSample ? 1 : this.combo === 3 ? COMBAT_MECHANICS.comboFinisherDamage : 1);
     const resolveBasicDamage = (enemy: Enemy) => {
       const hitResolution = resolveHitAgainstEvasion({ attackerAccuracy: stats.accuracy, targetEvasion: enemy.evasion ?? 0, rng: () => this.rand() });
       if (hitResolution.result === 'EVADED') {
@@ -3492,19 +4335,21 @@ export class Game {
     if(isBow)this.effect(strike,'#b6f1ff',9);
     for (const e of (hard&&selection.target?[selection.target]:this.enemies)) {
       if (e.hp <= 0) continue;
-      if(hard){const damage=resolveBasicDamage(e);if(damage===null)continue;this.hurtEnemy(e,Math.round(damage),this.hero.skillArchitectureVersion===3?0:.8,'physical');continue;}
+      if(hard){const damage=resolveBasicDamage(e);if(damage===null)continue;this.hurtEnemy(e,referenceSample?damage:Math.round(damage),this.hero.skillArchitectureVersion===3?0:.8,'physical',referenceSample?stats:undefined,referenceLevel,'direct',referenceSample?'REFERENCE_B_FINAL':'LEGACY');continue;}
       const v = e.group.position.clone().sub(this.actor.position);
-      if(this.fieldTerrain||this.isPlains)v.y=0;
+      if(this.fieldTerrain||this.isPlains||this.isFrostfire||this.isWilds||this.isSunken||this.isIronveil||this.isMineInterior)v.y=0;
       const d = v.length();
       if (
         d < (isBow?Math.max(11,profile.range):(e.boss ? 4.3 : profile.range)) &&
         v.normalize().dot(this.direction) > -0.2
       ) {
         const damage=resolveBasicDamage(e);if(damage===null)continue;
-        this.hurtEnemy(e, Math.round(damage), this.hero.skillArchitectureVersion===3?0:0.8, 'physical');
+        this.hurtEnemy(e, referenceSample ? damage : Math.round(damage), this.hero.skillArchitectureVersion===3?0:0.8, 'physical', referenceSample ? stats : undefined, referenceLevel, 'direct', referenceSample ? 'REFERENCE_B_FINAL' : 'LEGACY');
       }
     }
     if (dualBasicActive) this.dualBasicNextHand = basicHand === 'MAIN' ? 'OFF' : 'MAIN';
+    if (referencePreparation?.ok && referenceSample) return Object.freeze({ ok: true as const,
+      version: this.#adventurerRanksSelected ? ADVENTURER_RANKS_REFERENCE.version : 'Q2_Q4_BASIC_REFERENCE_B_1' as const, execution: referencePreparation.value.snapshot, sample: referenceSample });
   }
   nova() {
     if(this.actionLock?.active(this.combatTime))return this.failTarget('ACTION_LOCKED');
@@ -3521,7 +4366,8 @@ export class Game {
     this.save();
     this.emit();
   }
-  hurtEnemy(e: Enemy, damage: number, knock: number, damageType: 'physical' | 'magic' = 'physical', snapshot?:Pick<DerivedStats, 'bossDamage' | 'eliteDamage' | 'physicalPenetration' | 'magicPenetration'>, attackerLevel=this.hero.level, damageKind: 'direct' | 'poison_dot' = 'direct') {
+  hurtEnemy(e: Enemy, damage: number, knock: number, damageType: 'physical' | 'magic' = 'physical', snapshot?:Pick<DerivedStats, 'bossDamage' | 'eliteDamage' | 'physicalPenetration' | 'magicPenetration'>, attackerLevel=this.hero.level, damageKind: 'direct' | 'poison_dot' = 'direct', rounding: 'LEGACY' | 'REFERENCE_B_FINAL' = 'LEGACY') {
+    if(this.isMineInterior && damageKind==='direct' && !mineLineOfSight(this.hero,e.group.position))return 0;
     if (e.hp <= 0) return 0;
     const playerStats=snapshot??derivedStats(this.hero);
     if(e.boss)damage*=1+playerStats.bossDamage/100;
@@ -3529,11 +4375,12 @@ export class Game {
     const defense = damageType === 'magic' ? (e.definition?.magicDefense ?? 0) : (e.definition?.defense ?? 0);
     const penetration = damageType === 'magic' ? playerStats.magicPenetration : playerStats.physicalPenetration;
     const armorBreakStrength = effectiveArmorBreakStrength(e, this.combatTime);
-    const finalDamage = mitigateDamage(damage, defense * (armorBreakStrength > 0 ? Math.max(0, 1 - armorBreakStrength / 100) : 1), attackerLevel, penetration);
+    const defendedDamage = mitigateDamage(damage, defense * (armorBreakStrength > 0 ? Math.max(0, 1 - armorBreakStrength / 100) : 1), attackerLevel, penetration);
+    const finalDamage = rounding === 'REFERENCE_B_FINAL' ? Math.round(defendedDamage) : defendedDamage;
     if (e.dummy) {
       e.hp = e.max;
       e.flash = 0.14;
-      this.float(e.group.position, String(Math.round(finalDamage)), 'damage');
+      this.float(e.group.position, String(rounding === 'REFERENCE_B_FINAL' ? finalDamage : Math.round(finalDamage)), 'damage');
       this.effect(e.group.position, '#d9f0ff', 8);
       return finalDamage;
     }
@@ -3546,21 +4393,23 @@ export class Game {
     }
     e.flash = 0.14;
     const v = e.group.position.clone().sub(this.actor.position);
-    if(this.fieldTerrain||this.isPlains)v.y=0;
+    if(this.fieldTerrain||this.isPlains||this.isFrostfire||this.isWilds||this.isSunken||this.isIronveil||this.isMineInterior)v.y=0;
     v.normalize();
     const knockDistance=e.boss?knock*.15:knock;
     this.moveEnemy(e,v.x*knockDistance,v.z*knockDistance);
-    if(!this.fieldTerrain&&!this.isPlains) {
+    if(!this.fieldTerrain&&!this.isPlains&&!this.isFrostfire&&!this.isWilds&&!this.isSunken&&!this.isIronveil&&!this.isMineInterior) {
       const extent=regionHalfExtent(false);
       e.group.position.x=T.MathUtils.clamp(e.group.position.x,-extent,extent);
       e.group.position.z=T.MathUtils.clamp(e.group.position.z,-extent,extent);
     }
-    this.float(e.group.position, String(Math.round(finalDamage)), 'damage');
+    this.float(e.group.position, String(rounding === 'REFERENCE_B_FINAL' ? finalDamage : Math.round(finalDamage)), 'damage');
     this.effect(e.group.position, e.boss ? '#ddb7e8' : '#c0da78', 8);
     if (e.hp === 0) {
       e.group.visible = false;
       e.respawn = e.definition?.respawnTime ?? (e.boss ? 120 : 25);
       e.respawnDeadline = Date.now() + e.respawn * 1000;
+      // Only explicitly isolated fixture actors suppress rewards.
+      if(e.rewardless){this.emit();return;}
       this.hero.monsterRespawnState[e.respawnKey] = e.respawnDeadline;
       if (e.boss && e.definition) this.hero.defeatedBossTimestamp[this.hero.currentField] = Date.now();
       const rewardStats=derivedStats(this.hero);
@@ -3569,10 +4418,12 @@ export class Game {
       const goldMultiplier = e.definition?.variant === 'boss' || e.boss ? 1.8 : e.definition?.variant === 'elite' ? 1.5 : 1;
       const goldReward=Math.floor((8 + monsterLevel * 1.5) * goldMultiplier * (1 + rewardStats.goldDropRate / 100));
       this.hero.kills += 1;
-      this.hero.fieldProgress[this.hero.currentField] = (this.hero.fieldProgress[this.hero.currentField] ?? 0) + 1;
+      this.hero.fieldProgress[this.activeLocationId] = (this.hero.fieldProgress[this.activeLocationId] ?? 0) + 1;
       const goldPosition = e.group.position.clone().add(new T.Vector3(0.85, 0, 0));
       this.spawnGoldDrop(goldReward, goldPosition);
+      const renewal=this.#beginAdventurerTransaction();
       const levels = gainXP(this.hero, xp);
+      if(levels)this.#renewAdventurerTransaction(renewal,'reward gainXP');
       const loots = e.definition ? rollMonsterLootDrops(this.hero, e.definition, () => this.rand()) : [];
       const lootPositions = [
         new T.Vector3(-0.85, 0, 0),
@@ -3597,23 +4448,19 @@ export class Game {
       if (e.boss) {
         if (!this.hero.defeatedFieldBosses.includes(this.hero.currentField))
           this.hero.defeatedFieldBosses.push(this.hero.currentField);
-        if (this.hero.currentField === 'whispering-wilds' && !this.hero.completedQuests.includes('story-whispering-wilds')) {
-          this.hero.cityProgress.arunika = Math.max(this.hero.cityProgress.arunika ?? 0, 1);
-          this.message('Objective Rimba Bisik selesai. Kembali ke Quest NPC untuk turn-in dan membuka Kota Jayantara.');
-        } else {
-          this.message(`${FIELDS[this.hero.currentField].displayName} kembali tenang. Boss telah tumbang!`);
-        }
+        this.message(this.isWilds ? 'Forest Warden has fallen. The altar is quiet again.' : `${FIELDS[this.hero.currentField].displayName} kembali tenang. Boss telah tumbang!`);
         this.sound(1000, 0.4);
       }
       this.save();
       this.emit();
     }
   }
-  hurtHero(damage: number, sourceId?:string, displacement?:{x:number;z:number}, damageKind: 'direct' | 'dot' = 'direct') {
+  hurtHero(damage: number, sourceId?:string, displacement?:{x:number;z:number}, damageKind: 'direct' | 'dot' = 'direct', blockable = true) {
     setManualGuard(this.hero,this.blocking);
     if (this.invincible > 0 || this.dead) return;
     if(hasStatus(this.hero,'parry')){
       this.defenseEvents.record(this.hero,false,this.combatTime*1000,sourceId);
+      this.#warriorCounterReceipt=this.#warriorSelected&&damageKind==='direct'&&blockable ? {hero:this.hero,event:this.defenseEvents.lastDefenseEvent!}:undefined;
       this.float(this.actor.position,'PARRY','reward');
       return;
     }
@@ -3626,8 +4473,12 @@ export class Game {
     this.transientCombat?.updateBerserker(this.combatTime);
     if (this.transientCombat?.frenzyGuard && this.transientCombat.frenzyGuard.expiresAt > this.combatTime)
       damage *= Math.max(0, 1 - this.transientCombat.frenzyGuard.reductionPercent / 100);
-    const blocked=this.rand() < blockChance(stats.blockRate);
+    // Existing physical direct callers explicitly retain their blockable adapter.
+    // No eligible Block source means no passive Block draw; CP60/30 is separate.
+    const passiveChance = passiveBlockChance(stats.blockRate,{damageType:'physical',damageKind,blockable});
+    const blocked=passiveChance > 0 && this.rand() < passiveChance;
     this.defenseEvents.record(this.hero,blocked||this.blocking,this.combatTime*1000,sourceId);
+    this.#warriorCounterReceipt=this.#warriorSelected&&damageKind==='direct'&&blockable&&(blocked||this.blocking) ? {hero:this.hero,event:this.defenseEvents.lastDefenseEvent!}:undefined;
     const context=modifierContextFor(this.hero,stats),modifiers=combatModifiersFor(this.hero);
     const defenseMultiplier=(1-stats.damageReduction/100)*(blocked?1-COMBAT_MECHANICS.blockDamageReduction:1)*(this.blocking?.3:1);
     damage *= receivedMultiplier(modifiers,context,'damageMultiplier',defenseMultiplier);
@@ -3650,23 +4501,23 @@ export class Game {
     }
     this.emit();
   }
-  moveVector() {
-    if (this.thiefMovement) return new T.Vector3();
-    if(this.actionLock?.active(this.combatTime)&&!this.actionLock.movementAllowed)return new T.Vector3();
+  moveVector(movement = new T.Vector3()) {
+    if (this.thiefMovement || (this.actionLock?.active(this.combatTime) && !this.actionLock.movementAllowed))
+      return movement.set(0, 0, 0);
     const right =
         (this.keys.has('d') || this.keys.has('arrowright') ? 1 : 0) -
         (this.keys.has('a') || this.keys.has('arrowleft') ? 1 : 0),
       forward =
         (this.keys.has('s') || this.keys.has('arrowdown') ? 1 : 0) -
         (this.keys.has('w') || this.keys.has('arrowup') ? 1 : 0);
-    return new T.Vector3(
+    return movement.set(
       Math.cos(this.yaw) * right + Math.sin(this.yaw) * forward,
       0,
       -Math.sin(this.yaw) * right + Math.cos(this.yaw) * forward,
     ).normalize();
   }
   move(dx: number, dz: number) {
-    if(this.transitioning||this.regionLoadError||((this.isAverion&&!this.averion)||(this.isPlains&&!this.plains)))return;
+    if(this.transitioning||this.regionLoadError||((this.isAverion&&!this.averion)||(this.isPlains&&!this.plains)||(this.isFrostfire&&!this.frostfire)||(this.isWilds&&!this.wilds)||(this.isSunken&&!this.sunken)||(this.isIronveil&&!this.ironveil)||(this.isMineInterior&&!this.mineInterior)))return;
     if(isStunned(this.hero,this.combatTime))return;
     const p=moveWithTreeCollisions(this.hero,dx,dz,this.treeColliders,(from,mx,mz)=>this.moveHeroOnGround(from,mx,mz),(x,z)=>this.groundHeight(x,z));
     this.hero.x=p.x;this.hero.z=p.z;
@@ -3677,7 +4528,8 @@ export class Game {
   /** Move the player into range for a selected-target active skill only. */
   autoApproachTarget(target: Enemy, range: number) {
     const desiredRange = Math.max(0, Number.isFinite(range) ? range : 0);
-    const direction = target.group.position.clone().sub(this.actor.position).setY(0);
+    const contact=this.enemyContact(target);
+    const direction = new T.Vector3(contact.x-this.actor.position.x,0,contact.z-this.actor.position.z);
     let remaining = Math.max(0, direction.length() - desiredRange);
     if (remaining <= 1e-6) return true;
     direction.normalize();
@@ -3688,9 +4540,14 @@ export class Game {
       if (progressed <= 1e-7) break;
       remaining -= progressed;
     }
-    return this.groundDistance(this.actor.position, target.group.position) <= desiredRange + 1e-4;
+    return this.enemyRange(target) <= desiredRange + 1e-4;
   }
   moveHeroOnGround(from:GroundPoint,dx:number,dz:number):GroundPoint {
+    if(this.isMineInterior)return this.mineInterior?this.mineInterior.move(from,dx,dz):{...from};
+    if(this.isIronveil)return this.ironveil?this.ironveil.move(from,dx,dz):{...from};
+    if(this.isWilds)return this.wilds?this.wilds.move(from,dx,dz):{...from};
+    if(this.isSunken)return this.sunken?this.sunken.move(from,dx,dz):{...from};
+    if(this.isFrostfire)return this.frostfire?this.frostfire.move(from,dx,dz):{...from};
     if(this.isPlains)return this.plains?this.plains.move(from,dx,dz):{...from};
     if(this.isAverion)return this.averion?this.averion.move(from,dx,dz):{...from};
     if(this.fieldTerrain) {
@@ -3715,8 +4572,10 @@ export class Game {
     return {x,z};
   }
   tick = (time: number) => {
+    const frameStarted = performance.now();
     if (this.disposed || !this.started) { this.frame = 0; return; }
-    if(this.transitioning||this.regionLoadError||((this.isAverion&&!this.averion)||(this.isPlains&&!this.plains))) {
+    if(this.transitioning||this.regionLoadError||((this.isAverion&&!this.averion)||(this.isPlains&&!this.plains)||(this.isFrostfire&&!this.frostfire)||(this.isWilds&&!this.wilds)||(this.isSunken&&!this.sunken)||(this.isIronveil&&!this.ironveil)||(this.isMineInterior&&!this.mineInterior))) {
+      this.renderPerformance.suspend();
       this.lastTime=time;this.frame=requestAnimationFrame(this.tick);return;
     }
     const dt = Math.min((time - (this.lastTime || time)) / 1000, 0.04);
@@ -3726,11 +4585,12 @@ export class Game {
     this.crystal.rotation.y += dt * 0.6;
     this.crystal.position.y = 2.6 + Math.sin(this.elapsed * 1.5) * 0.2;
     let moving = false;
+    const swimFrame={x:this.actor.position.x,z:this.actor.position.z,yaw:this.actor.rotation.y};
     let running = false;
     let animationMoveSpeed=0;
     if (!this.paused) {
       // Poison keeps its cadence while the caster is dead. It neither calls
-      // player hit/crit/on-hit hooks nor advances other classes' combat actions.
+      // direct-hit/on-hit hooks nor advances other classes' combat actions.
       this.poisonTime += dt;
       for (const enemy of this.enemies) { this.assasinPoison.advanceTarget(enemy, this.poisonTime); this.assasinCombat.advanceTarget(enemy,this.poisonTime); }
       if (this.currentTarget) this.updateTargetPresentation();
@@ -3757,19 +4617,17 @@ export class Game {
       }
       this.attackTimer = Math.max(0, this.attackTimer - dt);
       const manaStats=derivedStats(this.hero);
-      this.hero.mana=Math.min(this.hero.mana,manaStats.maxMana);
-      this.hero.maxMana=manaStats.maxMana;
-      if(manaStats.manaRecovery>0)this.restoreMana(dt*manaStats.manaRecovery);
+      recoverActiveResources(this.hero,dt,manaStats);
       this.invincible = Math.max(0, this.invincible - dt);
       this.comboWindow = Math.max(0, this.comboWindow - dt);
       this.swing = Math.max(0, this.swing - dt);
-      const m = this.moveVector();
+      const m = this.moveVector(this.movementInput);
       if (m.lengthSq() && !isStunned(this.hero,this.combatTime)) {
         // Movement is always a moderate run. Shift no longer changes the speed.
         const sprinting = true;
         const speedMultiplier = 1.22;
         const speed =
-          (6.2 * derivedStats(this.hero).movementSpeed * speedMultiplier) / 100;
+          (6.2 * manaStats.movementSpeed * speedMultiplier) / 100;
         const previousX = this.actor.position.x, previousZ = this.actor.position.z;
         this.move(m.x * dt * speed, m.z * dt * speed);
         moving = Math.hypot(this.actor.position.x - previousX, this.actor.position.z - previousZ) > .0001;
@@ -3781,7 +4639,7 @@ export class Game {
         }
       }
       if (isResourceEnabled(this.hero, 'stamina')) {
-        const staminaMax = derivedStats(this.hero).staminaMax;
+        const staminaMax = manaStats.staminaMax;
         this.stamina = Math.min(staminaMax, this.stamina + dt * 18);
       }
       this.hero.playTimeSeconds += dt;
@@ -3796,7 +4654,11 @@ export class Game {
       }
     }
     if (!this.paused) {
-      this.characterModel.animator.update(dt, { moving, sprinting: running, blocking: this.blocking, dead: this.dead, speed:animationMoveSpeed });
+      const dx=this.actor.position.x-swimFrame.x,dz=this.actor.position.z-swimFrame.z,d=Math.hypot(dx,dz)||1,yaw=this.actor.rotation.y;
+      this.characterModel.animator.update(dt, { moving, sprinting: running, blocking: this.blocking, dead: this.dead, speed:animationMoveSpeed,
+        movementMode:this.isSunken?'underwater':'ground',localForward:(-Math.sin(yaw)*dx-Math.cos(yaw)*dz)/d,localRight:(Math.cos(yaw)*dx-Math.sin(yaw)*dz)/d,
+        turn:Math.atan2(Math.sin(yaw-swimFrame.yaw),Math.cos(yaw-swimFrame.yaw))/Math.max(.001,dt) });
+      this.characterModel.updateVisual(this.camera, this.renderer.domElement.clientHeight);
       updateCharacterAura(this.aura, this.elapsed, dt);
     }
     if (this.noticeTimer > 0) {
@@ -3847,24 +4709,84 @@ export class Game {
         this.beams.splice(i, 1);
       }
     }
+    // Underwater focus follows the seabed at its damped X/Z, rather than a
+    // delayed height from another position. Fast uphill travel otherwise puts
+    // the focus under the slope and repeatedly retracts the collision camera.
+    if(this.isSunken)this.actor.position.y=this.groundHeight(this.actor.position.x,this.actor.position.z);
     this.cameraFocus.lerp(this.actor.position, 1 - Math.exp(-dt * 6));
+    if(this.isSunken)this.cameraFocus.y=this.groundHeight(this.cameraFocus.x,this.cameraFocus.z);
     const targetGroundY = this.groundHeight(this.actor.position.x, this.actor.position.z);
-    this.actor.position.y = this.isPlains?targetGroundY:T.MathUtils.lerp(this.actor.position.y, targetGroundY, 0.18);
+    this.actor.position.y = this.isPlains||this.isFrostfire||this.isWilds||this.isSunken||this.isIronveil||this.isMineInterior?targetGroundY:T.MathUtils.lerp(this.actor.position.y, targetGroundY, 0.18);
     this.updateCamera(dt);
+    if(this.isMineInterior&&this.mineInterior){
+      this.camera.position.copy(this.mineInterior.constrainCamera(this.cameraOrbitTarget,this.camera.position,dt));
+      // Keep the orbit quaternion from updateCamera: collision adjusts distance only.
+      this.camera.updateMatrixWorld();this.mineInterior.update(this.hero,time/1000);
+    }
+    if(this.isIronveil&&this.ironveil){
+      const focus=this.cameraFocusScratch.copy(this.actor.position);focus.y+=1.5;
+      this.camera.position.copy(this.ironveil.constrainCamera(focus,this.camera.position));
+      this.camera.position.y=Math.max(this.camera.position.y,ironveilGroundHeight(this.camera.position.x,this.camera.position.z)+1.2);this.camera.updateMatrixWorld();
+      this.ironveil.update(this.camera,time/1000);
+      this.worldLightRig.traverse(o=>{if(o instanceof T.DirectionalLight){o.position.set(this.actor.position.x+IRONVEIL_DAYLIGHT.sun[0]*80,this.actor.position.y+IRONVEIL_DAYLIGHT.sun[1]*80,this.actor.position.z+IRONVEIL_DAYLIGHT.sun[2]*80);o.target.position.copy(this.actor.position);o.target.updateMatrixWorld();}});
+    }
+    if(this.isSunken&&this.sunken){
+      if(this.hero.currentField===DEEP_OCEAN_ID&&this.scene.fog instanceof T.Fog&&this.scene.background instanceof T.Color){
+        const north=T.MathUtils.smoothstep(-this.hero.z,50,400);
+        this.scene.fog.color.set(DEEP_OCEAN_LIGHT.background).lerp(this.deepOceanTrenchFog,north);
+        this.scene.fog.far=T.MathUtils.lerp(DEEP_OCEAN_LIGHT.fogFar,DEEP_OCEAN_TRENCH_VIEW.fogFar,north);
+        this.scene.background.copy(this.scene.fog.color);
+      }
+      if(!isUnderwaterSubmap(this.hero.currentField)&&this.scene.fog instanceof T.Fog&&this.scene.background instanceof T.Color){
+        const depth=T.MathUtils.smoothstep(-this.actor.position.y,25,95);
+        this.scene.fog.color.set(SUNKEN_LIGHT.background).lerp(this.sunkenAbyssFog,depth);
+        const deepVisibility=T.MathUtils.smoothstep(-this.actor.position.y,20,65);
+        this.scene.fog.near=T.MathUtils.lerp(SUNKEN_LIGHT.fogNear,12,deepVisibility);
+        this.scene.fog.far=T.MathUtils.lerp(SUNKEN_LIGHT.fogFar,105,deepVisibility);
+        this.scene.background.copy(this.scene.fog.color);
+      }
+      const focus=this.cameraFocusScratch.copy(this.cameraOrbitTarget);
+      this.camera.position.copy(this.sunken.constrainCamera(focus,this.camera.position,dt));
+      this.camera.position.y=Math.max(this.camera.position.y,this.groundHeight(this.camera.position.x,this.camera.position.z)+1.2);this.camera.updateMatrixWorld();
+      this.sunken.update(this.camera,this.hero,this.paused||document.hidden?0:dt);
+      this.worldLightRig.traverse(o=>{if(o instanceof T.DirectionalLight){o.position.set(this.actor.position.x-25,this.actor.position.y+60,this.actor.position.z+20);o.target.position.copy(this.actor.position);o.target.updateMatrixWorld();}});
+    }
+    if(this.isWilds&&this.wilds){
+      this.camera.position.y=Math.max(this.camera.position.y,wildsGroundHeight(this.camera.position.x,this.camera.position.z)+1.2);this.camera.updateMatrixWorld();
+      this.wilds.update(this.camera,this.hero,this.paused||document.hidden?0:dt,this.renderer.getPixelRatio(),this.cameraMode==='free');
+      this.worldLightRig.traverse(o=>{if(o instanceof T.DirectionalLight){o.position.set(this.actor.position.x+WILDS_NIGHT.sun[0]*100,this.actor.position.y+WILDS_NIGHT.sun[1]*100,this.actor.position.z+WILDS_NIGHT.sun[2]*100);o.target.position.copy(this.actor.position);o.target.updateMatrixWorld();}});
+    }
+    if(this.isFrostfire&&this.frostfire){
+      this.camera.position.y=Math.max(this.camera.position.y,frostCameraFloor(this.camera.position.x,this.camera.position.z)+1.2);
+      this.camera.updateMatrixWorld();
+      this.frostfire.update(this.camera,this.hero,this.paused||document.hidden?0:dt,moving&&!this.dead&&!this.paused,this.renderer.getPixelRatio());
+      this.worldLightRig.traverse(o=>{if(o instanceof T.DirectionalLight){o.position.set(this.actor.position.x+FROST_DAWN.sun[0]*120,this.actor.position.y+FROST_DAWN.sun[1]*120,this.actor.position.z+FROST_DAWN.sun[2]*120);o.target.position.copy(this.actor.position);o.target.updateMatrixWorld();}});
+    }
     if(this.isAverion&&this.averion) {
       if(this.cameraMode==='follow') {
-        const focus=this.actor.position.clone().add(new T.Vector3(0,1.65,0));
+        const focus=this.cameraFocusScratch.copy(this.actor.position);
+        focus.y+=1.65;
         const constrained=this.averion.constrainCamera(focus,this.camera.position);
-        const direction=constrained.clone().sub(focus),allowed=direction.length();
+        const direction=this.cameraDirectionScratch.copy(constrained).sub(focus),allowed=direction.length();
         this.averionCameraDistance=allowed<this.averionCameraDistance?allowed:this.averionCameraDistance+(allowed-this.averionCameraDistance)*(1-Math.exp(-8*dt));
         this.camera.position.copy(focus).addScaledVector(direction.normalize(),this.averionCameraDistance);
       }
       this.averion.updateLOD(this.camera);
-      this.worldLightRig.traverse(o=>{if(o instanceof T.DirectionalLight){o.position.copy(this.actor.position).add(new T.Vector3(-25,45,20));o.target.position.copy(this.actor.position);o.target.updateMatrixWorld();}});
+      this.worldLightRig.traverse(o=>{if(o instanceof T.DirectionalLight){o.position.set(this.actor.position.x-25,this.actor.position.y+45,this.actor.position.z+20);o.target.position.copy(this.actor.position);o.target.updateMatrixWorld();}});
     }
     if(this.isPlains&&this.plains){
-      this.setPlainsCharacterShadows(true);
+      // Imported equipment can complete after the body ready promise. Catch those
+      // additions at 1 Hz instead of traversing the full character every frame.
+      if (time >= this.plainsShadowCheckAt) {
+        this.setPlainsCharacterShadows(true);
+        this.plainsShadowCheckAt = time + 1000;
+      }
       this.camera.position.y=Math.max(this.camera.position.y,this.groundHeight(this.camera.position.x,this.camera.position.z)+1.2);
+      if(this.cameraMode==='follow') {
+        const focus=this.cameraFocusScratch.copy(this.actor.position);focus.y+=1.65;
+        this.camera.position.copy(this.plains.constrainCamera(focus,this.camera.position,dt));
+      }
+      this.camera.updateMatrixWorld();
       this.plains.update(this.camera,this.hero,time/1000);
       this.worldLightRig.traverse(o=>{if(o instanceof T.DirectionalLight){o.position.set(this.actor.position.x+PLAINS_DAYLIGHT.sun[0]*80,this.actor.position.y+PLAINS_DAYLIGHT.sun[1]*80,this.actor.position.z+PLAINS_DAYLIGHT.sun[2]*80);o.target.position.copy(this.actor.position);o.target.updateMatrixWorld();}});
     }
@@ -3872,18 +4794,29 @@ export class Game {
     updateCharacterBillboards(this.aura, this.camera);
     this.updateFloating(dt);
     this.renderer.render(this.scene, this.camera);
+    if (
+      this.isMineInterior &&
+      time - this.interiorMinimapLastDrawAt >= 100
+    ) {
+      this.interiorMinimapLastDrawAt = time;
+      this.drawMap();
+    }
     this.emitTimer += dt;
     const moved = Math.hypot(this.hero.x - this.lastEmitX, this.hero.z - this.lastEmitZ) > 0.25;
     if (this.emitTimer > 0.5 && (moved || this.emitTimer > 2)) {
       this.emitTimer = 0;
       this.lastEmitX = this.hero.x;
       this.lastEmitZ = this.hero.z;
-      this.drawMap();
+      if (!this.isMineInterior) this.drawMap();
       this.emit();
     }
+    if (!this.paused && !document.hidden)
+      this.renderPerformance.record(time, performance.now() - frameStarted);
+    else this.renderPerformance.suspend();
     this.frame = requestAnimationFrame(this.tick);
   };
   updateCamera(dt: number) {
+    this.camera=this.cameraMode==='follow'?this.followCamera:this.isMineInterior?this.mineFreeCamera:this.freeCamera;
     if (this.cameraMode === 'follow') {
       this.followView = stepFollowCamera(this.followView, dt);
       const view = this.followView;
@@ -3896,7 +4829,8 @@ export class Game {
         this.cameraFocus.z + Math.cos(view.yaw) * horizontal,
       );
       if(this.fieldTerrain&&insideBoundary(this.fieldTerrain,this.camera.position))this.camera.position.y=Math.max(this.camera.position.y,this.groundHeight(this.camera.position.x,this.camera.position.z)+1.2);
-      this.camera.lookAt(this.cameraFocus.x, targetY, this.cameraFocus.z);
+      this.cameraOrbitTarget.set(this.cameraFocus.x,targetY,this.cameraFocus.z);
+      this.camera.lookAt(this.cameraOrbitTarget);
       this.impactShakeRemaining = Math.max(0, this.impactShakeRemaining - dt);
       const shake = followImpactShake(this.impactShakeRemaining);
       this.camera.rotateX(shake.x);
@@ -3909,7 +4843,7 @@ export class Game {
     // Reduce follow lag in the portrait so movement cannot leave the face off-center.
     const x = T.MathUtils.lerp(this.cameraFocus.x, this.actor.position.x, view.framing),
       z = T.MathUtils.lerp(this.cameraFocus.z, this.actor.position.z, view.framing);
-    const targetY = this.actor.position.y + view.targetHeight;
+    const targetY = (this.isSunken?this.groundHeight(x,z):this.actor.position.y) + view.targetHeight;
     const finalPitch = T.MathUtils.clamp(this.pitch + view.pitchOffset, 0.08, 1.38);
     const horizontalDistance = Math.cos(finalPitch) * view.distance;
     const verticalDistance = Math.sin(finalPitch) * view.distance;
@@ -3919,20 +4853,87 @@ export class Game {
       z + Math.cos(view.state.yaw) * horizontalDistance,
     );
     if(this.fieldTerrain&&insideBoundary(this.fieldTerrain,this.camera.position))this.camera.position.y=Math.max(this.camera.position.y,this.groundHeight(this.camera.position.x,this.camera.position.z)+1.2);
-    this.camera.lookAt(x, targetY, z);
+    this.cameraOrbitTarget.set(x,targetY,z);
+    this.camera.lookAt(this.cameraOrbitTarget);
     this.updateCameraProjection();
   }
+  disposeEnemyVisual(e:Enemy) {
+    this.clearSerpentAttack(e);
+    (e.group.children[0]?.userData.serpentVisual as SerpentVisual|undefined)?.dispose();
+    e.group.removeFromParent();
+    e.group.traverse(o=>{if(o instanceof T.Mesh){o.geometry.dispose();for(const m of Array.isArray(o.material)?o.material:[o.material])m.dispose();}});
+  }
+  clearSerpentAttack(e:Enemy) {
+    if(e.serpentTell){e.serpentTell.removeFromParent();e.serpentTell.geometry.dispose();(e.serpentTell.material as T.Material).dispose();e.serpentTell=undefined;}
+    e.serpentStrike=undefined;
+  }
+  updateSerpentCombat(e:Enemy,dt:number,safe:boolean,dist:number,movementFactor:number) {
+    const body=e.group.children[0] as T.Mesh, visual=body.userData.serpentVisual as SerpentVisual|undefined;
+    const detail=this.groundDistance(e.group.position,this.actor.position)+(this.graphicsQuality==='office'?45:0);
+    if(e.stun>0||e.root>0){this.clearSerpentAttack(e);e.windup=0;visual?.update(dt,'idle',undefined,detail);return;}
+    const s=e.serpentStrike;
+    if(s){
+      s.elapsed+=dt;e.windup=Math.max(0,s.attack.windup-s.elapsed);
+      visual?.update(dt,s.attack.id,s.elapsed,detail);
+      if(e.serpentTell)(e.serpentTell.material as T.MeshBasicMaterial).opacity=.12+.15*Math.pow(Math.sin(s.elapsed*9),2);
+      if(!s.hit&&s.elapsed>=s.attack.windup){
+        s.hit=true;
+        if(e.serpentTell)e.serpentTell.visible=false;
+        const shape=body.userData.combatShape;
+        if(!safe&&serpentStrikeContains(s,this.actor.position,shape.halfLength+shape.radius)&&this.sunken?.navigation.clear(e.group.position,this.actor.position,.3))this.hurtHero(e.attack*s.attack.damage,String(e.id));
+        const impact=new T.Vector3(s.targetX,this.groundHeight(s.targetX,s.targetZ),s.targetZ);
+        this.ring(s.attack.shape==='target'?impact:e.group.position,s.attack.color,s.attack.shape==='target'?s.attack.width:s.attack.reach,.55);
+        if(s.attack.skill){
+          this.effect(impact,s.attack.color,16);
+          if(s.attack.shape==='line'){
+            const reach=shape.halfLength+shape.radius;
+            const origin=new T.Vector3(s.x-Math.sin(s.yaw)*reach,e.group.position.y+body.userData.labelHeight*.45,s.z-Math.cos(s.yaw)*reach);
+            const end=origin.clone().add(new T.Vector3(-Math.sin(s.yaw)*s.attack.reach,0,-Math.cos(s.yaw)*s.attack.reach));
+            const line=new T.Line(new T.BufferGeometry().setFromPoints([origin,end]),new T.LineBasicMaterial({color:s.attack.color,transparent:true}));this.scene.add(line);this.beams.push({line,life:.55,total:.55});
+          }
+        }
+      }
+      if(s.elapsed>=s.attack.windup+s.attack.recovery){this.clearSerpentAttack(e);e.cooldown=.15;e.windup=0;}
+      return;
+    }
+    const atHome=this.groundDistance(e.group.position,e.home), aggro=e.boss?48:14;
+    if(!safe&&dist<aggro&&atHome<(e.boss?60:24)){
+      e.group.rotation.y=Math.atan2(e.group.position.x-this.actor.position.x,e.group.position.z-this.actor.position.z);
+      const attacks=e.boss?BOSS_ATTACKS:GUARDIAN_ATTACKS,attack=attacks[(e.serpentAttackIndex??0)%attacks.length];
+      const startRange=attack.skill?attack.reach:Math.max(e.attackRange,attack.shape==='target'?12:0);
+      if(this.enemyRange(e)>startRange){this.followTerrain(e,this.actor.position,e.movementSpeed*movementFactor,dt);visual?.update(dt,'swim',undefined,detail);}
+      else if(e.cooldown<=0&&this.sunken?.navigation.clear(e.group.position,this.actor.position,.3)){
+        e.serpentAttackIndex=(e.serpentAttackIndex??0)+1;
+        const p=e.group.position,shape=body.userData.combatShape,bodyReach=shape.halfLength+shape.radius;
+        e.serpentStrike={attack,elapsed:0,hit:false,x:p.x,z:p.z,yaw:e.group.rotation.y,targetX:this.actor.position.x,targetZ:this.actor.position.z};e.windup=attack.windup;
+        const radius=attack.shape==='target'?attack.width:attack.reach;
+        let geo:T.BufferGeometry;
+        if(attack.shape==='line'||attack.shape==='bite'){
+          const reach=attack.reach+bodyReach;geo=new T.PlaneGeometry(attack.shape==='bite'?attack.width*2:attack.width,reach);geo.rotateX(-Math.PI/2);geo.translate(0,0,-reach/2);
+        }else{geo=new T.CircleGeometry(radius,64);geo.rotateX(-Math.PI/2);}
+        const tell=new T.Mesh(geo,new T.MeshBasicMaterial({color:attack.color,transparent:true,opacity:.22,side:T.DoubleSide,depthWrite:false}));
+        const target=attack.shape==='target';tell.position.set(target?this.actor.position.x:p.x,this.groundHeight(target?this.actor.position.x:p.x,target?this.actor.position.z:p.z)+.14,target?this.actor.position.z:p.z);tell.rotation.y=e.group.rotation.y;
+        this.scene.add(tell);e.serpentTell=tell;
+        if(e.boss)this.float(p,attack.label,attack.skill?'crit':'damage');
+        visual?.update(dt,attack.id,0,detail);
+      }else visual?.update(dt,'idle',undefined,detail);
+    }else{
+      if(atHome>1){this.followTerrain(e,e.home,Math.max(1.6,e.movementSpeed)*movementFactor,dt);e.group.rotation.y=Math.atan2(e.group.position.x-e.home.x,e.group.position.z-e.home.z);visual?.update(dt,'swim',undefined,detail);}
+      else visual?.update(dt,'idle',undefined,detail);
+    }
+  }
   updateEnemy(e: Enemy, dt: number) {
-    if(this.isPlains&&e.hp>0){
+    if((this.isPlains||this.isFrostfire||this.isWilds||this.isSunken||this.isIronveil||this.isMineInterior)&&e.hp>0){
       const nearby=this.groundDistance(e.group.position,this.actor.position)<(e.boss?160:110);
-      e.group.visible=nearby;
+      e.group.visible=nearby && (!this.isMineInterior || mineLineOfSight(e.group.position,this.hero));
       // Only sleep healthy, idle actors at home. Death timers, damage-over-time,
       // control effects and returning combatants still use the existing update.
       if(!nearby&&e.hp===e.max&&this.groundDistance(e.group.position,e.home)<1&&
-        e.windup<=0&&e.flash<=0&&e.poison<=0&&e.stun<=0&&e.slow<=0&&e.root<=0&&e.defenseDown<=0&&
+        e.windup<=0&&!e.serpentStrike&&e.flash<=0&&e.poison<=0&&e.stun<=0&&e.slow<=0&&e.root<=0&&e.defenseDown<=0&&
         !Object.keys(e.statusEffects??{}).length&&!Object.keys(e.sourceOwnedStatuses??{}).length&&!this.assasinPoison.hasPending(e)&&!this.assasinCombat.hasPending(e))return;
     }
     if (e.hp <= 0) {
+      if(isSeaSerpent(e.definition?.id))this.clearSerpentAttack(e);
       this.assasinPoison.clearTarget(e);
       this.assasinCombat.clearTarget(e);
       if(this.currentTarget?.instanceId===e.group.uuid)this.clearCurrentTarget();
@@ -3956,13 +4957,20 @@ export class Game {
       }
       return;
     }
-    const v = this.actor.position.clone().sub(e.group.position).setY(0),
-      dist = v.length(),
-      safe = this.hero.inCity || isFieldSafe(this.hero.currentField,this.hero.x,this.hero.z);
+    // Aquatic bodies are long capsules: face the target before evaluating their
+    // reach, then use the same range for starting and resolving an attack.
+    const aquatic = !!e.group.children[0]?.userData.combatShape;
+    if (aquatic && !e.serpentStrike && e.windup <= 0 && e.stun <= 0 && e.root <= 0)
+      e.group.rotation.y = Math.atan2(e.group.position.x-this.actor.position.x, e.group.position.z-this.actor.position.z);
+    const dx = this.actor.position.x - e.group.position.x,
+      dz = this.actor.position.z - e.group.position.z,
+      dist = this.enemyRange(e),
+      safe = this.hero.inCity || (this.isMineInterior ? mineSafe(this.hero) || !mineLineOfSight(e.group.position,this.hero) : isFieldSafe(this.hero.currentField,this.hero.x,this.hero.z));
     e.cooldown -= dt;
     e.flash = Math.max(0, e.flash - dt);
     const body = e.group.children[0] as T.Mesh;
     const material = body.material as T.MeshStandardMaterial;
+    if(body.userData.swimTime)body.userData.swimTime.value=this.elapsed+e.id*.17;
     material.emissiveIntensity = e.flash > 0 ? 1.7 : 0.12;
     clearExpiredStun(e, this.combatTime);
     clearExpiredSourceStatuses(e, this.combatTime);
@@ -3991,6 +4999,7 @@ export class Game {
     if (e.hp <= 0) return;
     const poisonSlow = this.assasinPoison.getStrongestTargetPoisonSlow(e, this.poisonTime) / 100;
     const movementFactor = 1 - Math.max(e.slow > 0 ? e.slowPotency ?? .58 : 0, poisonSlow);
+    if(isSeaSerpent(e.definition?.id)){this.updateSerpentCombat(e,dt,safe,dist,movementFactor);return;}
     if (e.stun > 0 || e.root > 0) {
       (e.ring.material as T.MeshBasicMaterial).opacity = 0.28;
       return;
@@ -4019,17 +5028,22 @@ export class Game {
       dist < (e.boss ? 15 : e.definition?.variant === 'elite' ? 12 : 10) &&
       this.groundDistance(e.group.position,e.home) < 20
     ) {
-      if (dist > (e.boss ? 3.7 : 1.4)) {
-        v.normalize();
-        if(this.fieldTerrain)this.followTerrain(e,this.actor.position,e.movementSpeed*movementFactor,dt);
-        else {const step=dt*e.movementSpeed*movementFactor;this.moveEnemy(e,v.x*step,v.z*step);}
-        e.group.rotation.y = Math.atan2(-v.x, -v.z);
+      // The land approach threshold can be unreachable for a large aquatic
+      // collision hull even while the player is already within attack range.
+      if (aquatic ? dist >= e.attackRange : dist > (e.boss ? 3.7 : 1.4)) {
+        if(this.fieldTerrain||this.isSunken)this.followTerrain(e,this.actor.position,e.movementSpeed*movementFactor,dt);
+        else {const step=dt*e.movementSpeed*movementFactor;this.moveEnemy(e,dx/dist*step,dz/dist*step);}
+        e.group.rotation.y = Math.atan2(-dx, -dz);
       } else if (e.cooldown <= 0) e.windup = e.boss ? 1.1 : e.definition?.attackSpeed ?? 0.65;
     } else if (this.groundDistance(e.group.position,e.home) > 1) {
-      if(this.fieldTerrain)this.followTerrain(e,e.home,1.6*(1-poisonSlow),dt);
-      else {const homeDirection=e.home.clone().sub(e.group.position).setY(0).normalize();this.moveEnemy(e,homeDirection.x*dt*1.6*(1-poisonSlow),homeDirection.z*dt*1.6*(1-poisonSlow));}
+      if(this.fieldTerrain||this.isSunken)this.followTerrain(e,e.home,1.6*(1-poisonSlow),dt);
+      else {
+        const homeX=e.home.x-e.group.position.x,homeZ=e.home.z-e.group.position.z;
+        const homeDistance=Math.hypot(homeX,homeZ),step=dt*1.6*(1-poisonSlow);
+        if(homeDistance>0)this.moveEnemy(e,homeX/homeDistance*step,homeZ/homeDistance*step);
+      }
     }
-    body.position.y =
+    body.position.y = (this.isSunken ? .65 : 0) +
       Math.abs(Math.sin(this.elapsed * (e.boss ? 2 : 4) + e.id)) *
         (e.boss ? 0.12 : 0.22);
   }
@@ -4066,7 +5080,7 @@ export class Game {
         new T.MeshBasicMaterial({ color }),
         this.scene,
         position.x,
-        this.groundHeight(position.x,position.z)+1,
+        this.groundHeight(position.x,position.z)+1+(this.isSunken?.65:0),
         position.z,
       );
       const life = 0.35 + this.rand() * 0.4;
@@ -4108,9 +5122,19 @@ export class Game {
     this.labelHost.appendChild(element);
     this.floating.push({
       element,
-      position: position.clone().add(new T.Vector3(0, 2, 0)),
+      position: position.clone().add(new T.Vector3(0, 2+(this.isSunken?.65:0), 0)),
       life: 1.4,
     });
+  }
+  private normalizeResource(value: number, maximum: number) {
+    const current = Number.isFinite(value) ? value : maximum;
+    return Math.max(0, Math.min(1, current / Math.max(1, maximum)));
+  }
+  private updatePlayerBar(resource: keyof typeof this.playerBarValues, value: number) {
+    if (Math.abs(this.playerBarValues[resource] - value) < 0.001) return;
+    const fill = this.playerStatusLabel?.querySelector(`.${resource} i`) as HTMLElement | null;
+    if (fill) fill.style.width = `${value * 100}%`;
+    this.playerBarValues[resource] = value;
   }
   updateFloating(dt: number) {
     this.updatePlayerSpeech();
@@ -4121,10 +5145,9 @@ export class Game {
     if (playerLabel) {
       playerLabel.style.display = playerVisible ? 'block' : 'none';
       if (playerVisible) {
-        const p = this.actor.position
-          .clone()
-          .add(new T.Vector3(0, 0.12, 0))
-          .project(this.camera);
+        const p = this.frameProjection.copy(this.actor.position);
+        p.y+=0.12;
+        this.frameProjection.project(this.camera);
         const validProjection = Number.isFinite(p.x) && Number.isFinite(p.y) && p.z > -1;
         playerLabel.style.display = validProjection ? 'block' : 'none';
         if (validProjection) {
@@ -4132,43 +5155,46 @@ export class Game {
           playerLabel.style.top = `${(-p.y * 0.5 + 0.5) * 100}%`;
           const stats = derivedStats(this.hero);
           const staminaMax = Math.max(1, Number(stats.staminaMax) || 100);
-          const normalized = (value: number, maximum: number) => {
-            const current = Number.isFinite(value) ? value : maximum;
-            return Math.max(0, Math.min(1, current / Math.max(1, maximum)));
-          };
-          const values: Record<string, number> = {
-            hp: normalized(this.hero.hp, maxHP(this.hero)),
-            mana: normalized(this.hero.mana, stats.maxMana),
-            ...(isResourceEnabled(this.hero, 'stamina') ? { stamina: normalized(this.stamina, staminaMax) } : {}),
-          };
-          for (const [resource, value] of Object.entries(values)) {
-            if (Math.abs(this.playerBarValues[resource as keyof typeof this.playerBarValues] - value) < 0.001) continue;
-            const fill = playerLabel.querySelector(`.${resource} i`) as HTMLElement | null;
-            if (fill) fill.style.width = `${value * 100}%`;
-            this.playerBarValues[resource as keyof typeof this.playerBarValues] = value;
-          }
+          this.updatePlayerBar('hp', this.normalizeResource(this.hero.hp, maxHP(this.hero)));
+          this.updatePlayerBar('mana', this.normalizeResource(this.hero.mana, stats.maxMana));
+          if (isResourceEnabled(this.hero, 'stamina'))
+            this.updatePlayerBar('stamina', this.normalizeResource(this.stamina, staminaMax));
         }
       }
     }
     for(const portal of this.portalLabels) {
       const visible=this.started&&Math.hypot(this.hero.x-portal.x,this.hero.z-portal.z)<16;
       portal.element.style.display=visible?'block':'none';
-      if(visible){const p=new T.Vector3(portal.x,this.groundHeight(portal.x,portal.z)+(portal.labelHeight??5),portal.z).project(this.camera);portal.element.style.left=`${(p.x*.5+.5)*100}%`;portal.element.style.top=`${(-p.y*.5+.5)*100}%`;}
+      if(visible){
+        const p=this.frameProjection.set(portal.x,this.groundHeight(portal.x,portal.z)+(portal.labelHeight??5),portal.z).project(this.camera);
+        // Keep the nearby entrance action reachable when the tall doorway is above the camera.
+        const x=p.x*.5+.5,y=-p.y*.5+.5;
+        portal.element.style.left=`${((this.isIronveil||this.isMineInterior)?T.MathUtils.clamp(x,.3,.7):x)*100}%`;
+        portal.element.style.top=`${((this.isIronveil||this.isMineInterior)?T.MathUtils.clamp(y,.28,.72):y)*100}%`;
+      }
     }
     for(const {npc,element,nameElement} of this.npcLabels) {
-      const position=new T.Vector3(npc.x,this.groundHeight(npc.x,npc.z)+2.8,npc.z);
+      const position=this.frameProjection.set(npc.x,this.groundHeight(npc.x,npc.z)+2.8,npc.z);
       const visible=this.started&&position.distanceTo(this.actor.position)<18;
-      const trackedStatus=npc.services.includes('quest')?this.hero.activeQuests.map(id=>regionQuestStatus(this.hero,id)).find(status=>status==='ready_to_complete'||status==='active'):undefined;
+      let trackedStatus: ReturnType<typeof regionQuestStatus> | undefined;
+      if(npc.services.includes('quest')) {
+        for(const id of this.hero.activeQuests) {
+          const status=regionQuestStatus(this.hero,id);
+          if(status==='ready_to_complete'||status==='active'){trackedStatus=status;break;}
+        }
+      }
       const name=`${trackedStatus==='ready_to_complete'?'?':trackedStatus==='active'?'!':'◆'} ${npc.name}`;
       if(nameElement.textContent!==name) nameElement.textContent=name;
       element.style.display=visible?'block':'none';
-      if(visible){const p=position.project(this.camera);element.style.display=p.z>=-1&&p.z<=1?'block':'none';element.style.left=`${(p.x*.5+.5)*100}%`;element.style.top=`${(-p.y*.5+.5)*100}%`;}
+      if(visible){position.project(this.camera);element.style.display=position.z>=-1&&position.z<=1?'block':'none';element.style.left=`${(position.x*.5+.5)*100}%`;element.style.top=`${(-position.y*.5+.5)*100}%`;}
     }
     for (const loot of this.groundLoot) {
       const visible = this.started && loot.group.position.distanceTo(this.actor.position) < 18;
       loot.label.style.display = visible ? 'block' : 'none';
       if (visible) {
-        const p = loot.group.position.clone().add(new T.Vector3(0, 1.05, 0)).project(this.camera);
+        const p = this.frameProjection.copy(loot.group.position);
+        p.y+=1.05;
+        this.frameProjection.project(this.camera);
         loot.label.style.left = `${(p.x * 0.5 + 0.5) * 100}%`;
         loot.label.style.top = `${(-p.y * 0.5 + 0.5) * 100}%`;
       }
@@ -4177,7 +5203,9 @@ export class Game {
       const visible = this.started && gold.group.position.distanceTo(this.actor.position) < 18;
       gold.label.style.display = visible ? 'block' : 'none';
       if (visible) {
-        const p = gold.group.position.clone().add(new T.Vector3(0, 1.05, 0)).project(this.camera);
+        const p = this.frameProjection.copy(gold.group.position);
+        p.y+=1.05;
+        this.frameProjection.project(this.camera);
         gold.label.style.left = `${(p.x * 0.5 + 0.5) * 100}%`;
         gold.label.style.top = `${(-p.y * 0.5 + 0.5) * 100}%`;
       }
@@ -4187,14 +5215,13 @@ export class Game {
       if (!label) continue;
       const visible =
         this.started &&
-        e.hp > 0 &&
+        e.hp > 0 && e.group.visible &&
         e.group.position.distanceTo(this.actor.position) < 15;
       label.style.display = visible ? 'block' : 'none';
       if (visible) {
-        const p = e.group.position
-          .clone()
-          .add(new T.Vector3(0, e.group.children[0].userData.labelHeight ?? 1.8, 0))
-          .project(this.camera);
+        const p = this.frameProjection.copy(e.group.position);
+        p.y += (e.group.children[0].userData.labelHeight ?? 1.8)+(this.isSunken?e.group.children[0].position.y:0);
+        p.project(this.camera);
         label.style.left = `${(p.x * 0.5 + 0.5) * 100}%`;
         label.style.top = `${(-p.y * 0.5 + 0.5) * 100}%`;
         const fill = label.querySelector('i');
@@ -4205,7 +5232,7 @@ export class Game {
       const f = this.floating[i];
       f.life -= dt;
       f.position.y += dt;
-      const p = f.position.clone().project(this.camera);
+      const p = this.frameProjection.copy(f.position).project(this.camera);
       f.element.style.left = `${(p.x * 0.5 + 0.5) * 100}%`;
       f.element.style.top = `${(-p.y * 0.5 + 0.5) * 100}%`;
       f.element.style.opacity = String(Math.min(1, f.life * 2));
@@ -4223,11 +5250,32 @@ export class Game {
     ctx.fillStyle = '#173d34';
     ctx.fillRect(0, 0, size, size);
 
+    if (this.isMineInterior && this.mineInterior) {
+      this.interiorMinimapLastDrawAt = performance.now();
+      const enemies = this.enemies
+        .filter((enemy) => enemy.hp > 0 && enemy.group.visible)
+        .map((enemy) => ({
+          x: enemy.group.position.x,
+          z: enemy.group.position.z,
+        }));
+      this.mineInterior.drawMinimap(
+        ctx,
+        size,
+        { x: this.hero.x, z: this.hero.z },
+        enemies,
+        { x: this.direction.x, z: this.direction.z },
+      );
+      return;
+    }
 
-    const mapScale = this.isPlains ? 1000/106 : this.isAverion ? 250/106 : this.fieldTerrain?.id === 'verdant-plains' ? 2 : regionScale(this.hero.inCity);
+    const mapScale = this.isPlains||this.isFrostfire||this.isWilds||this.isSunken||this.isIronveil ? 1000/106 : this.isAverion ? 250/106 : this.fieldTerrain?.id === 'verdant-plains' ? 2 : regionScale(this.hero.inCity);
     const p = (v: number) => size / 2 + (v * size) / (106 * mapScale);
 
-    if(this.isPlains&&this.plains) {this.plains.drawMinimap(ctx,size);}
+    if(this.isIronveil&&this.ironveil){this.ironveil.drawMinimap(ctx,size);}
+    else if(this.isWilds&&this.wilds) {this.wilds.drawMinimap(ctx,size);}
+    else if(this.isSunken&&this.sunken) {this.sunken.drawMinimap(ctx,size);}
+    else if(this.isFrostfire&&this.frostfire) {this.frostfire.drawMinimap(ctx,size);}
+    else if(this.isPlains&&this.plains) {this.plains.drawMinimap(ctx,size);}
     else if(this.isAverion&&this.averion) {
       ctx.fillStyle='#c6b997';ctx.beginPath();ctx.arc(p(0),p(-1.565295),size*104/250,0,Math.PI*2);ctx.fill();
       ctx.fillStyle='#697d8b';
@@ -4266,8 +5314,11 @@ export class Game {
       ctx.fillStyle = '#93ddb8';
       ctx.fillRect(p(0) - 3, p(0) - 3, 6, 6);
     }
-    for (const e of this.enemies) {
+    // Enemy dots would reveal the trench's corridors and boss arena.
+    const minimapEnemies = this.isSunken && this.hero.currentField === ABYSAL_TRENCH_ID ? [] : this.enemies;
+    for (const e of minimapEnemies) {
       if (e.hp <= 0) continue;
+      if(this.isMineInterior&&!e.group.visible)continue;
       if(this.isPlains&&!e.boss&&this.groundDistance(e.group.position,this.actor.position)>110)continue;
       const enemyPoint = { x: p(e.group.position.x), y: p(e.group.position.z) };
       ctx.fillStyle = e.boss ? '#dda4e9' : '#d6a871';
@@ -4275,7 +5326,7 @@ export class Game {
       ctx.arc(
         enemyPoint.x,
         enemyPoint.y,
-        e.boss ? 4 : 2,
+        this.isSunken ? (e.boss ? 2.5 : e.definition?.variant==='elite' ? 1.3 : 0.8) : e.boss ? 4 : 2,
         0,
         Math.PI * 2,
       );
@@ -4342,7 +5393,7 @@ export class Game {
     this.cameraFocus.copy(this.actor.position);
     this.updateCamera(0);
     this.camera.updateMatrixWorld();
-    this.message(mode === 'follow'
+    this.message(this.isWilds||this.isSunken||this.isIronveil ? (mode==='follow'?'Follow Camera - right-drag to orbit, scroll to zoom.':'Free Camera - free movement enabled.') : mode === 'follow'
       ? 'Follow Camera · klik kanan-drag untuk orbit, scroll untuk zoom.'
       : 'Free Camera · kontrol kamera bebas aktif.');
     this.emit();
@@ -4367,17 +5418,63 @@ export class Game {
     this.camera.bottom = -size;
     this.camera.updateProjectionMatrix();
   }
+  setWildsQuality(quality:WildsQuality,persist=true) {
+    this.setGraphicsQuality(quality,persist);
+  }
   setPlainsQuality(quality:PlainsQuality,persist=true) {
-    if(!this.plains||!Object.hasOwn(PLAINS_QUALITY,quality))return;
-    this.plains.setQuality(quality);const profile=PLAINS_QUALITY[quality];
-    this.renderer.setPixelRatio(Math.min(devicePixelRatio,profile.dpr));this.renderer.shadowMap.enabled=profile.shadow>0;
-    this.worldLightRig.traverse(o=>{if(o instanceof T.DirectionalLight){o.shadow.map?.dispose();o.shadow.map=null;o.shadow.mapSize.setScalar(profile.shadow||1024);Object.assign(o.shadow.camera,{left:-42,right:42,top:42,bottom:-42,near:.1,far:140});o.shadow.camera.updateProjectionMatrix();}});
-    if(persist)try{localStorage.setItem(PLAINS_QUALITY_KEY,quality);}catch{}
+    this.setGraphicsQuality(quality,persist);
+  }
+  setGraphicsQuality(quality:GraphicsQuality,persist=true) {
+    if(!Object.hasOwn(PLAINS_QUALITY,quality))return;
+    this.graphicsQuality=quality;
+    this.characterModel?.setQuality(quality);
+    this.plains?.setQuality(quality);
+    this.wilds?.setQuality(quality);
+    this.sunken?.setQuality(quality);
+    this.ironveil?.setQuality(quality);
+    this.mineInterior?.setQuality(quality);
+    const profile=PLAINS_QUALITY[quality];
+    this.renderer.shadowMap.enabled=!this.isMineInterior&&profile.shadow>0;
+    this.worldLightRig.traverse(o=>{if(o instanceof T.DirectionalLight){
+      const size=profile.shadow||1024;
+      if(o.shadow.mapSize.x!==size){o.shadow.map?.dispose();o.shadow.map=null;o.shadow.mapSize.setScalar(size);}
+      if(this.isWilds||this.isPlains||this.isIronveil)Object.assign(o.shadow.camera,{left:-42,right:42,top:42,bottom:-42,near:.1,far:this.isWilds?180:140});
+      o.shadow.camera.updateProjectionMatrix();
+    }});
+    this.renderPerformance.reset();
+    if(persist)saveGraphicsQuality(quality);
     this.resize();
+  }
+  getCurrentFPS() {
+    if (!this.started || this.disposed || this.transitioning || this.regionLoadError || this.paused || document.hidden) return null;
+    return this.renderPerformance.currentFPS();
+  }
+  getPerformanceDiagnostics() {
+    const gl = this.renderer.getContext();
+    const debug = gl.getExtension('WEBGL_debug_renderer_info');
+    const buffer = this.renderer.getDrawingBufferSize(new T.Vector2());
+    return {
+      capturedAt: new Date().toISOString(), map: this.activeLocationId,
+      quality: this.graphicsQuality, ...this.renderPerformance.snapshot(),
+      qualityLabel: PLAINS_QUALITY_LABELS[this.graphicsQuality],
+      viewport: { width: this.host.clientWidth, height: this.host.clientHeight, deviceDpr: devicePixelRatio },
+      drawingBuffer: { width: buffer.x, height: buffer.y },
+      gpu: debug ? gl.getParameter(debug.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER),
+      browser: navigator.userAgent, logicalCores: navigator.hardwareConcurrency,
+      render: { ...this.renderer.info.render }, memory: { ...this.renderer.info.memory },
+      plains: this.plains?.metrics(),
+      frostfire: this.frostfire?.metrics(),
+      whisperingWilds: this.wilds?.metrics(),
+      sunkenRuins: this.sunken?.metrics(),
+      ironveilMines: this.ironveil?.metrics(),
+      ironveilInterior: this.mineInterior?.metrics(),
+    };
   }
   resize = () => {
     const w = this.host.clientWidth, h = this.host.clientHeight;
     if (!w || !h) return;
+    const ratio = plainsPixelRatio(this.graphicsQuality, w, h, devicePixelRatio);
+    if (Math.abs(this.renderer.getPixelRatio() - ratio) > .0001) this.renderer.setPixelRatio(ratio);
     this.updateCameraProjection();
     // CSS owns the canvas footprint; Three.js updates only the drawing buffer.
     // This keeps the WebGL surface at the full overlay size without affecting HUD layout.
@@ -4429,23 +5526,53 @@ export class Game {
   };
   visibility = () => {
     this.bgm.setHidden(document.hidden);
-    if (document.hidden) this.blur();
+    if (document.hidden) {
+      this.blur();
+      cancelAnimationFrame(this.frame);
+      this.frame = 0;
+      this.lastTime = 0;
+      this.renderPerformance.suspend();
+    } else if (this.started && !this.disposed && !this.frame) {
+      this.lastTime = 0;
+      this.frame = requestAnimationFrame(this.tick);
+    }
   };
   pagehide = () => {
     this.bgm.setHidden(true);
     this.save();
   };
   contextmenu = (e: Event) => e.preventDefault();
+  interactIronveilEntrance() {
+    if(!this.started||!this.isIronveil||!this.ironveil||this.dead||this.paused||this.transitioning||this.regionLoadError)return;
+    const entrance=IRONVEIL_TRANSITION;
+    if(Math.hypot(this.hero.x-entrance.anchor.x,this.hero.z-entrance.anchor.z)>entrance.reach){
+      this.message('Move closer to the mine entrance.');return;
+    }
+    this.hero.interiorId=MINE_ID;Object.assign(this.hero,MINE_ENTRY);this.hero.lastSafePosition={...MINE_ENTRY};
+    this.actor.rotation.y=0;this.followView.yaw=0;this.direction.set(0,0,-1);
+    this.loadActiveLocation(MINE_ID,'Ironveil Mines \u00b7 Interior','Entered Ironveil Mines.');
+  }
+  interactIronveilExit() {
+    if(!this.started||!this.isMineInterior||!this.mineInterior||this.dead||this.paused||this.transitioning||this.regionLoadError)return;
+    if(Math.hypot(this.hero.x-MINE_EXIT.x,this.hero.z-MINE_EXIT.z)>4.5){this.message('Move closer to the mine exit.');return;}
+    delete this.hero.interiorId;Object.assign(this.hero,IRONVEIL_TRANSITION.returnAnchor);this.hero.lastSafePosition={...IRONVEIL_TRANSITION.returnAnchor};
+    this.loadActiveLocation(IRONVEIL_ID,'Ironveil Mines','Returned to the mine exterior.');
+  }
   tryNpcInteraction() {
     this.raycaster.setFromCamera(this.pointer,this.camera);
     for(const hit of this.raycaster.intersectObjects(this.regionDecor.children,true)) {
       let object:T.Object3D|null=hit.object;
       while(object&&object!==this.regionDecor) {
+        if(this.isMineInterior&&object.userData.ironveilInteriorExit){this.interactIronveilExit();return true;}
+        if(this.isIronveil&&object.userData.ironveilEntrance){
+          this.interactIronveilEntrance();
+          return true;
+        }
         if(typeof object.userData.npcId==='string') {this.openNpc(object.userData.npcId);return true;}
-        if((this.fieldTerrain||this.isPlains)&&typeof object.userData.destination==='string') {
+        if((this.fieldTerrain||this.isPlains||this.isWilds||this.isSunken)&&typeof object.userData.destination==='string') {
           const destinationPosition=this.isPlains?new T.Vector3(PLAINS_EXIT.x,0,PLAINS_EXIT.z):object.getWorldPosition(new T.Vector3());
-          if(Math.hypot(this.hero.x-destinationPosition.x,this.hero.z-destinationPosition.z)>4.5)this.message('Dekati gerbang untuk berpindah wilayah.');
-          else this.changeRegion(object.userData.destination);
+          if(Math.hypot(this.hero.x-destinationPosition.x,this.hero.z-destinationPosition.z)>4.5)this.message(this.isWilds?'Move closer to the portal to travel.':'Dekati gerbang untuk berpindah wilayah.');
+          else this.changeRegion(object.userData.destination,object.userData.portalId);
           return true;
         }
         object=object.parent;
@@ -4579,6 +5706,11 @@ export class Game {
     this.targetPresentation?.dispose();this.targetPresentation=undefined;this.targetEntities?.clear();
     this.disposed = true;
     if(this.plains){this.plains.dispose();this.plains=null;}
+    if(this.frostfire){this.frostfire.dispose();this.frostfire=null;}
+    if(this.ironveil){this.ironveil.dispose();this.ironveil=null;}
+    if(this.mineInterior){this.mineInterior.dispose();this.mineInterior=null;}
+    if(this.wilds){this.wilds.dispose();this.wilds=null;}
+    if(this.sunken){this.sunken.dispose();this.sunken=null;}
     setArunikaShrineMaterials(this.shrine,null);
     this.arunikaMaterials?.dispose();this.arunikaMaterials=null;
     this.treeColliders=[];

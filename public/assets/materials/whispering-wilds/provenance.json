@@ -1,0 +1,61 @@
+{
+  "sourceUnmodified": true,
+  "records": [
+    {
+      "role": "forest",
+      "source": "D:\\Lumenfall\\Master_ Material_ Lumenfall\\Terrain\\forrest_ground_03_2k.blend.zip",
+      "sourceEntry": "textures/forrest_ground_03_diff_2k.jpg",
+      "sourceSha256": "fd91c61351ebf5c74969941accd5a558e9be83a98ae64df3d426624561369cc3",
+      "file": "/assets/materials/whispering-wilds/forest.webp",
+      "sha256": "4a48ab7f6b1d6c4c45827103cddfe1e12588463eaf4a29ae840a3cdf06851a9e",
+      "bytes": 490796,
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "colorSpace": "srgb"
+    },
+    {
+      "role": "path",
+      "source": "D:\\Lumenfall\\Master_ Material_ Lumenfall\\Terrain\\grass_path_2_2k.blend.zip",
+      "sourceEntry": "textures/grass_path_2_diff_2k.jpg",
+      "sourceSha256": "da55075f6288f09cf8cb2e255fccfe54e8e1a5974ac8e7969187a7cf35955586",
+      "file": "/assets/materials/whispering-wilds/path.webp",
+      "sha256": "5731d4da602bf0875ce734cb9186877b18949fe03280154dd9e03bff96d5b667",
+      "bytes": 452422,
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "colorSpace": "srgb"
+    },
+    {
+      "role": "rock",
+      "source": "D:\\Lumenfall\\Master_ Material_ Lumenfall\\Rock_Cliff\\mossy_rock_2k.blend.zip",
+      "sourceEntry": "textures/mossy_rock_diff_2k.jpg",
+      "sourceSha256": "a5f6acd50c75361dab7c40cabaaa0883751b5ea9477bc87d149b760d8a3b59a7",
+      "file": "/assets/materials/whispering-wilds/rock.webp",
+      "sha256": "2a2b408751d225fe3ce34bdc06f6f6f5c8acfc13c8f297918f2bc76b1a35e55c",
+      "bytes": 417006,
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "colorSpace": "srgb"
+    }
+  ],
+  "reused": [
+    "/assets/maps/verdant-plains-v2/sky-clouds.webp",
+    "/assets/maps/verdant-plains-v2/sky-provenance.json",
+    "/assets/maps/verdant-plains-v2/wood.webp",
+    "/assets/maps/verdant-plains-v2/water-normal.webp",
+    "/assets/maps/verdant-plains-v2/oak/oak.gltf",
+    "/assets/maps/verdant-plains-v2/oak/oak.bin",
+    "/assets/maps/verdant-plains-v2/oak/foliage.png",
+    "/assets/maps/verdant-plains-v2/oak/bark.jpg",
+    "/assets/maps/verdant-plains-v2/oak/impostor.png",
+    "/assets/maps/stylized-tree/meshes/willow-sm_stylized_tree_willow_02.glb",
+    "/assets/maps/stylized-tree/meshes/pine-sm_stylized_tree_pine_03.glb"
+  ],
+  "note": "Oak LOD meshes and atlas plus stylized willow/pine models are reused by reference. Original procedural cliff strata, roots and sanctuary geometry. UDS cloud atlas reused with native Three.js night shader. Lush-tree derivative evaluated in ignored output/asset-candidates and not shipped. Original source files unchanged."
+}

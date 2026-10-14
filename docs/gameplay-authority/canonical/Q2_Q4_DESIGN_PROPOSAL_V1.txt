@@ -1,0 +1,323 @@
+LUMENFALL — Q2 + Q4 ATTACK RANGE & EXPLICIT DAMAGE CONTRACT
+Rancangan Garda untuk OWNER REVIEW — 8 Oktober 2026
+STATUS: PROPOSED / NOT OWNER-APPROVED / NOT IMPLEMENTED
+
+0. TUJUAN DAN BATAS
+Menentukan kontrak umum attack range, sampling, formula dan budget multi-hit.
+Dokumen ini bukan tabel balance seluruh class atau prompt implementasi gameplay.
+Persetujuan melanjutkan penyusunan bukan ACC terhadap pilihan baru di bawah.
+Tidak ada source, registry aktif, personal save, test atau balance yang diubah.
+
+1. ACUAN YANG TETAP
+- Lv100; SP199 pada Lv80; base STR/VIT/DEX/INT15 dan +2 poin per level.
+- R7 Sorcerer/Blacksmith/Specialist final sebagai metadata inactive, sudah selesai.
+- Physical/Magic terpisah; Magic tanpa physical avoidance/Crit.
+- Physical Crit dasar150%; marked Assasin Poison/Eclipse adalah pengecualian DoT.
+- Total budget multi-hit tidak dikalikan hit count.
+- Bonus equipment/runes/Unique/set/passive/buff dihitung sekali.
+- UI/CP membaca resolver, bukan menghitung ulang bonus.
+- Mana, cooldown, rank cap, SP, prerequisite, hit count, AoE dan class mechanics
+  tidak berubah oleh penyusunan kontrak ini.
+
+2. TEMUAN SOURCE TERARAH — BUKAN OTORITAS ANGKA FINAL
+lib/game/rules.ts: DerivedStats masih scalar physicalAttack/magicAttack.
+PATK memakai bonus STR dengan weapon-style stat factor serta gear.attack.
+MATK masih memakai full INT, kompatibilitas Staff/Wand raw attack, dan gear.magicAttack.
+gear.physicalDamage saat ini juga muncul dalam formula attack. Kontrak baru perlu
+memisahkan physical damage modifier dari attack modifier; bukan rename field saja.
+lib/game/skill-action.ts: BaseRoll*skillPowerFactor ditambah attack coefficient dan
+stat scaling, kemudian damageMultiplier termasuk rankPowerFactor.
+lib/game/dual-wield.ts: sharedPhysicalCore dan raw MAIN/OFF sudah terpisah;
+execution modes dan instance validation dapat dipertahankan/reuse.
+lib/game/assasin-poison.ts dan assasin-combat.ts: snapshot aplikasi/refresh,
+normal Poison mendukung PER_TICK/APPLICATION_SNAPSHOT; Eclipse roll per tick.
+lib/game/combat-power.ts: scalar stats dan midpoint skill roll dipakai sebagai
+estimasi; ini bukan bukti bahwa range expectation baru sudah terintegrasi.
+Current CP legacy poison estimator bukan otomatis evaluator normal Poison/Eclipse
+source-owned. Rating mechanic tersebut perlu evaluator khusus saat scope CP dibuka.
+
+Sumber keputusan:
+- S1 prompt migrasi pemilik di attachments/98a6d2a4-e3e5-4dfa-bcc3-c060b5e4ece3.
+- docs/gameplay-migration-decision-register.json, termasuk addendum R7.
+- BRANCH_EVIDENCE.json di folder handoff: arah explicit coefficient/range.
+- reconciliation-run-01/DECISION_ADDENDUM.json dan OWNER_CONFIRMATION.txt.
+Snapshot percakapan terpilih bukan seluruh branch history; angka provisional
+tetap provisional meskipun dokumen assistant menyebut arah architecture LOCK.
+
+3. REKOMENDASI UTAMA
+A. Damage langsung: satu attack sampling parameter per valid skill execution.
+B. Base Damage skill acak dan hidden x4/x6/x8/x10 tidak menjadi formula V2 baru.
+C. Coefficient per rank adalah coefficient akhir; tidak ada rank multiplier kedua.
+D. Explicit scaling memakai Bonus Stat, bukan mengulang base15.
+E. Shared character core dan raw weapon layers disimpan terpisah.
+F. MAIN/OFF/BOTH dipilih per hit; kedua senjata tidak dijumlah untuk semua serangan.
+G. CP tidak mengonsumsi RNG gameplay dan tidak menampilkan Current Damage Preview.
+
+Semua A–G adalah paket rancangan untuk review. Detail yang belum dikunci tidak
+boleh diaktifkan hanya karena tercantum dalam dokumen ini.
+
+4. STRUKTUR NILAI ATTACK
+Satu central character resolver menghasilkan:
+- Effective STR/VIT/DEX/INT dan BonusStat=max(0,EffectiveStat-15).
+- Shared physical core dan shared magic core.
+- Raw attack range MAIN dan OFF, dipisah per damage type yang benar-benar tersedia.
+- Resolved attack modifiers, hand efficiency, dan provenance setiap layer.
+- MinPATK/MaxPATK, MinMATK/MaxMATK dalam konteks standar yang dijelaskan di bagian12.
+
+Sumber stat item hanya agregasi sekali per instance yang benar-benar equipped.
+Raw attack weapon tidak boleh sekaligus ada dalam shared core dan hand layer.
+Ini harus pemisahan source sejak resolver, bukan subtraction scalar sesudah dibulatkan.
+Weapon support seperti Tome/Orb bukan otomatis OFF weapon fisik. Bonus normalnya
+tetap mengikuti existing item rules dan hanya raw attack yang eksplisit dapat
+menjadi layer combat. Jangan mengubah raw PATK Staff menjadi MATK secara implicit.
+
+5. COMPOSITION RANGE YANG DIUSULKAN
+P_core = BasePhysical(L,job) + BonusSTR*kSTR + GlobalFlatPATK
+M_core = BaseMagic(L,job) + BonusINT*kINT + GlobalFlatMATK
+
+BasePhysical/BaseMagic adalah input dari tabel/config yang disetujui, bukan
+JobFactor damage global. Tidak membuat HP/Mana/job growth atau level curve baru.
+GlobalFlat tidak memasukkan raw weapon yang sudah dimiliki hand layer.
+Fixed Options/Rune/Unique/set/passive/buff mengikuti scope sumbernya; tidak
+dipaksa semuanya global jika efek memang hand-local atau conditional.
+
+Nilai kSTR=1 dan kINT=2 muncul dalam Master Audit branch yang memiliki adjacent
+owner agreement. Saya merekomendasikan menggunakannya pada rancangan ini,
+namun pertentangan dengan formula runtime tidak diselesaikan dengan aktivasi diam-diam.
+P0/M0 dan item range yang masih prototype harus dicatat terpisah; dokumen ini
+tidak mengesahkan tabel level/job/item atau spread baru.
+
+Untuk tipe T pada hand h:
+W_T,h = ItemBaseRange_T,h * EnhancementCoreMultiplier * WeaponContribution_T,h
+W_T,OFF tambahan * OffHandEfficiency hanya bila OFF adalah weapon dual-wield.
+OFF weapon tunggal, jika equipment rules mengizinkan, tidak otomatis menerima
+penalty dual-wield. Support off-hand tidak terkena penalty raw physical dual weapon.
+Enhancement hanya item core attack; tidak mengalikan primary/fixed/rune/Unique/set.
+Weapon reference .9/.9/1/1.4 dan off-hand .5/mastery curve tetap parameter existing
+PROVISIONAL; bukan ACC angka baru atau mapping untuk seluruh weapon family.
+
+Attack_T(h) = ApplyAttackModifiers_T(Core_T + WeaponRange_T(h))
+WeaponRange(MAIN)=W_MAIN; OFF=W_OFF; BOTH=W_MAIN+W_OFF.
+Global primary source masuk Core sekali; BOTH tidak menambahkan Core kedua.
+ApplyAttackModifiers adalah resolved group berprovenance sesuai modifier rules;
+contract ini tidak otomatis menjumlah/mengalikan semua percent antar-layer.
+Semua multiplier range wajib finite dan menjaga Min<=Max; schema rejects invalid data.
+
+Physical Damage dan Final Damage masuk action/impact pipeline, bukan PATK range.
+MATK percent dan Magic Damage juga berbeda. Critical Rate tidak menjadi attack multiplier.
+Penetration dan defense bukan pengurang angka attack yang ditampilkan.
+
+6. SAMPLING DIRECT DAMAGE — PILIHAN BARU YANG PERLU ACC
+Rekomendasi: uniform kontinu pada range, tanpa pembulatan saat sampling.
+Pada valid cast commitment, gunakan RNG game yang injectable dan tercatat:
+u=random() dengan 0<=u<1.
+sample([min,max],u)=min+(max-min)*u.
+
+Gunakan u yang sama untuk semua raw MAIN/OFF layers yang dipakai dalam satu
+execution. Ini pilihan shared roll: MAIN/OFF saling berkorelasi dalam satu cast,
+bukan dua random independent. Penyimpanan u membuat sequence stabil/reproducible.
+Untuk semua range degenerat, tidak perlu RNG attack; sampling langsung nilai tetap.
+Untuk cast ditolak sebelum commitment: tidak ada resource/cooldown/attack roll.
+Basic attack memakai satu execution per event, bukan satu roll untuk seluruh combo.
+Thrown sequence mengikuti cast, tidak mengonsumsi/unequip weapon instance.
+
+Direct attacker range/scaling/attack modifier disnapshot pada commitment untuk
+execution tersebut. Gear/stat berubah setelah itu tidak mengganti budget sequence.
+Kondisi target, defense, status ownership, posisi dan hit validity tetap dibaca
+pada impact sesuai skill policy; ini bukan izin freeze semua combat state saat cast.
+Transient Flow/Tempo/Ambush dan counter policies tidak otomatis diwariskan/diredesign.
+Impact-specific canonical effects tetap dapat memodifikasi hit menurut data skill.
+
+Alternatif yang tidak saya pilih: attack reroll per hit atau independent hand rolls.
+Itu sah jika OWNER menghendaki, tetapi variance dan expectation contract harus
+ditulis ulang. Jangan diam-diam memakai kebijakan berbeda di fixture/world/CP.
+
+7. FORMULA SKILL LANGSUNG
+S_rank = BonusSTR*sSTR_rank + BonusDEX*sDEX_rank
+       + BonusVIT*sVIT_rank + BonusINT*sINT_rank
+Stat coefficient yang tidak dideklarasikan adalah0, bukan fallback class scaling.
+C_rank berasal dari tabel coefficient FINAL skill tersebut, bukan otomatis job factor.
+
+Single-hit physical:
+Raw = AttackPhysical(selectedHand,u)*C_rank + S_rank
+Single-hit magic:
+Raw = AttackMagic(configuredSource,u)*C_rank + S_rank
+
+Rekomendasi normal V2: tidak ada random BaseDamage skill tersendiri dan tidak
+ada generic flat damage term. Utility/heal/buff tidak dipaksa ke formula damage.
+Jika OWNER kelak menyetujui skill tertentu dengan explicit flat damage, itu harus
+data skill yang terlihat dan versioned, tanpa hidden tier multiplier.
+Jangan mengubah weaponless skill atau hybrid damage menjadi physical/magic baru
+tanpa source contract. Mixed components, bila ada, harus explicit dan terpisah,
+bukan otomatis menganggap skill 100% physical sekaligus 100% magic.
+
+Rank menaikkan C_rank/scaling/effect berdasarkan datanya sendiri.
+Tidak ada rankPowerFactor default 1+0.05*(rank-1) di atas rank table final.
+Mastery/equipment damage yang memang canonical tetap modifier terpisah dengan
+scope/provenance jelas; bukan alasan mempertahankan hidden Skill Power multiplier.
+
+8. TOTAL BUDGET DAN DUAL SEQUENCE
+Untuk sequence dengan bobot w_i>=0 dan sum(w_i)=1:
+c_i=C_rank*w_i
+Raw_i=AttackPhysical(hand_i,u)*c_i + S_rank*w_i
+
+Hand MAIN memakai MAIN, OFF memakai OFF, BOTH memakai MAIN+OFF raw layers.
+DUAL_COMBINED: satu impact BOTH, w=1, satu hit/crit, Core hanya sekali.
+Custom weapon contribution/hit coefficients hanya boleh menggantikan model ini
+jika per-skill policy yang eksplisit telah disetujui; bukan multiplier global tersembunyi.
+sum(c_i)=C_rank; sum(S_rank*w_i)=S_rank.
+Dengan tangan berbeda, jumlah raw hit tidak harus sama dengan C_rank*PATK_MAIN:
+weapon layer memang berbeda; yang dilestarikan adalah coefficient/stat budget.
+
+Hit gagal tidak memindahkan budget ke hit lain. Hit sukses punya HP mutation sendiri.
+Target mati tidak menerima hit berikutnya; sequence/AoE berikutnya mengikuti valid targeting.
+AoE menggunakan roll cast yang sama untuk raw attacker budget, tetapi setiap
+impact memperoleh target list baru jika kontrak skill meminta landing AoE;
+setiap target tetap avoidance/Crit/mitigation sendiri.
+Total budget bukan pembagian damage antar-target kecuali skill eksplisit demikian.
+Mana/cooldown sekali per cast. Tidak mengubah hit count/distribution yang disetujui.
+
+9. IMPACT PIPELINE DAN ROUNDING
+Valid impact → Accuracy/Evasion bila physical direct → Crit bila allowed
+→ approved modifiers/penetration/mitigation → HP mutation/status/death feedback.
+Gunakan satu shared resolver dan existing approved modifier ordering.
+Contract ini tidak menetapkan ulang Block/Guard/DR/barrier ordering; Q6 terpisah.
+Hasil attack sampling/coefficient/scaling disimpan presisi penuh.
+Rekomendasi: round satu kali pada hasil akhir tiap impact setelah mitigation/
+approved defensive pipeline, tepat sebelum commit damage ke barrier/HP.
+Barrier allocation tidak membuat rounding baru/bonus damage ganda.
+Integer world policy akhir dan minimum-damage behavior harus eksplisit; tidak
+menambahkan aturan minimum1 damage secara otomatis.
+Display rounding hanya presentasi, tidak diumpankan kembali ke resolver.
+
+Changing rounding dapat mengubah damage kecil. Ini pilihan baru untuk ACC,
+bukan klaim menjaga byte-identical outcomes V3. Acceptance harus menghitungnya.
+
+10. NORMAL POISON DAN ECLIPSE
+Crit exception yang telah repaired tetap; DoT lain non-Crit, magic non-Crit.
+Normal Poison/Eclipse profile V2 nanti menyimpan tick coefficient per rank,
+BonusDEX coefficient, attack-source policy, potency sampling policy dan Crit policy.
+Tidak menciptakan koefisien Poison/Eclipse pengganti pada checkpoint desain ini.
+
+Proposed normal tick:
+TickRaw = (SnapshotAttackRoll_T*TickCoefficient_rank
+           + SnapshotBonusDEX*DEXCoefficient_rank)*NormalStackMultiplier
+Proposed Eclipse tick:
+TickRaw = (SnapshotAttackRoll_T*TickCoefficient_rank
+           + SnapshotBonusDEX*DEXCoefficient_rank)*EclipseSnapshotMultiplier
+Jika profile memiliki stat tambahan, diperlukan explicit approval per profile.
+Normal profile coefficient adalah PER TICK, bukan full-duration total; jangan
+membagi ulang otomatis ke6 tick. Ultimate coefficient juga jelas PER TICK atau
+TOTAL_DURATION di datanya; konversi menjadi per tick harus eksplisit.
+
+Direct dagger impact dan DoT tetap dua damage channels, dengan coefficient berbeda.
+Snapshot attack RANGE, stats, profile/Crit pada application/refresh boundary
+existing; jangan mengubahnya menjadi cast commitment hanya untuk seragam dengan direct skill.
+PER_TICK: satu u baru per tick dari snapshotted range; bukan membaca gear caster live.
+APPLICATION_SNAPSHOT: satu u pada application/refresh sesuai profile existing,
+digunakan ulang untuk potency ticks; Crit qualifying tetap independent per tick.
+Eclipse mempertahankan sampling per tick dan snapshot application existing.
+Aturan hand/source potency profile harus ditentukan di data, bukan infer dari
+projectile terakhir atau menambahkan MAIN+OFF global.
+
+Tidak mengubah duration/cadence/refresh/stacks/Slow/consumption/coexistence,
+caster-death behavior, Vanish, transient store atau application per-execution cap.
+Potency snapshot duration-only refresh tetap tidak mengganti stats/Crit.
+RNG sequence berubah saat formula/sampler berubah, sehingga old source pins dan
+capture bukan acceptance baru. Jangan rewrite historical evidence.
+
+11. MIGRASI DAN NUMERIC DATA GATE
+Approval kontrak ini tidak otomatis mengesahkan semua coefficient/item values.
+Tidak mengonversi old factor menjadi coefficient berdasarkan satu build sehingga
+"damage sama": itu tidak menjamin sama pada build/level/gear lain.
+Tidak sekadar menghapus x8/x10, BaseRoll dan RankPowerFactor pada V3 aktif.
+
+Data yang dibutuhkan sebelum first live skill migration:
+- BasePhysical/BaseMagic table/config provenance untuk karakter target.
+- Item raw Min/Max untuk weapon target; tanpa membuat spread dari angka scalar.
+- Coefficient/scaling setiap rank skill target dan hand/distribution datanya.
+- Attack percentage/modifier provenance serta potency source/profile bila DoT.
+- Q3 final Adventurer kit/mapping jika memilih Adventurer sebagai first migrated kit.
+
+Adapter old scalar menjadi [value,value] boleh hanya pada jalur LEGACY/fixture
+berlabel jelas; bukan isi seluruh canonical range catalog dan bukan klaim Q4 selesai.
+Item canonical yang belum punya range ditandai missing-range, tidak diberi spread tebakan.
+Missing canonical data menghalangi activation skill tersebut; tidak melumpuhkan
+V3 live yang belum masuk migrasi. Versioned routing dan gate harus terisolasi.
+Runtime/CP/UI semua membaca versi formula yang sama untuk actor yang sama.
+Menggunakan V2 attack range + V3 formula secara tidak sengaja adalah invalid hybrid.
+
+12. CHARACTER UI DAN CP
+Character UI: Physical Attack min–max dan Magic Attack min–max.
+Primary Physical Attack label memakai MAIN jika ada; jika hanya legal OFF, memakai OFF.
+Dual state boleh menampilkan detail Main Hand dan Off Hand ranges. Jangan
+menampilkan sum kedua raw weapons sebagai universal PATK semua attack.
+Magic context memakai source/support yang dikonfigurasi; tidak meminjam selector
+physical dual mode atau menyimpulkan semua basic attack Staff/Bow menjadi magic.
+Basic Staff tetap physical melee, Bow tetap physical ranged sesuai weapon/skill rules.
+Tidak menampilkan Current Damage Preview atau raw estimate skill berdasarkan gear.
+
+CP: gunakan deterministic expected evaluator dengan range/sampling policy yang sama.
+Uniform range memiliki raw mean=(min+max)/2; formula linear memakai mean ini tepat.
+E[finalDamage] umumnya TIDAK identik finalDamage(E[raw]) setelah rounding/threshold/
+conditional effects. Integrasi/discrete evaluator atau deterministic approximation
+harus menyebut metode/tolerance dan batasnya. Jangan mengklaim midpoint semuanya exact.
+Crit/hit chance dihitung secara expected sesuai policy, tanpa RNG gameplay.
+Hand-aware action distribution dan actual legal skill kit tetap digunakan.
+Rarity/enhancement level tidak memberi CP tambahan di luar resolved effect.
+Conditional uptime/DoT evaluator yang belum didukung tetap unsupported, bukan bonus tebakan.
+
+13. CONTOH MEKANIS — BUKAN ANGKA BALANCE ITEM/SKILL
+Fixture: P_core=40; MAIN raw[10,20]; OFF effective raw[4,8]; modifiers identity.
+u=0.5 menghasilkan MAIN=15, OFF=6.
+Attack MAIN=55; OFF=46; BOTH=61. Core tidak menjadi80 pada BOTH.
+Fixture C=2, S=6, weights MAIN/OFF=0.45/0.55:
+Hit1=55*0.90+6*0.45=52.20
+Hit2=46*1.10+6*0.55=53.90
+Total raw=106.10, sum coefficient2, total explicit scaling6.
+Ini sebelum Crit/defense/status. Bukan new Crosscut coefficient atau weapon catalog.
+Jika skill SINGLE_MAIN dan hanya raw OFF naik100, raw skill tidak berubah.
+Jika item OFF juga memberi DEX, perubahan BonusDEX itu legitimate source aggregation
+dan dapat mengubah explicit scaling; tes raw-only harus menjaga stat lain tetap.
+
+14. IMPLEMENTATION CHECKPOINTS YANG DIREKOMENDASIKAN SETELAH ACC
+Checkpoint A — range/data contract dan pure composer/sampler di isolated foundation.
+Gunakan fixture sintetis, jangan otomatis mengubah V3 live/skill numbers/catalog.
+Checkpoint B — satu actor/weapon/skill canonical yang datanya sudah lengkap,
+hubungkan resolver → actual world → feedback, lalu UI/CP sesuai scope checkpoint.
+Untuk Adventurer, B menunggu Q3 final kit dan migration mapping; tidak memakai
+dua nama saja untuk menghidupkan old fajar-step/fajar-strike dengan Stagger.
+Checkpoint C — migrate skill families/class satu per satu memakai tabel disetujui;
+Poison/Eclipse potency migration terpisah dari direct damage dan bukan Crit repair ulang.
+Semua checkpoint memakai baseline actual dirty tree, proportional checks,
+local REPORT.txt dan stop untuk OWNER REVIEW; tidak otomatis commit/push/merge/publish.
+
+15. ACCEPTANCE CONTRACT — DIRENCANAKAN, BELUM DIJALANKAN
+- Range valid/finite, shared core hanya sekali, item instance dedupe.
+- Attack modifiers berbeda dari Physical/Magic/Final Damage.
+- u shared per direct execution, invalid cast tanpa draw/cost, degenerate range tanpa draw.
+- MAIN/OFF/BOTH/thrown benar; OFF raw-only change tidak memengaruhi SINGLE_MAIN.
+- Sum weights/coefficient/stat budgets tepat; evade tidak redistribusi budget.
+- AoE independent hit outcomes/rank selector tidak berubah; impact timing tetap real.
+- Magic no-avoidance/no-Crit; default DoT non-Crit; marked Poison/Eclipse Crit tetap.
+- Snapshot direct vs DoT berbeda boundary secara eksplisit; refresh tidak reset cadence.
+- CP tidak memakai live RNG, expected method terdokumentasi; UI range bukan skill preview.
+- Legacy adapter/actor routing bukan canonical range yang belum lengkap.
+- Tidak ada angka template/skill/stat curve/Block yang dipromosikan tanpa provenance/ACC.
+
+16. LEMBAR OWNER REVIEW — PILIHAN UTAMA DALAM BAHASA GAME
+K1. Satu attack roll untuk seluruh direct skill, termasuk multi-hit, dengan MAIN/OFF
+    mengikuti roll cast yang sama; Crit dan hit/evade tetap per impact.
+K2. Damage V2 dari attack roll*coefficient per rank + Bonus Stat scaling,
+    tanpa random BaseDamage terpisah, hidden tier factor atau second rank multiplier.
+K3. Shared character core sekali; attack range mengikuti hand, bukan universal
+    MAIN+OFF. Bonus Physical/Magic/Final Damage tidak menaikkan attack range.
+K4. Damage presisi penuh, pembulatan final sekali per impact; CP deterministic
+    expected evaluator dan bukan midpoint yang dianggap exact untuk semua nonlinear effects.
+K5. DoT tetap menggunakan application/refresh snapshot dan profile sampling;
+    normal/Eclipse coefficient pengganti harus disetujui terpisah sebelum potency migration.
+
+Jawaban "setuju rancangan kontrak Q2+Q4 V1" mengesahkan architecture/sampling/
+rounding proposal ini, bukan tables numeric/item/skill yang belum tersedia dan
+bukan izin implementasi seluruh migrasi. Revisi boleh menyebut K1–K5 atau section tepat.
+Setelah OWNER review, Garda menyiapkan prompt checkpoint pertama yang terbatas.

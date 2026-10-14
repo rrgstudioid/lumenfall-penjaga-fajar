@@ -67,13 +67,11 @@ body[data-game-dragging] [role='tooltip'] {
 /* Draggable windows start at 1000, not the dialog primitive's old z-50.
    Lift the existing drop destination above the current window stack only
    while binding; confirmations must retain their blocking behavior. */
-body:has(.binding-window):not(:has([role='alertdialog'])) .primary-hotbar-panel {
-  z-index: calc(var(--lumenfall-window-top-z, 1000) + 2);
-}
+/* Lift drop targets only during intentional drag, never over purchase controls. */
 body[data-game-dragging]:not(:has([role='alertdialog'])) .primary-hotbar-panel {
   z-index: calc(var(--lumenfall-window-top-z, 1000) + 2);
 }
-body:has(.binding-window):not(:has([role='alertdialog']))
+body[data-game-dragging]:has(.binding-window):not(:has([role='alertdialog']))
   [data-slot='dialog-overlay'] {
   pointer-events: none;
 }

@@ -26,7 +26,6 @@ function valid(p) {
   if (
     !L.plainsWalkable(p, 2) ||
     L.plainsRoadDistance(p) < R + 4 ||
-    L.plainsRiverDistance(p) < R + 6 ||
     L.plainsCoast(p.x) - p.z < R + 10 ||
     L.plainsSafe(p, R + 20) ||
     Math.hypot(p.x - L.PLAINS_EXIT.x, p.z - L.PLAINS_EXIT.z) < R + 30 ||

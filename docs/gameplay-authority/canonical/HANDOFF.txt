@@ -1,0 +1,140 @@
+LUMENFALL — CANONICAL DECISION HANDOFF
+Disiapkan Garda, 8 Oktober 2026. Dokumen ini adalah ringkasan bukti, bukan ACC desain baru.
+
+TUJUAN
+Memberi Codex bukti pembahasan yang belum tersedia dalam audit R1–R7, membedakan
+keputusan eksplisit, arah desain, angka provisional, dan detail migrasi yang kosong.
+Ini bukan implementasi gameplay, pengesahan semua isi branch, atau audit ulang global.
+
+SUMBER
+S1. Prompt migrasi pemilik:
+C:\Users\USER\.codex\attachments\98a6d2a4-e3e5-4dfa-bcc3-c060b5e4ece3\Pasted text.txt
+Tidak memiliki tanggal internal. Register mencatat keputusan terkait 5 Oktober.
+S2. docs/gameplay-migration-decision-register.json.
+S3. Audit terarah sebelum perbaikan Crit:
+C:\Users\USER\.codex\attachments\dc5b7d3f-b055-4d66-a8b4-3cc7c313f7b1\Pasted text.txt
+S4. outputs/gameplay-migration/assasin-poison-crit-runtime-fix/REPORT.txt
+S5. BRANCH_EVIDENCE.json di folder ini: lima rekaman pesan terpilih, dengan ID,
+judul chat, waktu UTC, dan teks asli. Bukan transkrip seluruh branch.
+S6. docs/LUMENFALL_Job_Class_and_Skill_Catalog.md: katalog legacy, bukan authority angka baru.
+
+PRIORITAS BUKTI
+Instruksi/ACC pemilik yang eksplisit dan relevan lebih kuat daripada usulan assistant.
+Label LOCK dalam jawaban assistant saja tidak cukup mengesahkan desain.
+Pesan pemilik "Ok aku setuju, lanjutkan" memang tercatat setelah MASTER DECISION
+AUDIT V1. Jangan menghilangkan bukti persetujuan ini; tetapi jika prompt pemilik lain
+bertentangan dan kronologi final tidak dapat dibuktikan, laporkan konflik sempitnya.
+Tanggal register tidak otomatis membuktikan urutan semua percakapan pada hari itu.
+Laporan runtime/test membuktikan implementasi dalam cakupannya, bukan finalitas desain.
+
+A. KEPUTUSAN EKSPLISIT YANG SUDAH TERSEDIA
+1. Cap karakter Lv100. Jangan menurunkan progression ke Lv80 otomatis.
+2. SP: Lv2–20 +1; Lv21–40 +2; Lv41–60 +3; Lv61–80 +4.
+   Total Lv20=19, Lv40=59, Lv60=119, Lv80=199; Lv81–100 tanpa SP tambahan.
+3. Base STR/VIT/DEX/INT masing-masing 15; +2 poin alokasi per level.
+   Lv81–100 tetap memperoleh poin stat.
+4. Job Change refund SpentSP; TotalEarnedSP tidak berkurang.
+5. Magic tidak memakai Physical Accuracy/Evasion atau Crit.
+6. Physical Crit Damage dasar 150%.
+7. DoT default non-Crit. Hanya Poison DoT skill Assasin yang ditandai boleh Crit;
+   normal Venom dan Venom Eclipse termasuk pengecualian sesuai kontrak saat ini.
+8. Multi-hit memakai total budget, bukan budget penuh dikalikan jumlah hit.
+9. VIT tidak otomatis memberi Tenacity; DEX tidak memberi PATK; STR tidak memberi
+   Crit; INT tidak memberi CDR/MCR otomatis. CastStat=BonusDEX*2+BonusINT.
+10. Bonus dihitung sekali; UI dan Combat Power membaca hasil resolver.
+11. Enhancement target +15, tanpa permanent destruction. Angka +13–15 yang belum
+    ditentukan tidak boleh dikarang. Kegagalan pada prompt S1 mempertahankan level.
+12. Armor set empat bagian dengan ambang 2/3/4. Tujuh rarity Common–Ancient.
+13. C=Character; K=Job/Skill; J=Journal. Save versioned dan per karakter.
+14. Advanced tetap locked; jangan mengarang kit job yang belum disetujui.
+
+B. CHECKPOINT CRIT SUDAH DITUTUP DALAM CAKUPAN TERARAH
+Menurut S4: 13 world-path +24 contract +19 Vanish =56/56 pass, offline.
+Ini bukan run baru dari Garda, browser parity, full regression, atau seluruh Phase 14.
+Source produksi yang berubah dalam checkpoint itu hanya lib/game/world.ts.
+world.ts sesudah checkpoint:
+7714b453361a70dcf974f252e813d6ec4650a3011cda05cdd77b84b507ad8e99
+Verifikasi hash aktual sebelum menggunakan hasil tersebut sebagai baseline sekarang.
+Jangan membuka ulang desain Crit yang sudah terkunci. Evidence/pin W1B/W1C lama
+tetap historis; jangan menggantinya atau mengklaim berlaku otomatis pada source baru.
+
+C. HANDOFF R1–R7
+R1 — LEVEL
+Yang final: technical/runtime Lv100 dan SP199 pada Lv80, lalu tanpa SP tambahan.
+Yang ditemukan di workflow: istilah "V2 playtest cap Lv80".
+Yang belum tegas: reference pengujian atau hard-cap mode playtest tersendiri.
+Tindakan: pertahankan Lv100; jangan mengubahnya. Pisahkan satu pertanyaan operasional
+jika hard-cap mode memang dibutuhkan, bukan meminta ulang seluruh progression.
+
+R2 — FORMULA DAMAGE
+Bukti baru: MASTER DECISION AUDIT V1, kemudian workflow 8 Oktober, menyatakan
+damage eksplisit PATK/MATK roll * Skill Coefficient + optional explicit stat scaling;
+hidden x4/x6/x8/x10 dihapus, tanpa second hidden rank multiplier di atas coefficient.
+Jadi arah redesign SUDAH DITEMUKAN; jangan tulis "tidak pernah dibahas".
+Namun runtime BaseRoll*skillPowerFactor adalah komponen flat tersendiri, bukan
+otomatis hidden JobFactor yang mengalikan seluruh PATK. Bedakan diagnosis keduanya.
+Belum lengkap: coefficient/rank pengganti per skill, penanganan BaseRoll terpisah,
+kontrak normal Poison/Eclipse dan hubungan pengecualian Crit dengan formula baru.
+Jangan sekadar menghapus faktor atau mengonversi coefficient dengan angka tebakan.
+
+R3 — ADVENTURER
+Bukti branch terpilih menyebut dua nama: Langkah Fajar dan Tebasan Fajar.
+Katalog legacy memiliki ID fajar-step dan fajar-strike. Ini kandidat ID yang dapat
+ditelusuri, bukan izin mengaktifkan mekanik Stagger legacy atau menghapus skill V3.
+Belum lengkap: spesifikasi numerik final kedua skill serta mapping Quick Slash,
+Power Strike, Minor Heal, ranks/SP/refund/hotbar/save dan batas clean-break developer.
+Jangan menyamakan dua nama yang sudah ditemukan dengan kontrak migrasi lengkap.
+
+R4 — ATTACK RANGE
+Bukti workflow: weapon MinPATK/MaxPATK dan MinMATK/MaxMATK; combat PATK/MATK roll.
+Bukti audit branch: weapon range adalah range roll, bukan reroll stat permanen copy item.
+Belum lengkap: komposisi range karakter dari base/stat/item, sampling per cast/hit,
+rounding, hand-aware budget dan nilai UI/CP. Exact item range tetap tuning terbuka.
+Jangan memakai Min=Max alias dan mengklaim target range sudah selesai.
+
+R5 — EQUIPMENT
+Workflow menyebut 11 slot: Main Hand, Off Hand, Helmet, Suit, Bottom, Boots,
+Necklace, Ring 1/2, Earring 1/2. Audit branch menyebut Gloves bukan final slot,
+Legs dapat dimigrasikan menjadi Bottom; support off-hand bukan dual weapon.
+Jadi struktur target ditemukan dan empat armor pieces bukan seluruh loadout.
+Belum lengkap: migrasi equipped Gloves, perlakuan slot Pet, inventory overflow,
+mapping data lama dan save tanpa kehilangan item/instance/runes/enhancement.
+Jangan menghapus Pet/items atau unequip paksa tanpa kebijakan migrasi yang jelas.
+
+R6 — BLOCK
+Workflow secara eksplisit meminta BlockChance dan BlockEfficiency terpisah.
+Jadi kebutuhan arsitektur ditemukan; jangan menyatakan efficiency belum pernah diminta.
+Runtime chance dan fixed reduction 30% terpisah secara matematika, tetapi belum
+berarti BlockEfficiency sudah menjadi resolved stat mandiri sesuai target.
+Belum lengkap: baseline efficiency, units/cap, sources, stacking Guard/DR/barrier,
+packet ordering final. Kandidat Block cap sekitar60% bukan nilai final.
+
+R7 — IDENTITAS JOB
+Audit branch memuat Mage → Summoner/Sorcerer; Smith → Blacksmith/Specialist,
+dengan pesan persetujuan pemilik setelahnya. Prompt S1 menyatakan jalur Mage kedua
+dan dua Smith belum final. Karena S1 tidak bertanggal internal, precedence belum pasti.
+Laporkan sebagai KONFLIK SUMBER yang spesifik, bukan nama baru atau kit yang hilang.
+Jika identitas nanti dikonfirmasi final, scope awal metadata/lineage saja, bukan
+unlock job, numeric kit, Advanced, Heat atau Deployment Capacity.
+Pertahankan spelling ID proyek assasin; jangan rename massal.
+
+D. ANGKA/KEPUTUSAN YANG TIDAK BOLEH DIPROMOSIKAN OTOMATIS
+- SP150/278 bukan progression canonical sekarang.
+- Off-hand .5 baseline dan mastery sampai kisaran .6 pada S1/register PROVISIONAL;
+  audit branch lain menyebut kisaran .75/.80. Jangan gabungkan atau memilih sendiri.
+- Weapon reference .9/.9/1/1.4, armor multipliers, VCT /4, cap CDR40, cap Crit80,
+  enhancement weapon47%/armor35%, PvP70% dan coefficient skill masih provisional.
+- Enhancement downgrade dalam audit branch bertentangan dengan preserve-level S1;
+  jangan menghidupkan downgrade berdasarkan audit assistant.
+- Nama/class identity tidak berarti seluruh proposed kit/gauge/numerics disetujui.
+- Klaim Phase -1 PASS yang memakai SP150 telah ditarik; tidak boleh dipakai sebagai gate.
+
+E. HASIL YANG HARUS DIHASILKAN CODEX PADA CHECKPOINT HANDOFF
+1. Rekonsiliasi TERBATAS R1–R7 menggunakan sumber baru ini, bukan audit global ulang.
+2. Addendum keputusan dengan provenance dan klasifikasi per field, tanpa overwrite
+   bukti atau mengubah existing LOCK menjadi nilai lain diam-diam.
+3. Satu paket pertanyaan tersisa, hanya field konkret yang belum ada/berkonflik.
+4. Rencana satu checkpoint implementasi berikutnya beserta dependency dan file scope.
+5. Laporan lokal REPORT.txt agar Garda dapat membaca hasil tanpa mengandalkan chat.
+Gameplay/registry aktif belum diubah oleh handoff ini. Eksekusi prompt perlu dikirim
+pemilik ke Codex. Tidak ada commit/push/merge/deploy atau test baru oleh Garda.

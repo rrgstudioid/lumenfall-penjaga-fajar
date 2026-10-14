@@ -7,7 +7,7 @@ import { oakLod } from './verdant-oak-lod';
 
 const PATH = '/assets/maps/verdant-plains-v2/oak/';
 const COST = [23560, 10120, 3280, 2];
-const BUDGET = { light: 80000, balanced: 180000, high: 300000 };
+const BUDGET = { office: 40000, light: 80000, balanced: 180000, high: 300000 };
 
 /** A map-owned forest: one active representation per placement, shared wind/materials. */
 export async function createPlainsOaks(heightmap: T.Texture) {
@@ -305,14 +305,14 @@ export async function createPlainsOaks(heightmap: T.Texture) {
             (camera instanceof T.PerspectiveCamera
               ? Math.max(1, distance)
               : 1));
-        lods[i] = oakLod(pixels, lods[i], quality === 'light');
+        lods[i] = oakLod(pixels, lods[i], quality === 'light' || quality === 'office');
         effective[i] = lods[i];
         visible.push({ i, distance });
       }
       visible.sort((a, b) => a.distance - b.distance);
       visibleCount = visible.length;
       const shadowIds =
-        quality === 'light'
+        quality === 'light' || quality === 'office'
           ? []
           : PLAINS_OAKS.map((p, i) => ({
               i,

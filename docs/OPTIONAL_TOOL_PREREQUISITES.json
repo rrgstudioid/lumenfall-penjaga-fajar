@@ -1,0 +1,2415 @@
+{
+  "utc": "2026-10-14T06:50:16.252Z",
+  "scope": "Optional tool prerequisites only, not runtime dependencies or test PASS",
+  "tools": [
+    {
+      "path": "tests/browser/terrain-prototype-scene.ts",
+      "sha256": "02575b2df1a82b8f6fa7d0470f51ade21643580abc673165c281e2e6ffeff3aa",
+      "status": "OPTIONAL_NOT_EXECUTED_PREREQUISITES_NOT_PACKAGED",
+      "requirements": [
+        {
+          "kind": "static-import",
+          "line": 5,
+          "exactSpecifier": "../../dev-prototypes/lumenfall-terrain-prototype-01/manifest.json?url",
+          "disposition": "Requires original dev-prototypes/lumenfall-terrain-prototype-01/manifest.json and its height/roadMask binary files; retain optional source only; no prototype copied"
+        }
+      ],
+      "sourceExcerpts": [
+        "import * as T from 'three';",
+        "import { ImportedMapGround } from '../../lib/game/imported-map';",
+        "import { ArunikaMaterials,addArunikaSurfaceUv,ARUNIKA_NOISE_GLSL } from '../../lib/game/arunika-surface-materials';",
+        "import { loadArunikaGrassTextures,enhanceArunikaGrassTufts } from '../../lib/game/arunika-grass-material';",
+        "import manifestUrl from '../../dev-prototypes/lumenfall-terrain-prototype-01/manifest.json?url';",
+        "type PrototypeManifest = {",
+        " spawn: { x:number; y:number; z:number }; roads:Array<{width:number;points:number[][]}>;",
+        " id: string; height: string; roadMask: string; nx: number; nz: number;",
+        " bounds: { minX: number; minZ: number };",
+        " bridge: { width: number; depth: number; x: number; y: number; z: number };",
+        " zones: Array<{ id: number; name: string; landmark:string; x: number; y: number; z: number }>;",
+        "};",
+        "",
+        "export async function buildPrototype(){",
+        " const base=new URL('.',new URL(manifestUrl,location.origin));",
+        " const m=await (await fetch(manifestUrl)).json() as PrototypeManifest;",
+        " const heights=new Float32Array(await(await fetch(new URL(m.height,base))).arrayBuffer());",
+        " const roads=new Float32Array(await(await fetch(new URL(m.roadMask,base))).arrayBuffer());",
+        " const h=(i:number,j:number)=>heights[Math.max(0,Math.min(m.nz-1,j))*m.nx+Math.max(0,Math.min(m.nx-1,i))];",
+        " const riverX=(z:number)=>30+10*Math.sin((z+10)/60),waterY=(z:number)=>9+(170-z)*.025;",
+        " const group=new T.Group(),collision=new T.Group(),palette=new ArunikaMaterials();group.name=m.id;",
+        " const [grass]=await loadArunikaGrassTextures();"
+      ]
+    },
+    {
+      "path": "scripts/bake-whispering-impostors.mjs",
+      "sha256": "20ad5bb908ae8dc9e62963c11af310dc4c700538a23172effacc94c47f48a1ee",
+      "status": "OPTIONAL_NOT_EXECUTED_PREREQUISITES_NOT_PACKAGED",
+      "requirements": [
+        {
+          "kind": "static-import",
+          "line": 2,
+          "exactSpecifier": "../output/whispering-tools/node_modules/playwright/index.mjs",
+          "disposition": "Requires separately provisioned external authoring tools at exact path; installed versions not approved runtime dependencies"
+        }
+      ],
+      "sourceExcerpts": [
+        "// Bake small distant-tree derivatives from already-imported runtime meshes.",
+        "import { chromium } from '../output/whispering-tools/node_modules/playwright/index.mjs';",
+        "import { mkdir, writeFile } from 'node:fs/promises';",
+        "const browser = await chromium.launch({ channel: 'chrome', headless: true });",
+        "try {",
+        "  const page = await browser.newPage();",
+        "  await page.goto('http://127.0.0.1:3004/whispering-wilds.html');",
+        "  await page.getByRole('button', { name: 'CONTINUE', exact: true }).click();",
+        "  await page.waitForFunction(() => window.__wildsQA?.game?.started, null, {",
+        "    timeout: 120000,",
+        "  });",
+        "  const images = await page.evaluate(() => {",
+        "    const { three: T, game } = window.__wildsQA,",
+        "      output = [];",
+        "    const renderer = new T.WebGLRenderer({",
+        "      alpha: true,",
+        "      antialias: true,",
+        "      preserveDrawingBuffer: true,",
+        "    });",
+        "    renderer.setSize(512, 512);",
+        "    renderer.setClearColor(0, 0);",
+        "    for (const family of ['oak', 'willow', 'pine']) {"
+      ]
+    },
+    {
+      "path": "scripts/pack-modular-male-character.mjs",
+      "sha256": "e736b2bc44c81e0e51200bb4452fdaf2ab4e1815a2eee1f89e7d5c100a242c0b",
+      "status": "OPTIONAL_NOT_EXECUTED_PREREQUISITES_NOT_PACKAGED",
+      "requirements": [
+        {
+          "kind": "static-import",
+          "line": 2,
+          "exactSpecifier": "../work/character-tools/node_modules/@gltf-transform/core/dist/index.js",
+          "disposition": "Requires separately provisioned external authoring tools at exact path; installed versions not approved runtime dependencies"
+        },
+        {
+          "kind": "static-import",
+          "line": 6,
+          "exactSpecifier": "../work/character-tools/node_modules/@gltf-transform/extensions/dist/index.js",
+          "disposition": "Requires separately provisioned external authoring tools at exact path; installed versions not approved runtime dependencies"
+        },
+        {
+          "kind": "static-import",
+          "line": 12,
+          "exactSpecifier": "../work/character-tools/node_modules/@gltf-transform/functions/dist/index.js",
+          "disposition": "Requires separately provisioned external authoring tools at exact path; installed versions not approved runtime dependencies"
+        },
+        {
+          "kind": "static-import",
+          "line": 16,
+          "exactSpecifier": "../work/character-tools/node_modules/meshoptimizer/index.js",
+          "disposition": "Requires separately provisioned external authoring tools at exact path; installed versions not approved runtime dependencies"
+        }
+      ],
+      "sourceExcerpts": [
+        "// Authoring-only dependencies live in work/character-tools; no runtime dependency added.",
+        "import { NodeIO } from '../work/character-tools/node_modules/@gltf-transform/core/dist/index.js';",
+        "import {",
+        "  ALL_EXTENSIONS,",
+        "  EXTMeshoptCompression,",
+        "} from '../work/character-tools/node_modules/@gltf-transform/extensions/dist/index.js';",
+        "import {",
+        "  reorder,",
+        "  quantize,",
+        "  prune,",
+        "  dedup,",
+        "} from '../work/character-tools/node_modules/@gltf-transform/functions/dist/index.js';",
+        "import {",
+        "  MeshoptEncoder,",
+        "  MeshoptDecoder,",
+        "} from '../work/character-tools/node_modules/meshoptimizer/index.js';",
+        "import { createRequire } from 'node:module';",
+        "const require = createRequire(",
+        "  new URL('../work/character-tools/package.json', import.meta.url),",
+        ");",
+        "const sharp = require('sharp');",
+        "import {"
+      ]
+    },
+    {
+      "path": "scripts/review-whispering-mushrooms.mjs",
+      "sha256": "32c88908901852caa98eb08d3dbf7c14850948dac8184665012f858f6c93a112",
+      "status": "OPTIONAL_NOT_EXECUTED_PREREQUISITES_NOT_PACKAGED",
+      "requirements": [
+        {
+          "kind": "static-import",
+          "line": 1,
+          "exactSpecifier": "../output/whispering-tools/node_modules/playwright/index.mjs",
+          "disposition": "Requires separately provisioned external authoring tools at exact path; installed versions not approved runtime dependencies"
+        }
+      ],
+      "sourceExcerpts": [
+        "import { chromium } from '../output/whispering-tools/node_modules/playwright/index.mjs';",
+        "import { mkdir, writeFile } from 'node:fs/promises';",
+        "const output = 'output/whispering-mushrooms';",
+        "await mkdir(output, { recursive: true });",
+        "const browser = await chromium.launch({ channel: 'chrome', headless: true });",
+        "try {",
+        "  const page = await browser.newPage();",
+        "  await page.goto('http://127.0.0.1:3004/whispering-wilds.html');",
+        "  await page.waitForFunction(() => window.__wildsQA?.three);",
+        "  const data = await page.evaluate(async () => {",
+        "    const T = window.__wildsQA.three;",
+        "    const { GLTFLoader } =",
+        "      await import('/@fs/D:/lumenfall-penjaga-fajar/node_modules/three/examples/jsm/loaders/GLTFLoader.js');",
+        "    const gltf = await new GLTFLoader().loadAsync(",
+        "      '/assets/maps/whispering-wilds-v2/mushrooms/five-mushrooms.glb',",
+        "    );",
+        "    const scene = new T.Scene();",
+        "    scene.background = new T.Color('#172532');",
+        "    scene.add(new T.HemisphereLight('#e3f2ff', '#627653', 2));",
+        "    const sun = new T.DirectionalLight('#fff1d8', 3);",
+        "    sun.position.set(-3, 8, 5);",
+        "    scene.add(sun);"
+      ]
+    },
+    {
+      "path": "scripts/test-global-graphics.mjs",
+      "sha256": "876ae94e66c4086cc6facdf2fcf3c1966adbb3fc67651e868b1d705c2b9acb3a",
+      "status": "OPTIONAL_NOT_EXECUTED_PREREQUISITES_NOT_PACKAGED",
+      "requirements": [
+        {
+          "kind": "static-import",
+          "line": 1,
+          "exactSpecifier": "../output/whispering-tools/node_modules/playwright/index.mjs",
+          "disposition": "Requires separately provisioned external authoring tools at exact path; installed versions not approved runtime dependencies"
+        }
+      ],
+      "sourceExcerpts": [
+        "import { chromium } from '../output/whispering-tools/node_modules/playwright/index.mjs';",
+        "import { mkdir, writeFile } from 'node:fs/promises';",
+        "import assert from 'node:assert/strict';",
+        "const output = 'output/global-graphics';",
+        "await mkdir(output, { recursive: true });",
+        "const browser = await chromium.launch({ channel: 'chrome', headless: true });",
+        "const page = await browser.newPage({",
+        "  viewport: { width: 1200, height: 800 },",
+        "  deviceScaleFactor: 2,",
+        "});",
+        "const errors = [],",
+        "  report = [];",
+        "page.on('pageerror', (e) => errors.push(e.message));",
+        "page.on('console', (m) => {",
+        "  if (m.type() === 'error') errors.push(m.text());",
+        "});",
+        "const ready = async () => {",
+        "  await page.waitForFunction(",
+        "    () =>",
+        "      window.__wildsQA?.game?.started && !window.__wildsQA.game.transitioning,",
+        "    null,",
+        "    { timeout: 120000 },"
+      ]
+    },
+    {
+      "path": "scripts/test-whispering-bridge-seams.mjs",
+      "sha256": "b8697820ec99543b996fc77c5b1971772a7bacbc4eaf0172c0f064c2ec815fe7",
+      "status": "OPTIONAL_NOT_EXECUTED_PREREQUISITES_NOT_PACKAGED",
+      "requirements": [
+        {
+          "kind": "static-import",
+          "line": 1,
+          "exactSpecifier": "../output/whispering-tools/node_modules/playwright/index.mjs",
+          "disposition": "Requires separately provisioned external authoring tools at exact path; installed versions not approved runtime dependencies"
+        }
+      ],
+      "sourceExcerpts": [
+        "import { chromium } from '../output/whispering-tools/node_modules/playwright/index.mjs';",
+        "import { mkdir, writeFile } from 'node:fs/promises';",
+        "import assert from 'node:assert/strict';",
+        "",
+        "const output = 'output/whispering-bridge-seams';",
+        "await mkdir(output, { recursive: true });",
+        "const browser = await chromium.launch({ channel: 'chrome', headless: true });",
+        "const page = await browser.newPage({ viewport: { width: 1200, height: 800 } });",
+        "const errors = [];",
+        "page.on('pageerror', (e) => errors.push(e.message));",
+        "page.on('console', (m) => {",
+        "  if (m.type() === 'error') errors.push(m.text());",
+        "});",
+        "try {",
+        "  await page.goto('http://127.0.0.1:3004/whispering-wilds.html');",
+        "  await page.getByRole('button', { name: 'CONTINUE', exact: true }).click();",
+        "  await page.waitForFunction(",
+        "    () =>",
+        "      window.__wildsQA?.game?.started &&",
+        "      !window.__wildsQA.game.transitioning &&",
+        "      !window.__wildsQA.game.regionLoadError,",
+        "  );"
+      ]
+    },
+    {
+      "path": "scripts/test-whispering-browser.mjs",
+      "sha256": "41390b8be8a017a4cd872263ee3dce9de323b7c05df249c32ef8823864c23b3c",
+      "status": "OPTIONAL_NOT_EXECUTED_PREREQUISITES_NOT_PACKAGED",
+      "requirements": [
+        {
+          "kind": "static-import",
+          "line": 2,
+          "exactSpecifier": "../output/whispering-tools/node_modules/playwright/index.mjs",
+          "disposition": "Requires separately provisioned external authoring tools at exact path; installed versions not approved runtime dependencies"
+        }
+      ],
+      "sourceExcerpts": [
+        "// Disposable browser context and a memory-only application fixture; no owner saves.",
+        "import { chromium } from '../output/whispering-tools/node_modules/playwright/index.mjs';",
+        "import { mkdir, writeFile } from 'node:fs/promises';",
+        "import assert from 'node:assert/strict';",
+        "const output = 'output/whispering-wilds';",
+        "await mkdir(output, { recursive: true });",
+        "const browser = await chromium.launch({",
+        "  channel: 'chrome',",
+        "  headless: true,",
+        "  args: ['--enable-unsafe-swiftshader'],",
+        "});",
+        "const page = await browser.newPage({ viewport: { width: 1440, height: 900 } }),",
+        "  errors = [],",
+        "  checks = [];",
+        "page.on('pageerror', (e) => errors.push(e.message));",
+        "page.on('console', (m) => {",
+        "  if (m.type() === 'error') errors.push(m.text());",
+        "});",
+        "const check = (name, value) => {",
+        "  assert(value, name);",
+        "  checks.push(name);",
+        "  console.log('PASS', name);"
+      ]
+    },
+    {
+      "path": "scripts/test-whispering-grass.mjs",
+      "sha256": "c241aaa04a32a65cb067d5086608a1672b0ecaaab502fcc72cb6019d12ebe741",
+      "status": "OPTIONAL_NOT_EXECUTED_PREREQUISITES_NOT_PACKAGED",
+      "requirements": [
+        {
+          "kind": "static-import",
+          "line": 1,
+          "exactSpecifier": "../output/whispering-tools/node_modules/playwright/index.mjs",
+          "disposition": "Requires separately provisioned external authoring tools at exact path; installed versions not approved runtime dependencies"
+        }
+      ],
+      "sourceExcerpts": [
+        "import { chromium } from '../output/whispering-tools/node_modules/playwright/index.mjs';",
+        "import { mkdir, writeFile } from 'node:fs/promises';",
+        "import assert from 'node:assert/strict';",
+        "const output = 'output/whispering-grass';",
+        "await mkdir(output, { recursive: true });",
+        "const browser = await chromium.launch({ channel: 'chrome', headless: true });",
+        "const page = await browser.newPage({ viewport: { width: 1200, height: 800 } });",
+        "const errors = [];",
+        "page.on('pageerror', (e) => errors.push(e.message));",
+        "page.on('console', (m) => {",
+        "  if (m.type() === 'error') errors.push(m.text());",
+        "});",
+        "const reports = [];",
+        "try {",
+        "  await page.goto('http://127.0.0.1:3004/whispering-wilds.html');",
+        "  await page.getByRole('button', { name: 'CONTINUE', exact: true }).click();",
+        "  await page.waitForFunction(",
+        "    () =>",
+        "      window.__wildsQA?.game?.started &&",
+        "      !window.__wildsQA.game.transitioning &&",
+        "      !window.__wildsQA.game.regionLoadError,",
+        "  );"
+      ]
+    },
+    {
+      "path": "scripts/test-whispering-hunting.mjs",
+      "sha256": "330db3dd54404ec13b3011a8633150e9c3100272a7f07170d3852f0ede45dfb7",
+      "status": "OPTIONAL_NOT_EXECUTED_PREREQUISITES_NOT_PACKAGED",
+      "requirements": [
+        {
+          "kind": "static-import",
+          "line": 1,
+          "exactSpecifier": "../output/whispering-tools/node_modules/playwright/index.mjs",
+          "disposition": "Requires separately provisioned external authoring tools at exact path; installed versions not approved runtime dependencies"
+        }
+      ],
+      "sourceExcerpts": [
+        "import { chromium } from '../output/whispering-tools/node_modules/playwright/index.mjs';",
+        "import { mkdir, writeFile } from 'node:fs/promises';",
+        "import assert from 'node:assert/strict';",
+        "const output = 'output/whispering-hunting';",
+        "await mkdir(output, { recursive: true });",
+        "const browser = await chromium.launch({ channel: 'chrome', headless: true });",
+        "const page = await browser.newPage({ viewport: { width: 1400, height: 900 } });",
+        "const errors = [],",
+        "  report = {};",
+        "page.on('pageerror', (e) => errors.push(e.message));",
+        "page.on('console', (m) => {",
+        "  if (m.type() === 'error') errors.push(m.text());",
+        "});",
+        "const ready = async () => {",
+        "  await page.waitForFunction(",
+        "    () =>",
+        "      window.__wildsQA?.game?.started && !window.__wildsQA.game.transitioning,",
+        "    null,",
+        "    { timeout: 120000 },",
+        "  );",
+        "  assert.equal(",
+        "    await page.evaluate(() =>"
+      ]
+    },
+    {
+      "path": "scripts/test-whispering-interactions.mjs",
+      "sha256": "483b4a384608e992c92153008128fc95ccd3295bb9451d8d287f224c7f2151f9",
+      "status": "OPTIONAL_NOT_EXECUTED_PREREQUISITES_NOT_PACKAGED",
+      "requirements": [
+        {
+          "kind": "static-import",
+          "line": 1,
+          "exactSpecifier": "../output/whispering-tools/node_modules/playwright/index.mjs",
+          "disposition": "Requires separately provisioned external authoring tools at exact path; installed versions not approved runtime dependencies"
+        }
+      ],
+      "sourceExcerpts": [
+        "import { chromium } from '../output/whispering-tools/node_modules/playwright/index.mjs';",
+        "import { mkdir, writeFile } from 'node:fs/promises';",
+        "import assert from 'node:assert/strict';",
+        "const output = 'output/whispering-interactions';",
+        "await mkdir(output, { recursive: true });",
+        "const browser = await chromium.launch({ channel: 'chrome', headless: true });",
+        "const page = await browser.newPage({ viewport: { width: 1200, height: 800 } });",
+        "const errors = [],",
+        "  reports = [];",
+        "page.on('pageerror', (e) => errors.push(e.message));",
+        "page.on('console', (m) => {",
+        "  if (m.type() === 'error') errors.push(m.text());",
+        "});",
+        "try {",
+        "  await page.goto('http://127.0.0.1:3004/whispering-wilds.html');",
+        "  await page.getByRole('button', { name: 'CONTINUE', exact: true }).click();",
+        "  await page.waitForFunction(",
+        "    () =>",
+        "      window.__wildsQA?.game?.started &&",
+        "      !window.__wildsQA.game.transitioning &&",
+        "      !window.__wildsQA.game.regionLoadError,",
+        "  );"
+      ]
+    },
+    {
+      "path": "scripts/test-whispering-mushrooms.mjs",
+      "sha256": "24e8375fc5861479254b8750a136da17fe57d64494b4c308a5173247f28c9672",
+      "status": "OPTIONAL_NOT_EXECUTED_PREREQUISITES_NOT_PACKAGED",
+      "requirements": [
+        {
+          "kind": "static-import",
+          "line": 1,
+          "exactSpecifier": "../output/whispering-tools/node_modules/playwright/index.mjs",
+          "disposition": "Requires separately provisioned external authoring tools at exact path; installed versions not approved runtime dependencies"
+        }
+      ],
+      "sourceExcerpts": [
+        "import { chromium } from '../output/whispering-tools/node_modules/playwright/index.mjs';",
+        "import { mkdir, writeFile } from 'node:fs/promises';",
+        "import assert from 'node:assert/strict';",
+        "const output = 'output/whispering-mushrooms';",
+        "await mkdir(output, { recursive: true });",
+        "const browser = await chromium.launch({ channel: 'chrome', headless: true });",
+        "const page = await browser.newPage({ viewport: { width: 1400, height: 900 } });",
+        "const errors = [];",
+        "page.on('pageerror', (e) => errors.push(e.message));",
+        "page.on('console', (m) => {",
+        "  if (m.type() === 'error') errors.push(m.text());",
+        "});",
+        "try {",
+        "  await page.goto('http://127.0.0.1:3004/whispering-wilds.html');",
+        "  await page.getByRole('button', { name: 'CONTINUE', exact: true }).click();",
+        "  await page.waitForFunction(",
+        "    () =>",
+        "      window.__wildsQA?.game?.regionLoadError ||",
+        "      (window.__wildsQA?.game?.started && !window.__wildsQA.game.transitioning),",
+        "  );",
+        "  const loadError = await page.evaluate(() =>",
+        "    String(window.__wildsQA.game.regionLoadError ?? ''),"
+      ]
+    },
+    {
+      "path": "scripts/test-whispering-night.mjs",
+      "sha256": "600bed1ee159cc4e9177c86aa3e8aa56955a0cdfe0ced30b6be0fc7fa7ee183f",
+      "status": "OPTIONAL_NOT_EXECUTED_PREREQUISITES_NOT_PACKAGED",
+      "requirements": [
+        {
+          "kind": "static-import",
+          "line": 1,
+          "exactSpecifier": "../output/whispering-tools/node_modules/playwright/index.mjs",
+          "disposition": "Requires separately provisioned external authoring tools at exact path; installed versions not approved runtime dependencies"
+        }
+      ],
+      "sourceExcerpts": [
+        "import { chromium } from '../output/whispering-tools/node_modules/playwright/index.mjs';",
+        "import { mkdir, writeFile } from 'node:fs/promises';",
+        "import assert from 'node:assert/strict';",
+        "const output = 'output/whispering-night';",
+        "await mkdir(output, { recursive: true });",
+        "const browser = await chromium.launch({ channel: 'chrome', headless: true });",
+        "const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });",
+        "const errors = [],",
+        "  reports = [];",
+        "page.on('pageerror', (e) => errors.push(e.message));",
+        "page.on('console', (m) => {",
+        "  if (m.type() === 'error') errors.push(m.text());",
+        "});",
+        "const ready = () =>",
+        "  page.waitForFunction(",
+        "    () =>",
+        "      window.__wildsQA?.game?.started &&",
+        "      !window.__wildsQA.game.transitioning &&",
+        "      !window.__wildsQA.game.regionLoadError,",
+        "  );",
+        "try {",
+        "  await page.goto('http://127.0.0.1:3004/whispering-wilds.html');"
+      ]
+    },
+    {
+      "path": "scripts/test-whispering-permanent.mjs",
+      "sha256": "6cd4e79272bdb1dba4f2797b3932b298efd82a06d0b546b1cdb5ab2b700f4dd9",
+      "status": "OPTIONAL_NOT_EXECUTED_PREREQUISITES_NOT_PACKAGED",
+      "requirements": [
+        {
+          "kind": "static-import",
+          "line": 1,
+          "exactSpecifier": "../output/whispering-tools/node_modules/playwright/index.mjs",
+          "disposition": "Requires separately provisioned external authoring tools at exact path; installed versions not approved runtime dependencies"
+        }
+      ],
+      "sourceExcerpts": [
+        "import { chromium } from '../output/whispering-tools/node_modules/playwright/index.mjs';",
+        "import { mkdir, writeFile } from 'node:fs/promises';",
+        "import assert from 'node:assert/strict';",
+        "const output = 'output/whispering-permanent';",
+        "await mkdir(output, { recursive: true });",
+        "const browser = await chromium.launch({ channel: 'chrome', headless: true });",
+        "const page = await browser.newPage({ viewport: { width: 1400, height: 900 } });",
+        "const errors = [],",
+        "  report = {};",
+        "page.on('pageerror', (e) => errors.push(e.message));",
+        "page.on('console', (m) => {",
+        "  if (m.type() === 'error') errors.push(m.text());",
+        "});",
+        "try {",
+        "  await page.goto('http://127.0.0.1:3004/whispering-wilds.html');",
+        "  await page",
+        "    .getByRole('button', { name: 'CONTINUE', exact: true })",
+        "    .click({ timeout: 120000 });",
+        "  await page.waitForFunction(",
+        "    () =>",
+        "      window.__wildsQA?.game?.started && !window.__wildsQA.game.transitioning,",
+        "    null,"
+      ]
+    },
+    {
+      "path": "tests/browser/modular-character-fixture.ts",
+      "sha256": "39b6e4ef9e5039581bc0c5a44dd52ff769c16ad8393929f3e09ec5a176a49143",
+      "status": "OPTIONAL_NOT_EXECUTED_PREREQUISITES_NOT_PACKAGED",
+      "requirements": [
+        {
+          "kind": "static-import",
+          "line": 7,
+          "exactSpecifier": "../../lib/game/cena-character.ts",
+          "disposition": "EXCLUDED"
+        }
+      ],
+      "sourceExcerpts": [
+        "import * as T from 'three';",
+        "import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';",
+        "import { createCharacterModel, disposeCharacterModel } from '../../lib/game/character-model.ts';",
+        "import { loadModularMaleCharacter, maleAssetCacheStats, releaseUnusedMaleAssets } from '../../lib/game/modular-male-character.ts';",
+        "import { normalizeMaleAppearance } from '../../lib/game/character-appearance.ts';",
+        "import { freshHero } from '../../lib/game/rules.ts';",
+        "import { loadCenaCharacter } from '../../lib/game/cena-character.ts';",
+        "import {planCharacterCrowd,type CharacterLOD} from '../../lib/game/character-quality.ts';",
+        "import {maleTextureCacheStats} from '../../lib/game/character-materials.ts';",
+        "const renderer=new T.WebGLRenderer({antialias:true,preserveDrawingBuffer:true});renderer.setPixelRatio(1);renderer.setSize(innerWidth,innerHeight);document.body.appendChild(renderer.domElement);",
+        "const scene=new T.Scene();scene.background=new T.Color('#24353c');",
+        "scene.add(new T.HemisphereLight('#fff4e0','#617b81',2.0));const light=new T.DirectionalLight('#fff2dc',2.6);light.position.set(-3,5,-4);scene.add(light);",
+        "const floor=new T.Mesh(new T.PlaneGeometry(200,200),new T.MeshStandardMaterial({color:'#41584d',roughness:1}));floor.rotation.x=-Math.PI/2;floor.position.y=-.01;scene.add(floor);",
+        "const camera=new T.PerspectiveCamera(35,innerWidth/innerHeight,.1,250);camera.position.set(0,1.5,-6.5);",
+        "const controls=new OrbitControls(camera,renderer.domElement);controls.target.set(0,1.2,0);controls.update();",
+        "let actors:ReturnType<typeof createCharacterModel>[]=[],appearance=normalizeMaleAppearance({}),movement=false,previous=performance.now();",
+        "let managed=false,planningAt=0,frames:number[]=[],cpu:number[]=[],collect=false,poseFrozen=false;",
+        "const pendingLOD=new Map<number,CharacterLOD>(),poseTimes=new Map<number,number>();",
+        "addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);render();});",
+        "const errors:string[]=[];addEventListener('error',e=>errors.push(e.message));",
+        "function render(){renderer.render(scene,camera);}",
+        "function snapshot(){"
+      ]
+    },
+    {
+      "path": "scripts/check-army-running-browser.mjs",
+      "sha256": "21e8781cb2f33340b6c633dd783ceccf3b3b2d74aa559fa58480a438bdccc32c",
+      "status": "OPTIONAL_NOT_EXECUTED_PREREQUISITES_NOT_PACKAGED",
+      "requirements": [
+        {
+          "kind": "DYNAMIC_EXTERNAL_TOOL",
+          "line": 7,
+          "expression": "import(pathToFileURL(process.env.PLAYWRIGHT_MODULE).href)",
+          "disposition": "Exact source expression/environment override governs; installed browser or tool module required separately, no download/install and no portability claim for machine-specific fallback"
+        }
+      ],
+      "sourceExcerpts": [
+        "// Isolated QA profile; never reads or changes the player's save.",
+        "import assert from 'node:assert/strict';",
+        "import { mkdir, writeFile } from 'node:fs/promises';",
+        "import { resolve } from 'node:path';",
+        "import { pathToFileURL } from 'node:url';",
+        "import { freshHero, SAVE_KEY, createItem } from '../lib/game/rules.ts';",
+        "const { chromium }=await import(pathToFileURL(process.env.PLAYWRIGHT_MODULE).href);",
+        "const out=resolve('work/army-running');await mkdir(out,{recursive:true});",
+        "const browser=await chromium.launch({channel:'chrome',headless:true});",
+        "const context=await browser.newContext({viewport:{width:1280,height:900}});",
+        "const hero=freshHero();hero.characterName='Running QA';hero.kills=1;",
+        "const sword=createItem('legacy-fajar-blade');hero.inventory.push(sword);hero.equipment.mainHand=sword.id;",
+        "await context.addInitScript(({key,hero})=>localStorage.setItem(key,JSON.stringify({version:3,activeSlot:'slot-1',characters:{'slot-1':hero}})),{key:SAVE_KEY,hero});",
+        "const page=await context.newPage(),errors=[];",
+        "page.on('pageerror',e=>errors.push(e.message));",
+        "page.on('console',m=>{if(m.type()==='error')errors.push(m.text());});",
+        "await page.route('**/lib/game/world.ts*',async route=>{",
+        "  const response=await route.fetch();const body=(await response.text()).replace('this.renderer = new T.WebGLRenderer','window.__runningQA = this; this.renderer = new T.WebGLRenderer');",
+        "  await route.fulfill({response,body});",
+        "});",
+        "try{",
+        "  await page.goto('http://localhost:3001/',{waitUntil:'networkidle',timeout:90000});"
+      ]
+    },
+    {
+      "path": "scripts/check-arunika-material-browser.mjs",
+      "sha256": "5c63263334dae13b81f98cd66483680337730ddf9d268847c479a83c8fe16adc",
+      "status": "OPTIONAL_NOT_EXECUTED_PREREQUISITES_NOT_PACKAGED",
+      "requirements": [
+        {
+          "kind": "DYNAMIC_EXTERNAL_TOOL",
+          "line": 10,
+          "expression": "import(pathToFileURL(process.env.PLAYWRIGHT_MODULE).href)",
+          "disposition": "Exact source expression/environment override governs; installed browser or tool module required separately, no download/install and no portability claim for machine-specific fallback"
+        }
+      ],
+      "sourceExcerpts": [
+        "// Isolated browser save; never attaches to or edits the player's browser data.",
+        "import assert from 'node:assert/strict';",
+        "import { mkdir, writeFile } from 'node:fs/promises';",
+        "import { resolve } from 'node:path';",
+        "import { pathToFileURL } from 'node:url';",
+        "import { freshHero, SAVE_KEY } from '../lib/game/rules.ts';",
+        "import { VERDANT_TERRAIN } from '../lib/game/field-terrain.ts';",
+        "import { FIELD_NPCS } from '../lib/game/regions.ts';",
+        "",
+        "const { chromium } = await import(pathToFileURL(process.env.PLAYWRIGHT_MODULE).href);",
+        "const label = process.argv[2] || 'after';",
+        "const out = resolve('work/arunika-material');",
+        "await mkdir(out, { recursive: true });",
+        "const browser = await chromium.launch({ channel: 'chrome', headless: true });",
+        "const context = await browser.newContext({ viewport: { width: 1440, height: 960 } });",
+        "const hero = freshHero();",
+        "Object.assign(hero, { characterName: 'Material QA', inCity: false, currentField: 'verdant-plains', level: 50 }, VERDANT_TERRAIN.entry);",
+        "await context.addInitScript(({ key, hero }) => {",
+        "  localStorage.setItem(key, JSON.stringify({ version: 3, activeSlot: 'slot-1', characters: { 'slot-1': hero } }));",
+        "}, { key: SAVE_KEY, hero });",
+        "const page = await context.newPage(), errors = [];",
+        "const animationChecks=[];"
+      ]
+    },
+    {
+      "path": "scripts/check-female-character-browser.mjs",
+      "sha256": "5e024828057eebe6e24bbcf64a2094d0f3cbafbdf881e729e72c5577b5b5e91f",
+      "status": "OPTIONAL_NOT_EXECUTED_PREREQUISITES_NOT_PACKAGED",
+      "requirements": [
+        {
+          "kind": "DYNAMIC_EXTERNAL_TOOL",
+          "line": 7,
+          "expression": "import(pathToFileURL(process.env.PLAYWRIGHT_MODULE).href)",
+          "disposition": "Exact source expression/environment override governs; installed browser or tool module required separately, no download/install and no portability claim for machine-specific fallback"
+        }
+      ],
+      "sourceExcerpts": [
+        "// Isolated browser/profile: user's saves are never read or modified.",
+        "import assert from 'node:assert/strict';",
+        "import {writeFile,mkdir}from'node:fs/promises';",
+        "import {resolve}from'node:path';",
+        "import {pathToFileURL}from'node:url';",
+        "import {freshHero,SAVE_KEY}from'../lib/game/rules.ts';",
+        "const {chromium}=await import(pathToFileURL(process.env.PLAYWRIGHT_MODULE).href);",
+        "const out=resolve('work/female-character');await mkdir(out,{recursive:true});",
+        "const browser=await chromium.launch({channel:'chrome',headless:true});",
+        "const context=await browser.newContext({viewport:{width:1280,height:960}});",
+        "const old=freshHero();old.level=5;old.gold=123;old.characterName='Existing Male';",
+        "// Only seed once, so reload verifies actual persisted appearance.",
+        "await context.addInitScript(({key,hero})=>{if(!localStorage.getItem(key))localStorage.setItem(key,JSON.stringify({version:3,activeSlot:'slot-1',characters:{'slot-1':hero}}));},{key:SAVE_KEY,hero:old});",
+        "const page=await context.newPage(),errors=[];",
+        "page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()==='error')errors.push(m.text());});",
+        "await page.route('**/lib/game/world.ts*',async route=>{const r=await route.fetch();await route.fulfill({response:r,body:(await r.text()).replace('this.renderer = new T.WebGLRenderer','window.__femaleQA=this; this.renderer = new T.WebGLRenderer')});});",
+        "async function ready(kind){await page.waitForFunction(kind=>window.__femaleQA?.actor.userData.modelStatus==='ready'&&window.__femaleQA.actor.userData.assetKind===kind,kind,{timeout:60000});}",
+        "try{",
+        "  await page.goto('http://localhost:3001/',{waitUntil:'networkidle',timeout:90000});await ready('male-revision-02');",
+        "  await page.getByRole('button',{name:/Slot kosong 2/}).click();",
+        "  await page.getByRole('button',{name:'Perempuan',exact:true}).click();await ready('female-rpg');",
+        "  assert.equal(await page.getByRole('button',{name:'Perempuan',exact:true}).getAttribute('aria-pressed'),'true');"
+      ]
+    },
+    {
+      "path": "scripts/check-menu-presentation.mjs",
+      "sha256": "a1909cec70210be6a7c73bdd9609a4eba45b5735d20323b9d17b68aaf5fcefd2",
+      "status": "OPTIONAL_NOT_EXECUTED_PREREQUISITES_NOT_PACKAGED",
+      "requirements": [
+        {
+          "kind": "DYNAMIC_EXTERNAL_TOOL",
+          "line": 8,
+          "expression": "import(pathToFileURL(`${runtime}/playwright/index.mjs`).href)",
+          "disposition": "Exact source expression/environment override governs; installed browser or tool module required separately, no download/install and no portability claim for machine-specific fallback"
+        }
+      ],
+      "sourceExcerpts": [
+        "// Fresh isolated browser; never reads or alters the player's actual browser profile.",
+        "import assert from 'node:assert/strict';",
+        "import { mkdir, writeFile } from 'node:fs/promises';",
+        "import { resolve } from 'node:path';",
+        "import { pathToFileURL } from 'node:url';",
+        "import { freshHero, SAVE_KEY } from '../lib/game/rules.ts';",
+        "const runtime = process.env.CODEX_NODE_MODULES || 'C:/Users/USER/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules';",
+        "const { chromium } = await import(pathToFileURL(`${runtime}/playwright/index.mjs`).href);",
+        "const output = resolve('output/menu-qa');",
+        "await mkdir(output, { recursive: true });",
+        "const browser = await chromium.launch({ channel: 'chrome', headless: true });",
+        "const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });",
+        "const page = await context.newPage();",
+        "const errors = [], requests = [], checks = [];",
+        "page.on('pageerror', error => errors.push(error.message));",
+        "page.on('console', message => { if (message.type() === 'error') errors.push(message.text()); });",
+        "page.on('request', request => requests.push(request.url()));",
+        "await page.route('**/lib/game/world.ts*', async route => {",
+        "  const response = await route.fetch();",
+        "  const body = (await response.text()).replace('this.renderer = new T.WebGLRenderer', '(window.__menuWorlds ??= []).push(this); this.renderer = new T.WebGLRenderer');",
+        "  await route.fulfill({ response, body });",
+        "});"
+      ]
+    },
+    {
+      "path": "scripts/check-world-entry.mjs",
+      "sha256": "b476d79c35bd33593e37e00ccce7a4f75479c1db4d1d12e50a5e96ce357283af",
+      "status": "OPTIONAL_NOT_EXECUTED_PREREQUISITES_NOT_PACKAGED",
+      "requirements": [
+        {
+          "kind": "DYNAMIC_EXTERNAL_TOOL",
+          "line": 9,
+          "expression": "import(pathToFileURL(`${modules}/playwright/index.mjs`).href)",
+          "disposition": "Exact source expression/environment override governs; installed browser or tool module required separately, no download/install and no portability claim for machine-specific fallback"
+        }
+      ],
+      "sourceExcerpts": [
+        "// Isolated test saves only. This never attaches to the player's browser profile.",
+        "import assert from 'node:assert/strict';",
+        "import { mkdir, writeFile } from 'node:fs/promises';",
+        "import { resolve } from 'node:path';",
+        "import { pathToFileURL } from 'node:url';",
+        "import { freshHero, SAVE_KEY } from '../lib/game/rules.ts';",
+        "import { runtimeFiles } from './prepare-normandy-runtime.mjs';",
+        "const modules = process.env.CODEX_NODE_MODULES || 'C:/Users/USER/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules';",
+        "const { chromium } = await import(pathToFileURL(`${modules}/playwright/index.mjs`).href);",
+        "const origin = process.env.WORLD_TEST_URL || 'http://localhost:3000/';",
+        "const output = resolve('output/world-entry-qa', new URL(origin).hostname);",
+        "await mkdir(output, { recursive: true });",
+        "const browser = await chromium.launch({ channel: 'chrome', headless: true });",
+        "const checks = [];",
+        "const check = (label, condition) => { assert.ok(condition, label); checks.push(label); console.log(`PASS ${label}`); };",
+        "try {",
+        "  for (const mode of ['continue', 'load', 'one-decor-missing', 'all-decor-missing', 'character-missing']) {",
+        "    const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });",
+        "    const page = await context.newPage(), errors = [], failedAssets = [];",
+        "    page.on('pageerror', e => errors.push(e.message));",
+        "    page.on('response', response => { if (response.status() >= 400 && response.url().includes('/assets/')) failedAssets.push(response.url()); });",
+        "    const hero = freshHero('slot-1');"
+      ]
+    },
+    {
+      "path": "scripts/prepare-arunika-grass.mjs",
+      "sha256": "385217bb0657edaff27c3212903723cc644f6110ea017498581c3c2da8c7e0b5",
+      "status": "OPTIONAL_NOT_EXECUTED_PREREQUISITES_NOT_PACKAGED",
+      "requirements": [
+        {
+          "kind": "DYNAMIC_EXTERNAL_TOOL",
+          "line": 6,
+          "expression": "import(pathToFileURL(process.env.SHARP_MODULE).href)",
+          "disposition": "Exact source expression/environment override governs; installed browser or tool module required separately, no download/install and no portability claim for machine-specific fallback"
+        }
+      ],
+      "sourceExcerpts": [
+        "// Numeric asset preparation from the supplied grass atlas. No source files are edited.",
+        "import { mkdir, readFile, writeFile } from 'node:fs/promises';",
+        "import { pathToFileURL } from 'node:url';",
+        "import { EXRLoader } from 'three/examples/jsm/loaders/EXRLoader.js';",
+        "import { DataUtils } from 'three';",
+        "const { default: sharp } = await import(pathToFileURL(process.env.SHARP_MODULE).href);",
+        "const src = 'work/grass-medium-source/textures/', out = 'public/assets/materials/terrain/arunika/grass-medium-01/';",
+        "await mkdir(out, { recursive: true });",
+        "const size = 2048;",
+        "const color = await sharp(`${src}grass_medium_01_diff_4k.jpg`).resize(size, size).removeAlpha().raw().toBuffer();",
+        "const alpha = await sharp(`${src}grass_medium_01_alpha_4k.png`).resize(size, size).greyscale().raw().toBuffer();",
+        "const rgba = Buffer.alloc(size*size*4), nr = Buffer.alloc(size*size*4);",
+        "for (let i=0; i<size*size; i++) { rgba[i*4]=color[i*3]; rgba[i*4+1]=color[i*3+1]; rgba[i*4+2]=color[i*3+2]; rgba[i*4+3]=alpha[i]; }",
+        "for (const kind of ['nor_gl', 'rough']) {",
+        "  const bytes = await readFile(`${src}grass_medium_01_${kind}_4k.exr`);",
+        "  const exr = new EXRLoader().parse(bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset+bytes.byteLength));",
+        "  const read = i => exr.data instanceof Uint16Array ? DataUtils.fromHalfFloat(exr.data[i]) : exr.data[i];",
+        "  for (let y=0; y<size; y++) for (let x=0; x<size; x++) {",
+        "    const values=[0,0,0];",
+        "    for (let dy=0; dy<2; dy++) for (let dx=0; dx<2; dx++) {",
+        "      const i=((exr.height-1-(y*2+dy))*exr.width+x*2+dx)*4;",
+        "      for (let c=0; c<(kind==='nor_gl'?3:1); c++) values[c]+=read(i+c)*.25;"
+      ]
+    },
+    {
+      "path": "scripts/prepare-arunika-terrain.mjs",
+      "sha256": "40193bd2d2eb68cdb892d3ab24075f74e32a25d38d6cfc888cb7528d6bc19e32",
+      "status": "OPTIONAL_NOT_EXECUTED_PREREQUISITES_NOT_PACKAGED",
+      "requirements": [
+        {
+          "kind": "DYNAMIC_EXTERNAL_TOOL",
+          "line": 10,
+          "expression": "import(pathToFileURL(process.env.SHARP_MODULE).href)",
+          "disposition": "Exact source expression/environment override governs; installed browser or tool module required separately, no download/install and no portability claim for machine-specific fallback"
+        }
+      ],
+      "sourceExcerpts": [
+        "// Reproducible numeric PBR conversion. Reads the supplied archive; leaves it untouched.",
+        "// EXRLoader returns bottom-up data. Encode top-down rows for normal image loaders.",
+        "import { readFile, writeFile } from 'node:fs/promises';",
+        "import { pathToFileURL } from 'node:url';",
+        "import { unzipSync } from '../node_modules/three/examples/jsm/libs/fflate.module.js';",
+        "import { EXRLoader } from 'three/examples/jsm/loaders/EXRLoader.js';",
+        "import { DataUtils } from 'three';",
+        "import { buildArunikaTerrainMask } from '../lib/game/arunika-terrain-mask.ts';",
+        "import { VERDANT_TERRAIN } from '../lib/game/field-terrain.ts';",
+        "const { default: sharp } = await import(pathToFileURL(process.env.SHARP_MODULE).href);",
+        "const maskOnly = process.argv.includes('--mask-only');",
+        "const archive = maskOnly ? {} : unzipSync(await readFile(process.argv[2]), { filter: f => /_(nor_gl|rough)_4k\\.exr$/.test(f.name) });",
+        "const root = 'public/assets/materials/terrain/arunika/rocky-terrain-02/';",
+        "for (const kind of maskOnly ? [] : ['nor_gl', 'rough']) {",
+        "  const filename = `rocky_terrain_02_${kind}`, bytes = archive[`textures/${filename}_4k.exr`];",
+        "  const exr = new EXRLoader().parse(bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength));",
+        "  const size = 2048, channels = kind === 'nor_gl' ? 3 : 1;",
+        "  const output = Buffer.alloc(size * size * channels);",
+        "  const value = index => exr.data instanceof Uint16Array ? DataUtils.fromHalfFloat(exr.data[index]) : exr.data[index];",
+        "  for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) {",
+        "    const rgb = [0, 0, 0];",
+        "    // Average four source pixels, then renormalize the tangent-space normal."
+      ]
+    },
+    {
+      "path": "scripts/test-camera-modes-browser.mjs",
+      "sha256": "06b00f0cdd47682310bf2d24acebf9406d50a1b72e686c05a2441296b28f5c03",
+      "status": "OPTIONAL_NOT_EXECUTED_PREREQUISITES_NOT_PACKAGED",
+      "requirements": [
+        {
+          "kind": "DYNAMIC_EXTERNAL_TOOL",
+          "line": 6,
+          "expression": "import(pathToFileURL(process.env.PLAYWRIGHT_MODULE).href)",
+          "disposition": "Exact source expression/environment override governs; installed browser or tool module required separately, no download/install and no portability claim for machine-specific fallback"
+        }
+      ],
+      "sourceExcerpts": [
+        "// Disposable browser storage. The QA handle is injected into local responses only.",
+        "import assert from 'node:assert/strict';",
+        "import { mkdir, writeFile } from 'node:fs/promises';",
+        "import { resolve } from 'node:path';",
+        "import { pathToFileURL } from 'node:url';",
+        "const { chromium } = await import(pathToFileURL(process.env.PLAYWRIGHT_MODULE).href);",
+        "const out = resolve('work/camera-modes');",
+        "await mkdir(out, { recursive: true });",
+        "const browser = await chromium.launch({ channel: 'chrome', headless: true, args: ['--enable-unsafe-swiftshader'] });",
+        "const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });",
+        "const page = await context.newPage();",
+        "const errors = [], checks = [];",
+        "page.on('pageerror', error => errors.push(error.message));",
+        "page.on('console', message => { if (message.type() === 'error') errors.push(message.text()); });",
+        "await page.route('**/lib/game/world.ts*', async route => {",
+        "  const response = await route.fetch();",
+        "  const body = (await response.text()).replace('this.renderer = new T.WebGLRenderer', 'window.__cameraQA = this; this.renderer = new T.WebGLRenderer');",
+        "  await route.fulfill({ response, body });",
+        "});",
+        "const check = name => { checks.push(name); console.log('PASS', name); };",
+        "const state = () => page.evaluate(() => {",
+        "  const g = window.__cameraQA;"
+      ]
+    },
+    {
+      "path": "scripts/test-character-animation-browser.mjs",
+      "sha256": "a806699f84b3eb39e6779b66c6a78c0c4b6eda5072516fb17de771a64ba944a6",
+      "status": "OPTIONAL_NOT_EXECUTED_PREREQUISITES_NOT_PACKAGED",
+      "requirements": [
+        {
+          "kind": "DYNAMIC_EXTERNAL_TOOL",
+          "line": 6,
+          "expression": "import(pathToFileURL(process.env.PLAYWRIGHT_MODULE).href)",
+          "disposition": "Exact source expression/environment override governs; installed browser or tool module required separately, no download/install and no portability claim for machine-specific fallback"
+        }
+      ],
+      "sourceExcerpts": [
+        "// Uses disposable storage and response-only QA handles, never the player's save.",
+        "import assert from 'node:assert/strict';",
+        "import { mkdir, writeFile } from 'node:fs/promises';",
+        "import { resolve } from 'node:path';",
+        "import { pathToFileURL } from 'node:url';",
+        "const { chromium } = await import(pathToFileURL(process.env.PLAYWRIGHT_MODULE).href);",
+        "const browser = await chromium.launch({ channel: 'chrome', headless: true, args: ['--enable-unsafe-swiftshader'] });",
+        "const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });",
+        "const page = await context.newPage(), errors = [], warnings = [], checks = [];",
+        "const out = resolve('work/character-animation'); await mkdir(out, { recursive: true });",
+        "page.on('pageerror', e => errors.push(e.message));",
+        "page.on('console', m => { if (m.type() === 'error') errors.push(m.text()); if (m.type() === 'warning' && /THREE|WebGL/.test(m.text())) warnings.push(m.text()); });",
+        "await page.route('**/lib/game/world.ts*', async route => {",
+        "  const response = await route.fetch();",
+        "  await route.fulfill({ response, body: (await response.text()).replace('this.renderer = new T.WebGLRenderer', 'window.__characterQA = this; this.renderer = new T.WebGLRenderer') });",
+        "});",
+        "await page.route('**/components/game/character-preview.tsx*', async route => {",
+        "  const response = await route.fetch();",
+        "  await route.fulfill({ response, body: (await response.text()).replace('const model = buildModel(createCharacterModel);', 'const model = buildModel(createCharacterModel); window.__previewCharacter = model;') });",
+        "});",
+        "const check = name => { checks.push(name); console.log('PASS', name); };",
+        "async function screenshot(name) { await page.screenshot({ path: resolve(out, `${name}.png`) }); }"
+      ]
+    },
+    {
+      "path": "scripts/test-character-screen-browser.mjs",
+      "sha256": "99fd69f807b9ef228ac0c10b5e5a31aec2bc3101e874432bb7b65b9a19180e7f",
+      "status": "OPTIONAL_NOT_EXECUTED_PREREQUISITES_NOT_PACKAGED",
+      "requirements": [
+        {
+          "kind": "DYNAMIC_EXTERNAL_TOOL",
+          "line": 17,
+          "expression": "import(\n  pathToFileURL(process.env.PLAYWRIGHT_MODULE).href\n)",
+          "disposition": "Exact source expression/environment override governs; installed browser or tool module required separately, no download/install and no portability claim for machine-specific fallback"
+        }
+      ],
+      "sourceExcerpts": [
+        "// Real game integration in an isolated browser profile; never reads/writes player saves.",
+        "import assert from 'node:assert/strict';",
+        "import { mkdir, writeFile } from 'node:fs/promises';",
+        "import { resolve } from 'node:path';",
+        "import { pathToFileURL } from 'node:url';",
+        "import {",
+        "  freshHero,",
+        "  SAVE_KEY,",
+        "  equipItem,",
+        "  derivedStats,",
+        "  unequipItem,",
+        "  chooseCoreJob,",
+        "} from '../lib/game/rules.ts';",
+        "import { createItem } from '../lib/game/items.ts';",
+        "import { calculateCombatPower } from '../lib/game/combat-power.ts';",
+        "import { previewEquipmentChange } from '../lib/game/character-view.ts';",
+        "const { chromium } = await import(",
+        "  pathToFileURL(process.env.PLAYWRIGHT_MODULE).href",
+        ");",
+        "const out = resolve('work/combat-power');",
+        "await mkdir(out, { recursive: true });",
+        "const hero = freshHero();"
+      ]
+    },
+    {
+      "path": "scripts/test-developer-material-browser.mjs",
+      "sha256": "b3f077ecfe449789d1e277bd1392f420a29810489a747a62fe7257b006f1cb84",
+      "status": "OPTIONAL_NOT_EXECUTED_PREREQUISITES_NOT_PACKAGED",
+      "requirements": [
+        {
+          "kind": "DYNAMIC_EXTERNAL_TOOL",
+          "line": 8,
+          "expression": "import(pathToFileURL(process.env.PLAYWRIGHT_MODULE).href)",
+          "disposition": "Exact source expression/environment override governs; installed browser or tool module required separately, no download/install and no portability claim for machine-specific fallback"
+        }
+      ],
+      "sourceExcerpts": [
+        "// Browser regression for the Arunika developer material shop.",
+        "// Uses an isolated profile and a temporary QA hook; it never touches the player's save.",
+        "import assert from 'node:assert/strict';",
+        "import { pathToFileURL } from 'node:url';",
+        "import { CITIES } from '../lib/game/regions.ts';",
+        "import { freshHero, SAVE_KEY } from '../lib/game/rules.ts';",
+        "",
+        "const { chromium } = await import(pathToFileURL(process.env.PLAYWRIGHT_MODULE).href);",
+        "const browser = await chromium.launch({ channel: 'chrome', headless: true, args: ['--enable-unsafe-swiftshader'] });",
+        "const context = await browser.newContext({ viewport: { width: 1440, height: 960 } });",
+        "const hero = freshHero();",
+        "hero.characterName = 'Developer Shop QA';",
+        "hero.inCity = true;",
+        "hero.currentCity = 'arunika';",
+        "hero.level = 50;",
+        "hero.gold = 0;",
+        "hero.inventoryCapacity = 160;",
+        "await context.addInitScript(({ key, seededHero }) => {",
+        "  localStorage.setItem(key, JSON.stringify({ version: 3, activeSlot: 'slot-1', characters: { 'slot-1': seededHero } }));",
+        "}, { key: SAVE_KEY, seededHero: hero });",
+        "",
+        "const page = await context.newPage();"
+      ]
+    },
+    {
+      "path": "scripts/test-east-gate-browser.mjs",
+      "sha256": "239af8646049d7d96aff22754313629ce87bfaa4c6bcea58ee92e8d6792ba77d",
+      "status": "OPTIONAL_NOT_EXECUTED_PREREQUISITES_NOT_PACKAGED",
+      "requirements": [
+        {
+          "kind": "DYNAMIC_EXTERNAL_TOOL",
+          "line": 8,
+          "expression": "import(pathToFileURL(process.env.PLAYWRIGHT_MODULE).href)",
+          "disposition": "Exact source expression/environment override governs; installed browser or tool module required separately, no download/install and no portability claim for machine-specific fallback"
+        }
+      ],
+      "sourceExcerpts": [
+        "// Isolated disposable profile. Only local development responses receive a QA handle.",
+        "import assert from 'node:assert/strict';",
+        "import {mkdir,writeFile} from 'node:fs/promises';",
+        "import {resolve} from 'node:path';",
+        "import {pathToFileURL} from 'node:url';",
+        "import {freshHero,SAVE_KEY} from '../lib/game/rules.ts';",
+        "import {EAST_GATE_TERRAIN as t,terrainWalkable,terrainRiverZ} from '../lib/game/field-terrain.ts';",
+        "const {chromium}=await import(pathToFileURL(process.env.PLAYWRIGHT_MODULE).href);",
+        "const out=resolve('work/east-gate');await mkdir(out,{recursive:true});",
+        "const browser=await chromium.launch({channel:'chrome',headless:true,args:['--enable-unsafe-swiftshader']});",
+        "const context=await browser.newContext({viewport:{width:1440,height:960}});",
+        "const hero=freshHero();hero.characterName='East Gate QA';hero.inCity=true;hero.gold=3000;",
+        "await context.addInitScript(({key,hero})=>{if(!localStorage.getItem('east-qa-seeded')){localStorage.setItem(key,JSON.stringify({version:3,activeSlot:'slot-1',characters:{'slot-1':hero}}));localStorage.setItem('east-qa-seeded','1');}},{key:SAVE_KEY,hero});",
+        "const page=await context.newPage(),errors=[],failedAssets=[],checks=[];",
+        "page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()==='error')errors.push(m.text());});",
+        "page.on('response',r=>{if(r.status()>=400)failedAssets.push(`${r.status()} ${r.url()}`);});",
+        "await page.route('**/lib/game/world.ts*',async route=>{const r=await route.fetch();const body=(await r.text()).replace('this.renderer = new T.WebGLRenderer','window.__terrainQA = this; this.renderer = new T.WebGLRenderer');await route.fulfill({response:r,body});});",
+        "const check=name=>{checks.push(name);console.log('PASS',name);};",
+        "async function resume(){await page.getByRole('button',{name:/^(Lanjutkan perjalanan|Buat karakter & mulai)$/}).click();await page.waitForFunction(()=>window.__terrainQA?.started);await page.waitForTimeout(300);}",
+        "async function place(x,z){await page.evaluate(({x,z})=>{const g=window.__terrainQA;g.hero.x=x;g.hero.z=z;g.placeActor();g.cameraFocus.copy(g.actor.position);g.dead=false;g.invincible=0;g.actor.visible=true;g.zoom=20;g.cameraZoom.halfHeight=20;g.pause(false);},{x,z});await page.waitForTimeout(220);}",
+        "async function clickWorld(x,z,height){const p=await page.evaluate(({x,z,height})=>{const g=window.__terrainQA,p=g.actor.position.clone().set(x,g.groundHeight(x,z)+height,z).project(g.camera),r=g.renderer.domElement.getBoundingClientRect();return {x:r.x+(p.x*.5+.5)*r.width,y:r.y+(-p.y*.5+.5)*r.height};},{x,z,height});await page.mouse.click(p.x,p.y);await page.waitForTimeout(150);}",
+        "async function npcOpen(){await place(t.camp.x,t.camp.z+1.7);await clickWorld(t.camp.x,t.camp.z,1.1);await page.getByRole('dialog').getByRole('heading',{name:'Penjaga Pos Timur',exact:true}).waitFor();}"
+      ]
+    },
+    {
+      "path": "scripts/test-forge-browser.mjs",
+      "sha256": "c16e208e2f8f0cae67070c3c02c2afc9f7de319b0bd9588168505a54e6d737bc",
+      "status": "OPTIONAL_NOT_EXECUTED_PREREQUISITES_NOT_PACKAGED",
+      "requirements": [
+        {
+          "kind": "DYNAMIC_EXTERNAL_TOOL",
+          "line": 9,
+          "expression": "import(\n  pathToFileURL(process.env.PLAYWRIGHT_MODULE).href\n)",
+          "disposition": "Exact source expression/environment override governs; installed browser or tool module required separately, no download/install and no portability claim for machine-specific fallback"
+        }
+      ],
+      "sourceExcerpts": [
+        "// Disposable browser context: never touches the player's browser profile or saves.",
+        "import assert from 'node:assert/strict';",
+        "import { mkdir, writeFile } from 'node:fs/promises';",
+        "import { resolve } from 'node:path';",
+        "import { pathToFileURL } from 'node:url';",
+        "import { freshHero, SAVE_KEY, socketRune } from '../lib/game/rules.ts';",
+        "import { ITEM_CATALOG, createItem, createRuneItem } from '../lib/game/items.ts';",
+        "import { CITIES } from '../lib/game/regions.ts';",
+        "const { chromium } = await import(",
+        "  pathToFileURL(process.env.PLAYWRIGHT_MODULE).href",
+        ");",
+        "const out = resolve('work/forge');",
+        "await mkdir(out, { recursive: true });",
+        "const hero = freshHero();",
+        "hero.characterName = 'Forge QA';",
+        "hero.gold = 5000;",
+        "hero.level = 30;",
+        "const sword = hero.inventory.find((i) => i.id === hero.equipment.mainHand);",
+        "sword.sockets = [{ id: 'qa-socket', rune: null }];",
+        "sword.bonusStats = {attackPercent:4};",
+        "sword.uniqueStatsLocked=false;",
+        "const rune = createRuneItem('might', 'rare');"
+      ]
+    },
+    {
+      "path": "scripts/test-hud-browser.mjs",
+      "sha256": "753f8188498a5575d4c40ba42995238a132948d0ea131d082f68dc41174f1868",
+      "status": "OPTIONAL_NOT_EXECUTED_PREREQUISITES_NOT_PACKAGED",
+      "requirements": [
+        {
+          "kind": "DYNAMIC_EXTERNAL_TOOL",
+          "line": 14,
+          "expression": "import(\r\n  pathToFileURL(`${runtime}/playwright/index.mjs`).href\r\n)",
+          "disposition": "Exact source expression/environment override governs; installed browser or tool module required separately, no download/install and no portability claim for machine-specific fallback"
+        }
+      ],
+      "sourceExcerpts": [
+        "// Real Home + Game, disposable Chromium profile. Never uses the owner's browser saves.",
+        "import assert from 'node:assert/strict';",
+        "import { mkdir, writeFile } from 'node:fs/promises';",
+        "import { resolve } from 'node:path';",
+        "import { pathToFileURL } from 'node:url';",
+        "import {",
+        "  createV3AdventurerHero,",
+        "  createItem,",
+        "  SAVE_KEY,",
+        "} from '../lib/game/rules.ts';",
+        "const runtime =",
+        "  process.env.CODEX_NODE_MODULES ||",
+        "  'C:/Users/GG/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules';",
+        "const { chromium } = await import(",
+        "  pathToFileURL(`${runtime}/playwright/index.mjs`).href",
+        ");",
+        "const origin = process.env.HUD_TEST_URL || 'http://localhost:3000/';",
+        "assert.ok(['localhost', '127.0.0.1'].includes(new URL(origin).hostname));",
+        "const out = resolve('output/hud-redesign');",
+        "await mkdir(out, { recursive: true });",
+        "const browser = await chromium.launch({",
+        "  channel: 'chrome',"
+      ]
+    },
+    {
+      "path": "scripts/test-item-icons-browser.mjs",
+      "sha256": "e138a28f94e3f417bb6bf300adbfc2a1021ac9ba1ee21b54fe7891de7e44a672",
+      "status": "OPTIONAL_NOT_EXECUTED_PREREQUISITES_NOT_PACKAGED",
+      "requirements": [
+        {
+          "kind": "DYNAMIC_EXTERNAL_TOOL",
+          "line": 11,
+          "expression": "import(process.env.PLAYWRIGHT_MODULE\n  ? pathToFileURL(process.env.PLAYWRIGHT_MODULE).href : 'playwright')",
+          "disposition": "Exact source expression/environment override governs; installed browser or tool module required separately, no download/install and no portability claim for machine-specific fallback"
+        }
+      ],
+      "sourceExcerpts": [
+        "// Isolated browser fixtures only; never touches the user's browser profile or production saves.",
+        "import assert from 'node:assert/strict';",
+        "import { mkdir, writeFile } from 'node:fs/promises';",
+        "import { pathToFileURL } from 'node:url';",
+        "import { resolve } from 'node:path';",
+        "import { ITEM_CATALOG, createItem } from '../lib/game/items.ts';",
+        "import { freshHero, SAVE_KEY } from '../lib/game/rules.ts';",
+        "import { CITIES } from '../lib/game/regions.ts';",
+        "import { getItemIconPath } from '../lib/game/item-icons.ts';",
+        "",
+        "const { chromium } = await import(process.env.PLAYWRIGHT_MODULE",
+        "  ? pathToFileURL(process.env.PLAYWRIGHT_MODULE).href : 'playwright');",
+        "const out = resolve('work/item-icons');",
+        "await mkdir(out, { recursive: true });",
+        "const browser = await chromium.launch({channel:'chrome',headless:true, args:['--enable-unsafe-swiftshader']});",
+        "const context = await browser.newContext({ viewport: {width:1440,height:1000} });",
+        "const errors = [], missing = [], checks = [];",
+        "const ids = ['field-verdant-plains-sword','field-sunken-ruins-bow','jayantara-two-hand-sword','garda-shield','rune-might','rune-raja-meteor','magnifier','health-potion-1','mana-potion-3'];",
+        "const hero = freshHero();",
+        "hero.characterName = 'Icon QA';",
+        "hero.level = 50; hero.gold = 100000; hero.hp = 1000; hero.mana = 1;",
+        "hero.coreJob = 'warrior'; hero.job = 'warrior'; hero.jobTier = 'specialization'; hero.specialization = 'garda';"
+      ]
+    },
+    {
+      "path": "scripts/test-npc-hover-browser.mjs",
+      "sha256": "3a4afc2605f438081b484b23406e574c604f97994011fa671ef65c27d005ca23",
+      "status": "OPTIONAL_NOT_EXECUTED_PREREQUISITES_NOT_PACKAGED",
+      "requirements": [
+        {
+          "kind": "DYNAMIC_EXTERNAL_TOOL",
+          "line": 6,
+          "expression": "import(pathToFileURL(process.env.PLAYWRIGHT_MODULE).href)",
+          "disposition": "Exact source expression/environment override governs; installed browser or tool module required separately, no download/install and no portability claim for machine-specific fallback"
+        }
+      ],
+      "sourceExcerpts": [
+        "// Isolated browser save; this never touches the player's production character.",
+        "import assert from 'node:assert/strict';",
+        "import { mkdir, writeFile } from 'node:fs/promises';",
+        "import { resolve } from 'node:path';",
+        "import { pathToFileURL } from 'node:url';",
+        "const { chromium } = await import(pathToFileURL(process.env.PLAYWRIGHT_MODULE).href);",
+        "const browser = await chromium.launch({ channel: 'chrome', headless: true, args: ['--enable-unsafe-swiftshader'] });",
+        "const context = await browser.newContext({ viewport: { width: 1440, height: 1000 } });",
+        "const page = await context.newPage();",
+        "const errors = [], checks = [];",
+        "const out = resolve('work/npc-hover');",
+        "await mkdir(out, { recursive: true });",
+        "page.on('pageerror', error => errors.push(error.message));",
+        "page.on('console', message => { if (message.type() === 'error') errors.push(message.text()); });",
+        "await page.route('**/lib/game/world.ts*', async route => {",
+        "  const response = await route.fetch();",
+        "  await route.fulfill({ response, body: (await response.text()).replace('this.renderer = new T.WebGLRenderer', 'window.__npcHoverQA = this; this.renderer = new T.WebGLRenderer') });",
+        "});",
+        "const check = name => { checks.push(name); console.log('PASS', name); };",
+        "const tooltip = page.locator('.npc-item-tooltip');",
+        "async function openNpc(service) {",
+        "  assert.ok(await page.evaluate(service => {"
+      ]
+    },
+    {
+      "path": "scripts/test-npc-resize-browser.mjs",
+      "sha256": "fb4576ffcc7e21e1156855b2e61bdcddaf1db5e8d5ad3f765e01dc9a8abc8611",
+      "status": "OPTIONAL_NOT_EXECUTED_PREREQUISITES_NOT_PACKAGED",
+      "requirements": [
+        {
+          "kind": "DYNAMIC_EXTERNAL_TOOL",
+          "line": 6,
+          "expression": "import(pathToFileURL(process.env.PLAYWRIGHT_MODULE).href)",
+          "disposition": "Exact source expression/environment override governs; installed browser or tool module required separately, no download/install and no portability claim for machine-specific fallback"
+        }
+      ],
+      "sourceExcerpts": [
+        "// Disposable browser storage; no interaction with the player's production save.",
+        "import assert from 'node:assert/strict';",
+        "import { mkdir, writeFile } from 'node:fs/promises';",
+        "import { resolve } from 'node:path';",
+        "import { pathToFileURL } from 'node:url';",
+        "const { chromium } = await import(pathToFileURL(process.env.PLAYWRIGHT_MODULE).href);",
+        "const browser = await chromium.launch({ channel: 'chrome', headless: true, args: ['--enable-unsafe-swiftshader'] });",
+        "const context = await browser.newContext({ viewport: { width: 1440, height: 1000 } });",
+        "const page = await context.newPage(), errors = [], checks = [];",
+        "const out = resolve('work/npc-resize'); await mkdir(out, { recursive: true });",
+        "page.on('pageerror', error => errors.push(error.message));",
+        "page.on('console', message => { if (message.type() === 'error') errors.push(message.text()); });",
+        "await page.route('**/lib/game/world.ts*', async route => {",
+        "  const response = await route.fetch();",
+        "  await route.fulfill({ response, body: (await response.text()).replace('this.renderer = new T.WebGLRenderer', 'window.__npcQA = this; this.renderer = new T.WebGLRenderer') });",
+        "});",
+        "const ids = { consumable: 'general-merchant', storage: 'storage-keeper', equipment: 'equipment-merchant' };",
+        "const check = name => { checks.push(name); console.log('PASS', name); };",
+        "async function open(service) {",
+        "  assert.ok(await page.evaluate(service => {",
+        "    const g = window.__npcQA, npc = g.npcLabels.find(entry => entry.npc.service === service)?.npc;",
+        "    if (!npc) return false;"
+      ]
+    },
+    {
+      "path": "scripts/test-oak-browser.mjs",
+      "sha256": "a88c27074022beac470f22d8aa994a63a1cf8ee666e89d1a8b534605f63abe02",
+      "status": "OPTIONAL_NOT_EXECUTED_PREREQUISITES_NOT_PACKAGED",
+      "requirements": [
+        {
+          "kind": "DYNAMIC_EXTERNAL_TOOL",
+          "line": 15,
+          "expression": "import(\r\n  pathToFileURL(\r\n    'C:/Users/GG/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright/index.mjs',\r\n  ).href\r\n)",
+          "disposition": "Exact source expression/environment override governs; installed browser or tool module required separately, no download/install and no portability claim for machine-specific fallback"
+        }
+      ],
+      "sourceExcerpts": [
+        "// Real Home + Game in an isolated Chrome profile. No owner saves are touched.",
+        "import assert from 'node:assert/strict';",
+        "import { mkdir, writeFile } from 'node:fs/promises';",
+        "import { pathToFileURL } from 'node:url';",
+        "import { execFileSync } from 'node:child_process';",
+        "import ts from 'typescript';",
+        "import { createV3AdventurerHero, SAVE_KEY } from '../lib/game/rules.ts';",
+        "import { PLAINS_OAKS } from '../lib/game/verdant-plains-oaks.ts';",
+        "import {",
+        "  PLAINS_ID,",
+        "  PLAINS_ENTRY,",
+        "  PLAINS_EXIT,",
+        "  PLAINS_POCKETS,",
+        "} from '../lib/game/verdant-plains-layout.ts';",
+        "const { chromium } = await import(",
+        "  pathToFileURL(",
+        "    'C:/Users/GG/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright/index.mjs',",
+        "  ).href",
+        ");",
+        "const out = process.env.VERDANT_QA_OUTPUT || 'output/oak/runtime';",
+        "const legacyBaseline = process.env.OAK_LEGACY_BASELINE === '1';",
+        "const baselineRef ="
+      ]
+    },
+    {
+      "path": "scripts/test-pause-browser.mjs",
+      "sha256": "b78b851838d1bace6f8585e79c04bb409114df212caaa5a8f4374a72fc586f83",
+      "status": "OPTIONAL_NOT_EXECUTED_PREREQUISITES_NOT_PACKAGED",
+      "requirements": [
+        {
+          "kind": "DYNAMIC_EXTERNAL_TOOL",
+          "line": 6,
+          "expression": "import(pathToFileURL(process.env.PLAYWRIGHT_MODULE).href)",
+          "disposition": "Exact source expression/environment override governs; installed browser or tool module required separately, no download/install and no portability claim for machine-specific fallback"
+        }
+      ],
+      "sourceExcerpts": [
+        "import assert from 'node:assert/strict';",
+        "import { mkdir, writeFile } from 'node:fs/promises';",
+        "import { resolve } from 'node:path';",
+        "import { pathToFileURL } from 'node:url';",
+        "",
+        "const { chromium } = await import(pathToFileURL(process.env.PLAYWRIGHT_MODULE).href);",
+        "const browser = await chromium.launch({ channel: 'chrome', headless: true, args: ['--enable-unsafe-swiftshader'] });",
+        "const context = await browser.newContext({ viewport: { width: 1440, height: 1000 } });",
+        "const page = await context.newPage();",
+        "const errors = [], checks = [];",
+        "const out = resolve('work/pause');",
+        "await mkdir(out, { recursive: true });",
+        "",
+        "page.on('pageerror', error => errors.push(error.message));",
+        "page.on('console', message => { if (message.type() === 'error') errors.push(message.text()); });",
+        "await page.route('**/lib/game/world.ts*', async route => {",
+        "  const response = await route.fetch();",
+        "  const body = (await response.text()).replace(",
+        "    'this.renderer = new T.WebGLRenderer',",
+        "    'window.__pauseQA = this; this.renderer = new T.WebGLRenderer',",
+        "  );",
+        "  await route.fulfill({ response, body });"
+      ]
+    },
+    {
+      "path": "scripts/test-rune-forge-browser.mjs",
+      "sha256": "0dcc8f3039d020bac25d297a4dc45312a282611294ae344650d89457fd0164a4",
+      "status": "OPTIONAL_NOT_EXECUTED_PREREQUISITES_NOT_PACKAGED",
+      "requirements": [
+        {
+          "kind": "DYNAMIC_EXTERNAL_TOOL",
+          "line": 9,
+          "expression": "import(pathToFileURL(process.env.PLAYWRIGHT_MODULE).href)",
+          "disposition": "Exact source expression/environment override governs; installed browser or tool module required separately, no download/install and no portability claim for machine-specific fallback"
+        }
+      ],
+      "sourceExcerpts": [
+        "// Isolated browser context and disposable character only; never uses the player's profile.",
+        "import assert from 'node:assert/strict';",
+        "import { mkdir, writeFile } from 'node:fs/promises';",
+        "import { resolve } from 'node:path';",
+        "import { pathToFileURL } from 'node:url';",
+        "import { freshHero, SAVE_KEY } from '../lib/game/rules.ts';",
+        "import { createItem, createRuneItem, rollRuneAffixes, stableItemRandom, RUNE_THEME_POOLS } from '../lib/game/items.ts';",
+        "import { CITIES } from '../lib/game/regions.ts';",
+        "const { chromium } = await import(pathToFileURL(process.env.PLAYWRIGHT_MODULE).href);",
+        "const out=resolve('work/rune-forge');await mkdir(out,{recursive:true});",
+        "const hero=freshHero();hero.characterName='Rune Forge QA';hero.gold=100000;hero.level=40;hero.coreJob='wizard';hero.job='wizard';hero.jobTier='core';",
+        "const staff=createItem('field-meteorfall-citadel-staff',{id:'meteor-qa',rarity:'unique',sockets:[{id:'s1',rune:null},{id:'s2',rune:null}]});",
+        "// Simulate the broken legacy Unique item and untrusted generic equipment affixes.",
+        "staff.bonusStats={};staff.uniqueStatsLocked=false;staff.affixes=[{id:'old-bad',stat:'physicalDamage',label:'Physical Damage',value:99,unit:'percent',source:'runeOptimizer'}];",
+        "const rune=createRuneItem('focus','rare',{id:'focus-qa',affixes:rollRuneAffixes('focus','rare',stableItemRandom('browser-focus'))});",
+        "const epic=createRuneItem('focus','epic',{id:'focus-epic',affixes:rollRuneAffixes('focus','epic',stableItemRandom('browser-epic'))});",
+        "hero.inventory=[staff,rune,epic,createRuneItem('might','rare',{id:'restricted',runeJobRequirement:'rogue'}),",
+        " createItem('rune-optimizer-basic',{id:'locked-basic',quantity:20,isLocked:true}),",
+        " ...['rune-optimizer-basic','rune-stabilizer','rune-optimizer-chromatic','rune-optimizer-greater-chromatic','rune-optimizer-perfect-chromatic'].map(id=>createItem(id,{id,quantity:20})),",
+        " createItem('magnifier',{id:'glass',quantity:2}),createItem('iron',{quantity:30}),createItem('titanium',{quantity:10})];",
+        "hero.equipment.mainHand=staff.id;",
+        "const browser=await chromium.launch({channel:'chrome',headless:true,args:['--enable-unsafe-swiftshader']});"
+      ]
+    },
+    {
+      "path": "scripts/test-stamina-browser.mjs",
+      "sha256": "d6f21c60fdd3d83800ae9bf2adb0063c53df61d6a542bc201c90ff0e6ce4101c",
+      "status": "OPTIONAL_NOT_EXECUTED_PREREQUISITES_NOT_PACKAGED",
+      "requirements": [
+        {
+          "kind": "DYNAMIC_EXTERNAL_TOOL",
+          "line": 6,
+          "expression": "import(pathToFileURL(process.env.PLAYWRIGHT_MODULE).href)",
+          "disposition": "Exact source expression/environment override governs; installed browser or tool module required separately, no download/install and no portability claim for machine-specific fallback"
+        }
+      ],
+      "sourceExcerpts": [
+        "import assert from 'node:assert/strict';",
+        "import { mkdir, writeFile } from 'node:fs/promises';",
+        "import { resolve } from 'node:path';",
+        "import { pathToFileURL } from 'node:url';",
+        "",
+        "const { chromium } = await import(pathToFileURL(process.env.PLAYWRIGHT_MODULE).href);",
+        "const browser = await chromium.launch({ channel: 'chrome', headless: true, args: ['--enable-unsafe-swiftshader'] });",
+        "const context = await browser.newContext({ viewport: { width: 1440, height: 1000 } });",
+        "const page = await context.newPage();",
+        "const errors = [], checks = [];",
+        "const out = resolve('work/stamina');",
+        "await mkdir(out, { recursive: true });",
+        "page.on('pageerror', error => errors.push(error.message));",
+        "await page.route('**/lib/game/world.ts*', async route => {",
+        "  const response = await route.fetch();",
+        "  const body = (await response.text()).replace('this.renderer = new T.WebGLRenderer',",
+        "    'window.__staminaQA = this; this.renderer = new T.WebGLRenderer');",
+        "  await route.fulfill({ response, body });",
+        "});",
+        "const check = name => { checks.push(name); console.log('PASS', name); };",
+        "const sample = () => page.evaluate(() => {",
+        "  const g = window.__staminaQA;"
+      ]
+    },
+    {
+      "path": "scripts/test-sword-aura-browser.mjs",
+      "sha256": "9d7b5bbe04ec5f3daac032fad5271780483b97f8a35b90eb366f4df07a3c24f8",
+      "status": "OPTIONAL_NOT_EXECUTED_PREREQUISITES_NOT_PACKAGED",
+      "requirements": [
+        {
+          "kind": "DYNAMIC_EXTERNAL_TOOL",
+          "line": 8,
+          "expression": "import(pathToFileURL(process.env.PLAYWRIGHT_MODULE).href)",
+          "disposition": "Exact source expression/environment override governs; installed browser or tool module required separately, no download/install and no portability claim for machine-specific fallback"
+        }
+      ],
+      "sourceExcerpts": [
+        "// Disposable save + test-only inspection handles. Never modifies the player's save.",
+        "import assert from 'node:assert/strict';",
+        "import { mkdir, writeFile } from 'node:fs/promises';",
+        "import { resolve } from 'node:path';",
+        "import { pathToFileURL } from 'node:url';",
+        "import { freshHero, SAVE_KEY, createItem } from '../lib/game/rules.ts';",
+        "import { CITIES } from '../lib/game/regions.ts';",
+        "const { chromium } = await import(pathToFileURL(process.env.PLAYWRIGHT_MODULE).href);",
+        "const browser = await chromium.launch({ channel: 'chrome', headless: true, args: ['--enable-unsafe-swiftshader'] });",
+        "const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });",
+        "const hero = freshHero(), sword = hero.inventory.find(item => item.id === hero.equipment.mainHand);",
+        "sword.enhancementLevel = 9; hero.inventory.push(createItem('meteorite-core', { quantity: 20 }));",
+        "const npc = CITIES.arunika.npcList.find(npc => npc.service === 'forge');",
+        "hero.x = npc.x; hero.z = npc.z + 1;",
+        "await context.addInitScript(({ key, hero }) => {",
+        "  if (!localStorage.getItem('flame-qa')) {",
+        "    localStorage.setItem(key, JSON.stringify({ version: 3, activeSlot: 'slot-1', characters: { 'slot-1': hero } }));",
+        "    localStorage.setItem('flame-qa', '1');",
+        "  }",
+        "}, { key: SAVE_KEY, hero });",
+        "const page = await context.newPage(), errors = [], checks = [], requests = [];",
+        "const out = resolve('work/sword-aura'); await mkdir(out, { recursive: true });"
+      ]
+    },
+    {
+      "path": "scripts/test-sword-grip-browser.mjs",
+      "sha256": "af2958329e0d98edb1acfb78349e88226b1c759d7c0416eeedb435c8dc879ae6",
+      "status": "OPTIONAL_NOT_EXECUTED_PREREQUISITES_NOT_PACKAGED",
+      "requirements": [
+        {
+          "kind": "DYNAMIC_EXTERNAL_TOOL",
+          "line": 6,
+          "expression": "import(pathToFileURL(process.env.PLAYWRIGHT_MODULE).href)",
+          "disposition": "Exact source expression/environment override governs; installed browser or tool module required separately, no download/install and no portability claim for machine-specific fallback"
+        }
+      ],
+      "sourceExcerpts": [
+        "// Test-only world/preview handles in a disposable browser; player saves are untouched.",
+        "import assert from 'node:assert/strict';",
+        "import { mkdir, writeFile } from 'node:fs/promises';",
+        "import { resolve } from 'node:path';",
+        "import { pathToFileURL } from 'node:url';",
+        "const { chromium } = await import(pathToFileURL(process.env.PLAYWRIGHT_MODULE).href);",
+        "const browser = await chromium.launch({ channel: 'chrome', headless: true, args: ['--enable-unsafe-swiftshader'] });",
+        "const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });",
+        "const page = await context.newPage(), errors = [], checks = [];",
+        "const out = resolve('work/sword-grip'); await mkdir(out, { recursive: true });",
+        "page.on('pageerror', error => errors.push(error.message));",
+        "await page.route('**/lib/game/world.ts*', async route => {",
+        "  const response = await route.fetch();",
+        "  await route.fulfill({ response, body: (await response.text()).replace('this.renderer = new T.WebGLRenderer', 'window.__swordQA = this; this.renderer = new T.WebGLRenderer') });",
+        "});",
+        "await page.route('**/components/game/character-preview.tsx*', async route => {",
+        "  const response = await route.fetch();",
+        "  await route.fulfill({ response, body: (await response.text()).replace('const model = buildModel(createCharacterModel);', 'const model = buildModel(createCharacterModel); window.__swordPreview = model;') });",
+        "});",
+        "const check = name => { checks.push(name); console.log('PASS', name); };",
+        "const gripState = preview => page.evaluate(preview => {",
+        "  const m = preview ? window.__swordPreview : window.__swordQA.characterModel;"
+      ]
+    },
+    {
+      "path": "scripts/test-verdant-browser.mjs",
+      "sha256": "606173ac96af48444f7817c830439f30af42e241b2a73d7a634d916d34bf1576",
+      "status": "OPTIONAL_NOT_EXECUTED_PREREQUISITES_NOT_PACKAGED",
+      "requirements": [
+        {
+          "kind": "DYNAMIC_EXTERNAL_TOOL",
+          "line": 8,
+          "expression": "import(pathToFileURL(process.env.PLAYWRIGHT_MODULE).href)",
+          "disposition": "Exact source expression/environment override governs; installed browser or tool module required separately, no download/install and no portability claim for machine-specific fallback"
+        }
+      ],
+      "sourceExcerpts": [
+        "// Isolated browser profile; production and the player's saves are never touched.",
+        "import assert from 'node:assert/strict';",
+        "import {mkdir,writeFile} from 'node:fs/promises';",
+        "import {resolve} from 'node:path';",
+        "import {pathToFileURL} from 'node:url';",
+        "import {freshHero,SAVE_KEY} from '../lib/game/rules.ts';",
+        "import {VERDANT_TERRAIN,terrainWalkable,verdantRiverZ} from '../lib/game/field-terrain.ts';",
+        "const {chromium}=await import(pathToFileURL(process.env.PLAYWRIGHT_MODULE).href);",
+        "const out=resolve('work/verdant-terrain');await mkdir(out,{recursive:true});",
+        "const browser=await chromium.launch({channel:'chrome',headless:true,args:['--enable-unsafe-swiftshader']});",
+        "const context=await browser.newContext({viewport:{width:1440,height:960}});",
+        "const hero=freshHero();hero.characterName='Terrain QA';hero.inCity=false;hero.currentField='verdant-plains';Object.assign(hero,VERDANT_TERRAIN.entry);hero.level=10;hero.gold=2000;",
+        "await context.addInitScript(({key,hero})=>{if(!localStorage.getItem('terrain-qa-seeded')){localStorage.setItem(key,JSON.stringify({version:3,activeSlot:'slot-1',characters:{'slot-1':hero}}));localStorage.setItem('terrain-qa-seeded','1');}},{key:SAVE_KEY,hero});",
+        "const page=await context.newPage(),errors=[],checks=[];",
+        "page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()==='error')errors.push(m.text());});",
+        "// Test-only handle inserted into the served dev module; no debug hook ships in source.",
+        "await page.route('**/lib/game/world.ts*',async route=>{const r=await route.fetch();let body=await r.text();body=body.replace('this.renderer = new T.WebGLRenderer','window.__terrainQA = this; this.renderer = new T.WebGLRenderer');await route.fulfill({response:r,body});});",
+        "const check=name=>{checks.push(name);console.log('PASS',name);};",
+        "try {",
+        "  await page.goto('http://localhost:3001/',{waitUntil:'networkidle'});",
+        "  await page.getByRole('button',{name:'Lanjutkan perjalanan',exact:true}).click();",
+        "  await page.waitForFunction(()=>window.__terrainQA?.started);"
+      ]
+    },
+    {
+      "path": "scripts/test-verdant-v2-browser.mjs",
+      "sha256": "f7d25436f910fdfa759f98524babf5da0911a30d5a47898cb303ba0a7b15e574",
+      "status": "OPTIONAL_NOT_EXECUTED_PREREQUISITES_NOT_PACKAGED",
+      "requirements": [
+        {
+          "kind": "DYNAMIC_EXTERNAL_TOOL",
+          "line": 14,
+          "expression": "import(\r\n  pathToFileURL(\r\n    'C:/Users/GG/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright/index.mjs',\r\n  ).href\r\n)",
+          "disposition": "Exact source expression/environment override governs; installed browser or tool module required separately, no download/install and no portability claim for machine-specific fallback"
+        }
+      ],
+      "sourceExcerpts": [
+        "// Real Home + Game in an isolated Chrome profile. No owner saves are touched.",
+        "import assert from 'node:assert/strict';",
+        "import { mkdir, writeFile } from 'node:fs/promises';",
+        "import { pathToFileURL } from 'node:url';",
+        "import { createV3AdventurerHero, SAVE_KEY } from '../lib/game/rules.ts';",
+        "import {",
+        "  PLAINS_ID,",
+        "  PLAINS_ENTRY,",
+        "  PLAINS_EXIT,",
+        "  PLAINS_POCKETS,",
+        "  plainsCoast,",
+        "  plainsProps,",
+        "} from '../lib/game/verdant-plains-layout.ts';",
+        "const { chromium } = await import(",
+        "  pathToFileURL(",
+        "    'C:/Users/GG/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright/index.mjs',",
+        "  ).href",
+        ");",
+        "const out = process.env.VERDANT_QA_OUTPUT || 'output/verdant-plains';",
+        "await mkdir(out, { recursive: true });",
+        "const browser = await chromium.launch({",
+        "  channel: 'chrome',"
+      ]
+    },
+    {
+      "path": "scripts/verify-armor-break-ownership.mjs",
+      "sha256": "58942db5c7b5256d9e4805af71300a21bbee3a2af112d719b01947a8e12bec3c",
+      "status": "OPTIONAL_NOT_EXECUTED_PREREQUISITES_NOT_PACKAGED",
+      "requirements": [
+        {
+          "kind": "DYNAMIC_EXTERNAL_TOOL",
+          "line": 7,
+          "expression": "import(pathToFileURL(`${runtime}/playwright/index.mjs`).href)",
+          "disposition": "Exact source expression/environment override governs; installed browser or tool module required separately, no download/install and no portability claim for machine-specific fallback"
+        }
+      ],
+      "sourceExcerpts": [
+        "import assert from 'node:assert/strict';",
+        "import { build } from 'vite';",
+        "import { mkdir, writeFile } from 'node:fs/promises';",
+        "import { resolve } from 'node:path';",
+        "import { pathToFileURL } from 'node:url';",
+        "const runtime=process.env.CODEX_NODE_MODULES || 'C:/Users/USER/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules';",
+        "const {chromium}=await import(pathToFileURL(`${runtime}/playwright/index.mjs`).href);",
+        "const out=resolve('output/release-audit/armor-break-ownership');await mkdir(out,{recursive:true});",
+        "const built=await build({configFile:false,logLevel:'error',build:{write:false,minify:false,lib:{entry:resolve('tests/browser/armor-break-ownership-fixture.ts'),formats:['iife'],name:'ArmorBreakOwnershipFixture'}}});",
+        "const code=(Array.isArray(built)?built:[built]).flatMap(b=>b.output).find(c=>c.type==='chunk').code;",
+        "const browser=await chromium.launch({channel:'chrome',headless:true});const page=await browser.newPage();const errors=[];",
+        "page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(['error','warning'].includes(m.type()))errors.push(m.text());});",
+        "await page.route('http://armor-break.test/**',route=>route.fulfill({status:200,contentType:route.request().url().includes('.bundle.js')?'application/javascript':'text/html',body:route.request().url().includes('.bundle.js')?code:'<pre id=\"result\"></pre><script type=\"module\" src=\"/tests/browser/armor-break-ownership-fixture.bundle.js\"></script>'}));",
+        "await page.goto('http://armor-break.test/tests/browser/armor-break-ownership-fixture.html',{waitUntil:'networkidle'});await page.waitForFunction(()=>Boolean(window.__armorBreakOwnershipFixture));",
+        "const payload=await page.evaluate(()=>window.__armorBreakOwnershipFixture);assert.deepEqual(errors,[]);",
+        "assert.equal(payload.aFinale.payoffApplied,true);assert.equal(payload.bFinale.payoffApplied,false);assert.equal(payload.aRuinous.payoffApplied,true);assert.equal(payload.bRuinous.payoffApplied,false);",
+        "assert.equal(payload.strongest.effectiveReduction,12);assert.equal(payload.afterB.effectiveReduction,6);assert.equal(payload.afterAll.effectiveReduction,0);assert.equal(payload.refreshed.active.length,1);",
+        "await page.screenshot({path:resolve(out,'ownership.png'),fullPage:true});await writeFile(resolve(out,'results.json'),JSON.stringify({status:'PASS',payload,errors},null,2));console.log(JSON.stringify({status:'PASS',errors,payload},null,2));await browser.close();",
+        ""
+      ]
+    },
+    {
+      "path": "scripts/verify-blade-master-7a.mjs",
+      "sha256": "8201e1fed8ae0a0cda466b9d04f75597db498206a8b15db8082d7bb7b4194bda",
+      "status": "OPTIONAL_NOT_EXECUTED_PREREQUISITES_NOT_PACKAGED",
+      "requirements": [
+        {
+          "kind": "DYNAMIC_EXTERNAL_TOOL",
+          "line": 8,
+          "expression": "import(pathToFileURL(`${runtime}/playwright/index.mjs`).href)",
+          "disposition": "Exact source expression/environment override governs; installed browser or tool module required separately, no download/install and no portability claim for machine-specific fallback"
+        }
+      ],
+      "sourceExcerpts": [
+        "import assert from 'node:assert/strict';",
+        "import { build } from 'vite';",
+        "import { mkdir, writeFile } from 'node:fs/promises';",
+        "import { resolve } from 'node:path';",
+        "import { pathToFileURL } from 'node:url';",
+        "",
+        "const runtime = process.env.CODEX_NODE_MODULES || 'C:/Users/USER/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules';",
+        "const { chromium } = await import(pathToFileURL(`${runtime}/playwright/index.mjs`).href);",
+        "const out = resolve('output/release-audit/blade-master-7a');",
+        "await mkdir(out, { recursive: true });",
+        "const built = await build({ configFile: false, logLevel: 'error', build: { write: false, minify: false, lib: { entry: resolve('tests/browser/blade-master-7a-fixture.ts'), formats: ['iife'], name: 'BladeMaster7AFixture' } } });",
+        "const code = (Array.isArray(built) ? built : [built]).flatMap((b) => b.output).find((c) => c.type === 'chunk').code;",
+        "const browser = await chromium.launch({ channel: 'chrome', headless: true });",
+        "const page = await browser.newPage();",
+        "const errors = [];",
+        "page.on('pageerror', (e) => errors.push(e.message));",
+        "page.on('console', (m) => { if (['error', 'warning'].includes(m.type())) errors.push(m.text()); });",
+        "await page.route('http://blade-master-7a.test/**', (route) => route.fulfill({ status: 200, contentType: route.request().url().includes('.bundle.js') ? 'application/javascript' : 'text/html', body: route.request().url().includes('.bundle.js') ? code : '<pre id=\"result\"></pre><script type=\"module\" src=\"/tests/browser/blade-master-7a-fixture.bundle.js\"></script>' }));",
+        "await page.goto('http://blade-master-7a.test/tests/browser/blade-master-7a-fixture.html', { waitUntil: 'networkidle' });",
+        "await page.waitForFunction(() => Boolean(window.__bladeMaster7AFixture));",
+        "const payload = await page.evaluate(() => window.__bladeMaster7AFixture);",
+        "assert.deepEqual(errors, []);"
+      ]
+    },
+    {
+      "path": "scripts/verify-blade-master-7b.mjs",
+      "sha256": "09d51810f91537eab7bb147f654d7430a93438058095d05d9b5b266035bb1717",
+      "status": "OPTIONAL_NOT_EXECUTED_PREREQUISITES_NOT_PACKAGED",
+      "requirements": [
+        {
+          "kind": "DYNAMIC_EXTERNAL_TOOL",
+          "line": 8,
+          "expression": "import(pathToFileURL(`${runtime}/playwright/index.mjs`).href)",
+          "disposition": "Exact source expression/environment override governs; installed browser or tool module required separately, no download/install and no portability claim for machine-specific fallback"
+        }
+      ],
+      "sourceExcerpts": [
+        "import assert from 'node:assert/strict';",
+        "import { build } from 'vite';",
+        "import { mkdir, writeFile } from 'node:fs/promises';",
+        "import { resolve } from 'node:path';",
+        "import { pathToFileURL } from 'node:url';",
+        "",
+        "const runtime = process.env.CODEX_NODE_MODULES || 'C:/Users/USER/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules';",
+        "const { chromium } = await import(pathToFileURL(`${runtime}/playwright/index.mjs`).href);",
+        "const out=resolve('output/release-audit/blade-master-7b');",
+        "await mkdir(out,{recursive:true});",
+        "const built=await build({configFile:false,logLevel:'error',build:{write:false,minify:false,lib:{entry:resolve('tests/browser/blade-master-7b-fixture.ts'),formats:['iife'],name:'BladeMaster7BFixture'}}});",
+        "const code=(Array.isArray(built)?built:[built]).flatMap(b=>b.output).find(c=>c.type==='chunk').code;",
+        "const browser=await chromium.launch({channel:'chrome',headless:true});",
+        "try {",
+        "  const page=await browser.newPage(),errors=[];",
+        "  page.on('pageerror',e=>errors.push(e.message));",
+        "  page.on('console',m=>{if(['error','warning'].includes(m.type()))errors.push(m.text());});",
+        "  page.on('requestfailed',r=>errors.push(`${r.url()}: ${r.failure()?.errorText}`));",
+        "  await page.route('http://blade-master-7b.test/**',route=>route.fulfill({status:200,contentType:route.request().url().endsWith('.bundle.js')?'application/javascript':'text/html',body:route.request().url().endsWith('.bundle.js')?code:'<pre id=\"result\"></pre><script type=\"module\" src=\"/tests/browser/blade-master-7b-fixture.bundle.js\"></script>'}));",
+        "  await page.goto('http://blade-master-7b.test/tests/browser/blade-master-7b-fixture.html',{waitUntil:'networkidle'});",
+        "  await page.waitForFunction(()=>Boolean(window.__bladeMaster7BFixture));",
+        "  const data=await page.evaluate(()=>window.__bladeMaster7BFixture);"
+      ]
+    },
+    {
+      "path": "scripts/verify-dual-wield-foundation.mjs",
+      "sha256": "476f3a296187f1098e772c661e64a63b2a710f89acdd2b6950f6a170e51fc009",
+      "status": "OPTIONAL_NOT_EXECUTED_PREREQUISITES_NOT_PACKAGED",
+      "requirements": [
+        {
+          "kind": "DYNAMIC_EXTERNAL_TOOL",
+          "line": 7,
+          "expression": "import(pathToFileURL(`${runtime}/playwright/index.mjs`).href)",
+          "disposition": "Exact source expression/environment override governs; installed browser or tool module required separately, no download/install and no portability claim for machine-specific fallback"
+        }
+      ],
+      "sourceExcerpts": [
+        "import assert from 'node:assert/strict';",
+        "import { build } from 'vite';",
+        "import { mkdir, writeFile } from 'node:fs/promises';",
+        "import { resolve } from 'node:path';",
+        "import { pathToFileURL } from 'node:url';",
+        "const runtime=process.env.CODEX_NODE_MODULES || 'C:/Users/USER/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules';",
+        "const {chromium}=await import(pathToFileURL(`${runtime}/playwright/index.mjs`).href);",
+        "const out=resolve('output/release-audit/dual-wield-foundation'); await mkdir(out,{recursive:true});",
+        "const built=await build({configFile:false,logLevel:'error',build:{write:false,minify:false,lib:{entry:resolve('tests/browser/dual-wield-foundation-fixture.ts'),formats:['iife'],name:'DualWieldFoundationFixture'}}});",
+        "const code=(Array.isArray(built)?built:[built]).flatMap(b=>b.output).find(c=>c.type==='chunk').code;",
+        "const browser=await chromium.launch({channel:'chrome',headless:true}); const page=await browser.newPage(); const errors=[];",
+        "page.on('pageerror',e=>errors.push(e.message)); page.on('console',m=>{if(['error','warning'].includes(m.type()))errors.push(m.text());});",
+        "await page.route('http://dual-wield.test/**',route=>route.fulfill({status:200,contentType:route.request().url().includes('.bundle.js')?'application/javascript':'text/html',body:route.request().url().includes('.bundle.js')?code:'<pre id=\"result\"></pre><script type=\"module\" src=\"/tests/browser/dual-wield-foundation-fixture.bundle.js\"></script>'}));",
+        "await page.goto('http://dual-wield.test/tests/browser/dual-wield-foundation-fixture.html',{waitUntil:'networkidle'}); await page.waitForFunction(()=>Boolean(window.__dualWieldFoundationFixture));",
+        "const payload=await page.evaluate(()=>window.__dualWieldFoundationFixture); assert.deepEqual(errors,[]); assert.equal(payload.status,'PASS'); assert.equal(payload.worldImported,false); assert.equal(payload.mainHandWeaponLayer,100); assert.equal(payload.offHandWeaponLayer,70); assert.equal(payload.singleMainRawWeaponAttack,100); assert.equal(payload.dualCombinedRawWeaponAttack,170); assert.equal(payload.equipmentSTR,15); assert.equal(payload.equipmentCritRate,5); assert.equal(payload.activeUniqueEffects.length,1);",
+        "await page.screenshot({path:resolve(out,'fixture.png'),fullPage:true}); await writeFile(resolve(out,'results.json'),JSON.stringify({status:'PASS',payload,errors},null,2)); console.log(JSON.stringify({status:'PASS',payload,errors},null,2)); await browser.close();",
+        ""
+      ]
+    },
+    {
+      "path": "scripts/verify-live-job-integration-v3.mjs",
+      "sha256": "f57d22eed74bd929b927a4d765091e99387adc2dfdaca164cec2c9be473d39f7",
+      "status": "OPTIONAL_NOT_EXECUTED_PREREQUISITES_NOT_PACKAGED",
+      "requirements": [
+        {
+          "kind": "DYNAMIC_EXTERNAL_TOOL",
+          "line": 14,
+          "expression": "import(\r\n  pathToFileURL(`${runtime}/playwright/index.mjs`).href\r\n)",
+          "disposition": "Exact source expression/environment override governs; installed browser or tool module required separately, no download/install and no portability claim for machine-specific fallback"
+        }
+      ],
+      "sourceExcerpts": [
+        "import assert from 'node:assert/strict';",
+        "import { mkdir, writeFile } from 'node:fs/promises';",
+        "import { resolve } from 'node:path';",
+        "import { pathToFileURL } from 'node:url';",
+        "import {",
+        "  SAVE_KEY,",
+        "  createV3JobDevelopmentHero,",
+        "} from '../lib/game/rules.ts';",
+        "import { CITIES } from '../lib/game/regions.ts';",
+        "",
+        "const runtime =",
+        "  process.env.CODEX_NODE_MODULES ||",
+        "  'C:/Users/USER/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules';",
+        "const { chromium } = await import(",
+        "  pathToFileURL(`${runtime}/playwright/index.mjs`).href",
+        ");",
+        "const origin = process.env.LUMENFALL_JOB_TEST_URL || 'http://127.0.0.1:3014/';",
+        "const out = resolve('output/spv3-7a2-live-job-evidence');",
+        "await mkdir(out, { recursive: true });",
+        "",
+        "const trainer = CITIES.jayantara.npcList.find((npc) => npc.id === 'jaya-1');",
+        "assert.ok(trainer, 'Specialization trainer jaya-1 must exist');"
+      ]
+    },
+    {
+      "path": "scripts/verify-public-release.mjs",
+      "sha256": "80c871f6daa038fa48adf5dc861301120e35cd1e6fa0d5733f4110e77aa01193",
+      "status": "OPTIONAL_NOT_EXECUTED_PREREQUISITES_NOT_PACKAGED",
+      "requirements": [
+        {
+          "kind": "DYNAMIC_EXTERNAL_TOOL",
+          "line": 8,
+          "expression": "import(pathToFileURL(`${runtime}/playwright/index.mjs`).href)",
+          "disposition": "Exact source expression/environment override governs; installed browser or tool module required separately, no download/install and no portability claim for machine-specific fallback"
+        }
+      ],
+      "sourceExcerpts": [
+        "// Fresh browser contexts: no access to the owner's browser profile or saves.",
+        "import assert from 'node:assert/strict';",
+        "import { mkdir, writeFile } from 'node:fs/promises';",
+        "import { resolve } from 'node:path';",
+        "import { pathToFileURL } from 'node:url';",
+        "import { createNewCharacter, chooseV3Warrior, chooseV3Berserker, SAVE_KEY } from '../lib/game/rules.ts';",
+        "const runtime=process.env.CODEX_NODE_MODULES || 'C:/Users/USER/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules';",
+        "const {chromium}=await import(pathToFileURL(`${runtime}/playwright/index.mjs`).href);",
+        "const url=process.env.RELEASE_TEST_URL || 'http://127.0.0.1:3010/';",
+        "const out=resolve('output/release-audit',process.env.RELEASE_TEST_LABEL || 'production-preview');",
+        "await mkdir(out,{recursive:true});",
+        "const browser=await chromium.launch({channel:'chrome',headless:true});",
+        "const results=[],errors=[],warnings=[],failedRequests=[];",
+        "const check=(name,ok,detail)=>{assert.ok(ok,name);results.push({name,detail});console.log(`PASS ${name}`);};",
+        "async function scenario(label,hero,run){",
+        " const context=await browser.newContext({viewport:{width:1440,height:900}});",
+        " await context.tracing.start({screenshots:true,snapshots:true});",
+        " if(hero) await context.addInitScript(({key,hero})=>{",
+        "  if(!localStorage.getItem(key))localStorage.setItem(key,JSON.stringify({version:3,activeSlot:'slot-1',lastPlayedCharacterId:hero.characterId,characters:{'slot-1':hero}}));",
+        " },{key:SAVE_KEY,hero});",
+        " const page=await context.newPage();page.setDefaultTimeout(30000);",
+        " page.on('console',m=>{if(m.type()==='error')console.error('CONSOLE',m.text());});"
+      ]
+    },
+    {
+      "path": "scripts/verify-release-combat.mjs",
+      "sha256": "cbaffd1e4e34e3d4c9ebb453d47058357771342cfcfe18f1f1f798e9b828a751",
+      "status": "OPTIONAL_NOT_EXECUTED_PREREQUISITES_NOT_PACKAGED",
+      "requirements": [
+        {
+          "kind": "DYNAMIC_EXTERNAL_TOOL",
+          "line": 8,
+          "expression": "import(pathToFileURL(`${runtime}/playwright/index.mjs`).href)",
+          "disposition": "Exact source expression/environment override governs; installed browser or tool module required separately, no download/install and no portability claim for machine-specific fallback"
+        }
+      ],
+      "sourceExcerpts": [
+        "// Builds current combat fixture source, never uses a stale checked-in bundle.",
+        "import assert from 'node:assert/strict';",
+        "import { build } from 'vite';",
+        "import { mkdir, readFile, writeFile } from 'node:fs/promises';",
+        "import { resolve } from 'node:path';",
+        "import { pathToFileURL } from 'node:url';",
+        "const runtime=process.env.CODEX_NODE_MODULES || 'C:/Users/USER/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules';",
+        "const {chromium}=await import(pathToFileURL(`${runtime}/playwright/index.mjs`).href);",
+        "const out=resolve('output/release-audit/combat');await mkdir(out,{recursive:true});",
+        "const browser=await chromium.launch({channel:'chrome',headless:true});const results=[];",
+        "try{",
+        " for(const name of ['iron-charge','berserker']){",
+        "  const built=await build({configFile:false,logLevel:'error',build:{write:false,minify:false,lib:{entry:resolve(`tests/browser/${name}-fixture.ts`),formats:['iife'],name:'ReleaseFixture'}}});",
+        "  const chunks=(Array.isArray(built)?built:[built]).flatMap(b=>b.output);const code=chunks.find(c=>c.type==='chunk').code;",
+        "  const page=await browser.newPage();const errors=[];",
+        "  page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(['error','warning'].includes(m.type()))errors.push(m.text());});",
+        "  const html=await readFile(`tests/browser/${name}-fixture.html`,'utf8');",
+        "  await page.route('http://release-fixture.test/**',route=>route.fulfill({status:200,contentType:route.request().url().includes('.bundle.js')?'application/javascript':'text/html',body:route.request().url().includes('.bundle.js')?code:html}));",
+        "  await page.goto(`http://release-fixture.test/${name}-fixture.html`,{waitUntil:'networkidle'});",
+        "  const key=name==='iron-charge'?'__ironChargeFixture':'__berserkerFixture';",
+        "  await page.waitForFunction(key=>Boolean(window[key]),key);",
+        "  const result=await page.evaluate(key=>window[key],key);"
+      ]
+    },
+    {
+      "path": "tests/browser/global-targeting-regression.mjs",
+      "sha256": "6e271c9653f64e8d2f021caa861fb702ddd60a943fea502d02f8e9aa078510a3",
+      "status": "OPTIONAL_NOT_EXECUTED_PREREQUISITES_NOT_PACKAGED",
+      "requirements": [
+        {
+          "kind": "DYNAMIC_EXTERNAL_TOOL",
+          "line": 6,
+          "expression": "require(process.env.PLAYWRIGHT_MODULE || 'playwright')",
+          "disposition": "Exact source expression/environment override governs; installed browser or tool module required separately, no download/install and no portability claim for machine-specific fallback"
+        }
+      ],
+      "sourceExcerpts": [
+        "// Real Home + Padang Arunika, memory save from the existing DEV-only harness.",
+        "import assert from 'node:assert/strict';",
+        "import { createRequire } from 'node:module';",
+        "import { mkdir, writeFile } from 'node:fs/promises';",
+        "const require = createRequire(import.meta.url);",
+        "const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright');",
+        "const origin = 'http://127.0.0.1:3003';",
+        "const browser = await chromium.launch({ channel: 'chrome', headless: false });",
+        "const evidence = [];",
+        "try {",
+        "  await mkdir('output/global-targeting', { recursive: true });",
+        "  const context = await browser.newContext({ viewport: { width: 1440, height: 1000 } });",
+        "  const page = await context.newPage();",
+        "  const errors = [];",
+        "  page.on('pageerror', e => errors.push(e.message));",
+        "  await page.goto(`${origin}/warrior-world.html?architecture=legacy`);",
+        "  await page.getByRole('button', { name: /^continue$/i }).click();",
+        "  await page.waitForFunction(() => window.__warriorQA?.game?.started, { timeout: 60000 });",
+        "  // Controlled layout of two REAL map entities for reliable visible clicks.",
+        "  // Freeze the loop, not the input/renderer/combat methods. No player persistence.",
+        "  await page.evaluate(() => {",
+        "    const g = window.__warriorQA.game;"
+      ]
+    },
+    {
+      "path": "tests/browser/job-skill-lineage-verify.mjs",
+      "sha256": "ef731c6b03a05700581c9a5769fc2a1897b0b78e2346e57d0d03b0ba3a5e69e6",
+      "status": "OPTIONAL_NOT_EXECUTED_PREREQUISITES_NOT_PACKAGED",
+      "requirements": [
+        {
+          "kind": "DYNAMIC_EXTERNAL_TOOL",
+          "line": 3,
+          "expression": "import(process.env.PLAYWRIGHT_MODULE ?? 'file:///C:/Users/USER/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright/index.mjs')",
+          "disposition": "Exact source expression/environment override governs; installed browser or tool module required separately, no download/install and no portability claim for machine-specific fallback"
+        }
+      ],
+      "sourceExcerpts": [
+        "import assert from 'node:assert/strict';",
+        "// Same bundled browser runner as the existing isolated UI acceptance fixtures.",
+        "const { chromium } = await import(process.env.PLAYWRIGHT_MODULE ?? 'file:///C:/Users/USER/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright/index.mjs');",
+        "const browser = await chromium.launch({ headless: true, executablePath: process.env.CHROME_PATH ?? 'C:/Program Files/Google/Chrome/Application/chrome.exe' });",
+        "const page = await browser.newPage({ viewport: { width: 1600, height: 1050 } });",
+        "const errors = [];",
+        "page.on('pageerror', error => errors.push(String(error)));",
+        "page.on('console', message => { if (message.type() === 'error') errors.push(message.text()); });",
+        "page.on('requestfailed', request => errors.push(`${request.url()}: ${request.failure()?.errorText}`));",
+        "page.on('response', response => { if (response.status() >= 400) errors.push(`${response.status()} ${response.url()}`); });",
+        "const sidebar = page.locator('.js-sidebar > button');",
+        "const title = page.locator('.js-tree-scroll h2');",
+        "const stages = async () => sidebar.locator('b').allTextContents();",
+        "let scenarios = 0;",
+        "try {",
+        "  await page.goto(process.env.FIXTURE_URL ?? 'http://127.0.0.1:3002/job-skill-lineage.html');",
+        "  await page.locator('[data-ready=\"true\"]').waitFor();",
+        "  assert.deepEqual(await stages(), ['Adventurer']);",
+        "  assert.equal(await title.textContent(), 'Adventurer');",
+        "  assert.equal(await page.locator('[data-skill-id^=\"v3-adventurer-\"]').count(), 3);",
+        "  scenarios++;",
+        "  await page.getByRole('button', { name: 'Warrior Lv30', exact: true }).click();"
+      ]
+    },
+    {
+      "path": "tests/browser/job-visibility-regression.mjs",
+      "sha256": "642cbabeb398b81b3a968bfe2c03b51532ead65f82564a5866abf9996091d247",
+      "status": "OPTIONAL_NOT_EXECUTED_PREREQUISITES_NOT_PACKAGED",
+      "requirements": [
+        {
+          "kind": "DYNAMIC_EXTERNAL_TOOL",
+          "line": 5,
+          "expression": "require(process.env.PLAYWRIGHT_MODULE || 'playwright')",
+          "disposition": "Exact source expression/environment override governs; installed browser or tool module required separately, no download/install and no portability claim for machine-specific fallback"
+        }
+      ],
+      "sourceExcerpts": [
+        "import assert from 'node:assert/strict';",
+        "import { createRequire } from 'node:module';",
+        "import { mkdir, writeFile } from 'node:fs/promises';",
+        "const require = createRequire(import.meta.url);",
+        "const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright');",
+        "const browser = await chromium.launch({ channel: 'chrome', headless: true });",
+        "const forbidden = /\\b(Gatotkaca|Garda|Caroq|Anom|Srikandi|Jagawana|Resi|Pujangga|Pandita|Bajra|Capstone|Mastery)\\b/i;",
+        "const evidence = [];",
+        "try {",
+        "  const context = await browser.newContext({ viewport: { width: 1440, height: 1000 } });",
+        "  const page = await context.newPage(), errors = [];",
+        "  page.on('pageerror', e => errors.push(e.message));",
+        "  await page.goto('http://127.0.0.1:3003/warrior-world.html?level=59&build=general');",
+        "  await page.getByRole('button', { name: /^continue$/i }).click();",
+        "  await page.waitForFunction(() => window.__warriorQA?.game?.started, { timeout: 60000 });",
+        "  await page.evaluate(() => { const g = window.__warriorQA.game; g.renderer.setAnimationLoop(null); cancelAnimationFrame(g.frame); });",
+        "  const check = async name => {",
+        "    const text = await page.locator('body').innerText();",
+        "    assert(!forbidden.test(text), `${name}: ${text.match(forbidden)?.[0]}`);",
+        "    evidence.push({ surface: name, forbiddenMatches: 0 });",
+        "  };",
+        "  await check('V2 HUD');"
+      ]
+    },
+    {
+      "path": "tests/browser/thief-v2-playtest.mjs",
+      "sha256": "cf63c96d8ba24e7e0aaaea48dfb6b9d737865be3ef7245dfaad73581dacccb49",
+      "status": "OPTIONAL_NOT_EXECUTED_PREREQUISITES_NOT_PACKAGED",
+      "requirements": [
+        {
+          "kind": "DYNAMIC_EXTERNAL_TOOL",
+          "line": 4,
+          "expression": "require(process.env.PLAYWRIGHT_MODULE || 'playwright')",
+          "disposition": "Exact source expression/environment override governs; installed browser or tool module required separately, no download/install and no portability claim for machine-specific fallback"
+        }
+      ],
+      "sourceExcerpts": [
+        "import { createRequire } from 'node:module';",
+        "import { mkdir, writeFile } from 'node:fs/promises';",
+        "const require = createRequire(import.meta.url);",
+        "const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright');",
+        "const out = 'output/phase4d-browser';",
+        "await mkdir(out, { recursive: true });",
+        "const browser = await chromium.launch({ channel: 'chrome', headless: false });",
+        "const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });",
+        "const errors = [], warnings = [], httpFailures = [];",
+        "page.on('pageerror', (e) => errors.push(String(e)));",
+        "page.on('console', (m) => {",
+        "  if (m.type() === 'error') errors.push(`${m.text()} @ ${m.location().url}`);",
+        "  if (m.type() === 'warning') warnings.push(m.text());",
+        "});",
+        "page.on('response', (r) => { if (r.status() >= 400) httpFailures.push({ status: r.status(), url: r.url() }); });",
+        "const snapshot = () => page.evaluate(() => {",
+        "  const q = window.__warriorQA, g = q.game, s = window.__lumenfallRules.derivedStats(g.hero);",
+        "  return {",
+        "    summary: q.summary,",
+        "    finalStats: { physicalAttack: s.physicalAttack, criticalRate: s.criticalRate, evasion: s.evasion, maxMana: s.maxMana, maxHP: s.maxHP },",
+        "    skillLevels: g.hero.skillLevels, passiveLevels: g.hero.passiveLevels,",
+        "    equipment: g.hero.equipment, target: g.currentTargetView(), feedback: g.combatFeedbackSnapshot(), events: q.events.slice(-50),"
+      ]
+    },
+    {
+      "path": "tests/browser/thief-v2-smoke.mjs",
+      "sha256": "de451167c54cca59c66927f538adb438e97171fbd68752685fe405fb7124adb4",
+      "status": "OPTIONAL_NOT_EXECUTED_PREREQUISITES_NOT_PACKAGED",
+      "requirements": [
+        {
+          "kind": "DYNAMIC_EXTERNAL_TOOL",
+          "line": 4,
+          "expression": "require(process.env.PLAYWRIGHT_MODULE || 'playwright')",
+          "disposition": "Exact source expression/environment override governs; installed browser or tool module required separately, no download/install and no portability claim for machine-specific fallback"
+        }
+      ],
+      "sourceExcerpts": [
+        "import { createRequire } from 'node:module';",
+        "import { mkdir, writeFile } from 'node:fs/promises';",
+        "const require = createRequire(import.meta.url);",
+        "const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright');",
+        "const out = 'output/phase4c-browser';",
+        "await mkdir(out, { recursive: true });",
+        "const browser = await chromium.launch({ channel: 'chrome', headless: false });",
+        "const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });",
+        "const errors = [],",
+        "  warnings = [],",
+        "  httpFailures = [];",
+        "page.on('response', (r) => {",
+        "  if (r.status() >= 400)",
+        "    httpFailures.push({ status: r.status(), url: r.url() });",
+        "});",
+        "page.on('pageerror', (e) => errors.push(String(e)));",
+        "page.on('console', (m) => {",
+        "  if (m.type() === 'error') errors.push(`${m.text()} @ ${m.location().url}`);",
+        "  if (m.type() === 'warning') warnings.push(m.text());",
+        "});",
+        "try {",
+        "  await page.goto("
+      ]
+    },
+    {
+      "path": "tests/browser/warrior-world-drag-regression.mjs",
+      "sha256": "31e603b41b6fd4b2639e6a29b567404d6535347243a8962e5b73479a80a7b262",
+      "status": "OPTIONAL_NOT_EXECUTED_PREREQUISITES_NOT_PACKAGED",
+      "requirements": [
+        {
+          "kind": "DYNAMIC_EXTERNAL_TOOL",
+          "line": 8,
+          "expression": "require(process.env.PLAYWRIGHT_MODULE)",
+          "disposition": "Exact source expression/environment override governs; installed browser or tool module required separately, no download/install and no portability claim for machine-specific fallback"
+        }
+      ],
+      "sourceExcerpts": [
+        "// Regression for the actual Phase 3B bug: a foreground K dialog covered its drop destination.",
+        "// Start warrior-world.config.ts first. No normal player storage or live app route is used.",
+        "import assert from 'node:assert/strict';",
+        "import { createRequire } from 'node:module';",
+        "import { mkdir } from 'node:fs/promises';",
+        "const require = createRequire(import.meta.url);",
+        "const { chromium } = process.env.PLAYWRIGHT_MODULE",
+        "  ? require(process.env.PLAYWRIGHT_MODULE)",
+        "  : require('playwright');",
+        "const origin = process.env.WARRIOR_TEST_URL || 'http://127.0.0.1:3003';",
+        "assert.ok(",
+        "  ['127.0.0.1', 'localhost'].includes(new URL(origin).hostname),",
+        "  'Local development only',",
+        ");",
+        "const browser = await chromium.launch({",
+        "  ...(process.env.CHROME_PATH",
+        "    ? { executablePath: process.env.CHROME_PATH }",
+        "    : { channel: 'chrome' }),",
+        "  headless: true,",
+        "  args: ['--enable-unsafe-swiftshader'],",
+        "});",
+        "try {"
+      ]
+    },
+    {
+      "path": "scripts/test-frostfire-browser.mjs",
+      "sha256": "a899a7a85a4e0b7e25b5394353f7181ab5af94ea60df29440c118e764d3c9fc4",
+      "status": "OPTIONAL_NOT_EXECUTED_PREREQUISITES_NOT_PACKAGED",
+      "requirements": [
+        {
+          "kind": "DYNAMIC_EXTERNAL_TOOL",
+          "line": 10,
+          "expression": "import(\n  pathToFileURL(\n    'C:/Users/GG/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright/index.mjs',\n  ).href\n)",
+          "disposition": "Exact source expression/environment override governs; installed browser or tool module required separately, no download/install and no portability claim for machine-specific fallback"
+        }
+      ],
+      "sourceExcerpts": [
+        "// Actual Home/Game with a disposable browser save; never touches the owner's profile.",
+        "import assert from 'node:assert/strict';",
+        "import { mkdir, writeFile } from 'node:fs/promises';",
+        "import { pathToFileURL } from 'node:url';",
+        "import { createV3AdventurerHero, SAVE_KEY } from '../lib/game/rules.ts';",
+        "import {",
+        "  FROSTFIRE_ID,",
+        "  FROSTFIRE_ENTRY,",
+        "} from '../lib/game/frostfire-highlands-layout.ts';",
+        "const { chromium } = await import(",
+        "  pathToFileURL(",
+        "    'C:/Users/GG/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright/index.mjs',",
+        "  ).href",
+        ");",
+        "const out = 'output/frostfire-highlands/browser';",
+        "await mkdir(out, { recursive: true });",
+        "const browser = await chromium.launch({",
+        "  channel: 'chrome',",
+        "  headless: true,",
+        "  args: ['--enable-unsafe-swiftshader'],",
+        "});",
+        "const context = await browser.newContext({"
+      ]
+    },
+    {
+      "path": "scripts/test-frostfire-combat-browser.mjs",
+      "sha256": "8c3c3917dd44a865e90a82ea041626d14762614c798c6b42e7bd5bc0e294cd3c",
+      "status": "OPTIONAL_NOT_EXECUTED_PREREQUISITES_NOT_PACKAGED",
+      "requirements": [
+        {
+          "kind": "DYNAMIC_EXTERNAL_TOOL",
+          "line": 10,
+          "expression": "import(\n  pathToFileURL(\n    'C:/Users/GG/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright/index.mjs',\n  ).href\n)",
+          "disposition": "Exact source expression/environment override governs; installed browser or tool module required separately, no download/install and no portability claim for machine-specific fallback"
+        }
+      ],
+      "sourceExcerpts": [
+        "// Actual Home/Game with a disposable browser save; never touches the owner's profile.",
+        "import assert from 'node:assert/strict';",
+        "import { mkdir, writeFile } from 'node:fs/promises';",
+        "import { pathToFileURL } from 'node:url';",
+        "import { createV3AdventurerHero, SAVE_KEY } from '../lib/game/rules.ts';",
+        "import {",
+        "  FROSTFIRE_ID,",
+        "  FROSTFIRE_ENTRY,",
+        "} from '../lib/game/frostfire-highlands-layout.ts';",
+        "const { chromium } = await import(",
+        "  pathToFileURL(",
+        "    'C:/Users/GG/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright/index.mjs',",
+        "  ).href",
+        ");",
+        "const bossMode = process.argv.includes('--boss');",
+        "const out = `output/frostfire-highlands/${bossMode ? 'boss-combat' : 'combat'}`;",
+        "await mkdir(out, { recursive: true });",
+        "const browser = await chromium.launch({",
+        "  channel: 'chrome',",
+        "  headless: true,",
+        "  args: ['--enable-unsafe-swiftshader'],",
+        "});"
+      ]
+    },
+    {
+      "path": "scripts/test-frostfire-props-browser.mjs",
+      "sha256": "b0521542d45ca699ef5084f537b36a94fe1959f6574c93a077ed7474a62257e0",
+      "status": "OPTIONAL_NOT_EXECUTED_PREREQUISITES_NOT_PACKAGED",
+      "requirements": [
+        {
+          "kind": "DYNAMIC_EXTERNAL_TOOL",
+          "line": 10,
+          "expression": "import(\n  pathToFileURL(\n    'C:/Users/GG/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright/index.mjs',\n  ).href\n)",
+          "disposition": "Exact source expression/environment override governs; installed browser or tool module required separately, no download/install and no portability claim for machine-specific fallback"
+        }
+      ],
+      "sourceExcerpts": [
+        "// Actual Home/Game with a disposable browser save; never touches the owner's profile.",
+        "import assert from 'node:assert/strict';",
+        "import { mkdir, writeFile } from 'node:fs/promises';",
+        "import { pathToFileURL } from 'node:url';",
+        "import { createV3AdventurerHero, SAVE_KEY } from '../lib/game/rules.ts';",
+        "import {",
+        "  FROSTFIRE_ID,",
+        "  FROSTFIRE_ENTRY,",
+        "} from '../lib/game/frostfire-highlands-layout.ts';",
+        "const { chromium } = await import(",
+        "  pathToFileURL(",
+        "    'C:/Users/GG/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright/index.mjs',",
+        "  ).href",
+        ");",
+        "const out = 'output/frostfire-highlands/imported-props';",
+        "await mkdir(out, { recursive: true });",
+        "const browser = await chromium.launch({",
+        "  channel: 'chrome',",
+        "  headless: true,",
+        "  args: ['--enable-unsafe-swiftshader'],",
+        "});",
+        "const context = await browser.newContext({"
+      ]
+    },
+    {
+      "path": "scripts/test-frostfire-seams-browser.mjs",
+      "sha256": "fcdf1325f7bb5a66fdbd9bcda5750f3ccebab91693668ba582cc84d0bd920ec2",
+      "status": "OPTIONAL_NOT_EXECUTED_PREREQUISITES_NOT_PACKAGED",
+      "requirements": [
+        {
+          "kind": "DYNAMIC_EXTERNAL_TOOL",
+          "line": 10,
+          "expression": "import(\n  pathToFileURL(\n    'C:/Users/GG/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright/index.mjs',\n  ).href\n)",
+          "disposition": "Exact source expression/environment override governs; installed browser or tool module required separately, no download/install and no portability claim for machine-specific fallback"
+        }
+      ],
+      "sourceExcerpts": [
+        "// Actual Home/Game with a disposable browser save; never touches the owner's profile.",
+        "import assert from 'node:assert/strict';",
+        "import { mkdir, writeFile } from 'node:fs/promises';",
+        "import { pathToFileURL } from 'node:url';",
+        "import { createV3AdventurerHero, SAVE_KEY } from '../lib/game/rules.ts';",
+        "import {",
+        "  FROSTFIRE_ID,",
+        "  FROSTFIRE_ENTRY,",
+        "} from '../lib/game/frostfire-highlands-layout.ts';",
+        "const { chromium } = await import(",
+        "  pathToFileURL(",
+        "    'C:/Users/GG/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright/index.mjs',",
+        "  ).href",
+        ");",
+        "const out = `output/frostfire-highlands/seams-${process.env.FROST_SEAMS_PHASE || 'after'}`;",
+        "await mkdir(out, { recursive: true });",
+        "const browser = await chromium.launch({",
+        "  channel: 'chrome',",
+        "  headless: true,",
+        "  args: ['--enable-unsafe-swiftshader'],",
+        "});",
+        "const context = await browser.newContext({"
+      ]
+    },
+    {
+      "path": "scripts/test-ironveil-browser.mjs",
+      "sha256": "1cec60da78200ce2145ca8ad8ae4e9c4604a39d4ac1f44fb3ac7464d5f920f77",
+      "status": "OPTIONAL_NOT_EXECUTED_PREREQUISITES_NOT_PACKAGED",
+      "requirements": [
+        {
+          "kind": "DYNAMIC_EXTERNAL_TOOL",
+          "line": 14,
+          "expression": "import(\n  pathToFileURL(\n    'C:/Users/GG/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright/index.mjs',\n  ).href\n)",
+          "disposition": "Exact source expression/environment override governs; installed browser or tool module required separately, no download/install and no portability claim for machine-specific fallback"
+        }
+      ],
+      "sourceExcerpts": [
+        "// Real M-menu access and runtime QA in an isolated profile; never reads owner saves.",
+        "import assert from 'node:assert/strict';",
+        "import { mkdir, writeFile } from 'node:fs/promises';",
+        "import { pathToFileURL } from 'node:url';",
+        "import { createV3AdventurerHero, SAVE_KEY } from '../lib/game/rules.ts';",
+        "import {",
+        "  IRONVEIL_ID,",
+        "  IRONVEIL_PATHS,",
+        "  IRONVEIL_POCKETS,",
+        "  IRONVEIL_ENTRY,",
+        "  ironveilProps,",
+        "  ironveilGroundHeight,",
+        "} from '../lib/game/ironveil-mines-layout.ts';",
+        "const { chromium } = await import(",
+        "  pathToFileURL(",
+        "    'C:/Users/GG/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright/index.mjs',",
+        "  ).href",
+        ");",
+        "const out = process.env.IRONVEIL_QA_SKY ? 'output/ironveil/scorching-sky-qa' : 'output/ironveil/qa';",
+        "await mkdir(out, { recursive: true });",
+        "const browser = await chromium.launch({",
+        "  channel: 'chrome',"
+      ]
+    },
+    {
+      "path": "scripts/test-ironveil-interior-browser.mjs",
+      "sha256": "ab5c116e291e0ab93557051e974b09788ca0df2577461a3a3a5a7aa036714695",
+      "status": "OPTIONAL_NOT_EXECUTED_PREREQUISITES_NOT_PACKAGED",
+      "requirements": [
+        {
+          "kind": "DYNAMIC_EXTERNAL_TOOL",
+          "line": 11,
+          "expression": "import(\n  pathToFileURL(\n    'C:/Users/GG/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright/index.mjs',\n  ).href\n)",
+          "disposition": "Exact source expression/environment override governs; installed browser or tool module required separately, no download/install and no portability claim for machine-specific fallback"
+        }
+      ],
+      "sourceExcerpts": [
+        "// Isolated localStorage fixture; never reads or writes the owner's browser profile.",
+        "import assert from 'node:assert/strict';",
+        "import { mkdir, writeFile } from 'node:fs/promises';",
+        "import { pathToFileURL } from 'node:url';",
+        "import { createV3AdventurerHero, SAVE_KEY } from '../lib/game/rules.ts';",
+        "import {",
+        "  MINE_CURVES,",
+        "  MINE_ROOMS,",
+        "  MINE_ENTRY,",
+        "} from '../lib/game/ironveil-interior-layout.ts';",
+        "const { chromium } = await import(",
+        "  pathToFileURL(",
+        "    'C:/Users/GG/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright/index.mjs',",
+        "  ).href",
+        ");",
+        "const out = process.env.IRONVEIL_QA_LIGHTING ? 'output/ironveil-interior/lighting-qa' : process.env.IRONVEIL_QA_QUICK",
+        "  ? 'output/ironveil-interior/ui-qa'",
+        "  : 'output/ironveil-interior/revision-qa';",
+        "await mkdir(out, { recursive: true });",
+        "const browser = await chromium.launch({",
+        "  channel: 'chrome',",
+        "  headless: true,"
+      ]
+    },
+    {
+      "path": "scripts/test-minimap-browser.mjs",
+      "sha256": "d3adfc3b3955ac29d5c380f9b69cc10300099faf592912550e67624cd35b8322",
+      "status": "OPTIONAL_NOT_EXECUTED_PREREQUISITES_NOT_PACKAGED",
+      "requirements": [
+        {
+          "kind": "DYNAMIC_EXTERNAL_TOOL",
+          "line": 7,
+          "expression": "import(pathToFileURL('C:/Users/GG/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright/index.mjs').href)",
+          "disposition": "Exact source expression/environment override governs; installed browser or tool module required separately, no download/install and no portability claim for machine-specific fallback"
+        }
+      ],
+      "sourceExcerpts": [
+        "// Disposable browser profile: actual map travel and HUD layout, no owner save changes.",
+        "import assert from 'node:assert/strict';",
+        "import { mkdir, writeFile } from 'node:fs/promises';",
+        "import { pathToFileURL } from 'node:url';",
+        "import { createV3AdventurerHero, SAVE_KEY } from '../lib/game/rules.ts';",
+        "import { FIELDS, CITIES } from '../lib/game/regions.ts';",
+        "const { chromium } = await import(pathToFileURL('C:/Users/GG/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright/index.mjs').href);",
+        "const out = 'output/minimap-coordinates';",
+        "await mkdir(out, { recursive: true });",
+        "const browser = await chromium.launch({channel:'chrome',headless:true,args:['--enable-unsafe-swiftshader']});",
+        "const context = await browser.newContext({viewport:{width:1440,height:900}});",
+        "const page = await context.newPage(), errors = [], checks = [];",
+        "page.on('pageerror',error=>errors.push(error.message));",
+        "await page.route(/\\/lib\\/game\\/world\\.ts/,async route=>{",
+        "  const response=await route.fetch();",
+        "  await route.fulfill({response,body:(await response.text()).replace('this.renderer = new T.WebGLRenderer','window.__mapQA=this;this.renderer = new T.WebGLRenderer')});",
+        "});",
+        "const hero = createV3AdventurerHero('slot-1');",
+        "hero.level=50;",
+        "const fixture={version:3,activeSlot:'slot-1',lastPlayedCharacterId:hero.characterId,characters:{'slot-1':hero}};",
+        "await context.addInitScript(({key,fixture})=>{if(!localStorage.getItem(key))localStorage.setItem(key,JSON.stringify(fixture));},{key:SAVE_KEY,fixture});",
+        "const check=(name,value=true)=>{assert(value,name);checks.push(name);console.log('PASS',name);};"
+      ]
+    },
+    {
+      "path": "scripts/test-verdant-grass-browser.mjs",
+      "sha256": "2fc61d1da812c564e7866a042cc4c2cd922202eb6ce5f9b5f1e333891c241919",
+      "status": "OPTIONAL_NOT_EXECUTED_PREREQUISITES_NOT_PACKAGED",
+      "requirements": [
+        {
+          "kind": "DYNAMIC_EXTERNAL_TOOL",
+          "line": 8,
+          "expression": "import(pathToFileURL(process.env.PLAYWRIGHT_MODULE ||\n  'C:/Users/GG/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright/index.mjs').href)",
+          "disposition": "Exact source expression/environment override governs; installed browser or tool module required separately, no download/install and no portability claim for machine-specific fallback"
+        }
+      ],
+      "sourceExcerpts": [
+        "// Isolated save and browser: compare culling against drawing EVERY spatial batch.",
+        "import assert from 'node:assert/strict';",
+        "import { mkdir, writeFile } from 'node:fs/promises';",
+        "import { pathToFileURL } from 'node:url';",
+        "import { createV3AdventurerHero, SAVE_KEY } from '../lib/game/rules.ts';",
+        "import { PLAINS_ENTRY, PLAINS_ID } from '../lib/game/verdant-plains-layout.ts';",
+        "",
+        "const { chromium } = await import(pathToFileURL(process.env.PLAYWRIGHT_MODULE ||",
+        "  'C:/Users/GG/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright/index.mjs').href);",
+        "const out = process.env.GRASS_QA_OUTPUT || 'output/grass-opt/acceptance';",
+        "await mkdir(out, { recursive: true });",
+        "const browser = await chromium.launch({ channel: 'chrome', headless: true });",
+        "const context = await browser.newContext({ viewport: { width: 1920, height: 1080 } });",
+        "const page = await context.newPage();",
+        "const errors = [];",
+        "page.on('pageerror', error => errors.push(error.message));",
+        "page.on('console', message => { if (message.type() === 'error') errors.push(message.text()); });",
+        "await page.route(/\\/lib\\/game\\/world\\.ts/, async route => {",
+        "  const response = await route.fetch();",
+        "  const body = (await response.text()).replace('this.renderer = new T.WebGLRenderer',",
+        "    'window.__plainsQA = this; window.__plainsThree = T; this.renderer = new T.WebGLRenderer');",
+        "  await route.fulfill({ response, body });"
+      ]
+    },
+    {
+      "path": "scripts/verify-gameplay-browser.mjs",
+      "sha256": "e7a0d6c149d3fc35cf89b4261d8b2230ab13a841a2776aad7ad804e2b02bb24a",
+      "status": "OPTIONAL_NOT_EXECUTED_PREREQUISITES_NOT_PACKAGED",
+      "requirements": [
+        {
+          "kind": "DYNAMIC_EXTERNAL_TOOL",
+          "line": 17,
+          "expression": "import(pathToFileURL(process.env.PLAYWRIGHT_MODULE).href)",
+          "disposition": "Exact source expression/environment override governs; installed browser or tool module required separately, no download/install and no portability claim for machine-specific fallback"
+        }
+      ],
+      "sourceExcerpts": [
+        "import { createServer } from 'vite';",
+        "import react from '@vitejs/plugin-react';",
+        "import { resolve } from 'node:path';",
+        "import { pathToFileURL } from 'node:url';",
+        "import { mkdirSync, writeFileSync, existsSync, copyFileSync } from 'node:fs';",
+        "import assert from 'node:assert/strict';",
+        "",
+        "// Optional local Playwright installation; no downloads or personal browser profile.",
+        "const output = 'outputs/gameplay-migration';",
+        "mkdirSync(output, { recursive: true });",
+        "if (existsSync(output + '/browser-validation.json')) copyFileSync(output + '/browser-validation.json', output + '/browser-attempt-' + Date.now() + '.json');",
+        "const report = { kind: 'isolated-browser-canonical-fixture', status: 'not-run',",
+        "  fullGameplayParity: false, personalSaveAccess: false, errors: [], warnings: [], failedResponses: [], blockedExternalRequests: [] };",
+        "let server, browser;",
+        "try {",
+        "  if (!process.env.PLAYWRIGHT_MODULE) throw Error('Local PLAYWRIGHT_MODULE is required; no automatic install');",
+        "  const { chromium } = await import(pathToFileURL(process.env.PLAYWRIGHT_MODULE).href);",
+        "  server = await createServer({ configFile: false, root: resolve('tests/browser'), publicDir: resolve('public'),",
+        "    plugins: [react()], resolve: { alias: { '@': process.cwd() } },",
+        "    server: { host: '127.0.0.1', port: 0, fs: { allow: [process.cwd()] } } });",
+        "  await server.listen();",
+        "  const origin = `http://127.0.0.1:${server.httpServer.address().port}`;"
+      ]
+    },
+    {
+      "path": "scripts/verify-phase14-runtime.mjs",
+      "sha256": "4f42018727cca81af86fbb86214cac7c36548d23f9c365c601f1c4f3b9a9f588",
+      "status": "OPTIONAL_NOT_EXECUTED_PREREQUISITES_NOT_PACKAGED",
+      "requirements": [
+        {
+          "kind": "DYNAMIC_EXTERNAL_TOOL",
+          "line": 14,
+          "expression": "import(pathToFileURL(process.env.PLAYWRIGHT_MODULE).href)",
+          "disposition": "Exact source expression/environment override governs; installed browser or tool module required separately, no download/install and no portability claim for machine-specific fallback"
+        }
+      ],
+      "sourceExcerpts": [
+        "import { createServer } from 'vite';",
+        "import react from '@vitejs/plugin-react';",
+        "import { pathToFileURL } from 'node:url';",
+        "import { mkdirSync, writeFileSync, existsSync, copyFileSync } from 'node:fs';",
+        "import assert from 'node:assert/strict';",
+        "import { createV3AdventurerHero, SAVE_KEY, createItem } from '../lib/game/rules.ts';",
+        "import { CITIES } from '../lib/game/regions.ts';",
+        "const out=process.env.PHASE14_BROWSER_OUTPUT??'outputs/gameplay-migration/runtime';mkdirSync(out,{recursive:true});",
+        "if(existsSync(out+'/results.json'))copyFileSync(out+'/results.json',out+'/attempt-'+Date.now()+'.json');",
+        "const report={kind:'actual-Home-and-Game-local-Vite',checks:[],errors:[],warnings:[],failedResponses:[],blockedRequests:[],fullParity:false};",
+        "let server,browser;",
+        "const check=(name,ok)=>{assert(ok,name);report.checks.push(name);console.log('PASS '+name);};",
+        "try{",
+        " const {chromium}=await import(pathToFileURL(process.env.PLAYWRIGHT_MODULE).href);",
+        " server=await createServer({configFile:false,root:process.cwd(),plugins:[react()],resolve:{alias:{'@':process.cwd()}},server:{host:'127.0.0.1',port:3029,strictPort:true}});await server.listen();",
+        " const origin='http://127.0.0.1:3029';",
+        " browser=await chromium.launch({channel:'chrome',headless:true,args:['--enable-unsafe-swiftshader']});",
+        " const context=await browser.newContext({viewport:{width:1600,height:1000}});",
+        " await context.route('**/*',route=>{const u=route.request().url();if(u.startsWith(origin+'/')||/^(data|blob):/.test(u))return route.continue();report.blockedRequests.push(u);return route.abort();});",
+        " const page=await context.newPage();page.on('pageerror',e=>report.errors.push(e.message));page.on('console',m=>{if(['error','warning'].includes(m.type()))report.warnings.push(m.text());});page.on('response',r=>{if(r.status()>=400)report.failedResponses.push({url:r.url(),status:r.status()});});",
+        " // Observation handle injected into response only, not into shipped source.",
+        " await page.route('**/lib/game/world.ts*',async route=>{const r=await route.fetch();const body=(await r.text()).replace('this.renderer = new T.WebGLRenderer','window.__phase14 = this; this.renderer = new T.WebGLRenderer');await route.fulfill({response:r,body});});"
+      ]
+    },
+    {
+      "path": "tests/browser/terrain-prototype.ts",
+      "sha256": "1795e9350a2536193a522a4c410074110609920ef442a2828732b20863e9e8fb",
+      "status": "OPTIONAL_NOT_EXECUTED_PREREQUISITES_NOT_PACKAGED",
+      "requirements": [
+        {
+          "kind": "OPTIONAL_SCENE",
+          "path": "tests/browser/terrain-prototype-scene.ts",
+          "disposition": "Same unbundled prototype manifest/height/roadMask prerequisites"
+        }
+      ],
+      "sourceExcerpts": [
+        "import './terrain-prototype.css';",
+        "import * as T from 'three';",
+        "if(!import.meta.env.DEV||!['localhost','127.0.0.1'].includes(location.hostname))throw Error('Local development only');",
+        "class MemoryStorage implements Storage{private data=new Map<string,string>();get length(){return this.data.size}clear(){this.data.clear()}getItem(k:string){return this.data.get(k)??null}setItem(k:string,v:string){this.data.set(k,String(v))}removeItem(k:string){this.data.delete(k)}key(i:number){return [...this.data.keys()][i]??null}}",
+        "Object.defineProperty(window,'localStorage',{value:new MemoryStorage(),configurable:false});Object.defineProperty(window,'sessionStorage',{value:new MemoryStorage(),configurable:false});",
+        "const [{Game},rules,{buildPrototype}]=await Promise.all([import('../../lib/game/world'),import('../../lib/game/rules'),import('./terrain-prototype-scene')]);",
+        "const terrain=await buildPrototype();",
+        "const hero=rules.freshHero('slot-1','adventurer','Penjelajah Prototype');hero.inCity=false;Object.assign(hero,terrain.m.spawn);rules.saveCharacter(hero,true);",
+        "let view='player';",
+        "class PrototypeGame extends Game{",
+        " override get fieldTerrain(){return undefined;}",
+        " override get nearSanctuary(){return false;}",
+        " override restoreSavedPosition(){Object.assign(this.hero,terrain.m.spawn);}",
+        " override buildTerrain(){}",
+        " override buildEnemies(){this.enemies=[];}",
+        " override buildRegionDecor(){this.regionDecor=terrain.group;this.scene.add(terrain.group);this.shrine.visible=false;this.scene.fog=new T.Fog('#aebfac',240,620);this.scene.background=new T.Color('#aebfac');}",
+        " override groundHeight(x:number,z:number){return terrain.ground.heightAt(x,z)??0;}",
+        " override groundDistance(a:T.Vector3,b:T.Vector3){return Math.hypot(a.x-b.x,a.z-b.z);}",
+        " override placeActor(){Object.assign(this.hero,terrain.ground.nearestPoint(this.hero,terrain.m.spawn));this.actor.position.set(this.hero.x,this.groundHeight(this.hero.x,this.hero.z),this.hero.z);}",
+        " override moveHeroOnGround(p:{x:number;z:number},dx:number,dz:number){return terrain.ground.move(p,dx,dz);}",
+        " override emit(){}",
+        " override save(){} // No native storage; nothing in this map can become progression state."
+      ]
+    },
+    {
+      "path": "scripts/build-male-assets.mjs",
+      "sha256": "542eaceffa3e2a43fc47328dfb69a135fd033286b6753449ae7a761ac04b4d08",
+      "status": "OPTIONAL_NOT_EXECUTED_PREREQUISITES_NOT_PACKAGED",
+      "requirements": [
+        {
+          "kind": "AUTHORING_CHAIN",
+          "path": "scripts/test-modular-character-browser.mjs",
+          "disposition": "EXCLUDED_WITH_OPTIONAL_ORCHESTRATOR; source GLB/Blender/KTX/legacy hairstyles not packaged or accessed"
+        }
+      ],
+      "sourceExcerpts": [
+        "/** Reproducible, isolated authoring pipeline. Never opens the user's Blender session.",
+        " * Prerequisites (authoring only, not application dependencies):",
+        " *   Blender 4.5.3 portable in work/character-tools/blender-4.5.3-windows-x64/",
+        " *   KTX-Software 4.4.2 in work/character-tools/ktx/ (or set TOKTX_PATH)",
+        " *   npm install --prefix work/character-tools --no-save @gltf-transform/core@4.5.1",
+        " *     @gltf-transform/extensions@4.5.1 @gltf-transform/functions@4.5.1",
+        " *     meshoptimizer@1.3.0 sharp@0.35.5 playwright@1.63.0",
+        " * Existing optional hairstyle masters are required in work/chibi-source/legacy-hair/.",
+        " * Run: node scripts/build-male-assets.mjs \"C:/path/to/anime style chibi boy 3d model.glb\"",
+        " * BLENDER_PATH overrides the portable path. This rewrites only the generated",
+        " * male-v2 runtime package and character staging, never the source GLB.",
+        " */",
+        "import { spawn } from 'node:child_process';",
+        "import { readFile, mkdir, writeFile } from 'node:fs/promises';",
+        "import { createHash } from 'node:crypto';",
+        "import { resolve } from 'node:path';",
+        "const source = resolve(",
+        "  process.argv[2] ??",
+        "    'C:/Users/GG/Desktop/Lumenfall/anime style chibi boy 3d model.glb',",
+        ");",
+        "const blender =",
+        "  process.env.BLENDER_PATH ??"
+      ]
+    }
+  ],
+  "exclusions": [
+    {
+      "path": "tests/browser/modular-character-fixture.ts",
+      "reason": "OWNER_EXCLUDED_OPTIONAL_LEGACY_CENA_COMPARISON",
+      "sha256": "39b6e4ef9e5039581bc0c5a44dd52ff769c16ad8393929f3e09ec5a176a49143",
+      "localPreserved": true
+    },
+    {
+      "path": "tests/browser/modular-character-fixture.html",
+      "reason": "OWNER_EXCLUDED_OPTIONAL_LEGACY_CENA_COMPARISON",
+      "sha256": "237035ce5b7e71f09d53b0f665dd37fe7120b5128e0dd0a591ded212effc7375",
+      "localPreserved": true
+    },
+    {
+      "path": "scripts/test-modular-character-browser.mjs",
+      "reason": "OWNER_EXCLUDED_OPTIONAL_LEGACY_CENA_COMPARISON",
+      "sha256": "9cb4cc545ffd978645b1a2e2518660e392e078d8baf978bafdd6584adb8ce1b4",
+      "localPreserved": true
+    },
+    {
+      "path": "scripts/build-male-assets.mjs",
+      "reason": "OPTIONAL_AUTHORING_ORCHESTRATOR_REQUIRES_EXCLUDED_LEGACY_COMPARISON; not package build/runtime; preserved locally",
+      "sha256": "542eaceffa3e2a43fc47328dfb69a135fd033286b6753449ae7a761ac04b4d08",
+      "localPreserved": true
+    }
+  ],
+  "neverPackage": [
+    "work/**",
+    "output/**",
+    "node_modules/**",
+    "dev-prototypes/**"
+  ],
+  "production": "No package.json required command or Home runtime import references excluded Cena comparison/orchestrator"
+}

@@ -1,0 +1,26 @@
+LUMENFALL — ADVENTURER CURRENT NAMING / OWNER DIRECTION
+Dicatat Garda, 8 Oktober 2026, dari percakapan langsung.
+
+JAWABAN OWNER
+"ok kalau kamu beelum tahu kapan perubahan itu diganti, tidak perlu dipermasalahkan
+untuk saat ini, aku hanya ingin kamu paham bahwa namanya sudah bukan langkah
+fajar, selebihnya untuk projek yang kita inginkan itu sudah ku acc"
+Sesudah penegasan Garda tentang baseline nama Inggris dan kelanjutan desain,
+OWNER memberi instruksi: "ok lanjut".
+
+ARAH YANG DIPAKAI SEKARANG
+Screenshot OWNER dan source main/current memperlihatkan Quick Slash, Power Strike,
+Minor Heal. Gunakan kit existing tersebut sebagai baseline pekerjaan berikutnya.
+Jangan membawa Langkah Fajar/Tebasan Fajar kembali sebagai target replacement
+berdasarkan ringkasan lama. Jangan mempermasalahkan tanggal rename saat ini.
+ACC proyek yang sudah diberikan tetap berlaku; jangan meminta ulang desain yang
+sudah disepakati atau mengganti arah CLASS DI LUMENFALL.
+
+BATAS CATATAN
+Ini bukan ACC delete Minor Heal, refund tiga skill, mapping baru atau rename ID.
+Tidak menetapkan tabel coefficient pengganti yang belum pernah disajikan.
+Persetujuan architecture/formula dan persetujuan angka konkret tetap dibedakan;
+runtime lama tidak otomatis menjadi tabel numeric formula baru.
+PROMPT_Q3_ADVENTURER_RECONCILIATION.txt tetap DITARIK. Laporan review sebelumnya
+tetap historical; kebutuhan recovery tanggal rename tidak menjadi gate sekarang.
+Tidak mengubah game, save, SP, register, test atau Git.

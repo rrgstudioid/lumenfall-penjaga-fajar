@@ -1,3 +1,4 @@
+export {}; // Browser module: keep harness names out of other fixture globals.
 const result = document.querySelector<HTMLPreElement>('#result');
 if (result) result.textContent = 'HARNESS_MODULE_BOOT: entry module executed; importing runtime…';
 const startedAt = performance.now();

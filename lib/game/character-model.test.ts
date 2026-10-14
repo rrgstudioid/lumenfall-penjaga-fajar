@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as T from 'three';
 import { createCharacterModel, disposeCharacterModel } from './character-model.ts';
-import { freshHero, createItem } from './rules.ts';
+import { freshHero, createItem, chooseCoreJob, equipItem } from './rules.ts';
 
 function equipped() {
   const hero = freshHero();
@@ -44,7 +44,7 @@ await test('loading character keeps attachment pivots without the retired proced
     if (object instanceof T.Mesh) { meshes++; triangles += (object.geometry.index?.count ?? object.geometry.attributes.position.count) / 3; }
   });
   assert.ok(meshes <= 6 && triangles < 500, 'only equipment/accessory geometry remains during GLB loading');
-  assert.equal(m.actor.userData.assetKind, 'cena-loading');
+  assert.equal(m.actor.userData.assetKind, 'male-v2-loading');
   assert.ok(m.actor.userData.heightMeters > 2.3 && m.actor.userData.heightMeters < 2.5, 'keeps the previous game model scale');
   disposeCharacterModel(m.actor);
 });
@@ -137,12 +137,21 @@ await test('all sword-like equipment uses the owning hand and points forward, in
   const swordTemplates = ['legacy-fajar-blade', 'jayantara-two-hand-sword', 'caroq-daggers', 'anom-dagger'];
   for (const templateId of swordTemplates) {
     const hero = freshHero();
+    hero.level = 60;
+    hero.equipment.mainHand = null;
     const item = createItem(templateId);
+    const dagger = item.equipmentType === 'dagger';
+    // Canonical lineage gate also applies to rendered equipment. Two hands
+    // require two real instances; the old fixture bypassed both requirements.
+    assert(chooseCoreJob(hero, dagger ? 'rogue' : 'warrior'));
     hero.inventory.push(item);
-    hero.equipment.mainHand = item.id;
-    if (item.offHand) hero.equipment.offHand = item.id;
+    assert(equipItem(hero, item.id, 'mainHand').ok);
+    if (dagger) {
+      const off = createItem(templateId); hero.inventory.push(off);
+      assert.notEqual(off.id, item.id); assert(equipItem(hero, off.id, 'offHand').ok);
+    }
     const model = createCharacterModel(hero, { aura: false });
-    const slots = item.offHand ? ['mainHand', 'offHand'] as const : ['mainHand'] as const;
+    const slots = dagger ? ['mainHand', 'offHand'] as const : ['mainHand'] as const;
     for (const slot of slots) {
       const holder = model.actor.getObjectByName(`equipment:${slot}`)!;
       const grip = holder.getObjectByName(item.equipmentType === 'one_hand_sword' || item.equipmentType === 'two_hand_sword' ? 'SwordGrip' : 'DaggerGrip')!;
@@ -153,6 +162,12 @@ await test('all sword-like equipment uses the owning hand and points forward, in
       assert.ok(point(tip).sub(point(grip)).normalize().dot(forward) > .98, `${templateId} ${slot} blade points forward`);
     }
     disposeCharacterModel(model.actor);
+    if (dagger) {
+      const invalid = freshHero(); invalid.inventory.push(item); invalid.equipment.mainHand = item.id;
+      const rejected = createCharacterModel(invalid, { aura: false });
+      assert.equal(rejected.actor.getObjectByName('equipment:mainHand'), undefined);
+      disposeCharacterModel(rejected.actor);
+    }
   }
 });
 

@@ -1,10 +1,19 @@
+import { CHARACTER_RULES } from './canonical-config.ts';
+import { IRONVEIL_ID, IRONVEIL_ENTRY, IRONVEIL_ENTRANCE, IRONVEIL_POCKETS } from './ironveil-mines-layout.ts';
 import { PLAINS_ID, PLAINS_ENTRY, PLAINS_EXIT } from './verdant-plains-layout.ts';
+import { WILDS_ID, WILDS_ENTRY, WILDS_LANDMARKS } from './whispering-wilds-layout.ts';
+import { FROSTFIRE_ID, FROSTFIRE_ENTRY, FROSTFIRE_ZONES } from './frostfire-highlands-layout.ts';
 import type { Hero } from './rules.ts';
+import { SUNKEN_ID, SUNKEN_ENTRY, SUNKEN_PORTALS, SUNKEN_ZONES } from './sunken-ruins-layout.ts';
+import { DEEP_OCEAN_ID, DEEP_OCEAN_ENTRY, DEEP_OCEAN_RETURN, ABYSAL_TRENCH_ID, ABYSAL_TRENCH_ENTRY, ABYSAL_TRENCH_RETURN } from './underwater-regions.ts';
+import { DEEP_OCEAN_PORTALS } from './deep-ocean-layout.ts';
+import { ABYSAL_TRENCH_PORTALS } from './abysal-trench-layout.ts';
+import { SERPENT_GUARDIAN_ID, SERPENT_BOSS_ID } from './sea-serpent-combat.ts';
 import { getVisibleJobArchitecture, showJobQuest } from './job-presentation.ts';
 import { STAMINA_ENABLED } from './gameplay-config.ts';
 import { VERDANT_TERRAIN, EAST_GATE_TERRAIN } from './field-terrain.ts';
 
-export const WORLD_CONFIG = { levelCap: 50, chapterCap: 1, inventoryCapacity: 60, storageCapacity: 120, cityScale: 1.5 };
+export const WORLD_CONFIG = { levelCap: CHARACTER_RULES.maxLevel, chapterCap: 1, inventoryCapacity: 60, storageCapacity: 120, cityScale: 1.5 };
 export type MonsterVariant = 'normal' | 'elite' | 'boss';
 export const MONSTER_VARIANTS: Record<MonsterVariant, { hpMultiplier:number; damageMultiplier:number; defenseMultiplier:number; expMultiplier:number; respawnTime:number; visualScale:number; nameColor:string; statusLabel:string }> = {
  normal:{hpMultiplier:1,damageMultiplier:1,defenseMultiplier:1,expMultiplier:1,respawnTime:25,visualScale:1,nameColor:'#d6e5bd',statusLabel:'Normal'},
@@ -14,7 +23,7 @@ export const MONSTER_VARIANTS: Record<MonsterVariant, { hpMultiplier:number; dam
 export type MonsterDefinition = { id: string; name: string; level: number; rank: MonsterVariant; variant: MonsterVariant; exp: number; maxHP:number; attack:number; defense:number; magicDefense:number; attackSpeed:number; movementSpeed:number; attackRange:number; dropRate:number; lootTable:string[]; respawnTime:number; visualScale:number; nameColor:string; statusLabel:string; respawn:number };
 export type NpcDefinition = { id: string; name: string; type: string; service: string; services: string[]; description: string; interactionRange: number; shopInventory: string[]; x: number; z: number; fieldId?: string };
 export type CityDefinition = { id: string; displayName: string; chapter: number; minLevel: number; recommendedLevel: string; npcList: NpcDefinition[]; connectedFields: string[]; unlockQuest: string | null; musicId: string; ambientId: string };
-export type FieldDefinition = { id: string; cityId: string; displayName: string; codename: string; chapter: number; minLevel: number; recommendedLevel: string; maxLevel: number; subAreas: string[]; normalMonsters: MonsterDefinition[]; eliteMonsters: MonsterDefinition[]; fieldBoss: MonsterDefinition | null; dropTable: string[]; materialTable: { id: string; chance: number }[]; unlockQuest: string | null; previousField: string | null; nextMap: string | null; musicId: string; ambientId: string; isUnlocked: boolean; color: string; questList: string[]; entry: {x:number;z:number}; exit: {x:number;z:number}; contentFamilyId?:string; cityDirection?:'north'|'east'; regionType?:'field' };
+export type FieldDefinition = { id: string; cityId: string; displayName: string; codename: string; chapter: number; minLevel: number; recommendedLevel: string; maxLevel: number; subAreas: string[]; normalMonsters: MonsterDefinition[]; eliteMonsters: MonsterDefinition[]; fieldBoss: MonsterDefinition | null; dropTable: string[]; materialTable: { id: string; chance: number }[]; unlockQuest: string | null; previousField: string | null; nextMap: string | null; musicId: string; ambientId: string; isUnlocked: boolean; color: string; questList: string[]; entry: {x:number;z:number}; exit: {x:number;z:number}; contentFamilyId?:string; cityDirection?:'north'|'east'; regionType?:'field'; warpOnly?:boolean };
 export type RegionQuestStatus = 'locked'|'active'|'ready_to_complete'|'completed'|'cooldown'|'available';
 export type QuestReward = { xp: number; gold: number; items: Array<{ templateId: string; quantity: number }> };
 export type QuestJournalEntry = {
@@ -78,8 +87,8 @@ const seeds: Array<[string,string,string,number,number,string[],string[],number[
  ['verdant-plains','Padang Arunika','Verdant Plains',1,8,['Gerbang Fajar','Padang Lumbung','Kuil Akar Tua'],['Small Slime','Wild Boar','Forest Piya','Stoneback Beetle','Giant Rootling','Ancient Treant'],[1,3,5,7,8,10],['iron','lumut-fiber'],'#729349',[10,52,112,185,452,1580]],
  ['ironveil-mines','Tambang Selubung Besi','Ironveil Mines',8,16,['Pos Tambang Barat','Lorong Bijih Dalam','Galeri Runtuh'],['Cave Bat','Ore Grub','Ironfang Bat','Tunnel Marauder','Ironhide Golem','Mine Tyrant'],[9,10,12,14,16,18],['iron','titanium'],'#685c51',[270,400,520,650,900,3820]],
  ['whispering-wilds','Rimba Bisik','Whispering Wilds',16,24,['Jalur Bambu','Hutan Kabut','Kanopi Leluhur'],['Moss Sprite','Thorn Wolf','Whispering Wisp','Vineshade Panther','Elder Vine','Forest Warden'],[16,17,20,22,24,26],['titanium'],'#315d50',[640,701,894,1030,1500,6630]],
- ['frostfire-highlands','Dataran Bara-Beku','Frostfire Highlands',24,32,['Punggung Bara','Jalur Es Beku','Kaldera Abu'],['Ember Yak','Frost Wolf','Magma Imp','Frostfire Wyrm','Cinderhorn','Twin Elemental Lord'],[24,25,28,30,32,34],['titanium','vibranium'],'#728b9b',[1180,1250,1490,1700,2300,9915]],
- ['sunken-ruins','Reruntuhan Tenggelam','Sunken Ruins',32,42,['Halaman Candi Terendam','Ruang Penjaga','Gudang Harta Banjir'],['Drowned Warrior','Drowned Soldier','Leech Wraith','Ruin Guardian','Sunken Sentinel','Leviathan'],[32,33,37,40,42,44],['vibranium'],'#316c7a',[1700,1896,2300,2700,3600,14595]],
+ [FROSTFIRE_ID,'Frostfire Highlands','Frozen Highlands',24,32,FROSTFIRE_ZONES.map(z=>z.name),['Ember Yak','Frost Wolf','Magma Imp','Frostfire Wyrm','Cinderhorn','Twin Elemental Lord'],[24,25,28,30,32,34],['titanium','vibranium'],'#ccdfe9',[1180,1250,1490,1700,2300,9915]],
+ [SUNKEN_ID,'Sunken Ruins','Underwater Hunting Field',32,42,SUNKEN_ZONES.map(z=>z.name),['Drowned Warrior','Drowned Soldier','Leech Wraith','Ruin Guardian','Sunken Sentinel','Abyssal Leviathan'],[32,33,37,40,42,42],['vibranium'],'#11647d',[1700,1896,2300,2700,3600,Math.round(14595*42/44)]],
  ['meteorfall-citadel','Benteng Hujan Meteor','Meteorfall Citadel',42,50,['Gerbang Bintang Jatuh','Padang Meteor','Inti Benteng Meteorfall'],['Meteor Wisp','Meteor Hound','Astral Golem','Void Knight','Meteor Titan','Meteorfall Overlord'],[42,43,46,48,49,50],['vibranium','meteorite-core'],'#584465',[2500,2820,3200,3700,4700,17680]],
 ];
 const fieldDefinitions: Record<string,FieldDefinition> = Object.fromEntries(seeds.map(([id,displayName,codename,minLevel,maxLevel,subAreas,names,levels,materials,color,expValues],index) => {
@@ -114,6 +123,16 @@ fieldDefinitions[PLAINS_ID] = {id:PLAINS_ID,cityId:'averion',displayName:'Verdan
  unlockQuest:null,previousField:null,nextMap:null,musicId:'field-verdant-plains',ambientId:'ambient-verdant-plains',isUnlocked:true,color:'#b8d4df',questList:[],entry:{...PLAINS_ENTRY},exit:{...PLAINS_EXIT},regionType:'field'};
 CITIES.averion.connectedFields.push(PLAINS_ID);
 
+// Permanent terrain replacement, retaining species/item IDs for existing saves.
+ fieldDefinitions[FROSTFIRE_ID] = {
+  ...fieldDefinitions[FROSTFIRE_ID],
+  id:FROSTFIRE_ID,cityId:'jayantara',displayName:'Frostfire Highlands',codename:'Frozen Highlands',contentFamilyId:FROSTFIRE_ID,
+  chapter:1,minLevel:24,maxLevel:32,recommendedLevel:'24–32',subAreas:FROSTFIRE_ZONES.map(z=>z.name),
+  questList:[],
+  unlockQuest:null,isUnlocked:false,musicId:'',ambientId:'',
+  color:'#ccdfe9',entry:{...FROSTFIRE_ENTRY},exit:{...FROSTFIRE_ENTRY},regionType:'field',
+ };
+
 fieldDefinitions['verdant-plains'].entry = {...VERDANT_TERRAIN.entry};
 fieldDefinitions['verdant-plains'].exit = {...VERDANT_TERRAIN.exit};
 
@@ -130,25 +149,96 @@ CITIES.arunika.connectedFields.push('east-gate-arunika');
 // The retired map is no longer a travel destination. Its shared content remains
 // authoritative for East Gate and existing equipment/save identities.
 export const STARTER_FIELD_CONTENT = fieldDefinitions['verdant-plains'];
+// Content compatibility only: the retired terrain is no longer a destination.
+export const WILDS_LEGACY_CONTENT = fieldDefinitions['whispering-wilds'];
+const wildsLegacy = WILDS_LEGACY_CONTENT;
+const wildsBoss = { ...wildsLegacy.fieldBoss!, level:24,
+ maxHP:Math.round((30+24*16)*MONSTER_VARIANTS.boss.hpMultiplier),
+ attack:Math.round((8+24*2.2)*MONSTER_VARIANTS.boss.damageMultiplier),
+ defense:Math.round((4+24*1.1)*MONSTER_VARIANTS.boss.defenseMultiplier),
+ magicDefense:Math.round((3+24)*MONSTER_VARIANTS.boss.defenseMultiplier),
+ exp:Math.round(wildsLegacy.fieldBoss!.exp*24/26) };
+fieldDefinitions[WILDS_ID] = {
+ id:WILDS_ID,cityId:'arunika',displayName:'Whispering Wilds',codename:'Hunting Field',chapter:1,
+ minLevel:16,maxLevel:24,recommendedLevel:'16–24',subAreas:WILDS_LANDMARKS.map(p=>p.name),
+ contentFamilyId:'whispering-wilds',normalMonsters:[...wildsLegacy.normalMonsters],eliteMonsters:[...wildsLegacy.eliteMonsters],fieldBoss:wildsBoss,
+ dropTable:[...wildsLegacy.dropTable],materialTable:wildsLegacy.materialTable.map(item=>({...item})),questList:[],
+ unlockQuest:null,previousField:'ironveil-mines',nextMap:FROSTFIRE_ID,musicId:'',ambientId:'',isUnlocked:false,
+ color:'#172b3a',entry:{...WILDS_ENTRY},exit:{...WILDS_ENTRY},regionType:'field',
+};
+for(const id of ['arunika','averion','jayantara'])CITIES[id].connectedFields.push(WILDS_ID);
+// Retain item/species identities only; the old terrain is not a destination.
+export const IRONVEIL_LEGACY_CONTENT = fieldDefinitions['ironveil-mines'];
+const ironveilSpecies = [...IRONVEIL_LEGACY_CONTENT.normalMonsters, ...IRONVEIL_LEGACY_CONTENT.eliteMonsters, IRONVEIL_LEGACY_CONTENT.fieldBoss!].map((monster,i) => {
+ const level=[8,10,12,14,15,16][i], tuning=MONSTER_VARIANTS[monster.variant];
+ return {...monster,level,maxHP:Math.round((30+level*16)*tuning.hpMultiplier),attack:Math.round((8+level*2.2)*tuning.damageMultiplier),defense:Math.round((4+level*1.1)*tuning.defenseMultiplier),magicDefense:Math.round((3+level)*tuning.defenseMultiplier),exp:Math.round(monster.exp*level/monster.level)};
+});
+fieldDefinitions[IRONVEIL_ID] = {
+ id:IRONVEIL_ID,cityId:'averion',displayName:'Ironveil Mines',codename:'Hunting Field',contentFamilyId:'ironveil-mines',
+ chapter:1,minLevel:8,maxLevel:16,recommendedLevel:'8–16',subAreas:IRONVEIL_POCKETS.map(p=>p.name),
+ normalMonsters:ironveilSpecies.slice(0,4),eliteMonsters:[ironveilSpecies[4]],fieldBoss:ironveilSpecies[5],dropTable:[...IRONVEIL_LEGACY_CONTENT.dropTable],materialTable:IRONVEIL_LEGACY_CONTENT.materialTable.map(m=>({...m})),questList:[],
+ unlockQuest:null,previousField:PLAINS_ID,nextMap:WILDS_ID,musicId:'',ambientId:'',isUnlocked:false,
+ color:'#b4c2bd',entry:{...IRONVEIL_ENTRY},exit:{...IRONVEIL_ENTRANCE},regionType:'field',
+};
+CITIES.averion.connectedFields.push(IRONVEIL_ID);
+const sunkenContent=fieldDefinitions[SUNKEN_ID];
+// Permanent replacement: retain species/item identities, replace the old field layout.
+fieldDefinitions[SUNKEN_ID]={
+ id:SUNKEN_ID,cityId:'jayantara',displayName:'Sunken Ruins',codename:'Underwater Hunting Field',contentFamilyId:'sunken-ruins',
+ chapter:1,minLevel:32,maxLevel:42,recommendedLevel:'32–42',subAreas:SUNKEN_ZONES.map(z=>z.name),
+ normalMonsters:[...sunkenContent.normalMonsters],eliteMonsters:[...sunkenContent.eliteMonsters],fieldBoss:sunkenContent.fieldBoss,
+ dropTable:[...sunkenContent.dropTable],materialTable:sunkenContent.materialTable.map(m=>({...m})),questList:[...sunkenContent.questList],
+ unlockQuest:null,previousField:sunkenContent.previousField,nextMap:sunkenContent.nextMap,musicId:'',ambientId:'',isUnlocked:false,
+ color:'#11647d',entry:{...SUNKEN_ENTRY},exit:{x:SUNKEN_PORTALS[0].x,z:SUNKEN_PORTALS[0].z},regionType:'field',
+};
+const oceanMonster=(slug:string,name:string,level:number,variant:MonsterVariant,scale=1):MonsterDefinition=>{
+ const base=plainsMonster(slug,name,level,variant,Math.round((1700+(level-32)*145)*MONSTER_VARIANTS[variant].expMultiplier));
+ return {...base,id:`${DEEP_OCEAN_ID}-${slug}`,visualScale:scale,lootTable:['health-potion-3','vibranium'],movementSpeed:variant==='boss'?2.4:2.8};
+};
+fieldDefinitions[DEEP_OCEAN_ID]={
+ ...fieldDefinitions[SUNKEN_ID], id:DEEP_OCEAN_ID, displayName:'Deep Ocean',codename:'Deep-ocean hunting field',
+ recommendedLevel:'38–48',maxLevel:48,subAreas:['Descent Landing','Abyssal Sand Basin','Megalodon Grounds'],
+ normalMonsters:[oceanMonster('goblin-shark','Goblin Shark',38,'normal'),oceanMonster('baracuda','Deep Baracuda',40,'normal'),oceanMonster('marlyn','Deep Marlyn',43,'normal'),oceanMonster('giant-squid','Giant Squid',46,'normal')],
+ eliteMonsters:[oceanMonster('giant-squid-elite','Giant Squid · Elite',47,'elite',1.35)],
+ fieldBoss:oceanMonster('megalodon','Megalodon',48,'boss',4),
+ dropTable:[...sunkenContent.dropTable],materialTable:sunkenContent.materialTable.map(m=>({...m})),questList:[],previousField:null,nextMap:null,
+ entry:{...DEEP_OCEAN_ENTRY},exit:{x:0,z:350},color:'#164e72',warpOnly:true,contentFamilyId:undefined,
+};
+fieldDefinitions[ABYSAL_TRENCH_ID]={
+ ...fieldDefinitions[DEEP_OCEAN_ID],id:ABYSAL_TRENCH_ID,displayName:'Abysal Trench',codename:'Tectonic passage and boss arena',
+ normalMonsters:[],
+ eliteMonsters:[{...oceanMonster('serpent-guardian','Sea Serpent "Guardian"',58,'elite'),id:SERPENT_GUARDIAN_ID,visualScale:1}],
+ fieldBoss:{...oceanMonster('sea-serpent','Sea Serpent',60,'boss'),id:SERPENT_BOSS_ID,visualScale:1},
+ dropTable:[...sunkenContent.dropTable],materialTable:sunkenContent.materialTable.map(m=>({...m})),recommendedLevel:'58–60',maxLevel:60,
+ subAreas:['Trench Landing','Tectonic Maze','Tectonic Basin'],entry:{...ABYSAL_TRENCH_ENTRY},exit:{x:0,z:350},color:'#0b2943',
+};
 export const FIELDS: Record<string, FieldDefinition> = Object.fromEntries([
  [PLAINS_ID, fieldDefinitions[PLAINS_ID]],
- ...Object.entries(fieldDefinitions).filter(([id])=>id!==PLAINS_ID&&id!=='verdant-plains'),
+ ...Object.entries(fieldDefinitions).filter(([id])=>id!==PLAINS_ID&&id!=='verdant-plains'&&id!==WILDS_ID&&id!==IRONVEIL_ID)
+   .map(([id,field])=>id==='whispering-wilds'?[WILDS_ID,fieldDefinitions[WILDS_ID]]:id==='ironveil-mines'?[IRONVEIL_ID,fieldDefinitions[IRONVEIL_ID]]:[id,field]),
 ]);
-for(const city of Object.values(CITIES))city.connectedFields=city.connectedFields.map(id=>id==='verdant-plains'?PLAINS_ID:id);
-for(const field of Object.values(FIELDS))if(field.previousField==='verdant-plains')field.previousField=PLAINS_ID;
+for(const city of Object.values(CITIES))city.connectedFields=[...new Set(city.connectedFields.map(id=>id==='verdant-plains'?PLAINS_ID:id==='whispering-wilds'?WILDS_ID:id==='ironveil-mines'?IRONVEIL_ID:id))];
+for(const field of Object.values(FIELDS)) {
+ if(field.previousField==='ironveil-mines')field.previousField=IRONVEIL_ID;
+ if(field.nextMap==='ironveil-mines')field.nextMap=IRONVEIL_ID;
+ if(field.previousField==='verdant-plains')field.previousField=PLAINS_ID;
+ if(field.previousField==='whispering-wilds')field.previousField=WILDS_ID;
+ if(field.nextMap==='whispering-wilds')field.nextMap=WILDS_ID;
+}
+
+fieldDefinitions[PLAINS_ID].nextMap=IRONVEIL_ID;
 
 export const startingFieldIds = () => Object.values(FIELDS).filter(field=>field.isUnlocked&&field.chapter<=WORLD_CONFIG.chapterCap).map(field=>field.id);
 export function fieldContent(fieldId:string):FieldDefinition {
  const field=FIELDS[fieldId];
+ if(fieldId==='ironveil-mines'||field?.contentFamilyId==='ironveil-mines')return IRONVEIL_LEGACY_CONTENT;
  if(fieldId==='verdant-plains'||field?.contentFamilyId==='verdant-plains')return STARTER_FIELD_CONTENT;
+ if(fieldId==='whispering-wilds'||field?.contentFamilyId==='whispering-wilds')return WILDS_LEGACY_CONTENT;
  return field ? FIELDS[field.contentFamilyId??field.id] : FIELDS[PLAINS_ID];
 }
 
 export const FIELD_NPCS: Record<string, NpcDefinition> = {
- 'ironveil-mines': {id:'field-npc-ironveil',name:'Mandor Tambang',type:'merchant',service:'field-camp',services:['buy','sell','teleport','quest'],interactionRange:2.5,shopInventory:[],description:'Quest field, teleport, dan toko kebutuhan farming Tambang Selubung Besi.',x:-26,z:28,fieldId:'ironveil-mines'},
- 'whispering-wilds': {id:'field-npc-whispering',name:'Pawang Rimba',type:'merchant',service:'field-camp',services:['buy','sell','teleport','quest'],interactionRange:2.5,shopInventory:[],description:'Quest field, teleport, dan toko kebutuhan farming Rimba Bisik.',x:-26,z:28,fieldId:'whispering-wilds'},
- 'frostfire-highlands': {id:'field-npc-frostfire',name:'Penjaga Bara-Beku',type:'merchant',service:'field-camp',services:['buy','sell','teleport','quest'],interactionRange:2.5,shopInventory:[],description:'Quest field, teleport, dan toko kebutuhan farming Dataran Bara-Beku.',x:-26,z:28,fieldId:'frostfire-highlands'},
- 'sunken-ruins': {id:'field-npc-sunken',name:'Penjaga Reruntuhan',type:'merchant',service:'field-camp',services:['buy','sell','teleport','quest'],interactionRange:2.5,shopInventory:[],description:'Quest field, teleport, dan toko kebutuhan farming Reruntuhan Tenggelam.',x:-26,z:28,fieldId:'sunken-ruins'},
+ 'sunken-ruins': {id:'field-npc-sunken',name:'Penjaga Reruntuhan',type:'merchant',service:'field-camp',services:['buy','sell','teleport','quest'],interactionRange:2.5,shopInventory:[],description:'Quest field, teleport, dan toko kebutuhan farming Reruntuhan Tenggelam.',x:SUNKEN_ENTRY.x+3,z:SUNKEN_ENTRY.z,fieldId:SUNKEN_ID},
  'meteorfall-citadel': {id:'field-npc-meteor',name:'Penjaga Benteng Meteor',type:'merchant',service:'field-camp',services:['buy','sell','teleport','quest'],interactionRange:2.5,shopInventory:[],description:'Quest field, teleport, dan toko kebutuhan farming Benteng Hujan Meteor.',x:-26,z:28,fieldId:'meteorfall-citadel'},
 };
 
@@ -167,11 +257,22 @@ export function refreshUnlocks(hero:Hero) {
  for(const id of Object.keys(CITIES)) if(!unlockReason(hero,id)&&!hero.unlockedCities.includes(id)) hero.unlockedCities.push(id);
  for(const id of Object.keys(FIELDS)) if(!unlockReason(hero,id)&&!hero.unlockedFields.includes(id)) hero.unlockedFields.push(id);
 }
-export function travel(hero:Hero,id:string) {
+export function travel(hero:Hero,id:string,portalId?:string) {
+ if(hero.interiorId) return {ok:false,reason:'Walk back to the mine entrance to leave.'};
+ if(id==='ironveil-mines-interior-v1') return {ok:false,reason:'Enter through the Ironveil Mines doorway.'};
+ if(FIELDS[id]?.warpOnly){
+  const portals=hero.currentField===SUNKEN_ID?SUNKEN_PORTALS:hero.currentField===DEEP_OCEAN_ID?DEEP_OCEAN_PORTALS:hero.currentField===ABYSAL_TRENCH_ID?ABYSAL_TRENCH_PORTALS:[];
+  const gate=portals.find(p=>p.id===portalId&&p.destination===id);
+  if(hero.inCity||!gate||Math.hypot(hero.x-gate.x,hero.z-gate.z)>4.5)return {ok:false,reason:'Gunakan warp yang terhubung untuk memasuki sub-map ini.'};
+ }
+ const returningFromTrench=!hero.inCity&&hero.currentField===ABYSAL_TRENCH_ID&&id===DEEP_OCEAN_ID;
+ const returningFromDeepOcean=!hero.inCity&&hero.currentField===DEEP_OCEAN_ID&&id===SUNKEN_ID;
  const reason=unlockReason(hero,id); if(reason) return {ok:false,reason};
  refreshUnlocks(hero);
  if(CITIES[id]) {hero.currentCity=id;hero.inCity=true;hero.x=0;hero.z=8;}
  else {hero.currentField=id;hero.currentCity=FIELDS[id].cityId;hero.inCity=false;hero.x=FIELDS[id].entry.x;hero.z=FIELDS[id].entry.z;}
+ if(returningFromDeepOcean)Object.assign(hero,DEEP_OCEAN_RETURN);
+ if(returningFromTrench)Object.assign(hero,ABYSAL_TRENCH_RETURN);
  return {ok:true,reason:`Tiba di ${(CITIES[id]??FIELDS[id]).displayName}.`};
 }
 export function acceptRegionQuest(hero:Hero,id:string) {
@@ -209,8 +310,9 @@ type FieldQuestDifficulty='easy'|'veteran'|'elite';
 function fieldQuestDifficulty(id:string):FieldQuestDifficulty { return id.endsWith('-veteran')?'veteran':id.endsWith('-elite')?'elite':'easy'; }
 export function fieldForQuest(id:string) { return Object.values(FIELDS).find(field=>field.questList.includes(id)); }
 export function migrateFieldQuestId(id:string) {
+ if(id==='story-ironveil-mines')return 'field-ironveil-mines-easy';
  if(id==='story-verdant-plains')return 'field-verdant-plains-easy';
- for(const field of Object.values(FIELDS)) if(id===`story-${field.id}`) return field.questList[0];
+ for(const field of Object.values(FIELDS)) if(field.questList.length&&id===`story-${field.id}`) return field.questList[0];
  return id;
 }
 export function fieldQuestInfo(field:FieldDefinition,id:string) {

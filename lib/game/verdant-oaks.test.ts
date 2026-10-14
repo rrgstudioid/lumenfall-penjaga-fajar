@@ -82,7 +82,6 @@ await test('30 enlarged canopies respect protected areas, grove spacing, terrain
   for (const p of PLAINS_OAKS) {
     const R = p.canopyRadius;
     assert.ok(L.plainsRoadDistance(p) >= R + 4, p.id + ' road');
-    assert.ok(L.plainsRiverDistance(p) >= R + 6, p.id + ' river');
     assert.ok(L.plainsCoast(p.x) - p.z >= R + 10, p.id + ' coast');
     assert.ok(!L.plainsSafe(p, R + 20));
     assert.ok(

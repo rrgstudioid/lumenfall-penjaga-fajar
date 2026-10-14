@@ -167,6 +167,7 @@ export type SkillDefinition = SkillFamilyMetadata & {
   manaCost: number;
   cooldown: number;
   castingTime: number;
+  castTiming?: import('./cast-timing.ts').CastTiming;
   baseDamage: number;
   scalingStat: 'attack' | 'hp' | 'none';
   /** Optional mixed scaling; absent entries preserve existing job damage behavior. */

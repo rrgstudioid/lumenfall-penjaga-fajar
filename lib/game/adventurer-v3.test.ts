@@ -1,3 +1,5 @@
+import { promoteFixture } from './gameplay-test-fixtures.ts';
+import { chooseV3Warrior } from './rules.ts';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
@@ -115,14 +117,14 @@ await test('Core transition refunds V3 purchased ranks while retaining clean V3 
 
 await test('V3 development save reload preserves ranks, total SP and lineage; V2 path remains separate', () => {
   const hero = createV3AdventurerHero();
-  hero.level = 8;
-  hero.skillProgressionV3!.totalEarnedSP = 5;
-  learnSkill(hero, 'v3-adventurer-power-strike');
-  hero.skillProgressionV3!.chosenCoreJob = 'warrior';
+  hero.level = 15;
+  hero.skillProgressionV3!.totalEarnedSP = 14;
+  assert.equal(promoteFixture(hero, chooseV3Warrior), true);
+  assert.equal(learnSkill(hero, 'v3-adventurer-power-strike'), true);
   const loaded = parseSave(JSON.stringify(hero));
   assert(loaded);
   assert.equal(loaded!.skillArchitectureVersion, 3);
-  assert.equal(loaded!.skillProgressionV3!.totalEarnedSP, 5);
+  assert.equal(loaded!.skillProgressionV3!.totalEarnedSP, 14);
   assert.equal(loaded!.skillProgressionV3!.skillRanks['v3-adventurer-power-strike'], 1);
   assert.equal(loaded!.skillProgressionV3!.chosenCoreJob, 'warrior');
 });

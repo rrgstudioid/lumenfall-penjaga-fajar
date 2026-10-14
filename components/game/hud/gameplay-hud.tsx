@@ -1,4 +1,6 @@
 'use client';
+import { isUnderwaterSubmap, UNDERWATER_GRID_SIZE } from '@/lib/game/underwater-regions';
+import { FROSTFIRE_ID } from '@/lib/game/frostfire-highlands-layout';
 import {
   memo,
   useCallback,
@@ -14,6 +16,8 @@ import {
   ScrollText,
   ChevronRight,
   Sun,
+  Flame,
+  Moon,
   Volume2,
   VolumeX,
   Maximize2,
@@ -190,9 +194,13 @@ const QuestTracker = memo(function QuestTracker({
     </section>
   );
 });
+// One Verdant coordinate frame for every map: letters left, numbers below.
+// Maps may set the cell count, but never swap axes or supply separate label styling.
 const RightHUDCluster = memo(function RightHUDCluster({
   mapRef,
+  gridSize = 7,
   gold,
+  weatherLabel = 'Pagi yang tenang',
   muted,
   fullscreen,
   cameraMode,
@@ -202,7 +210,9 @@ const RightHUDCluster = memo(function RightHUDCluster({
   onCamera,
 }: {
   mapRef: RefObject<HTMLCanvasElement | null>;
+  gridSize?: number;
   gold: number;
+  weatherLabel?: string;
   muted: boolean;
   fullscreen: boolean;
   cameraMode: Snapshot['cameraMode'];
@@ -211,31 +221,43 @@ const RightHUDCluster = memo(function RightHUDCluster({
   onFullscreen: () => void;
   onCamera: () => void;
 }) {
+  const gridIndices = Array.from({ length: gridSize }, (_, index) => index);
   return (
     <aside className="hud-right">
+      <div className="hud-minimap-frame">
       <button className="hud-minimap" onClick={onMap} aria-label="Buka peta">
         <canvas ref={mapRef} width={240} height={240} />
+        <svg className="hud-map-grid" viewBox="0 0 240 240" aria-hidden="true">
+          {gridIndices.slice(1).map(index => {
+            const offset = index * 240 / gridSize;
+            return <path key={index} d={`M${offset} 0V240 M0 ${offset}H240`} />;
+          })}
+        </svg>
         <svg
           className="hud-compass-rim"
           viewBox="0 0 240 240"
           aria-hidden="true"
         >
-          <circle cx="120" cy="120" r="114" />
-          <circle cx="120" cy="120" r="110" />
-          {[0, 45, 90, 135, 180, 225, 270, 315].map((angle) => (
-            <path
-              key={angle}
-              transform={`rotate(${angle} 120 120)`}
-              d="M120 2L123 9L120 16L117 9Z M120 16V23"
-            />
-          ))}
+          <rect x="6" y="6" width="228" height="228" />
+          <rect x="10" y="10" width="220" height="220" />
+          <path d="M6 30V6H30 M210 6H234V30 M234 210V234H210 M30 234H6V210" />
         </svg>
-        <span className="hud-north">N</span>
+        <span className="hud-map-columns" style={{ gridTemplateColumns: `repeat(${gridSize}, 1fr)` }} aria-hidden="true">
+          {gridIndices.map(index => <span key={index}>{index + 1}</span>)}
+        </span>
+        <span className="hud-map-rows" style={{ gridTemplateRows: `repeat(${gridSize}, 1fr)` }} aria-hidden="true">
+          {gridIndices.map(index => <span key={index}>{String.fromCharCode(65 + index)}</span>)}
+        </span>
+        <span className="hud-cardinal hud-cardinal-n" aria-hidden="true">N</span>
+        <span className="hud-cardinal hud-cardinal-w" aria-hidden="true">W</span>
+        <span className="hud-cardinal hud-cardinal-e" aria-hidden="true">E</span>
+        <span className="hud-cardinal hud-cardinal-s" aria-hidden="true">S</span>
         <kbd>M</kbd>
       </button>
+      </div>
       <div className="hud-weather">
-        <Sun size={15} />
-        Pagi yang tenang
+        {weatherLabel==='Underground · Lantern light'?<Flame size={15} />:weatherLabel==='Chaotic blue night'?<Moon size={15} />:<Sun size={15} />}
+        {weatherLabel}
       </div>
       <div className="hud-gold hud-panel">
         <Coins size={19} />
@@ -413,14 +435,16 @@ export function GameplayHUD({
             <span />
           </div>
           <p>
-            {state.inCity ? 'Kota aman' : state.mapId==='verdant-plains-v2' ? 'Padang Arunika' : state.cityName}
-            <b>·</b>Lv. {state.recommendedLevel}
+            {state.inCity ? 'Kota aman' : state.mapId==='ironveil-mines-interior-v1' ? 'Underground' : state.mapId==='whispering-wilds-v2' ? 'Hunting Field' : state.mapId===FROSTFIRE_ID ? 'Frozen Highlands' : state.mapId==='verdant-plains-v2' ? 'Padang Arunika' : state.cityName}
+            <b>·</b>{<>Lv. {state.recommendedLevel}</>}
           </p>
         </div>
         <HUDFrame id="right" label="Minimap">
           <RightHUDCluster
+            gridSize={state.mapId === 'sunken-ruins' || isUnderwaterSubmap(state.mapId) ? UNDERWATER_GRID_SIZE : 7}
             mapRef={mapRef}
             gold={state.hero.gold}
+            weatherLabel={state.mapId==='ironveil-mines-interior-v1'?'Underground · Lantern light':state.mapId==='ironveil-mines-exterior-v1'?'Hot midday · Scattered clouds':state.mapId==='whispering-wilds-v2'?'Chaotic blue daylight':state.mapId===FROSTFIRE_ID?'Wind-driven snow':undefined}
             muted={state.audioSettings.muted}
             fullscreen={fullscreen}
             cameraMode={state.cameraMode}

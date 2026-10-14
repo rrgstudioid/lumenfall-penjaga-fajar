@@ -35,6 +35,7 @@ import {
 const forgeId = 'aruna-3';
 function atForge(hero: Hero, city: keyof typeof CITIES = 'arunika') {
   const npc = CITIES[city].npcList.find((n) => n.service === 'forge')!;
+  assert.ok(npc, `${city} must register a Forge Master before positioning a fixture`);
   hero.currentCity = city;
   hero.inCity = true;
   hero.x = npc.x;
@@ -409,10 +410,12 @@ await test('forge validation rejects no Rune, missing item/GOLD, locked equipmen
     assert.equal(JSON.stringify(hero), before);
   }
 });
-await test('both city Forge Masters permit actions; remote field, missing session and wrong NPC are rejected', () => {
-  for (const city of Object.keys(CITIES) as Array<keyof typeof CITIES>) {
+await test('registered city Forge Masters permit Rune actions; remote field, missing session and wrong NPC are rejected', () => {
+  const forgeCities = Object.values(CITIES).filter(city => city.npcList.some(npc => npc.service === 'forge' && npc.services.includes('forge')));
+  assert.deepEqual(forgeCities.map(city => city.id).sort(), ['arunika', 'jayantara']);
+  for (const city of forgeCities) {
     const { hero, request } = fixture();
-    const id = atForge(hero, city);
+    const id = atForge(hero, city.id);
     assert.ok(beginRuneForge(hero, request, id).ok);
     assert.ok(resolveRuneForge(hero, hero.runeForgePending!.id, true, id).ok);
   }
@@ -427,6 +430,42 @@ await test('both city Forge Masters permit actions; remote field, missing sessio
       false,
     );
     assert.equal(JSON.stringify(hero), before);
+  }
+});
+await test('A14 Averion rejects Rune Forge transactions and borrowed pending receipts atomically', () => {
+  for (const city of ['arunika', 'jayantara']) {
+    const { hero, request } = fixture();
+    const id = atForge(hero, city);
+    assert(beginRuneForge(hero, request, id).ok);
+    const receiptId = hero.runeForgePending!.id;
+    const extraRune = createRuneItem('focus', 'rare');
+    hero.inventory.push(extraRune);
+    hero.currentCity = 'averion';
+    // Keep the valid source-city coordinates to prove rejection is registry-based.
+    assert.deepEqual(CITIES.averion.npcList, []);
+    for (const session of [null, 'missing-forge', id]) {
+      const before = JSON.stringify(hero);
+      const rejected = [
+        beginRuneForge(hero, request, session),
+        resolveRuneForge(hero, receiptId, true, session),
+        resolveRuneForge(hero, receiptId, false, session),
+        socketRune(hero, 'meteor-qa', extraRune.id, 1, session),
+        removeSocketedRune(hero, 'meteor-qa', 0, session),
+        craftRuneOptimizer(hero, 'rune-optimizer-basic', session),
+      ];
+      for (const result of rejected) {
+        assert.equal(result.ok, false);
+        assert.match(result.reason, /Buka menu Tempa melalui NPC Forge Master/);
+      }
+      assert.equal(JSON.stringify(hero), before, 'No inventory, Gold, Rune or pending receipt changes');
+    }
+  }
+});
+await test('implemented city Rune Forge sessions commit without relying on an Averion NPC', () => {
+  for (const city of ['arunika','jayantara']) {
+    const {hero,request}=fixture();const id=atForge(hero,city);
+    assert(beginRuneForge(hero,request,id).ok);
+    assert(resolveRuneForge(hero,hero.runeForgePending!.id,true,id).ok);
   }
 });
 await test('installation rejects lock/job/full socket and removal rejects full Inventory, safely', () => {

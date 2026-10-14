@@ -125,24 +125,6 @@ document.querySelector('#basic')!.addEventListener('click', () => { reset(2.5); 
 document.querySelector('#reset')!.addEventListener('click', () => { reset(2.5); write('RESET', state({ x: 0, z: 0 })); });
 
 reset(2.5);
-function _runLockCase() {
-  const result = cast(6);
-  const before = { x: game.actor.position.x, z: game.actor.position.z };
-  game.move(1, 0);
-  const moved = Math.hypot(game.actor.position.x - before.x, game.actor.position.z - before.z) > 0.001;
-  const basicBefore = target.hp;
-  game.attack();
-  const basicDamage = basicBefore - target.hp;
-  const skillAccepted = game.castSkill('v3-warrior-iron-charge');
-  return { ...result, movedWhileStunned: moved, basicDamageWhileStunned: basicDamage, skillAcceptedWhileStunned: skillAccepted, stunned: Boolean(target.stunState && target.stunState.expiresAt > game.combatTime) };
-}
-function _runRecoveryCase() {
-  cast(6);
-  game.combatTime += 1.6;
-  const before = { x: game.actor.position.x, z: game.actor.position.z };
-  game.move(1, 0);
-  return { before, after: { x: game.actor.position.x, z: game.actor.position.z }, movedAfterExpiry: Math.hypot(game.actor.position.x - before.x, game.actor.position.z - before.z) > 0.001, stunned: Boolean(target.stunState && target.stunState.expiresAt > game.combatTime), remaining: Math.max(0, (target.stunState?.expiresAt ?? 0) - game.combatTime), trace };
-}
 // Cases are intentionally run one at a time from the headed controls. This
 // keeps the browser responsive and makes each evidence snapshot attributable.
 const clock = new T.Clock();

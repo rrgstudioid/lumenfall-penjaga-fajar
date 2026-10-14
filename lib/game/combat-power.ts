@@ -1,3 +1,5 @@
+import { resolveDefenseMultiplier } from './shared-effects.ts';
+import { canDamageCrit, resolveCombatDamage } from './combat-resolver.ts';
 import {
   activeSkills, calculateFinalCharacterStats, combatProfile, equippedWeaponType,
   getEquippedItems, isSkillUnlocked,
@@ -13,7 +15,7 @@ import { itemById } from './items.ts';
 import type { MonsterVariant } from './regions.ts';
 import { COMBAT_POWER_CONFIG as CONFIG } from './combat-power-config.ts';
 import {
-  COMBAT_MECHANICS as MECHANICS, barrierAmount, blockChance, criticalChance,
+  COMBAT_MECHANICS as MECHANICS, barrierAmount, criticalChance,
   evasionChance, mitigateDamage, type DamageType,
 } from './combat-mechanics.ts';
 
@@ -160,7 +162,7 @@ export function calculateCombatPowerFromStats(stats: DerivedStats, profile: Powe
     const bonus = t.variant === 'boss' ? stats.bossDamage : t.variant === 'elite' ? stats.eliteDamage : 0;
     const defense = type === 'physical' ? t.defense : t.magicDefense;
     const penetration = type === 'physical' ? stats.physicalPenetration : stats.magicPenetration;
-    return sum + t.weight * mitigateDamage(damage * (1 + bonus / 100), defense*defenseMultiplier, profile.level, penetration);
+    return sum + t.weight * resolveCombatDamage({ rawDamage: damage, damageType: type, attackerLevel: profile.level, physicalDefense: defense, magicDefense: defense, physicalPenetration: penetration, magicPenetration: penetration, targetBonusPercent: bonus, defenseMultiplier });
   }, 0);
   // Allocate the shared mana budget to effective casts, within actual cooldown
   // limits. Learning an inefficient spell must not lower character strength by
@@ -174,13 +176,13 @@ export function calculateCombatPowerFromStats(stats: DerivedStats, profile: Powe
         const raw=positive(skillHitDamage(hit,stats));
         const hitCrit=criticalChance(hit.criticalRate);
         const defenseMultiplier=hit.delay<armorBreakUntil?MECHANICS.armorBreakDefenseMultiplier:1;
-        const damage=withCritical&&hit.canCrit
+        const damage=withCritical&&canDamageCrit(hit)
           ? (1-hitCrit)*targetDamage(Math.round(raw),hit.damageType,defenseMultiplier)+hitCrit*targetDamage(Math.round(raw*hit.criticalDamage/100),hit.damageType,defenseMultiplier)
           : targetDamage(Math.round(raw),hit.damageType,defenseMultiplier);
         for(const status of hit.statuses)if(canonicalStatus(status.id)==='defenseDown')armorBreakUntil=Math.max(armorBreakUntil,hit.delay+status.duration);
         return sum+damage;
       },0)*(a.expectedTargets??1)
-    : targetDamage(withCritical&&a.critical
+    : targetDamage(withCritical&&a.critical&&a.damageType==='physical'
         ? (1-crit)*Math.round(positive(a.flat+a.physicalCoefficient*stats.physicalAttack+a.magicCoefficient*stats.magicAttack+a.skillPowerCoefficient*stats.skillPower))+crit*Math.round(positive(a.flat+a.physicalCoefficient*stats.physicalAttack+a.magicCoefficient*stats.magicAttack+a.skillPowerCoefficient*stats.skillPower)*stats.criticalDamage/100)
         : Math.round(positive(a.flat+a.physicalCoefficient*stats.physicalAttack+a.magicCoefficient*stats.magicAttack+a.skillPowerCoefficient*stats.skillPower)),a.damageType);
   };
@@ -202,7 +204,7 @@ export function calculateCombatPowerFromStats(stats: DerivedStats, profile: Powe
     const baseDPS = actionDamage(a) * rate(a);
     const dps = baseDPS * (a.attackSpeed ? speedFactor : 1);
     if (a.damageType === 'physical') physicalDPS += dps; else magicDPS += dps;
-    const relevanceRate = rate(a) * (a.attackSpeed ? speedFactor : 1) * (a.critical ? criticalFactor : 1);
+    const relevanceRate = rate(a) * (a.attackSpeed ? speedFactor : 1) * (a.critical && a.damageType === 'physical' ? criticalFactor : 1);
     physicalCoefficient += positive(a.physicalCoefficient) * relevanceRate;
     magicCoefficient += positive(a.magicCoefficient) * relevanceRate;
     if (a.critical||a.hits?.some(hit=>hit.canCrit)) critDPS += (actionDamage(a)-actionDamage(a,false))*rate(a)*(a.attackSpeed?speedFactor:1);
@@ -219,8 +221,8 @@ export function calculateCombatPowerFromStats(stats: DerivedStats, profile: Powe
   const coefficientTotal = physicalCoefficient + magicCoefficient;
   const physicalRelevance = coefficientTotal ? physicalCoefficient / coefficientTotal : 1;
   const dodge = clamp(evasionChance(stats.evasion), 0, 1);
-  const expectedBlockReduction = clamp(blockChance(stats.blockRate), 0, 1) * MECHANICS.blockDamageReduction;
-  const incoming = (defense: number) => {
+  const expectedBlockReduction = 1 - resolveDefenseMultiplier({ expectedBlockRate: stats.blockRate });
+  const incoming = (defense: number, magic = false) => {
     // Derived data can be edited/imported externally. Keep CP finite even when
     // a malformed defense value reaches the pure calculator.
     const safeDefense = Number.isNaN(defense) || defense === Number.NEGATIVE_INFINITY
@@ -228,10 +230,10 @@ export function calculateCombatPowerFromStats(stats: DerivedStats, profile: Powe
     const mitigated = mitigateDamage(1, safeDefense, profile.level);
     const rawIncoming = Number.isFinite(mitigated) ? mitigated : 1;
     return Math.max(CONFIG.minimumIncomingMultiplier,
-      rawIncoming * (1 - clamp(stats.damageReduction / 100, 0, 1)) * (1 - dodge) * (1 - expectedBlockReduction));
+      rawIncoming * (magic ? 1 : 1 - dodge) * resolveDefenseMultiplier({ damageReduction: stats.damageReduction, expectedBlockRate: stats.blockRate }));
   };
   const physicalEHP = positive(stats.maxHP) / incoming(stats.physicalDefense);
-  const magicEHP = positive(stats.maxHP) / incoming(stats.magicDefense);
+  const magicEHP = positive(stats.maxHP) / incoming(stats.magicDefense, true);
   const offensivePower = positive((physicalDPS + magicDPS) * CONFIG.offensiveWeight);
   const coreDefensiveEHP = Math.sqrt(physicalEHP * magicEHP);
   const defensivePower = CONFIG.defensiveScale * coreDefensiveEHP;

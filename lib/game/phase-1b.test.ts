@@ -1,3 +1,4 @@
+import { LEGACY_SPECIALIZATIONS } from './gameplay-test-fixtures.ts';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
@@ -13,7 +14,6 @@ import {
 import {
   ALL_SKILLS,
   CORE_JOBS,
-  SPECIALIZATIONS,
   skillCombatScaling,
   type SkillDefinition,
 } from './skills.ts';
@@ -125,7 +125,7 @@ void test('1B SP: all 64 legacy skills have zero SP scaling; old/new damage, hea
       }
     }
   }
-  for (const [id, spec] of Object.entries(SPECIALIZATIONS)) {
+  for (const [id, spec] of Object.entries(LEGACY_SPECIALIZATIONS)) {
     hero.coreJob = spec.coreJob;
     hero.job = spec.coreJob;
     hero.specialization = id as typeof hero.specialization;
@@ -237,7 +237,8 @@ void test('1B registry: all 36 exact canonical IDs/names/tiers/relations exist b
     for (let i = 0; i < row.length; i += 2) {
       const job = getJobV2(row[i])!;
       assert(job);
-      assert.equal(job.name, row[i + 1]);
+      if (job.referenceStatus === 'UNRESOLVED') { assert.equal(job.name, 'Belum ditetapkan'); assert.equal(job.legacyName, row[i + 1]); }
+      else assert.equal(job.name, row[i] === 'assasin' ? 'Assassin' : row[i + 1]);
       assert.equal(job.playable, false);
       assert.equal(job.tier, i === 0 ? 1 : i === 4 || i === 8 ? 3 : 2);
       assert.equal(
@@ -258,14 +259,49 @@ void test('1B registry: all 36 exact canonical IDs/names/tiers/relations exist b
     Object.values(JOB_V2_REGISTRY).filter((j) => j.tier === 3).length,
     14,
   );
-  assert.equal(getJobV2('assassin'), undefined);
+  assert.equal(getJobV2('assassin')?.id, 'assasin');
   assert.equal(getJobV2('Assasin'), undefined);
   assert.equal(getJobV2('toString'), undefined);
 });
+void test('R7 final specialization identities do not finalize Advanced or activate jobs', () => {
+  for (const [id, name, parent] of [
+    ['sorcerer', 'Sorcerer', 'mage'],
+    ['blacksmith', 'Blacksmith', 'smith'],
+    ['specialist', 'Specialist', 'smith'],
+  ] as const) {
+    const job = getJobV2(id)!;
+    assert.equal(job.id, id);
+    assert.equal(job.name, name);
+    assert.equal(job.parent, parent);
+    assert.equal(job.tier, 2);
+    assert.equal(job.referenceStatus, 'LOCK');
+    assert.equal(Object.hasOwn(job, 'legacyName'), false);
+    assert.equal(job.architectureVersion, 2);
+    assert.equal(job.playable, false);
+    assert.equal(job.activation, 'inactive');
+    assert.deepEqual(resolveJobV2Lineage({
+      jobArchitectureVersion: 2, coreJob: parent, specialization: id,
+    })?.map(entry => entry.id), ['adventurer', parent, id]);
+  }
+  assert.equal(Object.keys(JOB_V2_REGISTRY).length, 36);
+  assert.equal(getJobV2('summoner')?.name, 'Summoner');
+  for (const id of ['gladiator', 'warlock', 'arcanist', 'mastersmith', 'siege']) {
+    const advanced = getJobV2(id)!;
+    assert.equal(advanced.referenceStatus, 'UNRESOLVED');
+    assert.equal(advanced.name, 'Belum ditetapkan');
+    assert.equal(advanced.tier, 3);
+    assert.equal(advanced.playable, false);
+    assert.equal(advanced.activation, 'future_locked');
+  }
+  const advancedJobs = Object.values(JOB_V2_REGISTRY).filter(job => job.tier === 3);
+  assert.equal(advancedJobs.length, 14);
+  assert(advancedJobs.every(job => !job.playable && job.activation === 'future_locked'));
+});
+
 void test('1B registry: versioned collisions remain distinct; all legacy specializations/saves remain valid with no V2 mapping', () => {
   assert.equal(Object.keys(CORE_JOBS).length, 5);
-  assert.equal(Object.keys(SPECIALIZATIONS).length, 10);
-  for (const [id, spec] of Object.entries(SPECIALIZATIONS)) {
+  assert.equal(Object.keys(LEGACY_SPECIALIZATIONS).length, 10);
+  for (const [id, spec] of Object.entries(LEGACY_SPECIALIZATIONS)) {
     assert.equal(resolveJobMetadata(id)?.name, spec.name);
     assert.equal(getJobV2(id), undefined);
     const hero = freshHero();
@@ -290,7 +326,8 @@ void test('1B registry: versioned collisions remain distinct; all legacy special
   assert.equal(resolveJobMetadata('ranger', 2)?.name, 'Ranger');
   assert.equal(resolveJobMetadata('arcanist', 1)?.tier, 1);
   assert.equal(resolveJobMetadata('arcanist', 2)?.tier, 3);
-  assert.equal(resolveJobMetadata('berserker'), undefined);
+  assert.equal(resolveJobMetadata('berserker')?.parent, 'warrior');
+  assert.equal(getJobV2('berserker')?.playable, false);
 });
 void test('1B registry: metadata inheritance validates parent chain without registering or activating skills', () => {
   for (const specialization of ['berserker', 'blade_master'] as const) {

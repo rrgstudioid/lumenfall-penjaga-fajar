@@ -21,13 +21,13 @@ export const VENOM_PROFILES: readonly AssasinPoisonProfile[] = [
   [16,24,.10,.10], [20,28,.12,.12], [24,33,.14,.14], [28,38,.16,.16], [32,44,.18,.18],
 ].map(([baseDamageMin,baseDamageMax,patkCoefficient,dexCoefficient], i) => ({
   id: 'v3-assasin-venom-mastery', baseDamageMin, baseDamageMax, patkCoefficient, dexCoefficient,
-  rank: i + 1, skillPowerFactor: 8, baseRollPolicy: 'PER_TICK',
+  rank: i + 1, skillPowerFactor: 8, baseRollPolicy: 'PER_TICK', critException: 'assassin_skill_poison',
 }));
 export const VENOM_THROWN_ACCURACY = [2,4,6,8,10] as const;
 export const ECLIPSE_PROFILES = [
-  { min: 24, max: 34, physical: .15, dex: .18 },
-  { min: 30, max: 42, physical: .18, dex: .22 },
-  { min: 36, max: 50, physical: .22, dex: .26 },
+  { critException: 'assassin_skill_poison', min: 24, max: 34, physical: .15, dex: .18 },
+  { critException: 'assassin_skill_poison', min: 30, max: 42, physical: .18, dex: .22 },
+  { critException: 'assassin_skill_poison', min: 36, max: 50, physical: .22, dex: .26 },
 ] as const;
 type RankData = { min?: number[]; max?: number[]; physical?: number[]; str?: number[]; dex?: number[];
   mana?: number[]; cooldown?: number[]; duration?: number[]; distance?: number[] };

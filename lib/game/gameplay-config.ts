@@ -11,7 +11,7 @@ export function resourcePolicy(
   hero: ResourceOwner,
   legacyStaminaEnabled = STAMINA_ENABLED,
 ) {
-  const legacy = hero.progressionArchitecture !== 'v2_test';
+  const legacy = !hero.progressionArchitecture || hero.progressionArchitecture === 'legacy';
   return {
     hp: true,
     mana: true,

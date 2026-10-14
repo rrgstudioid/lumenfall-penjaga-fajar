@@ -1,0 +1,66 @@
+LUMENFALL — WEAPON REFERENCE PLACEMENT: OWNER ACC
+Dicatat Garda, 8 Oktober 2026, dari percakapan langsung ini.
+STATUS: APPROVED DESIGN PLACEMENT ONLY / NOT IMPLEMENTED.
+
+1. AUTHORITY
+Proposal Garda yang langsung mendahului persetujuan:
+- Tentukan budget dasar senjata pada milestone level tertentu.
+- Gunakan reference jenis senjata ketika menyusun range item.
+- Simpan hasilnya sebagai Base Weapon Attack Min-Max item.
+- Combat tidak menerapkan reference jenis senjata itu lagi.
+- Enhancement dan penalty dual-wield Off-Hand tetap lapisan terpisah.
+Proposal secara eksplisit diberi label keputusan baru, bukan klaim penempatan
+yang sudah ditemukan pada seluruh sejarah CLASS DI LUMENFALL.
+Jawaban OWNER: "ok aku acc".
+
+2. KEPUTUSAN YANG DISETUJUI
+Weapon archetype reference diperhitungkan saat authoring budget/range item.
+Base Weapon Attack Min-Max yang dihasilkan sudah mencerminkan reference itu.
+Untuk item canonical yang memakai penempatan ini, runtime tidak boleh menerapkan
+multiplier archetype yang sama untuk kedua kalinya.
+Reference tidak mengurangi shared character core, primary stat contribution,
+seluruh damage skill, atau explicit skill coefficient.
+Enhancement tetap bekerja pada core weapon attack item tersebut.
+Penalty Off-Hand tetap terpisah dan hanya berlaku pada raw weapon contribution
+dalam konteks dual-wield yang sah, sesuai kontrak yang sudah disetujui.
+Support Off-Hand bukan otomatis second weapon.
+Range authored ini bukan otomatis range EFFECTIVE sesudah enhancement/efficiency.
+Consumer berikutnya wajib menjaga provenance tahap range dan setiap multiplier.
+Tidak memerintahkan pembuatan enum/field/schema baru pada checkpoint pencatatan ini.
+
+3. BATAS NUMERIC APPROVAL
+Pembahasan memakai Sword/Dagger90%, Bow100%, Greatsword sekitar140% sebagai
+reference yang telah ditemukan. ACC ini menetapkan PENEMPATAN reference;
+bukan pengesahan ulang seluruh tuning, exact Greatsword reference, keluarga
+senjata provisional lainnya, atau tabel item/level yang belum tersedia.
+Contoh budget100-110 -> Sword90-99, Bow100-110, Greatsword140-154 adalah
+contoh arithmetic mekanis, BUKAN input catalog item LUMENFALL.
+Tidak ada range Training Sword atau weapon Lv5/Lv10/Lv15 baru disetujui.
+Usulan RAW[7,9] terdahulu tetap ON HOLD dan tidak menjadi canonical.
+Scalar prototype8 tidak otomatis menjadi canonical range[8,8].
+Baseline/mastery Off-Hand, enhancement curve, rarity/options, skill coefficients,
+BasePhysical/BaseMagic tables dan seluruh tuning lain tidak diperluas oleh ACC ini.
+
+4. HUBUNGAN DENGAN Q2+Q4 DAN CHECKPOINT B
+Ini addendum terarah terhadap ambiguity penempatan reference pada input baru,
+bukan penulisan ulang Q2_Q4_DESIGN_PROPOSAL_V1.txt atau bukti historis.
+Architecture/sampling/rounding Checkpoint A tetap dipertahankan.
+Runtime lama masih memiliki contribution .90 untuk Sword/Dagger dan1.40 untuk
+Two-Hand Sword; pencatatan ACC ini TIDAK menghapus atau mengubah live config.
+Consumer canonical berikutnya harus menghindari double application pada range
+yang sudah authored dengan archetype reference; jangan menerapkan perubahan
+global pada data prototype/legacy yang provenance-nya belum dikonversi.
+B-DATA-02 design placement kini mendapat keputusan OWNER. Namun provenance
+range Training Sword aktual belum dapat dibuktikan sebelum range tersebut
+ditetapkan. B-DATA-01 approved Training Sword Min-Max masih terbuka.
+Actual actor/instance/rank admission dan world wiring tetap belum diimplementasi.
+Tidak ada klaim Checkpoint B, seluruh Q2/Q4 atau Phase14 PASSED/release-ready.
+
+5. LANGKAH BERIKUTNYA DAN STOP
+Siapkan proposal mini progression Sword Lv1/Lv5/Lv10/Lv15 untuk OWNER REVIEW,
+berdasarkan milestone/arah design yang ditemukan, tanpa menjadikan angka
+prototype atau data game referensi sebagai nilai canonical secara otomatis.
+Angka baru harus dibedakan dari keputusan historis dan disetujui tersendiri.
+Jangan mengaktifkan catalog/wiring atau mengubah starter default Dawnblade.
+Tidak ada source gameplay/config/register/history/save/assets diubah oleh catatan ini.
+Tidak ada test/build/browser/Game/simulator/commit/push/merge/publish dijalankan.

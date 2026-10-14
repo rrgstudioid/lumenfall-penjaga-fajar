@@ -17,7 +17,7 @@ export const THIEF_JOB_IDENTITY = {
     description: 'Precision, mobility, Weakpoint, dan positioning. Cabang Core tidak menentukan specialization.' },
   rogue: { name: 'Rogue', role: 'High-Burst Backline Diver',
     description: 'Dual-Dagger direct burst, Ambush, positioning, dan Vanish; masuk lalu disengage.' },
-  assasin: { name: 'Assasin', role: 'Stealth Poison Kiter / Continuous DoT DPS',
+  assasin: { name: 'Assassin', role: 'Stealth Poison Kiter / Continuous DoT DPS',
     description: 'Poison DoT, Movement Slow, thrown Daggers, kiting, dan low-HP execution.' },
 } as const;
 

@@ -54,16 +54,28 @@ await test('native purchase, finite SP, variable rank and variable cost work', (
   assert.equal(canPurchaseSkillRank(context, 'variable').reason, 'INSUFFICIENT_SP');
 });
 
-await test('unlock level is required only for the first rank', () => {
+await test('each purchase requires its declared next-rank level and preserves rejected state', () => {
   const f = fixture();
   const state = createSkillProgressionV3(7);
   const context = { ...f, state, level: 1 };
   assert.equal(purchaseSkillRankV3(context, 'variable').reason, 'OK');
+  const rankOne = structuredClone(state);
+  assert.equal(purchaseSkillRankV3(context, 'variable').reason, 'REQUIRES_LEVEL');
+  assert.equal(canPurchaseSkillRank(context, 'variable').requiredLevel, 2);
+  assert.deepEqual(state, rankOne);
+  context.level = 2;
   assert.equal(purchaseSkillRankV3(context, 'variable').reason, 'OK');
   assert.equal(state.skillRanks.variable, 2);
-  context.level = 1;
+  const rankTwo = structuredClone(state);
+  assert.equal(purchaseSkillRankV3(context, 'variable').reason, 'REQUIRES_LEVEL');
+  assert.equal(canPurchaseSkillRank(context, 'variable').requiredLevel, 3);
+  assert.deepEqual(state, rankTwo);
+  context.level = 3;
   assert.equal(purchaseSkillRankV3(context, 'variable').reason, 'OK');
   assert.equal(state.skillRanks.variable, 3);
+  assert.equal(spentSkillPointsV3(state, f.skills), 7);
+  assert.equal(availableSkillPointsV3(state, f.skills), 0);
+  assert.equal(canPurchaseSkillRank(context, 'variable').reason, 'MAX_RANK');
 });
 
 await test('level, prerequisite and sibling specialization gates return structured reasons', () => {

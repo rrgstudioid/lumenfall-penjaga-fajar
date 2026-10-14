@@ -26,7 +26,7 @@ function build(job: CoreJobId = 'warrior') {
   hero.gold = 999999;
   unequipItem(hero, 'mainHand');
   assert(chooseCoreJob(hero, job));
-  const training = hero.inventory.find(i => i.requiredCoreJob === job && i.mainHand)!;
+  const training = hero.inventory.find(i => (i.requiredCoreJob === job || (job === 'rogue' && i.equipmentType === 'dagger')) && i.mainHand)!;
   assert(training && equipItem(hero, training.id, 'mainHand').ok);
   if (job === 'hunter') hero.inventory.push(createItem('arrows', { quantity: 100 }));
   for (const skill of activeSkills(hero)) hero.skillLevels[skill.id] = 3;
@@ -352,8 +352,8 @@ await test('all legacy skill damage and mitigation remain identical after shared
     const scaling = skillCombatScaling(skill);
     const attack = stats.physicalAttack * scaling.physical + stats.magicAttack * scaling.magic;
     const raw = skill.baseDamage + attack * skill.damageCoefficient + stats.skillPower * scaling.skillPower * skill.damageCoefficient;
-    const expected = raw * (1 + (level - 1) * .12) * (hero.masteryChoices[skill.id] === 'power' ? MASTERY_EFFECTS.power.damage : 1) * (1 + modifier) * (1 + Math.max(0, stats.skillDamage) / 100);
-    assert.equal(skillDamagePreview(hero, skill), expected);
+    const expected = raw * (1 + (level - 1) * .05) * (1 + (level - 1) * .12) * (hero.masteryChoices[skill.id] === 'power' ? MASTERY_EFFECTS.power.damage : 1) * (1 + modifier) * (1 + Math.max(0, stats.skillDamage) / 100);
+    near(skillDamagePreview(hero, skill), expected);
     assert.equal(skillCombatScaling(skill).damageType, ['wizard', 'acolyte'].includes(skill.job) ? 'magic' : 'physical');
   }
   for (const defense of [0, 50, 500, 99999]) for (const pen of [0, 20, 100, 150]) {

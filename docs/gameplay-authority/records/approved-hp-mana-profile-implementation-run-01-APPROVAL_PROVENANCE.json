@@ -1,0 +1,51 @@
+{
+  "UTC": "2026-10-11T13:39:09.291Z",
+  "status": "OWNER_FINAL_FOR_LISTED_RESOURCE_MODEL_AND_22_PROFILES_ONLY",
+  "source": "Human message in this task: LUMENFALL — APPROVED HP/MANA PROFILES: SHARED IMPLEMENTATION + CLASS PROOF",
+  "sourceMessageId": null,
+  "sourceDate": null,
+  "exactApprovalContext": "OWNER menyetujui rekomendasi model dan seluruh22 profil pada paket resource revisi dengan respons “ok lanjut”.",
+  "latestCorrection": "Run-02 Specialist105/130 supersedes95/130; Smith family combat category final",
+  "historicalSources": [
+    "outputs/gameplay-migration/role-based-hp-mana-profile-design/run-01",
+    "outputs/gameplay-migration/role-based-hp-mana-profile-design/run-02"
+  ],
+  "models": {
+    "HP": "n=L-1; h=HPtarget/100; base=230h-120; growth=28.75h-.75; intrinsic=base+growth*n+TotalVIT*(8+.05*n); Math.round existing boundary",
+    "Mana": "floor(m*(60+2.5L+.01L²)+3BonusINT); item/modifier outside intrinsic; BonusINT not multiplied by m"
+  },
+  "notApproved": [
+    "kit",
+    "weapon/range",
+    "new unlock",
+    "new gauge",
+    "new class costs",
+    "composite CP",
+    "Advanced resource numerics"
+  ],
+  "fileAuthorityHashes": {
+    "AGENTS.md": "ef2e525fe39b96bf7a1782d9795499c4efec6bf6947afe7c76d2a111b0c815d8",
+    "C:\\Users\\USER\\Documents\\ChatGPT\\PROJECT GAME NGEMPER\\outputs\\gameplay-migration\\role-based-hp-mana-profile-design\\run-01\\REPORT.txt": "b8c2363bd99d7a03622b3bd7284f30df40e829c921fdf13f538fadd98d2f6419",
+    "C:\\Users\\USER\\Documents\\ChatGPT\\PROJECT GAME NGEMPER\\outputs\\gameplay-migration\\role-based-hp-mana-profile-design\\run-01\\RESOURCE_PROFILE_PROPOSAL.txt": "ccc785ce378eeee0242f2492d52d930e4d0ba83b8f05ea760832c96daf78c139",
+    "C:\\Users\\USER\\Documents\\ChatGPT\\PROJECT GAME NGEMPER\\outputs\\gameplay-migration\\role-based-hp-mana-profile-design\\run-01\\EVIDENCE_MANIFEST.json": "2cc97a32966fe3e00517203cf6f69c1ed92f0a06b0b0acb54d82a66a3d774e0e",
+    "C:\\Users\\USER\\Documents\\ChatGPT\\PROJECT GAME NGEMPER\\outputs\\gameplay-migration\\role-based-hp-mana-profile-design\\run-01\\SURVIVABILITY_AND_DEPENDENCIES.txt": "9b267e9358c3ecca99a21f8e7a8509bcde45745d192a5984046f00073a4b591c",
+    "C:\\Users\\USER\\Documents\\ChatGPT\\PROJECT GAME NGEMPER\\outputs\\gameplay-migration\\role-based-hp-mana-profile-design\\run-01\\FOUR_MAIN_CHECKS.json": "8db831b24544f6f16be205493cff4eda921686ae96217628165180eb0e2a10f2",
+    "C:\\Users\\USER\\Documents\\ChatGPT\\PROJECT GAME NGEMPER\\outputs\\gameplay-migration\\role-based-hp-mana-profile-design\\run-01\\RESOURCE_COMPARISONS.json": "ea115cc3580bd11bb3309e0b13cd59c5ee5f745fe5b0cd6c07a6066a6eb71242",
+    "C:\\Users\\USER\\Documents\\ChatGPT\\PROJECT GAME NGEMPER\\outputs\\gameplay-migration\\role-based-hp-mana-profile-design\\run-01\\STAT_RESOURCE_IMPLEMENTATION_PLAN.txt": "e61e5f32650ffcd569de71af2617b006d571f9c257e16003f1e48dde74c076d2",
+    "C:\\Users\\USER\\Documents\\ChatGPT\\PROJECT GAME NGEMPER\\outputs\\gameplay-migration\\role-based-hp-mana-profile-design\\run-01\\AUTHORITY_ROLE_PROFILE_MATRIX.json": "7d50e5744abd8cdfc6bfbfabb9c774aa5d25705ea8b25a8c266a4aaa7bd175f9",
+    "C:\\Users\\USER\\Documents\\ChatGPT\\PROJECT GAME NGEMPER\\outputs\\gameplay-migration\\role-based-hp-mana-profile-design\\run-01\\AFTER.json": "54a0ce2aab701107e3d4bf6da63137635c7f79f203a8630ec46c3c2a38cce591",
+    "C:\\Users\\USER\\Documents\\ChatGPT\\PROJECT GAME NGEMPER\\outputs\\gameplay-migration\\role-based-hp-mana-profile-design\\run-01\\RESOURCE_COMPARISONS.txt": "48e3ad214c0f5019c12dcf5e676ccfb3c3e4c8fad91e8200c9903e1e64d0682c",
+    "C:\\Users\\USER\\Documents\\ChatGPT\\PROJECT GAME NGEMPER\\outputs\\gameplay-migration\\role-based-hp-mana-profile-design\\run-01\\PROVENANCE.json": "6abdb6c5e6a10bb7de818d81c6982ac7f5c502dab73f2ff1ff48db52888757f6",
+    "C:\\Users\\USER\\Documents\\ChatGPT\\PROJECT GAME NGEMPER\\outputs\\gameplay-migration\\role-based-hp-mana-profile-design\\run-01\\COMPLETION_CRITERIA.txt": "4f131c67d867851d6cde957b80efde952a06eb0229687bf7153ca1d79601c1de",
+    "C:\\Users\\USER\\Documents\\ChatGPT\\PROJECT GAME NGEMPER\\outputs\\gameplay-migration\\role-based-hp-mana-profile-design\\run-01\\OWNER_REVIEW_PACKAGE.txt": "e5b1f128410de850bafa93d7c14bb9879b4d327966c616b95bc68977ac12f535",
+    "C:\\Users\\USER\\Documents\\ChatGPT\\PROJECT GAME NGEMPER\\outputs\\gameplay-migration\\role-based-hp-mana-profile-design\\run-01\\KIT_MANA_ARITHMETIC.json": "6ef9997b15e92ddca8bd5b521cd08f3f62456792bdfec1aebce4bb2c3155f031",
+    "C:\\Users\\USER\\Documents\\ChatGPT\\PROJECT GAME NGEMPER\\outputs\\gameplay-migration\\role-based-hp-mana-profile-design\\run-01\\SOURCE_COVERAGE.txt": "b3e14a1079965230f068e0cbb03851cf8aea6f624717976d65a8e47be39e22ad",
+    "C:\\Users\\USER\\Documents\\ChatGPT\\PROJECT GAME NGEMPER\\outputs\\gameplay-migration\\role-based-hp-mana-profile-design\\run-01\\RESOURCE_PROFILE_PROPOSAL.json": "392dc5608b3ecdf1185d8e0c26719fd3481a29eb671d609525d6e617f66f771b",
+    "C:\\Users\\USER\\Documents\\ChatGPT\\PROJECT GAME NGEMPER\\outputs\\gameplay-migration\\role-based-hp-mana-profile-design\\run-01\\COMMAND_ATTEMPTS.json": "cd200ddf26fe227296a351e83e86b13ec371de941b46a87c0f3b109e7f4ca319",
+    "C:\\Users\\USER\\Documents\\ChatGPT\\PROJECT GAME NGEMPER\\outputs\\gameplay-migration\\role-based-hp-mana-profile-design\\run-01\\BASELINE.json": "4a250687ee156ed8d976cb3b09b3898a697d064bff3cd512cdf6686d9b9b6b5b",
+    "C:\\Users\\USER\\Documents\\ChatGPT\\PROJECT GAME NGEMPER\\outputs\\gameplay-migration\\role-based-hp-mana-profile-design\\run-01\\PRESERVATION.txt": "d6e0c20c5c39f8bfb832f9f36226c6288f1c145811d1174ebcdea364ce5d2d68",
+    "C:\\Users\\USER\\Documents\\ChatGPT\\PROJECT GAME NGEMPER\\outputs\\gameplay-migration\\role-based-hp-mana-profile-design\\run-01\\TRANSITION_AND_CURVE_EVIDENCE.json": "af23d1b9f8a467304823b32685acec979c16ca303ecd0dad2486f048ddbdaceb",
+    "C:\\Users\\USER\\Documents\\ChatGPT\\PROJECT GAME NGEMPER\\outputs\\gameplay-migration\\role-based-hp-mana-profile-design\\run-01\\KIT_MANA_ARITHMETIC.txt": "71a2cf22b84f9d8cb8db721f888f69b940ce5bc25670f89aac009c2016cf24ef",
+    "C:\\Users\\USER\\Documents\\ChatGPT\\PROJECT GAME NGEMPER\\outputs\\gameplay-migration\\role-based-hp-mana-profile-design\\run-01\\INTEGRITY_CHECKS.json": "f3b712784adcb6411f7764515b531139727a11aeb3de78aea1138c0606fd5870"
+  }
+}

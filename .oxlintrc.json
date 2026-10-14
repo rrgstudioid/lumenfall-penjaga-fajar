@@ -29,6 +29,7 @@
     "build/**",
     "dist/**",
     "coverage/**",
+    "public/assets/decoders/basis/**",
     "tests/browser/**/*.bundle.js",
     "next-env.d.ts"
   ],

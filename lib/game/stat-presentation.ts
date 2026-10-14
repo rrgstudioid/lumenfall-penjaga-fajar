@@ -23,6 +23,10 @@ const percentageStats = new Set([
 ]);
 export const statDisplayLabel = (stat: string) => labels[stat] ?? stat.replace(/([A-Z])/g, ' $1').replace(/^./, c => c.toUpperCase());
 export const statDisplayUnit = (stat: string) => percentageStats.has(stat) ? '%' : '';
-export const statDisplayValue = (stat: string, value: number, signed = true) =>
-  `${signed && value >= 0 ? '+' : ''}${Number(value.toFixed(2))}${statDisplayUnit(stat)}`;
+export const statDisplayValue = (stat: string, value: number, signed = true) => {
+  // resolveMaxMana consumes this field as a fraction; other percent fields
+  // store percentage points. This conversion is presentation-only.
+  const display = stat === 'maxManaPercent' ? value * 100 : value;
+  return `${signed && display >= 0 ? '+' : ''}${Number(display.toFixed(2))}${statDisplayUnit(stat)}`;
+};
 export const statBonusText = (stat: string, value: number) => `${statDisplayLabel(stat)} ${statDisplayValue(stat, value)}`;

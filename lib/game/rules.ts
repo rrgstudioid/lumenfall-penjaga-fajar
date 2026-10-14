@@ -1,23 +1,42 @@
+import { decodeCharacterV2, serializeSaveCollection } from './save-v2.ts';
+import { approvedResourceProfile, intrinsicClassResources } from './resource-profiles.ts';
+import { resolveArmorSets } from './equipment-layers.ts';
+import { CHARACTER_RULES, STAT_TUNING, MANUAL_SKILL_RESET, ENHANCEMENT_STEPS, skillPointsAtLevel, totalSkillPoints } from './canonical-config.ts';
+import { migrateIronveilSave } from './ironveil-mines-save-migration.ts';
+import { MINE_ID, MineNavigation } from './ironveil-interior-layout.ts';
+import { IRONVEIL_ID, IronveilNavigation } from './ironveil-mines-layout.ts';
+import { SUNKEN_ID, SUNKEN_LAYOUT_VERSION } from './sunken-ruins-layout.ts';
+import { migrateSunkenSave, SunkenQuestMigrationHold } from './sunken-ruins-save-migration.ts';
+import { DEEP_OCEAN_ENTRY, ABYSAL_TRENCH_ID, ABYSAL_TRENCH_ENTRY, isUnderwaterSubmap } from './underwater-regions.ts';
+import { abysalTrenchWalkable } from './abysal-trench-layout.ts';
+import { deepOceanWalkable } from './deep-ocean-layout.ts';
+import { SunkenNavigation } from './sunken-ruins-navigation.ts';
+import { WILDS_ID } from './whispering-wilds-layout.ts';
+import { migrateWildsSave } from './whispering-wilds-save-migration.ts';
+import { WildsNavigation } from './whispering-wilds-navigation.ts';
 import { PLAINS_ID, PLAINS_ENTRY, restorePlainsPosition } from './verdant-plains-layout.ts';
+import { FROSTFIRE_ID, FROSTFIRE_LAYOUT_VERSION, FrostNavigation } from './frostfire-highlands-layout.ts';
+import { migrateFrostfireSave } from './frostfire-save-migration.ts';
+import { normalizeMaleAppearance } from './character-appearance.ts';
 import { isResourceEnabled, staminaDerivedValue } from './gameplay-config.ts';
 import { RogueAmbushState } from './rogue-ambush.ts';
 import { thiefJobCapabilities, thiefSkillJobAllowed, THIEF_JOB_IDENTITY } from './thief-job-capabilities.ts';
 import { ASSASIN_V3_RUNTIME_SKILLS, venomMasteryRank, VENOM_THROWN_ACCURACY } from './assasin-v3.ts';
 import { getVisibleJobArchitecture } from './job-presentation.ts';
-import {progressionRules,LEGACY_CONTENT_CAP,type ProgressionArchitecture} from './progression.ts';
+import {progressionRules,type ProgressionArchitecture} from './progression.ts';
 import {rankSource,normalizedRankOwnership,buyRank,grantRank,paidTreeInvestment,type RankOwnership} from './rank-ownership.ts';
 import {hostModifiers,applyStatModifiers,isManualGuarding,actionDamageMultiplier,type ModifierHost,type CombatModifier,type CounterContext,type ModifierContext,type ImpactContext} from './combat-modifiers.ts';
 import { getJobV2, type CoreJobV2Id } from './job-registry-v2.ts';
 import type {CombatSupport} from './combat-transient.ts';
 import { resolveSkillAction, skillHitDamage, resolvedDamageParts } from './skill-action.ts';
-import { ADVENTURER_V3_RUNTIME_SKILLS, ADVENTURER_V3_SKILL_MAP, adventurerV3StartingState } from './adventurer-v3.ts';
+import { ADVENTURER_V3_RUNTIME_SKILLS, adventurerV3StartingState } from './adventurer-v3.ts';
 import { THIEF_V3_SKILL_MAP } from './thief-v3.ts';
 import { ROGUE_V3_RUNTIME_SKILLS, rogueMasteryModifiers } from './rogue-v3.ts';
 import { canApplyAssasinPoison, validPoisonProfile } from './assasin-poison.ts';
 import { THIEF_V3_RUNTIME_SKILLS, thiefPassiveModifiers, thiefManaReduction, reconcileThiefBuffs } from './thief-runtime.ts';
-import { WARRIOR_V3_RUNTIME_SKILLS, WARRIOR_V3_SKILL_MAP, warriorV3StateAfterCoreChange } from './warrior-v3.ts';
-import { BERSERKER_V3_RUNTIME_SKILLS, BERSERKER_V3_SKILL_MAP, BERSERKER_MASTERY_MANA_SKILLS, BERSERKER_TRANCE_DAMAGE_SKILLS, BERSERKER_TRANCE_AOE_SKILLS, berserkerV3StateAfterSpecialization } from './berserker-v3.ts';
-import { BLADE_MASTER_V3_RUNTIME_SKILLS, BLADE_MASTER_V3_SKILL_MAP, BLADE_MASTER_DUAL_MANA_SKILLS, BLADE_MASTER_MASTERY_MANA_SKILLS, BLADE_MASTER_MASTERY_MANA_REDUCTION_BY_RANK, bladeMasterV3StateAfterSpecialization, bladeMasterDualWieldActive, composeBladeWeaponHits } from './blade-master-v3.ts';
+import { WARRIOR_V3_RUNTIME_SKILLS, warriorV3StateAfterCoreChange } from './warrior-v3.ts';
+import { BERSERKER_V3_RUNTIME_SKILLS, BERSERKER_MASTERY_MANA_SKILLS, BERSERKER_TRANCE_DAMAGE_SKILLS, BERSERKER_TRANCE_AOE_SKILLS, berserkerV3StateAfterSpecialization } from './berserker-v3.ts';
+import { BLADE_MASTER_V3_RUNTIME_SKILLS, BLADE_MASTER_DUAL_MANA_SKILLS, BLADE_MASTER_MASTERY_MANA_SKILLS, BLADE_MASTER_MASTERY_MANA_REDUCTION_BY_RANK, bladeMasterV3StateAfterSpecialization, bladeMasterDualWieldActive, composeBladeWeaponHits } from './blade-master-v3.ts';
 import type { StunState } from './stun.ts';
 import { canPurchaseSkillRank, normalizeSkillProgressionV3, purchaseSkillRankV3, refundAllSkillPointsForJobChange, resetFamilyBranch, spentSkillPointsV3, type SkillProgressionV3State } from './skill-progression-v3.ts';
 import { heroFamilyContext, heroFamilyHotbarBinding, heroFamilyNodeStates, heroFamilySkillActive, heroFamilySkillReference, heroSkillCooldownRemaining, reconcileHeroSkillFamilies, skillFamilyDefinitions } from './skill-family-runtime.ts';
@@ -62,9 +81,8 @@ import {
   emptyEquipment,
   itemById,
   itemStats,
-  calculateBaseEquipmentStats,
+  calculateEnhancedBaseStats,
   calculateEquipmentUniqueStats,
-  calculateEquipmentStats as calculateItemEquipmentStats,
   calculateRuneStats as calculateItemRuneStats,
   normalizeItem,
   normalizeStatBlock,
@@ -85,14 +103,14 @@ import { FIELD_TERRAINS, nearestTerrainPoint } from './field-terrain.ts';
 import { monsterDropChance, rollMonsterItem } from './monster-loot.ts';
 import { PRIMARY_HOTBAR_SIZE, emptyQuickHotbars, loadPrimaryHotbar, validateQuickHotbarAssignments, remapPrimaryHotbarForJob, type PrimaryHotbarState } from './hotbar.ts';
 import { canonicalItemTemplateId, itemCooldownKey, getItemCooldownRemaining, potionRestoreAmount } from './items.ts';
-import { composeSingleMainWeaponHits, composeWeaponModeHits, resolveWeaponAttackContext, weaponAttack, validateDualWieldEquip, type DualWieldEquipReason, type WeaponContributionMode, type WeaponHand } from './dual-wield.ts';
+import { composeSingleMainWeaponHits, composeWeaponModeHits, resolveWeaponAttackContext, weaponAttack, offHandEfficiency, validateDualWieldEquip, type DualWieldEquipReason, type WeaponContributionMode, type WeaponHand } from './dual-wield.ts';
 
 export const SAVE_KEY = 'lumenfall-saves-v3';
 export const LEGACY_SAVE_KEY = 'lumenfall-saves-v2';
 export const OLDER_SAVE_KEY = 'lumenfall-save-v1';
 /** Character-owned data boundary for the development-only V2 player path. */
 export const CURRENT_CHARACTER_SCHEMA_VERSION = 2 as const;
-export const MAX_LEVEL = LEGACY_CONTENT_CAP;
+export const MAX_LEVEL = CHARACTER_RULES.maxLevel;
 
 export const DEFAULT_APPEARANCE = {
   gender: 'male' as const,
@@ -135,6 +153,8 @@ export type CharacterAppearance = {
   hairStyleId: string;
   hairColorId: string;
   skinToneId: string;
+  appearanceVersion?: 2;
+  hairColor?: string;
 };
 export type SavedPosition = { x: number; z: number };
 
@@ -142,7 +162,7 @@ export type LegacyJobId = 'guardian' | 'ranger' | 'arcanist';
 export type JobId = 'adventurer' | LegacyJobId | RuntimeCoreJobId;
 export type JobTier = 'adventurer' | 'core' | 'specialization' | 'mastery';
 
-type CombatProfile = {
+export type CombatProfile = {
   label: string;
   title: string;
   description: string;
@@ -158,8 +178,8 @@ type CombatProfile = {
 };
 
 /** CFV3-1 canonical primary-stat and physical-attack foundations. */
-export const BASE_PRIMARY_STAT = 15;
-export const STAT_POINTS_PER_LEVEL = 2;
+export const BASE_PRIMARY_STAT = CHARACTER_RULES.baseStat;
+export const STAT_POINTS_PER_LEVEL = CHARACTER_RULES.statPointsPerLevel;
 export const BASIC_ATTACK_COEFFICIENT = 1;
 export const JOB_MANA_FACTORS: Record<string, number> = Object.freeze({
   adventurer: 1,
@@ -236,19 +256,23 @@ export const getJobManaFactor = (hero: Pick<Hero, 'job' | 'coreJob' | 'specializ
   return JOB_MANA_FACTORS[normalized] ?? JOB_MANA_FACTORS[normalized.replace(/-/g, '_')] ?? 1;
 };
 export const resolveMaxMana = (
-  hero: Pick<Hero, 'job' | 'coreJob' | 'specialization' | 'level' | 'allocatedStats'>,
+  hero: Pick<Hero, 'job' | 'coreJob' | 'specialization' | 'level' | 'allocatedStats'> & Partial<Pick<Hero,'skillArchitectureVersion'|'progressionArchitecture'|'skillProgressionV3'>>,
   allocated: AllocatedStats = hero.allocatedStats,
   contributions: Partial<StatBlock> = {},
 ): number => {
   const effectiveInt = BASE_PRIMARY_STAT + (allocated.int ?? 0) + (contributions.int ?? 0);
-  const foundation = getManaFoundation(hero.level, effectiveInt);
-  const jobMana = Math.floor(foundation * getJobManaFactor(hero));
+  const approved=canonicalResourceProfile(hero);
+  const jobMana = approved
+    ? intrinsicClassResources(approved,hero.level,0,getBonusInt(effectiveInt)).intrinsicMana
+    : Math.floor(getManaFoundation(hero.level, effectiveInt) * getJobManaFactor(hero));
   const flatMaxMana = Math.max(0, contributions.maxMana ?? 0);
   const maxManaPercent = Math.max(0, contributions.maxManaPercent ?? 0);
   return Math.floor((jobMana + flatMaxMana) * (1 + maxManaPercent));
 };
 export const basePhysicalAttackForLevel = (level: number) =>
   7 + Math.floor(Math.max(1, Math.floor(level)) * 1.1);
+/** Approved universal magic baseline. Weapon/skill admission remains separate. */
+export const baseMagicAttackForLevel = basePhysicalAttackForLevel;
 export const vitalityHPContribution = (level: number, effectiveVit: number) =>
   Math.max(0, effectiveVit) * (VIT_HP_BASE_FACTOR + Math.max(0, level - 1) * VIT_HP_LEVEL_FACTOR);
 
@@ -318,6 +342,8 @@ export type PetState = {
 
 export type CharacterGender = 'male' | 'female';
 export type Hero = PrimaryHotbarState & {
+  gameplayContractVersion?: 2;
+  migrationArchive?: Record<string, unknown>;
   /** Development-only capability gate. False/absent for every normal character until Blade Master grants it. */
   canDualWieldOneHandSwords?: boolean;
   /** Missing on pre-clean-break saves; those saves are intentionally incompatible. */
@@ -339,6 +365,9 @@ export type Hero = PrimaryHotbarState & {
   selectedAmmo: string | null;
   currentCity: string;
   currentField: string;
+  interiorId?: typeof MINE_ID;
+  frostfireLayoutVersion?: number;
+  sunkenLayoutVersion?: number;
   inCity: boolean;
   unlockedCities: string[];
   unlockedFields: string[];
@@ -409,6 +438,7 @@ export type Hero = PrimaryHotbarState & {
 
 export type CharacterSlot = { id: string; hero: Hero | null };
 export type SaveCollection = {
+  preservedCharacters?: Record<string, unknown>;
   version: 3;
   activeSlot: string;
   lastPlayedCharacterId: string | null;
@@ -504,6 +534,7 @@ const appearanceValue = <T extends readonly { id: string }[]>(items: T, value: u
 export function normalizeAppearance(value: unknown, gender: CharacterGender = 'male'): CharacterAppearance {
   const source = value && typeof value === 'object' ? value as Record<string, unknown> : {};
   const selectedGender = source.gender === 'female' || gender === 'female' ? 'female' : 'male';
+  if (selectedGender === 'male') return normalizeMaleAppearance(source);
   return {
     gender: selectedGender,
     faceStyleId: appearanceValue(FACE_STYLE_PRESETS, source.faceStyleId, DEFAULT_APPEARANCE.faceStyleId),
@@ -580,6 +611,8 @@ export function freshHero(
     itemCooldowns: {},
     selectedAmmo: null,
     currentCity: 'arunika', currentField: PLAINS_ID, inCity: true,
+    frostfireLayoutVersion: FROSTFIRE_LAYOUT_VERSION,
+    sunkenLayoutVersion: SUNKEN_LAYOUT_VERSION,
     unlockedCities: ['arunika'], unlockedFields: startingFieldIds(),
     completedQuests: [], acceptedQuests: [], activeQuests: [], questCooldowns: {}, cityProgress: {}, fieldProgress: {}, defeatedFieldBosses: [], defeatedBossTimestamp: {}, monsterRespawnState: {}, storage: [],
     characterId: `${slotId}-character`,
@@ -668,11 +701,14 @@ export function chooseV3Warrior(hero: Hero): boolean {
   if (hero.skillArchitectureVersion !== 3 || hero.level < 15 || hero.coreJob || !hero.skillProgressionV3) return false;
   if (hasEquippedGear(hero)) return false;
   hero.skillProgressionV3 = warriorV3StateAfterCoreChange(hero.skillProgressionV3);
+  hero.skillPoints = hero.skillProgressionV3.totalEarnedSP;
+  hero.passiveLevels = {};
   reconcileHeroSkillFamilies(hero);
   hero.coreJob = 'warrior';
   hero.job = 'warrior';
   hero.jobTier = 'core';
   hero.weaponType = 'one_hand_sword';
+  resetPlayerAllocationForCoreJob(hero);
   hero.skillLevels = Object.fromEntries([...ADVENTURER_V3_RUNTIME_SKILLS, ...WARRIOR_V3_RUNTIME_SKILLS].map((skill) => [skill.id, hero.skillProgressionV3!.skillRanks[skill.id] ?? 0]));
   hero.primaryHotbar = hero.primaryHotbar.map(() => null);
   hero.primaryHotbarOverflow = [];
@@ -701,6 +737,8 @@ export function chooseV3Berserker(hero: Hero): boolean {
   if (hero.skillArchitectureVersion !== 3 || hero.level < 60 || hero.coreJob !== 'warrior' || hero.specialization || !hero.skillProgressionV3) return false;
   if (hasEquippedGear(hero)) return false;
   hero.skillProgressionV3 = berserkerV3StateAfterSpecialization(hero.skillProgressionV3);
+  hero.skillPoints = hero.skillProgressionV3.totalEarnedSP;
+  hero.passiveLevels = {};
   reconcileHeroSkillFamilies(hero);
   hero.specialization = 'berserker';
   hero.job = 'warrior';
@@ -712,10 +750,11 @@ export function chooseV3Berserker(hero: Hero): boolean {
   hero.quickHotbars = emptyQuickHotbars();
   hero.specializationQuestClaimed = true;
   hero.jobHistory = { ...hero.jobHistory, specialization: { level: hero.level, chapter: 1, acquiredAt: Date.now() } };
+  reconcileResourceMaximums(hero);
   return true;
 }
 
-/** Specialization is additive: preserve paid Core Thief ranks and family branches. */
+/** Every Job Change refunds paid ranks without reducing earned SP. */
 export function chooseV3Rogue(hero: Hero): boolean {
   return chooseV3ThiefSpecialization(hero, 'rogue');
 }
@@ -726,15 +765,17 @@ function chooseV3ThiefSpecialization(hero: Hero, specialization: 'rogue' | 'assa
   const state = hero.skillProgressionV3;
   if (hero.skillArchitectureVersion !== 3 || hero.level < 60 || hero.coreJob !== 'thief' || hero.specialization ||
       !state || state.chosenCoreJob !== 'thief' || state.chosenSpecialization || state.chosenAdvancedJob) return false;
-  hero.skillProgressionV3 = { ...state, chosenSpecialization: specialization };
+  hero.skillProgressionV3 = { ...refundAllSkillPointsForJobChange(state), chosenSpecialization: specialization };
+  hero.skillLevels = { ...hero.skillProgressionV3.skillRanks };
+  hero.passiveLevels = {};
   hero.specialization = specialization; hero.job = 'thief'; hero.jobTier = 'specialization'; hero.weaponType = 'dagger';
-  for (const skill of specialization === 'rogue' ? ROGUE_V3_RUNTIME_SKILLS : ASSASIN_V3_RUNTIME_SKILLS) hero.skillLevels[skill.id] = state.skillRanks[skill.id] ?? 0;
+  for (const skill of specialization === 'rogue' ? ROGUE_V3_RUNTIME_SKILLS : ASSASIN_V3_RUNTIME_SKILLS) hero.skillLevels[skill.id] = hero.skillProgressionV3.skillRanks[skill.id] ?? 0;
   hero.specializationQuestClaimed = true;
   hero.jobHistory = { ...hero.jobHistory, specialization: { level: hero.level, chapter: 1, acquiredAt: Date.now() } };
   reconcileHeroSkillFamilies(hero);
   reconcileFamilyHotbarBindings(hero);
   hero.skillPoints = Math.max(0, state.totalEarnedSP - spentSkillPointsV3(hero.skillProgressionV3, skillFamilyDefinitions));
-  hero.maxMana = derivedStats(hero).maxMana; hero.mana = Math.min(hero.mana, hero.maxMana);
+  reconcileResourceMaximums(hero);
   return true;
 }
 
@@ -743,12 +784,15 @@ export function chooseV3BladeMaster(hero: Hero): boolean {
   if (hero.skillArchitectureVersion !== 3 || hero.level < 60 || hero.coreJob !== 'warrior' || hero.specialization || !hero.skillProgressionV3) return false;
   if (hasEquippedGear(hero)) return false;
   hero.skillProgressionV3 = bladeMasterV3StateAfterSpecialization(hero.skillProgressionV3);
+  hero.skillPoints = hero.skillProgressionV3.totalEarnedSP;
+  hero.passiveLevels = {};
   reconcileHeroSkillFamilies(hero);
   hero.specialization = 'blade_master'; hero.job = 'warrior'; hero.jobTier = 'specialization'; hero.weaponType = 'dual_sword';
   hero.skillLevels = Object.fromEntries([...ADVENTURER_V3_RUNTIME_SKILLS, ...WARRIOR_V3_RUNTIME_SKILLS, ...BLADE_MASTER_V3_RUNTIME_SKILLS].map((skill) => [skill.id, hero.skillProgressionV3!.skillRanks[skill.id] ?? 0]));
   hero.primaryHotbar = hero.primaryHotbar.map(() => null); hero.primaryHotbarOverflow = []; hero.quickHotbars = emptyQuickHotbars();
   hero.specializationQuestClaimed = true;
   hero.jobHistory = { ...hero.jobHistory, specialization: { level: hero.level, chapter: 1, acquiredAt: Date.now() } };
+  reconcileResourceMaximums(hero);
   return true;
 }
 
@@ -756,11 +800,14 @@ export type V3JobDevelopmentStage = 'warrior-15' | 'warrior-60' | 'berserker-60'
 /** Development/test-save helper only. It is intentionally not wired to production UI. */
 export function createV3JobDevelopmentHero(stage: V3JobDevelopmentStage): Hero {
   const hero = createV3AdventurerHero(`v3-job-${stage}`, `V3 ${stage}`);
+  const startingMainHand = hero.equipment.mainHand;
+  unequipItem(hero, 'mainHand');
   hero.level = stage === 'warrior-15' ? 15 : 60;
   if (hero.skillProgressionV3) hero.skillProgressionV3.totalEarnedSP = getTotalSkillPointsForLevel(hero.level);
   if (!chooseV3Warrior(hero)) throw new Error(`Unable to create development stage ${stage}`);
   if (stage === 'berserker-60' && !chooseV3Berserker(hero)) throw new Error(`Unable to create development stage ${stage}`);
   if (stage === 'blade-master-60' && !chooseV3BladeMaster(hero)) throw new Error(`Unable to create development stage ${stage}`);
+  if (startingMainHand && !equipItem(hero, startingMainHand, 'mainHand').ok) throw new Error('Development fixture equipment invalid');
   if (stage === 'blade-master-60') {
     hero.inventory.push(createItem('legacy-fajar-blade', {
       id: `${hero.slotId}-fajar-blade-offhand`,
@@ -915,12 +962,24 @@ export const calculateBaseStats = (hero: Hero, allocated: AllocatedStats = hero.
   return {profile,level,str:BASE_PRIMARY_STAT+(allocated.str??0),vit:BASE_PRIMARY_STAT+(allocated.vit??allocated.sta??0),dex:BASE_PRIMARY_STAT+(allocated.dex??0),int:BASE_PRIMARY_STAT+(allocated.int??0)};
 };
 
-export const calculateEquipmentStats = (hero: Hero) => {
-  const result: StatBlock = {};
-  for (const item of getEquippedItems(hero)) sumStats(result, calculateItemEquipmentStats(item));
-  if (hero.pet) sumStats(result, hero.pet.bonusStats);
-  return result;
-};
+export function equipmentStatLayers(hero: Hero) {
+  const groups: Array<{ label: string; stats: StatBlock }> = ['Equipment', 'Rune', 'Unique Stats', 'Set'].map(label => ({ label, stats: {} }));
+  const items = getEquippedItems(hero);
+  for (const item of items) {
+    const base = calculateEnhancedBaseStats(item);
+    if (item.category === 'weapon' && item.baseStats.attack) {
+      const hand = item.id === hero.equipment.offHand && item.id !== hero.equipment.mainHand && !!hero.equipment.mainHand ? 'OFF' : 'MAIN';
+      base.attack = weaponAttack(item, hand, offHandEfficiency(hero));
+    }
+    sumStats(groups[0].stats, base);
+    sumStats(groups[1].stats, calculateItemRuneStats(item));
+    sumStats(groups[2].stats, calculateEquipmentUniqueStats(item));
+  }
+  if (hero.pet) sumStats(groups[0].stats, hero.pet.bonusStats);
+  groups[3].stats = resolveArmorSets(items);
+  return groups;
+}
+export const calculateEquipmentStats = (hero: Hero) => equipmentStatLayers(hero).reduce((sum, layer) => sumStats(sum, layer.stats), {} as StatBlock);
 
 export const calculateRuneStats = (hero: Hero) => {
   const result:StatBlock={};for(const item of getEquippedItems(hero))sumStats(result,calculateItemRuneStats(item));return result;
@@ -945,8 +1004,34 @@ export function calculatePassiveEffects(hero: Hero): StatBlock {
 export function calculateBuffStats(hero: Hero): StatBlock {
   return hero.activeBuffs.damageReduction > 0 ? { damageReduction: 45 } : {};
 }
+/** Resource identity is separate from progression/cast authority; legacy aliases stay legacy. */
+export function canonicalResourceProfile(hero: Pick<Hero,'job'|'coreJob'|'specialization'> & Partial<Pick<Hero,'skillArchitectureVersion'|'progressionArchitecture'|'skillProgressionV3'>>) {
+  if(hero.skillArchitectureVersion!==3 && hero.progressionArchitecture!=='v2_test')return null;
+  if(hero.skillProgressionV3?.chosenAdvancedJob)return null;
+  if(!hero.coreJob)return hero.job==='adventurer'&&!hero.specialization ? approvedResourceProfile('adventurer') : null;
+  const core=getJobV2(hero.coreJob);
+  if(core?.tier!==1||hero.job!==hero.coreJob)return null;
+  if(!hero.specialization)return approvedResourceProfile(core.id);
+  const spec=getJobV2(hero.specialization);
+  return spec?.tier===2&&spec.parent===core.id ? approvedResourceProfile(spec.id) : null;
+}
+/** Shared resource parameters; no kit/unlock or Advanced approval implied. */
+export function resourceProfileFor(hero: Hero) {
+  const approved=canonicalResourceProfile(hero);
+  if(approved)return approved;
+  const profile=combatProfile(hero);
+  return Object.freeze({version:'SHARED_RESOURCE_PROFILE_1' as const,
+    authority:hero.job==='adventurer'&&!hero.coreJob&&!hero.specialization ? 'OWNER_FINAL_ADVENTURER' as const : 'LEGACY_CLASS_COMPATIBILITY' as const,
+    baseHP:profile.hp, hpPerLevel:profile.hpGrowth, vitBase:VIT_HP_BASE_FACTOR,
+    vitPerLevel:VIT_HP_LEVEL_FACTOR, manaFactor:getJobManaFactor(hero)});
+}
 
 export type DerivedStats = {
+  /** Explicit percentage-point reduction sources; CastStat conversion is gated. */
+  variableCastReduction: number;
+  fixedCastReduction: number;
+  str: number; vit: number; dex: number; int: number;
+  castStat: number;
   maxHP: number;
   physicalAttack: number;
   attack: number;
@@ -984,12 +1069,27 @@ export type DerivedStats = {
 export function learnedPassiveDefinitions(hero:Hero){
   return ALL_PASSIVES.filter(p=>heroFamilySkillActive(hero,p.id)&&skillArchitectureAllowed(hero,p)&&(!p.job||p.job==='adventurer'||p.job===hero.coreJob)&&(!p.specialization||p.specialization===hero.specialization)&&hero.level>=p.unlockLevel&&(hero.passiveLevels[p.id]??0)>0&&(p.tier!=='capstone'||hero.masteryQuestClaimed));
 }
-export function combatModifiersFor(hero:Hero):CombatModifier[]{reconcileThiefBuffs(hero);return [...learnedPassiveDefinitions(hero).flatMap(p=>p.rankModifiers?.[Math.min(p.maxLevel,hero.passiveLevels[p.id])-1]??p.modifiers??[]),...thiefPassiveModifiers(hero),...rogueMasteryModifiers(hero),...hostModifiers(hero)];}
+// Reads apply the existing family reconciliation to detached containers. A
+// tooltip/preview must not expire or remove sources on the live actor.
+function modifierReadHost(hero: Hero): Hero {
+  if (hero.skillArchitectureVersion !== 3) return hero;
+  const read = {...hero, activeBuffs:{...hero.activeBuffs}, temporaryModifiers:hero.temporaryModifiers?.slice()};
+  reconcileThiefBuffs(read);
+  return read;
+}
+function passiveStatModifiers(hero: Hero): CombatModifier[] {
+  return [...learnedPassiveDefinitions(hero).flatMap(p=>p.rankModifiers?.[Math.min(p.maxLevel,hero.passiveLevels[p.id])-1]??p.modifiers??[]),...thiefPassiveModifiers(hero),...rogueMasteryModifiers(hero)];
+}
+export function combatModifiersFor(hero:Hero):CombatModifier[]{
+  const read=modifierReadHost(hero);
+  return [...passiveStatModifiers(read),...hostModifiers(read)];
+}
 export function combatSupportFor(hero:Hero):CombatSupport {
   const sources=learnedPassiveDefinitions(hero).map(p=>p.rankCombatSupport?.[Math.min(p.maxLevel,hero.passiveLevels[p.id])-1]??p.combatSupport);
   return {stacks:sources.flatMap(s=>s?.stacks??[]),windows:sources.flatMap(s=>s?.windows??[])};
 }
 export function modifierContextFor(hero:Hero,stats:DerivedStats,counter?:CounterContext):ModifierContext {
+  hero=modifierReadHost(hero);
   return {hp:hero.hp,maxHP:stats.maxHP,weaponStyle:resolveWeaponStyle(itemById(hero.inventory,hero.equipment.mainHand),itemById(hero.inventory,hero.equipment.offHand),hero),counter,manualGuard:isManualGuarding(hero),activeModifierIds:hostModifiers(hero).map(m=>m.id)};
 }
 
@@ -1000,7 +1100,11 @@ export function derivedStats(
   includeBuffs = true,
 ): DerivedStats {
   const base=calculateBaseStats(hero,allocated);const {profile,level}=base;
+  const resources=resourceProfileFor(hero);
   const gear = contributions ?? sumStats(calculateEquipmentStats(hero), calculatePassiveEffects(hero));
+  // Main's developer Wings exception; ordinary equipment retains the local cap.
+  const accessory = itemById(hero.inventory, hero.equipment.accessory);
+  const movementCap = STAT_TUNING.movementSpeedCap + (hero.gender === 'male' && accessory?.templateId === 'dragon-veil-wings' ? 500 : 0);
   const str = base.str + (gear.str ?? 0);
   const dex = base.dex + (gear.dex ?? 0);
   const int = base.int + (gear.int ?? 0);
@@ -1022,45 +1126,48 @@ export function derivedStats(
   // from the live CFV3 resolver. Raw weapon power comes from equipped item data.
   const physicalAttack=Math.round((basePhysicalAttack+physicalStatContribution+(gear.attack??0))*(1+((gear.attackPercent??0)+(gear.physicalDamage??0))/100));
   const baseJobAttack=profile.attack+level*profile.attackGrowth;
-  const magicAttack=Math.round((baseJobAttack+compatibleMagicWeaponAttack(hero)+(gear.magicAttack??0)+int*2));
-  const physicalDefense=Math.round((8+level*1.5+vit*.5+(gear.defense??0))*10)/10;
-  const softCap=(value:number,threshold:number,cap:number)=>Math.min(cap,value<=threshold?value:threshold+(value-threshold)*.35);
+  const magicAttack=Math.round((baseJobAttack+compatibleMagicWeaponAttack(hero)+(gear.magicAttack??0)+int*STAT_TUNING.magicAttackPerInt));
+  const physicalDefense=Math.round((STAT_TUNING.defenseBase+level*STAT_TUNING.defensePerLevel+vit*STAT_TUNING.physicalDefensePerVit+(gear.defense??0))*10)/10;
+  const softCap=(value:number,threshold:number,cap:number)=>Math.min(cap,value<=threshold?value:threshold+(value-threshold)*STAT_TUNING.softCapSlope);
   const result:DerivedStats = {
+    variableCastReduction:0, fixedCastReduction:0,
+    str, vit, dex, int,
+    castStat: Math.max(0, dex - BASE_PRIMARY_STAT) * 2 + Math.max(0, int - BASE_PRIMARY_STAT),
     maxHP: Math.round(
-      profile.hp + level * profile.hpGrowth + vitalityHPContribution(hero.level, vit) + (gear.hp ?? 0),
+      resources.baseHP + level * resources.hpPerLevel + vitalityHPContribution(hero.level, vit) + (gear.hp ?? 0),
     ),
     physicalAttack,
     attack: physicalAttack,
     magicAttack,
     physicalDefense,
-    magicDefense: Math.round((8 + level * 1.5 + int * .5 + (gear.magicDefense ?? 0))*10)/10,
-    accuracy: Math.round((90 + dex + (gear.accuracy ?? 0) + masteryAccuracy) * 10) / 10,
+    magicDefense: Math.round((STAT_TUNING.defenseBase + level * STAT_TUNING.defensePerLevel + vit * STAT_TUNING.magicDefensePerVit + int * STAT_TUNING.magicDefensePerInt + (gear.magicDefense ?? 0))*10)/10,
+    accuracy: Math.round((STAT_TUNING.accuracyBase + Math.max(0, dex - BASE_PRIMARY_STAT) * STAT_TUNING.accuracyPerDex + (gear.accuracy ?? 0) + masteryAccuracy) * 10) / 10,
     elementalResistance: 0,
     defense: physicalDefense,
-    criticalRate: Math.round(Math.min(100,2+dex*.1+(gear.critRate??0))*10)/10,
-    criticalDamage: Math.round((150 + (gear.critDamage ?? 0)) * 10) / 10,
-    attackSpeed:Math.round((100+dex*.15+(gear.attackSpeed??0))*100)/100,
-    movementSpeed:Math.round(Math.min(135,100+(gear.movementSpeed??0))*10)/10,
-    evasion: Math.round((dex * 0.1 + (gear.evasion ?? 0)) * 10) / 10,
+    criticalRate: Math.round(Math.min(STAT_TUNING.displayedCritCap,STAT_TUNING.critBase+Math.max(0,dex-BASE_PRIMARY_STAT)*STAT_TUNING.critPerDex+(gear.critRate??0))*10)/10,
+    criticalDamage: Math.round((STAT_TUNING.criticalDamageBase + (gear.critDamage ?? 0)) * 10) / 10,
+    attackSpeed:Math.round((STAT_TUNING.attackSpeedBase+Math.max(0,dex-BASE_PRIMARY_STAT)*STAT_TUNING.attackSpeedPerDex+(gear.attackSpeed??0))*100)/100,
+    movementSpeed:Math.round(Math.min(movementCap,STAT_TUNING.movementSpeedBase+(gear.movementSpeed??0))*10)/10,
+    evasion: Math.round((Math.max(0,dex-BASE_PRIMARY_STAT) * STAT_TUNING.evasionPerDex + (gear.evasion ?? 0)) * 10) / 10,
     blockRate: Math.round((gear.blockRate ?? 0) * 10) / 10,
-    healingPower: Math.round((int * .25 + (gear.healingPower ?? 0)) * 100) / 100,
-    hpRecovery: Math.round((vit * .1 + (gear.hpRecovery ?? 0)) * 100) / 100,
+    healingPower: Math.round((int * STAT_TUNING.healingPerInt + (gear.healingPower ?? 0)) * 100) / 100,
+    hpRecovery: Math.round((vit * STAT_TUNING.hpRecoveryPerVit + (gear.hpRecovery ?? 0)) * 100) / 100,
     staminaMax: staminaDerivedValue(hero, Math.round(100 + vit * 4 + (gear.stamina ?? 0))),
     maxMana,
-    manaCostReduction: Math.round(Math.min(50,Math.max(0,int*.1+(gear.manaCostReduction??0)))*10)/10,
+    manaCostReduction: Math.round(Math.min(STAT_TUNING.mcrCap,Math.max(0,(gear.manaCostReduction??0)))*10)/10,
     // No passive MP regeneration at the base INT value. Additional effective
     // INT grants recovery, while equipment MP Recovery remains an explicit
     // bonus. This keeps the starting mana pool stable without free sustain.
     manaRecovery: Math.round(
       Math.min(
-        30,
-        Math.max(0, Math.max(0, int - BASE_PRIMARY_STAT) * 0.1 + (gear.mpRecovery ?? 0)),
+        STAT_TUNING.manaRecoveryCap,
+        Math.max(0, Math.max(0, int - BASE_PRIMARY_STAT) * STAT_TUNING.manaRecoveryPerBonusInt + (gear.mpRecovery ?? 0)),
       ) * 100,
     ) / 100,
     // Optional secondary skill stat: primary attributes never supply generic Skill Power.
     skillPower: Math.round((gear.skillPower ?? 0) * 10) / 10,
-    damageReduction:Math.round((1 - (1 - softCap(gear.damageReduction??0,25,45)/100) * (includeBuffs && hero.activeBuffs.damageReduction > 0 ? .55 : 1)) * 1000)/10,
-    cooldownReduction:Math.round(Math.min(30,Math.max(0,gear.cooldownReduction??0))*10)/10,
+    damageReduction:Math.round((1 - (1 - softCap(gear.damageReduction??0,STAT_TUNING.damageReductionThreshold,STAT_TUNING.damageReductionCap)/100) * (includeBuffs && hero.activeBuffs.damageReduction > 0 ? .55 : 1)) * 1000)/10,
+    cooldownReduction:Math.round(Math.min(STAT_TUNING.cdrCap,Math.max(0,gear.cooldownReduction??0))*10)/10,
     physicalPenetration: Math.max(0, gear.physicalPenetration ?? 0),
     magicPenetration: Math.max(0, gear.magicPenetration ?? 0),
     bossDamage:Math.min(40,gear.bossDamage??0),
@@ -1071,7 +1178,7 @@ export function derivedStats(
     itemDropRate:Math.min(25,gear.itemDropRate??0),
     materialDropRate:Math.min(15,gear.materialDropRate??0),
   };
-  const modifiers=includeBuffs?combatModifiersFor(hero):[...learnedPassiveDefinitions(hero).flatMap(p=>p.modifiers??[]),...thiefPassiveModifiers(hero),...rogueMasteryModifiers(hero)];
+  const modifiers=includeBuffs?combatModifiersFor(hero):passiveStatModifiers(hero);
   return modifiers.length?applyStatModifiers(result,modifiers,modifierContextFor(hero,result)):result;
 }
 
@@ -1081,14 +1188,7 @@ export { mitigateDamage } from './combat-mechanics.ts';
 
 // Reuse the combat formula for every column; differences also include soft caps and rounding.
 export function characterStatBreakdown(hero: Hero) {
-  const groups: Array<{ label: string; stats: StatBlock }> = ['Equipment', 'Rune', 'Unique Stats'].map(label => ({ label, stats: {} }));
-  for (const item of getEquippedItems(hero)) {
-    const blocks = [calculateBaseEquipmentStats(item), calculateItemRuneStats(item), calculateEquipmentUniqueStats(item)];
-    blocks.forEach((block, index) => {
-      for (const [key, value] of Object.entries(block)) groups[index].stats[key as keyof StatBlock] = (groups[index].stats[key as keyof StatBlock] ?? 0) + value * (1 + item.enhancementLevel * .08);
-    });
-  }
-  if (hero.pet) sumStats(groups[0].stats, hero.pet.bonusStats);
+  const groups = equipmentStatLayers(hero);
   groups.push({label:'Passive', stats:calculatePassiveEffects(hero)});
   const base = derivedStats(hero, hero.allocatedStats, {}, false);
   let previous = base;
@@ -1106,6 +1206,19 @@ export function characterStatBreakdown(hero: Hero) {
 }
 
 export const maxHP = (hero: Hero) => derivedStats(hero).maxHP;
+/** Actual resource transaction: absolute current values, no refill on max gain. */
+export function reconcileResourceMaximums(hero: Hero, stats = derivedStats(hero)) {
+  hero.hp = Math.min(hero.hp, stats.maxHP);
+  hero.maxMana = stats.maxMana;
+  hero.mana = Math.min(hero.mana, stats.maxMana);
+}
+/** Only called with active world dt. Dead/paused/loading callers must not invoke. */
+export function recoverActiveResources(hero: Hero, dt: number, stats = derivedStats(hero)) {
+  if (!Number.isFinite(dt) || dt <= 0 || hero.hp <= 0) return;
+  reconcileResourceMaximums(hero, stats);
+  if (Number.isFinite(stats.hpRecovery) && stats.hpRecovery > 0) hero.hp = Math.min(stats.maxHP, hero.hp + dt * stats.hpRecovery);
+  if (Number.isFinite(stats.manaRecovery) && stats.manaRecovery > 0) hero.mana = Math.min(stats.maxMana, hero.mana + dt * stats.manaRecovery);
+}
 export const attackPower = (hero: Hero) => derivedStats(hero).attack;
 /** Central basic-attack physical power before combo/critical/defense handling. */
 export const basicAttackPower = (hero: Hero, hand?: WeaponHand) => {
@@ -1129,7 +1242,7 @@ export const daggerEquipmentForHero = (hero: Hero) => resolveDaggerEquipment(her
 export function daggerAttackContextForHero(hero: Hero, mode: WeaponContributionMode = 'SINGLE_MAIN') {
   const daggers = daggerEquipmentForHero(hero);
   const gear = sumStats(calculateEquipmentStats(hero), calculatePassiveEffects(hero));
-  const mainAttack = weaponAttack(daggers.main), offAttack = weaponAttack(daggers.off);
+  const mainAttack = weaponAttack(daggers.main), offAttack = weaponAttack(daggers.off, daggers.main ? 'OFF' : 'MAIN', offHandEfficiency(hero));
   const sharedStats = derivedStats(hero, hero.allocatedStats, { ...gear, attack: (gear.attack ?? 0) - mainAttack - offAttack });
   const modifiers = combatModifiersFor(hero), combat = modifierContextFor(hero, sharedStats);
   // Derive the existing PATK modifier slope without copying its formula or
@@ -1137,7 +1250,7 @@ export function daggerAttackContextForHero(hero: Hero, mode: WeaponContributionM
   const zero = applyStatModifiers({ ...sharedStats, physicalAttack: 0 }, modifiers, combat).physicalAttack;
   const unit = applyStatModifiers({ ...sharedStats, physicalAttack: 1 }, modifiers, combat).physicalAttack;
   const factor = (1 + ((gear.attackPercent ?? 0) + (gear.physicalDamage ?? 0)) / 100) * (unit - zero);
-  const raw = resolveWeaponAttackContext(daggers.main, daggers.off, mode, sharedStats.physicalAttack);
+  const raw = resolveWeaponAttackContext(daggers.main, daggers.off, mode, sharedStats.physicalAttack, offHandEfficiency(hero));
   return { ...raw, mainHandWeaponAttack: raw.mainHandWeaponAttack * factor,
     offHandWeaponAttack: raw.offHandWeaponAttack * factor, totalWeaponAttack: raw.totalWeaponAttack * factor };
 }
@@ -1275,7 +1388,7 @@ export function resolveHeroSkill(hero:Hero, skill:SkillDefinition, rank=hero.ski
   if (bladeSkill && resolved.hitSequence.some(hit => hit.weaponHand)) {
     const main = itemById(hero.inventory,hero.equipment.mainHand);
     const off = itemById(hero.inventory,hero.equipment.offHand);
-    composeBladeWeaponHits(resolved,stats.physicalAttack,main,off,1+((gear.attackPercent??0)+(gear.physicalDamage??0))/100);
+    composeBladeWeaponHits(resolved,stats.physicalAttack,main,off,1+((gear.attackPercent??0)+(gear.physicalDamage??0))/100,offHandEfficiency(hero));
   }
   const daggers = daggerEquipmentForHero(hero);
   if (daggers.state !== 'NO_DAGGER' && resolved.hitSequence.some(hit => hit.physicalCoefficient > 0)) {
@@ -1297,6 +1410,7 @@ export function resolveHeroSkill(hero:Hero, skill:SkillDefinition, rank=hero.ski
       itemById(hero.inventory,hero.equipment.mainHand),
       itemById(hero.inventory,hero.equipment.offHand),
       1+((gear.attackPercent??0)+(gear.physicalDamage??0))/100,
+      offHandEfficiency(hero),
     );
   }
   if (tranceActive && berserkerSkill && BERSERKER_TRANCE_DAMAGE_SKILLS.has(skill.id) && weaponStyle === 'two_hand_sword') {
@@ -1332,7 +1446,7 @@ export function skillHealingPreview(hero: Hero, skill: SkillDefinition, level=he
   return Math.round(raw * skillProgressionMultiplier(hero,skill,skill.progressionMode==='rank_values'?1:level));
 }
 export const recalculateSkillAvailability = (hero: Hero) => activeSkills(hero).map(skill => ({skill, unlocked:isSkillUnlocked(hero,skill)}));
-export const RESET_SKILLS_GOLD_COST = 500;
+export const RESET_SKILLS_GOLD_COST = MANUAL_SKILL_RESET.goldCost ?? 0; // disabled until configured
 export function refundableSkillPoints(hero: Hero) {
   return ALL_SKILLS.reduce((total, skill) => total + rankSource(hero,'active',skill.id).paid, 0)
     + ALL_PASSIVES.reduce((total, passive) => total + rankSource(hero,'passive',passive.id).paid, 0);
@@ -1353,6 +1467,7 @@ function preserveFamilyResetBindings(previous: Hero, next: Hero) {
 
 /** Optional subtree respec uses the existing gold fee and rank accounting. */
 export function resetSkillFamilyBranch(hero: Hero, skillId: string) {
+  if (!MANUAL_SKILL_RESET.enabled) return { ok: false, hero, returnedPoints: 0, reason: 'Syarat dan biaya reset skill belum ditetapkan.' };
   const context = heroFamilyContext(hero);
   if (!context || hero.gold < RESET_SKILLS_GOLD_COST) return { ok: false, hero, returnedPoints: 0, reason: 'Skill family tidak tersedia atau GOLD tidak cukup.' };
   const state = normalizeSkillProgressionV3(context.state);
@@ -1380,6 +1495,7 @@ export function resetSkillFamilyBranch(hero: Hero, skillId: string) {
 }
 
 export function resetSkillPoints(hero: Hero) {
+  if (!MANUAL_SKILL_RESET.enabled) return { ok: false, hero, returnedPoints: 0, reason: 'Syarat dan biaya reset skill belum ditetapkan.' };
   if (hero.skillArchitectureVersion === 3 && hero.skillProgressionV3) {
     const returnedPoints = spentSkillPointsV3(hero.skillProgressionV3, skillFamilyDefinitions);
     if (!returnedPoints) return { ok: false, hero, returnedPoints, reason: 'Belum ada Skill Point yang digunakan.' };
@@ -1521,6 +1637,14 @@ export function getSkillStatus(skillId: string, hero: Hero): SkillStatus {
 }
 export function allocateStatPoint(hero: Hero, stat: keyof AllocatedStats) {
   const canonicalStat = stat === 'sta' ? 'vit' : stat;
+  if (hero.skillArchitectureVersion === 3) {
+    const values = ['str','vit','dex','int'].map(key=>hero.allocatedStats?.[key as 'str'|'vit'|'dex'|'int']);
+    const valid = Number.isSafeInteger(hero.level) && hero.level >= 1 && hero.level <= CHARACTER_RULES.maxLevel
+      && Number.isSafeInteger(hero.statPoints) && hero.statPoints >= 0
+      && values.every(value=>typeof value === 'number' && Number.isSafeInteger(value) && value >= 0)
+      && values.reduce<number>((sum,value)=>sum+(typeof value === 'number' ? value : NaN),0)+hero.statPoints === calculateTotalStatPoints(hero.level,hero.progressionArchitecture);
+    if (!valid) return {ok:false,hero,reason:'Alokasi stat tidak valid: budget level dan sumber poin tidak sesuai.'};
+  }
   if (!['str','vit','dex','int'].includes(canonicalStat) || hero.statPoints < 1) return {ok:false,hero,reason:'Stat Point tidak cukup.'};
   const updated = {...hero, statPoints:hero.statPoints-1, allocatedStats:{...hero.allocatedStats,[canonicalStat]:(hero.allocatedStats[canonicalStat]??0)+1}};
   const stats = derivedStats(updated);
@@ -1529,22 +1653,8 @@ export function allocateStatPoint(hero: Hero, stat: keyof AllocatedStats) {
   return {ok:true,hero:updated,reason:`${canonicalStat === 'vit' ? 'VIT' : canonicalStat.toUpperCase()} meningkat.`};
 }
 
-export function getSkillPointsGrantedAtLevel(level: number): number {
-  const clamped = Math.max(1, Math.min(80, Math.floor(level)));
-  if (clamped >= 2 && clamped <= 20) return 2;
-  if (clamped >= 21 && clamped <= 40) return 3;
-  if (clamped >= 41 && clamped <= 60) return 4;
-  if (clamped >= 61 && clamped <= 80) return 5;
-  return 0;
-}
-
-export function getTotalSkillPointsForLevel(level: number): number {
-  const clamped = Math.max(1, Math.min(80, Math.floor(level)));
-  if (clamped <= 1) return 0;
-  let total = 0;
-  for (let current = 2; current <= clamped; current++) total += getSkillPointsGrantedAtLevel(current);
-  return total;
-}
+export const getSkillPointsGrantedAtLevel = skillPointsAtLevel;
+export const getTotalSkillPointsForLevel = totalSkillPoints;
 
 export function warriorLineageSkillPointsAtLevel(level: number) {
   return getTotalSkillPointsForLevel(level);
@@ -1557,9 +1667,7 @@ export function gainXP(hero: Hero, amount: number) {
   while (hero.level < cap && hero.xp >= xpNeeded(hero.level)) {
     hero.xp -= xpNeeded(hero.level);
     hero.level++;
-    const earnedSP = hero.skillArchitectureVersion === 3
-      ? getSkillPointsGrantedAtLevel(hero.level)
-      : 1;
+    const earnedSP = getSkillPointsGrantedAtLevel(hero.level);
     hero.skillPoints += earnedSP;
     if (hero.skillArchitectureVersion === 3 && hero.skillProgressionV3)
       hero.skillProgressionV3 = { ...hero.skillProgressionV3, totalEarnedSP: hero.skillProgressionV3.totalEarnedSP + earnedSP };
@@ -1643,7 +1751,7 @@ export function applyStatPreview(hero: Hero, preview: AllocatedStats) {
 export const RESET_STATS_GOLD_COST=500;
 export const RESET_JOB_GOLD_COST = 500;
 /** Earned points follow actual levels; content caps belong to progression, not stat math. */
-export const calculateTotalStatPoints=(level:number,_architecture:ProgressionArchitecture='legacy')=>Math.max(0,Math.floor(level)-1)*STAT_POINTS_PER_LEVEL;
+export const calculateTotalStatPoints=(level:number,_architecture:ProgressionArchitecture='legacy')=>Math.max(0,Math.min(CHARACTER_RULES.maxLevel,Math.floor(level))-1)*STAT_POINTS_PER_LEVEL;
 export function resetJobToAdventurer(hero: Hero) {
   if (hero.job === 'adventurer' && !hero.coreJob && !hero.specialization) {
     return { ok: false, reason: 'Karakter sudah dalam status Adventurer.', hero, cost: RESET_JOB_GOLD_COST };
@@ -2101,7 +2209,16 @@ export function consumeInventoryItem(hero: Hero, itemId: string, now=Date.now())
   const stats=derivedStats(hero);
   const amount=item.potionType ? potionRestoreAmount(item,item.potionType==='health'?stats.maxHP:stats.maxMana) : Math.max(0,Number.isFinite(effect.amount)?effect.amount!:0);
   let reason=`${item.name} digunakan.`;
-  if(effect.type==='heal') {
+  if(effect.type==='developerLevel100') {
+    if(item.templateId!=='developer-level-100-potion')return {ok:false,reason:'Efek ini khusus potion uji coba developer.'};
+    if(!Number.isSafeInteger(hero.level)||hero.level<1||!Number.isFinite(hero.xp)||hero.xp<0||progressionRules(hero).contentCap<100)
+      return {ok:false,reason:'Progression karakter tidak mendukung potion Level 100.'};
+    if(hero.level>=100)return {ok:false,reason:'Karakter sudah Level 100. Potion tidak terpakai.'};
+    let requiredXP=0;
+    for(let level=hero.level;level<100;level++)requiredXP+=xpNeeded(level);
+    gainXP(hero,Math.max(0,requiredXP-hero.xp));
+    reason='Potion developer digunakan. Karakter mencapai Level 100.';
+  } else if(effect.type==='heal') {
     if(hero.hp>=stats.maxHP)return {ok:false,reason:'HP sudah penuh.'};
     hero.hp=Math.min(stats.maxHP,hero.hp+amount);reason=item.potionType?'Health Potion digunakan.':`${item.name}: HP dipulihkan +${amount}.`;
   } else if(effect.type==='mana'||effect.type==='resource') {
@@ -2160,10 +2277,6 @@ export const isEnhanceableEquipment = (
   item: Pick<ItemData, 'equipSlot' | 'category' | 'maxEnhancementLevel'>,
 ) => Boolean(item.equipSlot) && ['weapon', 'armor', 'accessory'].includes(item.category) && item.maxEnhancementLevel > 0;
 
-const ENHANCEMENT_CHANCES: Readonly<Record<number, number>> = {
-  1: 1, 2: 1, 3: 1, 4: 0.7, 5: 0.6, 6: 0.5,
-  7: 0.4, 8: 0.36, 9: 0.32, 10: 0.25, 11: 0.2, 12: 0.15,
-};
 
 export function enhancementPreview(
   hero: Hero,
@@ -2179,7 +2292,8 @@ export function enhancementPreview(
   )
     return null;
   const targetLevel = item.enhancementLevel + 1;
-  const baseChance = ENHANCEMENT_CHANCES[targetLevel] ?? 0.15;
+  const step = ENHANCEMENT_STEPS[targetLevel];
+  const baseChance = step?.chance ?? 0;
   const hasFateRune = hero.inventory.some(
     (candidate) => candidate.itemType === 'fateRune' && candidate.quantity > 0 && !candidate.isLocked,
   );
@@ -2188,13 +2302,13 @@ export function enhancementPreview(
       candidate.itemType === 'eternalSeal' && candidate.quantity > 0 && !candidate.isLocked,
   );
   const runeBonus = hasFateRune && useFateRune ? 0.08 : 0;
-  const protectedBySeal = hasSeal && useSeal;
-  const materialId = item.enhancementLevel < 3 ? 'iron' : item.enhancementLevel < 6 ? 'titanium' : item.enhancementLevel < 9 ? 'vibranium' : 'meteorite-core';
-  const materialRequired = 1 + Math.floor(item.enhancementLevel / 3);
+  const protectedBySeal = false; // all equipment is protected; seals are retained
+  const materialId = step?.materialId ?? 'meteorite-core';
+  const materialRequired = step?.materialRequired ?? 0;
   const materialOwned = hero.inventory
     .filter(m => m.templateId === materialId && !m.isLocked)
     .reduce((n, m) => n + Math.max(0, m.quantity), 0);
-  const blockedReason = item.isLocked
+  const blockedReason = !step ? 'Peluang dan biaya level enhancement ini belum ditetapkan.' : hero.gold < step.gold ? 'GOLD tidak cukup.' : item.isLocked
     ? 'Equipment terkunci. Buka kunci sebelum menempa.'
     : useFateRune && !hasFateRune
       ? 'Tidak ada Fate Rune di inventory untuk dipakai.'
@@ -2208,21 +2322,13 @@ export function enhancementPreview(
     protectedBySeal,
     hasSeal,
     hasFateRune,
-    usingSeal: useSeal,
+    usingSeal: false,
     usingFateRune: useFateRune && hasFateRune,
     materialId,
     materialRequired,
     materialOwned,
     blockedReason,
-    risk: protectedBySeal
-      ? 'Gagal: level tetap dan Eternal Seal terpakai.'
-      : targetLevel === 7
-        ? 'Gagal: level kembali ke +3.'
-        : targetLevel === 8
-          ? 'Gagal: level kembali ke +2.'
-          : targetLevel >= 9
-            ? 'Gagal: equipment dapat hancur.'
-            : 'Gagal: level enhancement tetap.',
+    risk: 'Gagal: bahan percobaan terpakai; item dan level enhancement tetap.',
   };
 }
 
@@ -2256,27 +2362,14 @@ export function enhanceItem(
   const rune = useFateRune ? inventory.find(m => m.itemType === 'fateRune' && m.quantity > 0 && !m.isLocked) : undefined;
   if (rune && preview.runeBonus) inventory = removeItemQuantity(inventory, rune.id, 1).inventory;
   const ok = roll < preview.finalChance;
-  const seal = useSeal ? inventory.find(m => m.itemType === 'eternalSeal' && m.quantity > 0 && !m.isLocked) : undefined;
-  const targetLevel = item.enhancementLevel + 1;
-  const destroyed = !ok && !seal && targetLevel >= 9;
-  const fallbackLevel = targetLevel === 7 ? 3 : targetLevel === 8 ? 2 : item.enhancementLevel;
-  const level = ok ? targetLevel : seal ? item.enhancementLevel : fallbackLevel;
-  if (!ok && seal) inventory = removeItemQuantity(inventory, seal.id, 1).inventory;
-  hero.inventory = destroyed
-    ? inventory.filter(m => m.id !== itemId)
-    : inventory.map(m => m.id === itemId ? { ...m, enhancementLevel: level } : m);
-  if (destroyed) hero.equipment = Object.fromEntries(
-    Object.entries(hero.equipment).map(([slot, id]) => [slot, id === itemId ? null : id]),
-  ) as EquipmentLoadout;
-  // Preserve existing economy: enhancement consumes materials, no GOLD fee.
+  const level = ok ? item.enhancementLevel + 1 : item.enhancementLevel;
+  hero.inventory = inventory.map(m => m.id === itemId ? { ...m, enhancementLevel: level } : m);
+  hero.gold -= ENHANCEMENT_STEPS[item.enhancementLevel + 1]!.gold;
   const stats = derivedStats(hero);
   hero.hp = Math.min(hero.hp, stats.maxHP);
   hero.maxMana = stats.maxMana;
   hero.mana = Math.min(hero.mana, stats.maxMana);
-  const reason = ok ? `${item.name} berhasil menjadi +${level}.`
-    : seal ? 'Enhancement gagal, tetapi Eternal Seal melindungi item.'
-    : destroyed ? `${item.name} hancur karena enhancement gagal.`
-    : `Enhancement gagal. Level item kembali menjadi +${level}.`;
+  const reason = ok ? `${item.name} berhasil menjadi +${level}.` : `Enhancement gagal. Level item tetap +${level}.`;
   return { ok, attempted: true, reason, preview };
 }
 
@@ -2370,7 +2463,11 @@ export function chooseSpecialization(
   hero.specializationQuestClaimed = true;
   hero.jobHistory = {...hero.jobHistory, specialization:{level:hero.level,chapter:1,acquiredAt:Date.now()}};
   for (const template of Object.values(ITEM_CATALOG).filter(
-    (item) => item.requiredSpecialJob === specialization,
+    // Legacy promotion reward provenance is separate from equipment eligibility.
+    // Dagger normalization intentionally removes the old Caroq-only equip gate.
+    // V2/V3 return above, before this compatibility-only reward selection.
+    (item) => item.requiredSpecialJob === specialization ||
+      (specialization === 'caroq' && item.templateId === 'caroq-daggers'),
   )) {
     const weapon = createItem(template.templateId);
     const reward = addItemToInventory(
@@ -2424,7 +2521,7 @@ export function learnSkill(hero: Hero, skillId: string) {
     if (!result.ok) return false;
     hero.skillProgressionV3 = state;
     hero.skillLevels = { ...hero.skillLevels, [skillId]: state.skillRanks[skillId] };
-    if (skill?.specialization === 'rogue' || skill?.specialization === 'assasin') hero.skillPoints = Math.max(0, state.totalEarnedSP - spentSkillPointsV3(state, skillFamilyDefinitions));
+    hero.skillPoints = Math.max(0, state.totalEarnedSP - spentSkillPointsV3(state, skillFamilyDefinitions));
     if (skillFamilyDefinitions[skillId]?.familyId) {
       reconcileHeroSkillFamilies(hero);
       reconcileThiefBuffs(hero);
@@ -2536,6 +2633,10 @@ function normalizedHero(value: Record<string, unknown>, slotId = 'slot-1') {
     typeof value.gold !== 'number'
   )
     return null;
+  value = migrateFrostfireSave(value);
+  value = migrateWildsSave(value);
+  value = migrateIronveilSave(value);
+  value = migrateSunkenSave(value);
   const oldSave = value.version === 1 || value.version === 2;
   const id = typeof value.slotId === 'string' ? value.slotId : slotId;
   const name =
@@ -2560,8 +2661,7 @@ function normalizedHero(value: Record<string, unknown>, slotId = 'slot-1') {
     x: integer(savedSafe.x ?? value.x, -10000, 10000, base.lastSafePosition.x),
     z: integer(savedSafe.z ?? value.z, -10000, 10000, base.lastSafePosition.z),
   };
-  if (value.progressionArchitecture === 'v2_test') return null;
-  const architecture:ProgressionArchitecture=value.progressionArchitecture==='v3_adventurer' || value.skillArchitectureVersion===3
+  const architecture:ProgressionArchitecture=value.progressionArchitecture==='v2_test' ? 'v2_test' : value.progressionArchitecture==='v3_adventurer' || value.skillArchitectureVersion===3
       ? 'v3_adventurer'
       : 'legacy';
   const level = integer(value.level, 1, progressionRules({progressionArchitecture:architecture}).contentCap, 1);
@@ -2577,6 +2677,8 @@ function normalizedHero(value: Record<string, unknown>, slotId = 'slot-1') {
       : null;
   const h: Hero = {
     ...base,
+    gameplayContractVersion: 2,
+    migrationArchive: value.migrationArchive && typeof value.migrationArchive === 'object' ? value.migrationArchive as Record<string, unknown> : value.gameplayContractVersion !== 2 ? { original: structuredClone(value) } : undefined,
     canDualWieldOneHandSwords: value.canDualWieldOneHandSwords === true,
     ...(value.characterSchemaVersion === CURRENT_CHARACTER_SCHEMA_VERSION ? { characterSchemaVersion: CURRENT_CHARACTER_SCHEMA_VERSION } : {}),
     ...(architecture!=='legacy'?{progressionArchitecture:architecture}:{}),
@@ -2602,6 +2704,7 @@ function normalizedHero(value: Record<string, unknown>, slotId = 'slot-1') {
     selectedAmmo: typeof value.selectedAmmo==='string' ? value.selectedAmmo : null,
     currentCity: typeof value.currentCity === 'string' && CITIES[value.currentCity] ? value.currentCity : 'arunika',
     currentField: typeof value.currentField === 'string' && FIELDS[value.currentField] ? value.currentField : PLAINS_ID,
+    interiorId: value.interiorId===MINE_ID&&value.inCity===false&&value.currentField===IRONVEIL_ID ? MINE_ID : undefined,
     inCity: typeof value.inCity === 'boolean' ? value.inCity : true,
     unlockedCities: Array.isArray(value.unlockedCities) ? value.unlockedCities.filter((id):id is string=>typeof id==='string'&&Boolean(CITIES[id])) : ['arunika'],
     unlockedFields: Array.isArray(value.unlockedFields) ? value.unlockedFields.filter((id):id is string=>typeof id==='string'&&Boolean(FIELDS[id])) : [PLAINS_ID],
@@ -2622,8 +2725,8 @@ function normalizedHero(value: Record<string, unknown>, slotId = 'slot-1') {
     weapon: integer(value.weapon, 0, 20, 0),
     questClaimed: value.questClaimed === true,
     bossDefeated: value.bossDefeated === true,
-    x: value.inCity===false&&value.currentField===PLAINS_ID ? (typeof value.x==='number'?value.x:NaN) : integer(value.x, 1-regionHalfExtent(value.inCity !== false), regionHalfExtent(value.inCity !== false)-1, 0),
-    z: value.inCity===false&&value.currentField===PLAINS_ID ? (typeof value.z==='number'?value.z:NaN) : integer(value.z, 1-regionHalfExtent(value.inCity !== false), regionHalfExtent(value.inCity !== false)-1, 7),
+    x: value.inCity===false&&(value.currentField===PLAINS_ID||value.currentField===FROSTFIRE_ID||value.currentField===WILDS_ID||value.currentField===IRONVEIL_ID||value.currentField===SUNKEN_ID||isUnderwaterSubmap(String(value.currentField))) ? (typeof value.x==='number'?value.x:NaN) : integer(value.x, 1-regionHalfExtent(value.inCity !== false), regionHalfExtent(value.inCity !== false)-1, 0),
+    z: value.inCity===false&&(value.currentField===PLAINS_ID||value.currentField===FROSTFIRE_ID||value.currentField===WILDS_ID||value.currentField===IRONVEIL_ID||value.currentField===SUNKEN_ID||isUnderwaterSubmap(String(value.currentField))) ? (typeof value.z==='number'?value.z:NaN) : integer(value.z, 1-regionHalfExtent(value.inCity !== false), regionHalfExtent(value.inCity !== false)-1, 7),
     skillPoints: integer(value.skillPoints, 0, 500, Math.max(0, level - 1)),
     statPoints: integer(value.statPoints, 0, 999, Math.max(0, level - 1) * STAT_POINTS_PER_LEVEL),
     allocatedStats,
@@ -2696,6 +2799,13 @@ function normalizedHero(value: Record<string, unknown>, slotId = 'slot-1') {
         : null,
     enhancementSealEnabled: value.enhancementSealEnabled !== false,
   };
+  const statBudget = calculateTotalStatPoints(h.level);
+  const spentStats = ['str','vit','dex','int'].reduce((sum, key) => sum + (h.allocatedStats[key as keyof AllocatedStats] ?? 0), 0);
+  if (spentStats > statBudget) {
+    h.migrationArchive = { ...h.migrationArchive, overAllocatedStats: { ...h.allocatedStats } };
+    h.allocatedStats = { str: 0, vit: 0, dex: 0, int: 0 };
+    h.statPoints = statBudget;
+  } else h.statPoints = statBudget - spentStats;
   // Saves from v1/v2 intentionally reopen as Adventurer, but retain progress.
   if (
     !oldSave &&
@@ -2839,16 +2949,26 @@ function normalizedHero(value: Record<string, unknown>, slotId = 'slot-1') {
     Object.assign(h,PLAINS_ENTRY);
   }
   if(!h.inCity&&h.currentField===PLAINS_ID)Object.assign(h,restorePlainsPosition(h));
+  if(!h.inCity&&h.currentField===FROSTFIRE_ID)Object.assign(h,new FrostNavigation().restore(h));
+  if(!h.inCity&&h.currentField===WILDS_ID)Object.assign(h,new WildsNavigation().restore(h));
+  if(!h.inCity&&isUnderwaterSubmap(h.currentField))Object.assign(h,new SunkenNavigation(h.currentField===ABYSAL_TRENCH_ID?abysalTrenchWalkable:deepOceanWalkable,h.currentField===ABYSAL_TRENCH_ID?ABYSAL_TRENCH_ENTRY:DEEP_OCEAN_ENTRY).restore(h));
+  if(!h.inCity&&h.currentField===SUNKEN_ID)Object.assign(h,new SunkenNavigation().restore(h));
+  if(h.interiorId===MINE_ID)Object.assign(h,new MineNavigation().restore(h));
+  else if(!h.inCity&&h.currentField===IRONVEIL_ID)Object.assign(h,new IronveilNavigation().restore(h));
   const terrain=!h.inCity?FIELD_TERRAINS[h.currentField]:undefined;
   if(terrain)Object.assign(h,nearestTerrainPoint(terrain,{x:h.x,z:h.z}));
   if(h.progressionArchitecture==='v2_test')delete h.statusEffects.stealth;
   if(h.skillArchitectureVersion === 3 && h.skillProgressionV3) {
     const canonicalTotal = getTotalSkillPointsForLevel(h.level);
+    if (value.gameplayContractVersion !== 2) {
+      h.skillProgressionV3.totalEarnedSP = canonicalTotal;
+      if (spentSkillPointsV3(h.skillProgressionV3, skillFamilyDefinitions) > canonicalTotal) {
+        h.skillProgressionV3 = refundAllSkillPointsForJobChange(h.skillProgressionV3);
+        h.skillLevels = { ...h.skillProgressionV3.skillRanks }; h.passiveLevels = {};
+        reconcileHeroSkillFamilies(h);
+      }
+    }
     const spent = spentSkillPointsV3(h.skillProgressionV3, skillFamilyDefinitions);
-    h.skillProgressionV3 = {
-      ...h.skillProgressionV3,
-      totalEarnedSP: Math.max(h.skillProgressionV3.totalEarnedSP, canonicalTotal),
-    };
     h.skillPoints = Math.max(0, h.skillProgressionV3.totalEarnedSP - spent);
     h.activeBuffs = Object.fromEntries(Object.entries(h.activeBuffs).filter(([id]) => !id.startsWith('v3-')));
     delete h.statusEffects.stun;
@@ -2860,7 +2980,8 @@ function normalizedHero(value: Record<string, unknown>, slotId = 'slot-1') {
 export function parseSave(raw: string | null, slotId = 'slot-1'): Hero | null {
   if (!raw) return null;
   try {
-    return normalizedHero(JSON.parse(raw) as Record<string, unknown>, slotId);
+    const decoded = decodeCharacterV2(JSON.parse(raw));
+    return decoded ? normalizedHero(decoded, slotId) : null;
   } catch {
     return null;
   }
@@ -2872,11 +2993,16 @@ export function parseSaveCollection(raw: string | null): SaveCollection | null {
     const value = JSON.parse(raw) as Record<string, unknown>;
     if (!value.characters || typeof value.characters !== 'object') return null;
     const characters: Record<string, Hero> = {};
+    const preservedCharacters: Record<string, unknown> = {};
     for (const [id, hero] of Object.entries(
       value.characters as Record<string, unknown>,
     )) {
-      const parsed = normalizedHero(hero as Record<string, unknown>, id);
+      const decoded = decodeCharacterV2(hero);
+      let parsed: Hero | null = null;
+      try { parsed = decoded ? normalizedHero(decoded, id) : null; }
+      catch(error) { if(!(error instanceof SunkenQuestMigrationHold))throw error; }
       if (parsed) characters[id] = parsed;
+      else preservedCharacters[id] = hero;
     }
     const activeSlot =
       typeof value.activeSlot === 'string' ? value.activeSlot : 'slot-1';
@@ -2891,7 +3017,7 @@ export function parseSaveCollection(raw: string | null): SaveCollection | null {
       version: 3,
       activeSlot,
       lastPlayedCharacterId,
-      characters,
+      characters, preservedCharacters,
     };
   } catch {
     return null;
@@ -2902,21 +3028,15 @@ function readCollection(): SaveCollection {
   try {
     const current = parseSaveCollection(localStorage.getItem(SAVE_KEY));
     if (current) {
-      localStorage.setItem(SAVE_KEY, JSON.stringify(current));
-      localStorage.removeItem(LEGACY_SAVE_KEY);
-      localStorage.removeItem(OLDER_SAVE_KEY);
       return current;
     }
     const legacyCollection = parseSaveCollection(
       localStorage.getItem(LEGACY_SAVE_KEY),
     );
     if (legacyCollection) {
-      localStorage.setItem(SAVE_KEY, JSON.stringify(legacyCollection));
-      localStorage.removeItem(LEGACY_SAVE_KEY);
       return legacyCollection;
     }
     const legacy = parseSave(localStorage.getItem(OLDER_SAVE_KEY));
-    localStorage.removeItem(OLDER_SAVE_KEY);
     return {
       version: 3,
       activeSlot: legacy?.slotId ?? 'slot-1',
@@ -2949,7 +3069,7 @@ export function saveCharacter(hero: Hero, required = false) {
   }
   const collection = readCollection();
   collection.activeSlot = hero.slotId;
-  const saved={...hero,version:3 as const, equipment: reconcileDaggerEquipment(hero, hero.inventory, hero.equipment)};
+  const saved={...hero,gameplayContractVersion:2 as const,version:3 as const, equipment: reconcileDaggerEquipment(hero, hero.inventory, hero.equipment)};
   if (hero.skillProgressionV3) {
     saved.skillProgressionV3 = normalizeSkillProgressionV3(hero.skillProgressionV3);
     saved.skillLevels = { ...hero.skillLevels };
@@ -2967,7 +3087,9 @@ export function saveCharacter(hero: Hero, required = false) {
   collection.characters[hero.slotId] = saved;
   collection.lastPlayedCharacterId = hero.characterId;
   try {
-    localStorage.setItem(SAVE_KEY, JSON.stringify(collection));
+    const original = localStorage.getItem(SAVE_KEY);
+    if (original && !localStorage.getItem(SAVE_KEY + ':before-contract-v2')) localStorage.setItem(SAVE_KEY + ':before-contract-v2', original);
+    localStorage.setItem(SAVE_KEY, serializeSaveCollection(collection));
   } catch (error) {
     if(required)throw error;
   }
@@ -2981,7 +3103,9 @@ export function deleteCharacter(slotId: string) {
   if (collection.lastPlayedCharacterId && !Object.values(collection.characters).some(hero => hero.characterId === collection.lastPlayedCharacterId))
     collection.lastPlayedCharacterId = null;
   try {
-    localStorage.setItem(SAVE_KEY, JSON.stringify(collection));
+    const original = localStorage.getItem(SAVE_KEY);
+    if (original && !localStorage.getItem(SAVE_KEY + ':before-contract-v2')) localStorage.setItem(SAVE_KEY + ':before-contract-v2', original);
+    localStorage.setItem(SAVE_KEY, serializeSaveCollection(collection));
   } catch {
     /* Local storage is optional. */
   }

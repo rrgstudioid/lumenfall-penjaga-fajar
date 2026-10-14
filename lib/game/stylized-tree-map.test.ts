@@ -25,7 +25,7 @@ await test('all eight real GLBs fit the player scale and keep their base on elev
     const original = new T.Box3().setFromObject(source);
     for (const groundY of [-4, 0, 9.1]) {
       const placement = { family, x: 12, z: -19, scale: 1.22, rotation: 1.7 };
-      const tree = placeStylizedTree(source, placement, groundY, 'arunika', true);
+      const tree = placeStylizedTree(source, placement, groundY, true);
       const bounds = new T.Box3().setFromObject(tree);
       const size = bounds.getSize(new T.Vector3());
       assert.ok(size.y >= 2.4 && size.y <= 6 + epsilon, `${file}: height ${size.y}`);
@@ -47,8 +47,8 @@ await test('centimeter GLBs and corrected meter exports result in identical worl
     const meters = source.clone(true);
     meters.scale.multiplyScalar(.01);
     const placement = { family: file.split('-')[0] as Family, x: -8, z: 15, scale: 1.05, rotation: .6 };
-    const legacy = placeStylizedTree(source, placement, 7, 'verdant-plains', false);
-    const corrected = placeStylizedTree(meters, placement, 7, 'verdant-plains', false);
+    const legacy = placeStylizedTree(source, placement, 7, false);
+    const corrected = placeStylizedTree(meters, placement, 7, false);
     const before = new T.Box3().setFromObject(legacy), after = new T.Box3().setFromObject(corrected);
     assert.ok(before.min.distanceTo(after.min) < epsilon, file);
     assert.ok(before.max.distanceTo(after.max) < epsilon, file);

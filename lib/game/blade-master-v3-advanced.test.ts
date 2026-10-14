@@ -1,7 +1,9 @@
+import { getTotalSkillPointsForLevel } from './rules.ts';
+import { promoteFixture, resolveFixtureSkill } from './gameplay-test-fixtures.ts';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createItem } from './items.ts';
-import { canLearnSkill, chooseV3BladeMaster, chooseV3Warrior, createV3AdventurerHero, derivedStats, learnSkill, resolveHeroSkill, resetSkillPoints } from './rules.ts';
+import { canLearnSkill, chooseV3BladeMaster, chooseV3Warrior, createV3AdventurerHero, derivedStats, learnSkill, resetSkillPoints } from './rules.ts';
 import { BLADE_MASTER_V3_RUNTIME_MAP, BLADE_MASTER_V3_SKILL_MAP, BLADE_MASTER_FLOW_CONSUMERS, BLADE_MASTER_DUAL_MANA_SKILLS, BLADE_MASTER_MASTERY_MANA_SKILLS } from './blade-master-v3.ts';
 import { TransientCombatState } from './combat-transient.ts';
 import { skillHitDamage, SkillHitQueue } from './skill-action.ts';
@@ -15,8 +17,8 @@ import { BladeMasterImpactSession } from './blade-master-impact.ts';
 
 const id = (short: string) => `v3-blade-master-${short}`;
 function setup(level = 80) {
-  const hero = createV3AdventurerHero(); hero.level = level; hero.skillProgressionV3!.totalEarnedSP = 500;
-  assert.equal(chooseV3Warrior(hero), true); assert.equal(chooseV3BladeMaster(hero), true);
+  const hero = createV3AdventurerHero(); hero.level = level; hero.skillProgressionV3!.totalEarnedSP = getTotalSkillPointsForLevel(hero.level);
+  assert.equal(promoteFixture(hero, chooseV3Warrior), true); assert.equal(promoteFixture(hero, chooseV3BladeMaster), true);
   const sword = (name: string, attack: number) => createItem('legacy-fajar-blade', { id: name, baseStats: { attack }, equipSlot: 'mainHand', mainHand: true, equipmentType: 'one_hand_sword', weaponType: 'one_hand_sword', handedness: 'one_hand', twoHanded: false });
   const main = sword('advanced-main', 100), off = sword('advanced-off', 70);
   hero.inventory.push(main,off);hero.equipment.mainHand=main.id;hero.equipment.offHand=off.id;
@@ -59,22 +61,23 @@ await test('7B purchase gates enforce level, cross-tier requirements, 18-SP inve
 
 await test('Cross Sever composes one combined impact and shared core exactly once', () => {
   const {hero,off}=setup(); const skill=BLADE_MASTER_V3_RUNTIME_MAP[id('cross-sever')];
-  const stats=derivedStats(hero); const action=resolveHeroSkill(hero,skill,5,stats);
+  const stats=derivedStats(hero); const action=resolveFixtureSkill(hero,skill,5,stats);
   assert.equal(action.hitSequence.length,1);assert.equal(action.hitSequence[0].weaponHand,'BOTH');
   assert.equal(action.hitSequence[0].physicalCoefficient,1.5);
   assert.ok((action.hitSequence[0].composedPhysicalPower??0)>0);
   const damage=skillHitDamage(action.hitSequence[0],stats);
   const replacement = createItem('legacy-fajar-blade', { id:'stronger-off',baseStats:{attack:170},equipSlot:'offHand',offHand:true,equipmentType:'one_hand_sword',weaponType:'one_hand_sword',handedness:'one_hand',twoHanded:false });
   hero.inventory.push(replacement);hero.equipment.offHand=replacement.id;
-  assert.ok(Math.abs(skillHitDamage(resolveHeroSkill(hero,skill,5).hitSequence[0],derivedStats(hero))-damage-150)<1e-6);
+  const delta=skillHitDamage(resolveFixtureSkill(hero,skill,5).hitSequence[0],derivedStats(hero))-damage;
+  assert.ok(Math.abs(delta-(100*.9*.5*1.5*1.2))<1e-6, `offhand damage delta ${delta}`);
   assert.equal(off.baseStats.attack,70);
 });
 
 await test('Twin Assault world-path sequence applies both hits to monster HP in the actual runtime flow', () => {
   const {hero}=setup(80);
   const stats=derivedStats(hero);
-  const target={ hp: 400, maxHP: 400, defense: 0, magicDefense: 0, evasion: 0, level: 1, country: 'none', marked: false, statusEffects: {}, sourceOwnedStatuses: {} as Record<string, import('./combat-status.ts').SourceOwnedStatus[]> };
-  const action=resolveHeroSkill(hero,BLADE_MASTER_V3_RUNTIME_MAP[id('twin-assault')],8,stats);
+  const target={ hp: 10000, maxHP: 10000, defense: 0, magicDefense: 0, evasion: 0, level: 1, country: 'none', marked: false, statusEffects: {}, sourceOwnedStatuses: {} as Record<string, import('./combat-status.ts').SourceOwnedStatus[]> };
+  const action=resolveFixtureSkill(hero,BLADE_MASTER_V3_RUNTIME_MAP[id('twin-assault')],8,stats);
   assert.equal(action.hitSequence.length,2);
   let totalDamage=0;
   for (const hit of action.hitSequence) {
@@ -88,8 +91,8 @@ await test('Twin Assault world-path sequence applies both hits to monster HP in 
     totalDamage += damage;
   }
   assert.ok(totalDamage > 0, 'Twin Assault must reduce target HP');
-  assert.ok(target.hp < 400, 'Monster HP must mutate after the actual hits resolve');
-  assert.equal(target.hp, 400 - totalDamage);
+  assert.ok(target.hp < 10000, 'Monster HP must mutate after the actual hits resolve');
+  assert.equal(target.hp, 10000 - totalDamage);
 });
 
 await test('Blade Master V4 exposes canonical base-damage ranges and rank power factor', () => {
@@ -107,7 +110,7 @@ await test('Twin Assault rolls once per cast and splits the shared core correctl
   const { hero } = setup(80);
   const skill = BLADE_MASTER_V3_RUNTIME_MAP[id('twin-assault')];
   const stats = derivedStats(hero);
-  const action = resolveHeroSkill(hero, skill, 1, stats, undefined, [], undefined, 0, () => 0.5);
+  const action = resolveFixtureSkill(hero, skill, 1, stats, undefined, [], undefined, 0, () => 0.5);
   assert.equal(action.hitSequence.length, 2);
   assert.equal(action.hitSequence[0].baseDamage + action.hitSequence[1].baseDamage, 125 * 8, 'shared base core should total once per cast');
   assert.equal(action.hitSequence[0].baseDamage, action.hitSequence[1].baseDamage);
@@ -120,7 +123,7 @@ await test('Piercing Sequence and Tempest preserve real hits, fixed timing, hand
     ['piercing-sequence',5,[.3,.3,.4],['MAIN','MAIN','MAIN'],1.55],
     ['blade-tempest',3,[.15,.15,.15,.15,.4],['MAIN','OFF','MAIN','OFF','BOTH'],2.25],
   ] as const){
-    const action=resolveHeroSkill(hero,BLADE_MASTER_V3_RUNTIME_MAP[id(short)],rank);
+    const action=resolveFixtureSkill(hero,BLADE_MASTER_V3_RUNTIME_MAP[id(short)],rank);
     assert.deepEqual(action.hitSequence.map(h=>h.weaponHand),hands);
     assert.deepEqual(action.hitSequence.map(h=>h.sharedContributionWeight),weights);
     assert.equal(action.hitSequence.reduce((sum,h)=>sum+(h.sharedContributionWeight??0),0),1);
@@ -153,14 +156,14 @@ await test('Tempo caps at three, refreshes, expires, Drive consumes by stack cou
 await test('Impact contract preserves Flow/Tempo until first damaging hit and generates at most one stack per cast', () => {
   const {hero}=setup(),target={hp:100,sourceOwnedStatuses:{} as Record<string,import('./combat-status.ts').SourceOwnedStatus[]>};
   const state=new TransientCombatState();state.openBladeFlow(0,3);
-  const twin=resolveHeroSkill(hero,BLADE_MASTER_V3_RUNTIME_MAP[id('twin-assault')],1);
+  const twin=resolveFixtureSkill(hero,BLADE_MASTER_V3_RUNTIME_MAP[id('twin-assault')],1);
   const first=new BladeMasterImpactSession(twin.skillId,state,0);
   assert.equal(first.prepare(twin.hitSequence[0],0,1,target,'A',0).criticalRate,twin.hitSequence[0].criticalRate+5);
   assert.equal(state.bladeFlowActive(0),true);assert.equal(state.tempoCount(0),0);
   first.commitDamagingImpact(0,5,true,true);
   assert.equal(state.bladeFlowActive(0),false);assert.equal(state.tempoCount(0),1);
   first.commitDamagingImpact(.18,5,true,true);assert.equal(state.tempoCount(.18),1);
-  const tempest=resolveHeroSkill(hero,BLADE_MASTER_V3_RUNTIME_MAP[id('blade-tempest')],3);
+  const tempest=resolveFixtureSkill(hero,BLADE_MASTER_V3_RUNTIME_MAP[id('blade-tempest')],3);
   state.gainBladeTempo(.2,7);state.gainBladeTempo(.2,7);
   const ultimate=new BladeMasterImpactSession(tempest.skillId,state,.2);
   assert.equal(ultimate.tempoAtCast,3);
@@ -179,10 +182,10 @@ await test('Mastery and Drive Mana reductions use strongest source on dual skill
   for(const short of ['twin-assault','cross-sever','blade-tempest']){
     const skill=BLADE_MASTER_V3_RUNTIME_MAP[id(short)];const rank=skill.maxLevel;
     const base=skill.rankValues![rank-1].manaCost!;
-    assert.equal(resolveHeroSkill(hero,skill,rank,stats,undefined,[],undefined,18).manaCost,Math.ceil(base*.82));
+    assert.equal(resolveFixtureSkill(hero,skill,rank,stats,undefined,[],undefined,18).manaCost,Math.ceil(base*.82));
   }
   const piercing=BLADE_MASTER_V3_RUNTIME_MAP[id('piercing-sequence')];
-  assert.equal(resolveHeroSkill(hero,piercing,5,stats,undefined,[],undefined,18).manaCost,Math.ceil(20*.97));
+  assert.equal(resolveFixtureSkill(hero,piercing,5,stats,undefined,[],undefined,18).manaCost,Math.ceil(20*.97));
 });
 
 await test('Tempo Drive uses canonical rank Mana/cooldown, receives Mastery reduction, and not its own active reduction', () => {
@@ -192,8 +195,8 @@ await test('Tempo Drive uses canonical rank Mana/cooldown, receives Mastery redu
   assert.deepEqual(drive.rankValues?.map(value=>value.cooldown),[24,23,22,21,20]);
   assert.equal(BLADE_MASTER_MASTERY_MANA_SKILLS.has(drive.id),true);
   assert.equal(BLADE_MASTER_DUAL_MANA_SKILLS.has(drive.id),false);
-  assert.equal(resolveHeroSkill(hero,drive,5,stats).manaCost,Math.ceil(18*.92));
-  assert.equal(resolveHeroSkill(hero,drive,5,stats,undefined,[],undefined,18).manaCost,Math.ceil(18*.92));
+  assert.equal(resolveFixtureSkill(hero,drive,5,stats).manaCost,Math.ceil(18*.92));
+  assert.equal(resolveFixtureSkill(hero,drive,5,stats,undefined,[],undefined,18).manaCost,Math.ceil(18*.92));
 });
 
 await test('Armor Break source ownership is queryable independently of strongest mitigation', () => {
@@ -221,9 +224,9 @@ await test('Tempo Drive ASPD uses existing character stat modifier path and neve
   const {hero}=setup();const base=derivedStats(hero).attackSpeed;
   hero.combatStateModifiers=[{id:'v3-blade-master-tempo-drive-speed',stats:{percent:{attackSpeed:20}}}];
   assert.ok(Math.abs(derivedStats(hero).attackSpeed-base*1.2)<1e-6);
-  const before=resolveHeroSkill(hero,BLADE_MASTER_V3_RUNTIME_MAP[id('blade-tempest')],3).hitSequence.map(h=>h.delay);
+  const before=resolveFixtureSkill(hero,BLADE_MASTER_V3_RUNTIME_MAP[id('blade-tempest')],3).hitSequence.map(h=>h.delay);
   delete hero.combatStateModifiers;
-  const after=resolveHeroSkill(hero,BLADE_MASTER_V3_RUNTIME_MAP[id('blade-tempest')],3).hitSequence.map(h=>h.delay);
+  const after=resolveFixtureSkill(hero,BLADE_MASTER_V3_RUNTIME_MAP[id('blade-tempest')],3).hitSequence.map(h=>h.delay);
   assert.deepEqual(before,after);
 });
 
@@ -232,7 +235,7 @@ await test('Lv75/80 controlled damage sanity matrix does not duplicate weapon or
   for(const level of [75,80]){
     const {hero}=setup(level),stats=derivedStats(hero);
     const power=(short:string,rank:number,flow=false,tempo=false,armor=false)=>{
-      const action=resolveHeroSkill(hero,BLADE_MASTER_V3_RUNTIME_MAP[id(short)],rank,stats);
+      const action=resolveFixtureSkill(hero,BLADE_MASTER_V3_RUNTIME_MAP[id(short)],rank,stats);
       return Math.round(action.hitSequence.reduce((sum,hit,index)=>{
         const last=index===action.hitSequence.length-1;
         const crit=criticalChance(hit.criticalRate+(flow?5:0)+(armor&&short==='piercing-sequence'&&last?10:0)+(tempo&&short==='blade-tempest'&&last?25:0));
@@ -240,12 +243,12 @@ await test('Lv75/80 controlled damage sanity matrix does not duplicate weapon or
         return sum+mitigateDamage(raw,100*(armor?.91:1),level)*(1+crit*(hit.criticalDamage/100-1));
       },0)*100)/100;
     };
-    const berserker=createV3AdventurerHero();berserker.level=level;berserker.skillProgressionV3!.totalEarnedSP=500;chooseV3Warrior(berserker);chooseV3Berserker(berserker);
+    const berserker=createV3AdventurerHero();berserker.level=level;berserker.skillProgressionV3!.totalEarnedSP=500;promoteFixture(berserker,chooseV3Warrior);promoteFixture(berserker,chooseV3Berserker);
     const two=createItem('legacy-fajar-blade',{id:`two-${level}`,baseStats:{attack:170},equipSlot:'mainHand',mainHand:true,equipmentType:'two_hand_sword',weaponType:'two_hand_sword',handedness:'two_hand',twoHanded:true});
     berserker.inventory.push(two);berserker.equipment.mainHand=two.id;
     const berserkerStats=derivedStats(berserker);
-    const berserkerPower=(name:string,rank:number)=>resolveHeroSkill(berserker,BERSERKER_V3_RUNTIME_MAP[`v3-berserker-${name}`],rank,berserkerStats).hitSequence.reduce((sum,hit)=>sum+mitigateDamage(Math.round(skillHitDamage(hit,berserkerStats)),100,level),0);
-    matrix.push({level,dualBasicMain:stats.physicalAttack-70,dualBasicOff:stats.physicalAttack-100,twinAssault:power('twin-assault',level===75?6:8),crossSever:power('cross-sever',level===75?3:5),piercingSequence:power('piercing-sequence',level===75?3:5),piercingOwnArmorBreak:power('piercing-sequence',level===75?3:5,false,false,true),counterflow:power('counterflow',level===75?4:5),tempestNormal:power('blade-tempest',level===75?1:3),tempestFlow:power('blade-tempest',level===75?1:3,true),tempestThreeTempo:power('blade-tempest',level===75?1:3,false,true),tempestFlowThreeTempo:power('blade-tempest',level===75?1:3,true,true),berserkerCrushingBlow:berserkerPower('crushing-blow',level===75?4:5),berserkerEarthSplitter:berserkerPower('earth-splitter',level===75?3:5)});
+    const berserkerPower=(name:string,rank:number)=>resolveFixtureSkill(berserker,BERSERKER_V3_RUNTIME_MAP[`v3-berserker-${name}`],rank,berserkerStats).hitSequence.reduce((sum,hit)=>sum+mitigateDamage(Math.round(skillHitDamage(hit,berserkerStats)),100,level),0);
+    matrix.push({level,dualBasicMain:stats.physicalAttack-31.5,dualBasicOff:stats.physicalAttack-90,twinAssault:power('twin-assault',level===75?6:8),crossSever:power('cross-sever',level===75?3:5),piercingSequence:power('piercing-sequence',level===75?3:5),piercingOwnArmorBreak:power('piercing-sequence',level===75?3:5,false,false,true),counterflow:power('counterflow',level===75?4:5),tempestNormal:power('blade-tempest',level===75?1:3),tempestFlow:power('blade-tempest',level===75?1:3,true),tempestThreeTempo:power('blade-tempest',level===75?1:3,false,true),tempestFlowThreeTempo:power('blade-tempest',level===75?1:3,true,true),berserkerCrushingBlow:berserkerPower('crushing-blow',level===75?4:5),berserkerEarthSplitter:berserkerPower('earth-splitter',level===75?3:5)});
   }
   console.log('BLADE_MASTER_7B_SANITY_MATRIX',JSON.stringify(matrix));
   assert.equal(matrix.length,2);

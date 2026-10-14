@@ -1,0 +1,37 @@
+LUMENFALL — IRON SWORD LV10 OWNER ACC
+Dicatat Garda, 9 Oktober 2026. Catatan authority percakapan, bukan implementation report.
+
+SOURCE DAN JAWABAN LANGSUNG
+Sesudah review fondasi CP/sword, Garda merekomendasikan Iron Lv10 + mempertahankan
+instance lama + menunda mapping Lv5. OWNER meminta penjelasan "Iron lvl 10 maksudnya gimana".
+Garda menjelaskan perubahan item baru dari requirement Lv8 menjadi Lv10,
+BASE32–36; nama/ID/model/type tetap, item lama tidak diubah diam-diam.
+OWNER kemudian menjawab tepat: "Ok aku setuju, lanjutkan".
+
+APPROVED DISPOSITION
+- Iron Sword existing field-ironveil-mines-sword menjadi tier Lv10 untuk item baru.
+- Required level baru10; authored BASE physical range32–36, integer endpoints.
+- Nama/ID/Common/type/hand/slot/restrictions/options/icon/model existing tetap.
+- Tidak membuat enhancement+10; Lv10 adalah required level.
+- Instance lama yang menyimpan requirement8/scalar14 tetap legacy, seluruh data
+  dan inventory/storage/equipped links dipertahankan. Tidak auto-convert/unequip.
+- Mapping Lv5 ditunda; band18–22 yang sudah ACC tidak dibatalkan.
+- Acquisition existing city/Ironveil dipertahankan. Tidak membuat purchase-level
+  gate baru: buy padaLv8 bila existing consumer mengizinkan, equip new itemLv10.
+- Harga224/sell52 tetap prototype existing; tidak dinyatakan final economy ACC.
+- Training/Dawnblade dan item lain tidak diremap.
+
+SCOPE LANJUTAN
+Siapkan prompt gabungan untuk implementasi mapping/provider sword, bounded
+development gameplay/admission/UI/save compatibility dan browser lokal, bersama
+proposal kontrak CP berbasis recovery existing. Owner menginginkan scope terkait
+lebih besar. Engineering verification bukan numeric balance approval baru.
+CP benchmark/weights/horizon/score/EHP belum mendapat ACC dari jawaban ini.
+Tidak mengotorisasi global production formula activation, enhancement tuning,
+item baruLv5, kelas lain, personal save migration atau commit/push/publish.
+
+PROPOSAL BASIS
+outputs/gameplay-migration/adventurer-cp-foundation-sword-proposal/run-01/
+SWORD_FINAL_MAPPING_PROPOSAL.txt dan OWNER_REVIEW_INPUTS.txt.
+Proposal historis tidak diedit; addendum ini supersedes hanya status mapping
+IronLv10/grandfather/deferLv5 yang kini disetujui, bukan semua CP decisions.

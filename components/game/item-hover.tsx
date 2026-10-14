@@ -2,22 +2,40 @@
 import { JobText, useJobText } from './job-presentation-context';
 import { statBonusText } from '@/lib/game/stat-presentation';
 
-import { createElement, useEffect, useLayoutEffect, useRef, useState, type ButtonHTMLAttributes, type PointerEvent, type ReactNode } from 'react';
+import { createContext, useContext, createElement, useEffect, useLayoutEffect, useRef, useState, type ButtonHTMLAttributes, type PointerEvent, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { calculateEnhancedBaseStats, equipmentUsageDescription, RARITY_META, type ItemData } from '@/lib/game/items';
 import { ItemIcon } from './entry-icon';
+import type { Game } from '@/lib/game/world';
+import { ironSwordAuthoredRange } from '@/lib/game/iron-sword-range-v2';
+export const ItemRangeContext = createContext<Game | null>(null);
+
+/** Exact owned selected instance only. Templates/default callers keep legacy data. */
+export function equipmentPresentation(item: HoverItem, game: Game | null, baseOnly=false) {
+  const range=ironSwordAuthoredRange(item) ?? game?.getDevelopmentAdventurerItemRange(item);
+  const baseStats={...calculateEnhancedBaseStats(item)};
+  if(range)delete baseStats.attack;
+  const text=equipmentUsageDescription({...item,baseStats,bonusStats:baseOnly?{}:item.bonusStats});
+  return range ? `${text} · Physical Attack: ${range.min}–${range.max}` :
+    item.templateId==='field-ironveil-mines-sword' && !item.authoredAttackVersion && item.levelRequirement===8
+      ? `${text} · Legacy scalar attack` : text;
+}
+
+export function SelectedItemBaseStats({item,game}:{item: ItemData;game:Game|null}) {
+  const range=ironSwordAuthoredRange(item) ?? game?.getDevelopmentAdventurerItemRange(item);
+  const stats={...calculateEnhancedBaseStats(item)};
+  if(range)delete stats.attack;
+  return <>{range && <p data-item-physical-range>Physical Attack {range.min}–{range.max}</p>}<StatBlockList value={stats}/></>;
+}
+import { StatBlockList } from './stat-block-list';
 
 // Accept shop templates as well as actual owned instances. Never manufacture
 // an inventory item just to show a tooltip (which could roll new random stats).
 type HoverItem = Omit<ItemData, 'id' | 'quantity'> & Partial<Pick<ItemData, 'id' | 'quantity'>>;
 type Point = { x: number; y: number };
 
-function equipmentTooltipSections(item: HoverItem) {
-  const lines = equipmentUsageDescription({
-    ...item,
-    baseStats: calculateEnhancedBaseStats(item),
-    bonusStats: {},
-  }).split(' · ');
+function equipmentTooltipSections(item: HoverItem,game:Game|null) {
+  const lines = equipmentPresentation(item,game,true).split(' · ');
   const isMetadata = (line: string) => /^(Level|Jenis|Slot|Syarat|Harga jual):/.test(line);
   return {
     metadata: lines.filter(line => /^(Level|Jenis|Slot):/.test(line)),
@@ -35,10 +53,11 @@ function uniqueStatLines(item: HoverItem) {
 }
 
 function ItemHoverTooltip({ item, point, buyPrice }: { item: HoverItem; point: Point; buyPrice?: number }) {
+  const game=useContext(ItemRangeContext);
   const text = useJobText();
   const popup = useRef<HTMLDivElement>(null);
   const equipmentSections = ['weapon', 'armor', 'accessory'].includes(item.category)
-    ? equipmentTooltipSections(item)
+    ? equipmentTooltipSections(item,game)
     : null;
   const uniqueStats = equipmentSections ? uniqueStatLines(item) : [];
   const showUnmagnified = item.uniqueStatsLocked || uniqueStats.length === 0;

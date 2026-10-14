@@ -29,8 +29,10 @@ function fixture(level = 0) {
   hero.equipment.mainHand = item.id;
   return { hero, item };
 }
-await test('every registered city has a nearby canonical Forge Master and rejects all other NPCs', () => {
-  for (const city of Object.values(CITIES)) {
+await test('registered forge cities have a nearby canonical Forge Master and reject all other NPCs', () => {
+  const forgeCities = Object.values(CITIES).filter(city => city.npcList.some(npc => npc.service === 'forge'));
+  assert.deepEqual(forgeCities.map(city => city.id).sort(), ['arunika', 'jayantara']);
+  for (const city of forgeCities) {
     const hero = freshHero();
     hero.currentCity = city.id;
     const masters = city.npcList.filter((npc) => npc.service === 'forge');
@@ -52,6 +54,21 @@ await test('every registered city has a nearby canonical Forge Master and reject
     assert.match(forgeAccessReason(hero, npc.id), /Terlalu jauh/);
   }
 });
+await test('A14 Averion rejects missing and borrowed Forge Master sessions without mutation', () => {
+  const hero = freshHero();
+  hero.currentCity = 'averion';
+  hero.inCity = true;
+  assert.deepEqual(CITIES.averion.npcList, []);
+  for (const npc of Object.values(CITIES).flatMap(city => city.npcList)) {
+    hero.x = npc.x;
+    hero.z = npc.z;
+    const before = JSON.stringify(hero);
+    assert.match(forgeAccessReason(hero, npc.id), /Buka menu Tempa melalui NPC Forge Master/);
+    assert.equal(JSON.stringify(hero), before);
+  }
+  assert(forgeAccessReason(hero, null));
+  assert(forgeAccessReason(hero, 'missing-forge'));
+});
 await test('forge access rejects field camps, missing sessions and wrong-city NPCs', () => {
   const hero = freshHero();
   assert(forgeAccessReason(hero, null));
@@ -60,6 +77,17 @@ await test('forge access rejects field camps, missing sessions and wrong-city NP
   for (const npc of Object.values(FIELD_NPCS))
     assert(forgeAccessReason(hero, npc.id));
   assert(forgeAccessReason(hero, 'aruna-3'));
+});
+await test('implemented Arunika and Jayantara Forge services remain usable independently of empty Averion', () => {
+  for (const city of ['arunika','jayantara']) {
+    const {hero,item}=fixture(); hero.currentCity=city;
+    const masters=CITIES[city].npcList.filter(n=>n.service==='forge'); assert.equal(masters.length,1);
+    const master=masters[0]; hero.x=master.x; hero.z=master.z;
+    assert.equal(forgeAccessReason(hero,master.id),'');
+    assert(enhanceItem(hero,item.id,0).ok);
+    hero.x+=master.interactionRange+.1;
+    assert.match(forgeAccessReason(hero,master.id), /Terlalu jauh/);
+  }
 });
 await test('only equipment can be enhanced, not potions, pets, materials or Rune items', () => {
   const hero = freshHero();
@@ -196,14 +224,14 @@ await test('all registered enhanceable equipment types support successful enhanc
       slots.has('ring1'),
   );
 });
-await test('failed low enhancement downgrades once, never below zero, and spends material', () => {
+await test('failed enhancement preserves its level and spends attempt material', () => {
   for (const level of [0, 1, 7]) {
     const { hero, item } = fixture(level),
       p = enhancementPreview(hero, item.id)!;
     const result = enhanceItem(hero, item.id, 1);
     assert.equal(result.ok, false);
     assert.equal(result.attempted, true);
-    const expectedLevel = level === 7 ? 2 : level;
+    const expectedLevel = level;
     assert.equal(hero.inventory.find((i) => i.id === item.id)?.enhancementLevel, expectedLevel);
     assert.equal(
       hero.inventory.find((i) => i.templateId === p.materialId)?.quantity,
@@ -225,7 +253,7 @@ await test('Fate Rune is opt-in and only consumed when explicitly selected', () 
   assert.equal(result.ok, true);
   assert.equal(hero.inventory.find((entry) => entry.itemType === 'fateRune')?.quantity ?? 0, before - 1);
 });
-await test('Eternal Seal is only consumed on failure and protects +8 equipment', () => {
+await test('Eternal Seal is preserved on success and failure', () => {
   for (const roll of [0, 1]) {
     const { hero, item } = fixture(8);
     hero.inventory.push(createItem('eternal-seal'));
@@ -236,7 +264,7 @@ await test('Eternal Seal is only consumed on failure and protects +8 equipment',
     );
     assert.equal(
       hero.inventory.some((i) => i.itemType === 'eternalSeal'),
-      roll === 0,
+      true,
     );
   }
 });
@@ -249,17 +277,17 @@ await test('Eternal Seal can be disabled for one enhancement decision', () => {
   const result = enhanceItem(hero, item.id, 1, undefined, false);
   assert.equal(result.ok, false);
   assert.equal(hero.inventory.some((entry) => entry.itemType === 'eternalSeal'), true);
-  assert.equal(hero.inventory.some((entry) => entry.id === item.id), false);
+  assert.equal(hero.inventory.some((entry) => entry.id === item.id), true);
 });
-await test('unprotected +8 failure removes only target equipment and clears its equipped reference', () => {
+await test('unprotected +8 failure retains equipment and its equipped reference', () => {
   const { hero, item } = fixture(8),
     other = createItem('legacy-fajar-blade');
   hero.inventory.push(other);
   const oldEquipment = { ...hero.equipment };
-  assert.match(enhanceItem(hero, item.id, 1).reason, /hancur/);
-  assert(!hero.inventory.some((i) => i.id === item.id));
+  assert.match(enhanceItem(hero, item.id, 1).reason, /Level item tetap/);
+  assert(hero.inventory.some((i) => i.id === item.id));
   assert(hero.inventory.some((i) => i.id === other.id));
-  assert.equal(hero.equipment.mainHand, null);
+  assert.equal(hero.equipment.mainHand, item.id);
   assert.equal(oldEquipment.mainHand, item.id);
   assert(hero.hp <= derivedStats(hero).maxHP);
 });

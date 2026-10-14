@@ -1,10 +1,19 @@
 ﻿'use client';
+import { MINE_ID } from '@/lib/game/ironveil-interior-layout';
+import { IronveilInteriorLocalMap } from '@/components/game/ironveil-interior-local-map';
 
 import { useEffect, useRef, useState } from 'react';
-import { isDaggerItem } from '@/lib/game/dagger';
-import { getVisibleJobArchitecture, presentJobText } from '@/lib/game/job-presentation';
 import { JobArchitecturePreview } from '@/components/game/job-architecture-preview';
 import { V3JobTrainer } from '@/components/game/v3-job-trainer';
+import { JobSkill } from '@/components/game/job-skill';
+import { IRONVEIL_ID } from '@/lib/game/ironveil-mines-layout';
+import { DEEP_OCEAN_ID, isUnderwaterSubmap } from '@/lib/game/underwater-regions';
+import { SUNKEN_ID } from '@/lib/game/sunken-ruins-layout';
+import { WILDS_ID } from '@/lib/game/whispering-wilds-layout';
+import { FROSTFIRE_ID } from '@/lib/game/frostfire-highlands-layout';
+import { notifyDevelopmentHomeLifecycle } from '@/lib/game/development-home-lifecycle';
+import { isDaggerItem } from '@/lib/game/dagger';
+import { getVisibleJobArchitecture, presentJobText } from '@/lib/game/job-presentation';
 import { JobPresentationContext, JobText } from '@/components/game/job-presentation-context';
 import { createPortal } from 'react-dom';
 import './character-panels.css';
@@ -31,7 +40,6 @@ import {
 } from '@/components/game/primary-hotbar';
 import {
   Sparkles,
-  FlaskConical as _FlaskConical,
   Coins,
   Backpack,
   Volume2,
@@ -82,7 +90,6 @@ import {
 import {
   ITEM_CATALOG,
   RARITY_META,
-  calculateEnhancedBaseStats,
   equipmentUsageDescription,
   type InventorySort,
 } from '@/lib/game/items';
@@ -91,9 +98,8 @@ import {
   DraggableAlertDialogContent,
   DraggableDialogContent,
 } from '@/components/game/draggable-window';
-import { JobSkill } from '@/components/game/job-skill';
 import { ItemIcon } from '@/components/game/entry-icon';
-import { ItemHover } from '@/components/game/item-hover';
+import { ItemHover, ItemRangeContext, equipmentPresentation } from '@/components/game/item-hover';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -312,6 +318,7 @@ export default function Home() {
             },
           );
           game.current = instance;
+          notifyDevelopmentHomeLifecycle('created', instance);
           await instance.prepareWorld();
           if (cancelled) return;
           instance.start();
@@ -321,7 +328,10 @@ export default function Home() {
         } catch (cause) {
           if (cancelled) return;
           console.error(cause);
-          if(instance?.isAverion||instance?.isPlains)setMapError({id:instance.isPlains?'verdant-plains-v2':'averion',label:instance.isPlains?'Verdant Plains':'Averion',message:'Map gagal dimuat. Save tetap aman. Periksa koneksi lalu tekan Retry.'});
+          if(instance?.isMineInterior)setMapError({id:MINE_ID,label:'Ironveil Mines \u00b7 Interior',message:'Unable to load the mine interior. Your save is safe. Check the connection and retry.'});
+          else if(instance?.isIronveil)setMapError({id:IRONVEIL_ID,label:'Ironveil Mines',message:'Unable to load Ironveil Mines. Your save is safe. Check the connection and retry.'});
+          else if(instance?.isWilds)setMapError({id:WILDS_ID,label:'Whispering Wilds',message:'Unable to load the forest. Your save is safe. Check the connection and retry.'});
+          else if(instance?.isAverion||instance?.isPlains||instance?.isFrostfire)setMapError({id:instance.isFrostfire?FROSTFIRE_ID:instance.isPlains?'verdant-plains-v2':'averion',label:instance.isFrostfire?'Frostfire Highlands':instance.isPlains?'Verdant Plains':'Averion',message:'Map gagal dimuat. Save tetap aman. Periksa koneksi lalu tekan Retry.'});
           setError(
             'Dunia belum dapat dimuat. Save tetap aman. Periksa koneksi dan WebGL, lalu coba Continue atau Load Game lagi.',
           );
@@ -338,6 +348,7 @@ export default function Home() {
     return () => {
       cancelled = true;
       instance?.dispose();
+      if(instance)notifyDevelopmentHomeLifecycle('disposed', instance);
       if (game.current === instance) game.current = null;
       setEngine(null);
     };
@@ -558,7 +569,8 @@ export default function Home() {
     }
   };
   const startSelectedCharacter = () => {
-    const selected = roster.find(slot => slot.id === selectedSlot)?.hero;
+    // Read the saved collection at entry time; React's roster may precede a save.
+    const selected = listCharacters().find(slot => slot.id === selectedSlot)?.hero;
     if (!isCompatibleCharacterSave(selected)) {
       setError('Karakter ini dibuat dengan development build lama dan sudah tidak kompatibel. Buat karakter baru.');
       setFlow('selection');
@@ -587,7 +599,11 @@ export default function Home() {
         return;
       }
       refreshRoster();
-      startSelectedCharacter();
+      // The collection is already saved. React's roster still belongs to the
+      // previous render here; validating that stale roster rejects a new slot.
+      setError('');
+      setFlow('loading');
+      setLoadingSlot(selectedSlot);
       return;
     }
     if (flow === 'selection' && selectionMode === 'load' && selectedCharacter) {
@@ -674,12 +690,12 @@ export default function Home() {
   const isResizableNpc = resizableNpcWindowId !== null;
 
   return (
-    <JobPresentationContext.Provider value={hero}><GameDragDropProvider game={engine}>
+    <JobPresentationContext.Provider value={hero}><ItemRangeContext.Provider value={engine}><GameDragDropProvider game={engine}>
     <main className={`game-shell ${flow === 'world' ? 'in-world' : 'menu-mode'} flow-${flow}`} data-map-id={state.mapId}>
       <InterfaceSettingsRuntime />
       <div ref={host} className="world" data-world-surface />
       <div className="vignette" />
-      <div ref={labels} className="world-labels" aria-hidden="true" />
+      <div ref={labels} className="world-labels" aria-hidden={(state.mapId===IRONVEIL_ID||state.mapId===MINE_ID||state.mapId===SUNKEN_ID||isUnderwaterSubmap(state.mapId))?undefined:true} />
       <GameplayHUD state={state} game={engine} mapRef={map} visible={flow === 'world'} active={active} panel={panel} modalOpen={Boolean(panel || activeNpcMenu)} fullscreen={isFullscreen} quest={activeJournalQuest} onOpen={open} onSound={toggleSound} onFullscreen={toggleFullscreen} onEditHotbar={index => {
         setHotbarEditSlot(index);
         open('hotbar');
@@ -720,10 +736,10 @@ export default function Home() {
         onEnter={startSelectedCharacter} onCreate={beginAdventure}
         onSound={toggleSound} onFullscreen={toggleFullscreen}
       />}
-      {mapError && <div className="map-load-error" role="alertdialog" aria-label="Map gagal dimuat">
+      {mapError && <div className="map-load-error" role="alertdialog" aria-label={mapError.id===IRONVEIL_ID?'Unable to load map':'Map gagal dimuat'}>
         <h2>{mapError.label}</h2><p>{mapError.message}</p>
         <button className="primary-button" onClick={()=>{
-          if(loadingSlot)game.current?.changeRegion(mapError.id);
+          if(loadingSlot)game.current?.retryLocationLoad();
           else {setMapError(null);startSelectedCharacter();}
         }}>Retry</button>
       </div>}
@@ -1192,11 +1208,7 @@ export default function Home() {
 
           <div className="floating-item-group">
             {['weapon', 'armor', 'accessory'].includes(hoveredItem.category) ? (() => {
-              const hoveredEquipmentLines = equipmentUsageDescription({
-                ...hoveredItem,
-                baseStats: calculateEnhancedBaseStats(hoveredItem),
-                bonusStats: {},
-              }).split(' · ');
+              const hoveredEquipmentLines = equipmentPresentation(hoveredItem,engine,true).split(' · ');
               const hoveredMetadata = hoveredEquipmentLines.filter(line => /^(Level|Jenis|Slot):/.test(line));
               const hoveredRequirement = hoveredEquipmentLines.find(line => line.startsWith('Syarat:'));
               const hoveredStats = hoveredEquipmentLines.filter(line => !/^(Level|Jenis|Slot|Syarat|Harga jual):/.test(line));
@@ -1239,6 +1251,7 @@ export default function Home() {
             <small className="floating-item-price-line">Harga jual: {hoveredItem.sellValue.toLocaleString()} GOLD</small>
           </div>
 
+          {engine?.getDevelopmentAdventurerRange()!=null && <small>Legacy CP comparison; it does not evaluate the Physical Attack range.</small>}
           <InventoryCombatPowerPreview hero={hero} item={hoveredItem} />
         </div>,
         document.body,
@@ -1337,7 +1350,7 @@ export default function Home() {
             </span>
           )}
           <DialogTitle className={panel === 'character' ? 'sr-only' : 'dialog-heading'}>
-            {panel === 'bag' ? <><span aria-hidden="true">✦</span> INVENTORY <span aria-hidden="true">✦</span></> : panelTitles[panel] || 'Petualangan'}
+            {panel === 'bag' ? <><span aria-hidden="true">✦</span> INVENTORY <span aria-hidden="true">✦</span></> : panel==='map'&&state.mapId===MINE_ID?'Local Cave Map':panelTitles[panel] || 'Petualangan'}
           </DialogTitle>
           <DialogDescription className={panel === 'character' || panel === 'bag' ? 'sr-only' : 'dialog-subtitle'}>
             {panel === 'bag' ? 'Inventory items, capacity, and gold.' : panel === 'pause'
@@ -1584,14 +1597,14 @@ export default function Home() {
           )}
           {panel === 'class' && (
             <div className="dialog-stack class-panel">
-              <JobArchitecturePreview hero={hero} />
-              <V3JobTrainer
-                hero={hero}
-                onChooseWarrior={() => game.current?.chooseCoreJob('warrior')}
-                onChooseThief={() => game.current?.chooseCoreJob('thief')}
-                onChooseSpecialization={(id) => game.current?.chooseSpecialization(id)}
-                onResetToAdventurer={() => game.current?.resetJobToAdventurer()}
-              />
+                <JobArchitecturePreview hero={hero} />
+                <V3JobTrainer
+                  hero={hero}
+                  onChooseWarrior={() => game.current?.chooseCoreJob('warrior')}
+                  onChooseThief={() => game.current?.chooseCoreJob('thief')}
+                  onChooseSpecialization={(id) => game.current?.chooseSpecialization(id)}
+                  onResetToAdventurer={() => game.current?.resetJobToAdventurer()}
+                />
               {visibleJobs.v2 && !hero.coreJob && (
                 <>
                   <span className="eyebrow">CORE JOB · LEVEL 15</span>
@@ -1880,7 +1893,7 @@ export default function Home() {
                   <div className="item-detail-description">
                     <p>
                       <JobText>{['weapon', 'armor', 'accessory'].includes(selectedItem.category)
-                        ? equipmentUsageDescription(selectedItem)
+                        ? equipmentPresentation(selectedItem,engine)
                         : selectedItem.description}</JobText>
                     </p>
                   </div>
@@ -2180,24 +2193,24 @@ export default function Home() {
             </div>
           )}
           {panel === 'character' && (
-            <CharacterOverview
-              hero={hero}
-              game={engine}
-              onInventory={(item) => {
-                if (item) setSelectedItemId(item.id);
-                setPanel('bag');
-              }}
-            />
+              <CharacterOverview
+                hero={hero}
+                game={engine}
+                onInventory={(item) => {
+                  if (item) setSelectedItemId(item.id);
+                  setPanel('bag');
+                }}
+              />
           )}
           {panel === 'jobSkill' && (
-            <JobSkill
-              hero={hero}
-              game={engine}
-              onMark={(npcId) => {
-                setQuestMarkerId(npcId);
-                setPanel('map');
-              }}
-            />
+              <JobSkill
+                hero={hero}
+                game={engine}
+                onMark={(npcId) => {
+                  setQuestMarkerId(npcId);
+                  setPanel('map');
+                }}
+              />
           )}
           {panel === 'quest' && (
             <div className="dialog-stack quest-journal">
@@ -2366,13 +2379,14 @@ export default function Home() {
               </div>
             </div>
           )}
-          {panel === 'map' && (
+          {panel === 'map' && state.mapId===MINE_ID && <IronveilInteriorLocalMap x={hero.x} z={hero.z} />}
+          {panel === 'map' && state.mapId!==MINE_ID && (
             <div className="dialog-stack world-services">
               <div className="region-summary">
-                <span className="eyebrow">LOKASI SAAT INI</span>
+                <span className="eyebrow">{(state.mapId===WILDS_ID||state.mapId===IRONVEIL_ID)?'CURRENT LOCATION':'LOKASI SAAT INI'}</span>
                 <h3>{state.inCity ? state.cityName : state.fieldName}</h3>
                 <p>
-                  {state.inCity
+                  {state.mapId===IRONVEIL_ID ? 'Hunting Field · Monsters Lv. 8–16 · Elite & Field Boss · Enter the mine through its northern doorway.' : state.mapId===WILDS_ID ? 'Hunting Field · Monsters Lv. 16–24 · Permanent magical night' : state.inCity
                     ? 'Kota hub · layanan NPC, storage, shop, healer, dan quest.'
                     : `${state.cityName} · level rekomendasi ${state.recommendedLevel}`}
                 </p>
@@ -2381,7 +2395,7 @@ export default function Home() {
                     className="secondary-button"
                     onClick={() => game.current?.changeRegion(hero.currentCity)}
                   >
-                    Kembali ke kota <ChevronRight size={16} />
+                    {(state.mapId===WILDS_ID||state.mapId===IRONVEIL_ID)?'Return to city':'Kembali ke kota'} <ChevronRight size={16} />
                   </button>
                 )}
               </div>
@@ -2411,8 +2425,8 @@ export default function Home() {
               </div>
               <span className="eyebrow">FIELD MAP</span>
               <div className="region-grid">
-                {Object.values(FIELDS).map((field) => {
-                  const unlocked = hero.unlockedFields.includes(field.id);
+                {Object.values(FIELDS).filter(field => !field.warpOnly).map((field) => {
+                  const unlocked = hero.unlockedFields.includes(field.id) && !unlockReason(hero, field.id);
                   return (
                     <article
                       className={`region-card ${unlocked ? '' : 'locked'}`}
@@ -2421,10 +2435,10 @@ export default function Home() {
                       <span className="eyebrow">{field.codename}</span>
                       <h3>{field.displayName}</h3>
                       <p>
-                        Lv. {field.recommendedLevel} ·{' '}
+                        {field.id===DEEP_OCEAN_ID ? <>Lv. 32+ · Exploration · Sunken Ruins G7</> : field.id===SUNKEN_ID ? <>Lv. 32–42 · Elite · Abyssal Leviathan</> : field.id===IRONVEIL_ID ? <>Lv. {field.recommendedLevel} · Mine Tyrant · Entry Lv. {field.minLevel}+</> : field.id===WILDS_ID ? <>Lv. {field.recommendedLevel} · Forest Warden · Entry Lv. {field.minLevel}+</> : field.id===FROSTFIRE_ID ? <>Lv. {field.recommendedLevel} · Snowfields · Frozen lakes</> : <>Lv. {field.recommendedLevel} ·{' '}
                         {field.cityId === hero.currentCity
                           ? 'wilayah terhubung'
-                          : 'frontier'}
+                          : 'frontier'}</>}
                       </p>
                       <button
                         className="secondary-button"
@@ -2432,7 +2446,7 @@ export default function Home() {
                         onClick={() => game.current?.changeRegion(field.id)}
                       >
                         {unlocked
-                          ? 'Teleport field'
+                          ? field.id===DEEP_OCEAN_ID?'Enter Deep Ocean':field.id===SUNKEN_ID?'Enter Sunken Ruins':field.id===IRONVEIL_ID?'Enter Ironveil Mines':field.id===WILDS_ID?'Enter Whispering Wilds':'Teleport field'
                           : unlockReason(hero, field.id)}
                       </button>
                     </article>
@@ -2628,8 +2642,6 @@ export default function Home() {
         </section>
       )}
     </main>
-    </GameDragDropProvider></JobPresentationContext.Provider>
+    </GameDragDropProvider></ItemRangeContext.Provider></JobPresentationContext.Provider>
   );
 }
-
-

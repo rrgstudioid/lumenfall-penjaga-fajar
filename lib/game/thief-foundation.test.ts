@@ -37,9 +37,10 @@ await test('4B canonical Thief fixture: no Rogue/Warrior inheritance, no public 
 });
 
 await test('4B real dual dagger: distinct one-hand instances only, slot validation and no style-based Attack duplication',()=>{
-  const main=dagger('main'),off=dagger('off');
-  assert.equal(resolveWeaponStyle(main,off),'dual_dagger');
-  assert.equal(resolveWeaponStyle(main,null),'dagger');assert.equal(resolveWeaponStyle(main,main),'dagger');
+  const main=dagger('main'),off=dagger('off'), owner={coreJob:'thief'};
+  assert.equal(resolveWeaponStyle(main,off),'none');
+  assert.equal(resolveWeaponStyle(main,off,owner),'dual_dagger');
+  assert.equal(resolveWeaponStyle(main,null,owner),'dagger');assert.equal(resolveWeaponStyle(main,main,owner),'dagger');
   assert.equal(validateOffHandCompatibility(main,main).ok,false);
   assert.equal(validateOffHandCompatibility(main,off).ok,true);
   assert.equal(canEquipItem(off,{level:59,coreJob:'thief',specialization:null},'offHand').ok,true);
@@ -50,7 +51,7 @@ await test('4B real dual dagger: distinct one-hand instances only, slot validati
   assert.equal(meetsWeaponRequirement(['dual_sword'],main,off,'dual_sword'),false);
   assert.equal(resolveWeaponStyle({...main,twoHanded:true,weaponType:'dual_dagger'},off),'none');
   const slotDagger={...off,equipmentType:'off_hand_dagger' as const,handedness:'off_hand' as const};
-  assert.equal(resolveWeaponStyle(main,slotDagger),'dual_dagger');
+  assert.equal(resolveWeaponStyle(main,slotDagger,owner),'dagger');
   const h=createV2CoreFoundationHero('thief');h.inventory=[main,off];h.equipment={...h.equipment,mainHand:main.id,offHand:off.id};
   const before=calculateEquipmentStats(h).attack;
   main.weaponType='dual_dagger';off.weaponType='dual_dagger';

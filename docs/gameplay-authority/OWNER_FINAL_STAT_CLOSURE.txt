@@ -1,0 +1,139 @@
+LUMENFALL — FINAL STAT CLOSURE + CLASS READINESS
+Satu checkpoint gabungan untuk Garda / OWNER.
+
+TUJUAN
+Selesaikan dua dependency stat terakhir yang sekarang sudah disetujui, verifikasi fondasi bersama, lalu susun kesiapan tahap CLASS berdasarkan authority proyek.
+
+Urutan tetap STAT -> CLASS -> ITEMISASI. Composite CP ditunda.
+
+1. ACC OWNER TERBARU
+OWNER menyetujui:
+A. Konversi variable casting dari stat:
+   statVCTReductionPercent = CastStat / 4.
+   CastStat = 2*BonusDEX + BonusINT.
+   Stat reduction maksimal80%.
+   Total reduction maksimal100% setelah normal VCT bonuses yang sah.
+   Fixed casting hanya memakai explicit FCT reduction, maksimal50%.
+   CDR maksimal40%.
+   ChargeTime/action lock/recovery mengikuti deklarasi action masing-masing.
+
+B. Pertahanan dasar bersama:
+   BasePDEF = BaseMDEF = 8 + 1.5*(level-1).
+   Kontribusi primary dan sumber sah diterapkan sesudah base:
+   PDEF: .50TotalVIT.
+   MDEF: .60TotalVIT + .20TotalINT.
+   Pertahankan precision dan boundary rounding existing yang sesuai kontrak.
+   Formula tersebut bukan final defense sebelum primary/equipment/modifier.
+
+Catat persetujuan ini secara tepat. Tidak meminta ulang dua pilihan tersebut.
+Keputusan stat sebelumnya tetap, termasuk BaseMagic, BonusDEX, regen, source grouping, absolute current-resource clamp dan live Block50/30.
+
+2. BACA BASELINE DAN AUTHORITY
+Baca AGENTS.md, laporan/evidence relevan dari:
+outputs/gameplay-migration/approved-shared-stat-completion/run-01/
+serta checkpoint stat sebelumnya dan canonical handoff yang diperlukan.
+
+Gunakan actual dirty baseline. Pertahankan semua pekerjaan OWNER.
+Periksa source aktual sebelum menganggap laporan lama berlaku untuk revision sekarang.
+
+3. IMPLEMENTASIKAN CASTSTAT KE CONSUMER ASLI
+Hubungkan resolved CastStat dan sumber VCT/FCT/CDR ke timing resolver existing.
+Gunakan satu perhitungan bersama untuk execution, UI dan preview.
+
+Buktikan:
+- neutral CastStat0 tidak mengurangi waktu;
+- BonusDEX/BonusINT dihitung sekali;
+- CastStat40 menghasilkan10% stat reduction;
+- VCT2 detik menjadi1.8 detik tanpa bonus lain;
+- stat cap80 dan total cap100 bekerja;
+- FCT tidak dipercepat oleh primary;
+- charge/lock tidak berubah tanpa declaration;
+- cooldown memakai cap40 yang sudah disetujui;
+- membaca UI/preview tidak mengubah actor, RNG, queue, resource atau save.
+
+Gunakan base VCT/FCT yang benar-benar dideklarasikan.
+Jangan mengubah castingTime metadata menjadi scheduler delay atau mengisi durasi semua skill dengan tebakan.
+
+Jika skill existing belum mempunyai VCT/FCT, gunakan development fixture dengan timing explicit dan original queue/consumer. Fixture tidak boleh menjadi skill/player content baru.
+
+4. TUTUP BASELINE DEFENSE
+Jadikan base/growth defense tersebut kontrak final shared.
+Jika kode sudah sesuai, cukup reuse dan buktikan; jangan membuat helper duplikat.
+
+Periksa beberapa level, allocation VIT/INT, equipment/modifier, UI breakdown dan preview.
+Pastikan kontribusi primary tidak masuk dua kali serta perubahan HP/Mana tetap mengikuti aturan absolute clamp.
+
+Jalankan regression relevan untuk shared physical/magic mitigation dan live Block.
+Incoming magic engine tidak otomatis dibuat hanya karena MDEF sudah final.
+
+5. AUDIT PENUTUP STAT YANG PROPORSIONAL
+Perbarui61ID existing berdasarkan source dan proof aktual.
+
+Bedakan:
+- mekanik stat bersama sudah selesai dan terbukti;
+- angka/input milik class yang belum dimigrasikan;
+- range/source milik itemisasi;
+- kekurangan fondasi bersama yang benar-benar masih menghalangi.
+
+Jangan menahan seluruh fondasi hanya karena semua tabel class/item belum tersedia.
+Namun jangan menyatakan STAT selesai jika resolver/consumer bersama yang wajib masih hilang.
+
+Periksa source grouping, unit, dedupe, effective caps, HP/MP tick, resource lifecycle, UI dan preview yang telah diimplementasikan.
+Unknown source tetap dilaporkan dengan alasan dan scope yang tepat.
+
+6. CLASS READINESS DALAM CHECKPOINT YANG SAMA
+Lakukan inspeksi terarah kesiapan class berdasarkan CLASS DI LUMENFALL dan canonical handoff.
+
+Untuk class yang menjadi prioritas menurut authority, buat matrix ringkas:
+- primary/resource profile;
+- kit dan rank/gate yang approved;
+- formula/channel;
+- timing dan target policy;
+- sumber passive/status;
+- input weapon/item yang sudah tersedia;
+- blocker numeric versus pekerjaan teknis.
+
+Jangan mengarang profile, skill coefficient, range, atau urutan class baru.
+Jangan implementasikan migrasi kit class pada checkpoint ini.
+Hasilnya harus cukup konkret untuk membuat prompt implementasi class berikutnya, tanpa mengulang seluruh pembahasan stat.
+
+Jika mengandalkan reference game, ikuti verifikasi eksternal AGENTS dan bedakan fakta reference dari keputusan LUMENFALL.
+
+7. VERIFIKASI DAN BROWSER
+Jalankan affected tests, scoped type/lint dan actual browser pada source final.
+Gunakan expected arithmetic independen.
+
+Browser original Full Home harus memeriksa:
+- native allocation DEX/INT dan readout CastStat;
+- breakdown defense;
+- preview dan purity;
+- consumer timing dengan input explicit jika diperlukan.
+
+Pisahkan browser gameplay, development timing fixture dan offline tests.
+Jangan memaksakan proof casting melalui skill yang hanya memiliki metadata castingTime.
+
+Regresi alokasi, resource clamp, regen/pause/dead, source grouping dan approved skill/lifecycle dijalankan sesuai dependency source yang berubah.
+
+Known UI slot12 versus expected11 tetap temuan terpisah; jangan menghapus Wings atau melemahkan assertion.
+
+8. PRESERVASI DAN EVIDENCE
+Pertahankan male-v2/maps/UI lokal, Wings/developer potions, progression, approved formula, equal Basic, Iron grandfather, lifecycle dan personal save.
+
+Terapkan empat main checks.
+Gunakan folder/cache/evidence baru untuk setiap harness. Periksa environment isolasi sebelum launch agar cache historical tidak kembali tertulis.
+
+Tidak commit/push/merge/reset/stash/checkout/deploy/publish.
+Tidak mengubah original assets/Blender atau historical reports.
+
+9. DELIVERABLE
+- REPORT.txt: hasil sederhana, dampak pemain, proof dan batas.
+- STAT_COMPLETION_MATRIX.json:61ID dengan status aktual.
+- CLASS_READINESS.txt: prioritas menurut authority, input siap dan dependency.
+- NEXT_CLASS_IMPLEMENTATION_PLAN.txt: satu scope konkret berikutnya.
+- Actual delta, command/test/browser evidence dan preservation.
+
+Akhiri dengan keputusan berbasis bukti:
+apakah fondasi STAT sudah siap menjadi dasar CLASS; jika belum, sebutkan gap sempit yang masih wajib ditutup.
+
+Jangan membuat paket proposal stat berulang.
+STOP UNTUK OWNER REVIEW setelah implementasi dan readiness selesai.

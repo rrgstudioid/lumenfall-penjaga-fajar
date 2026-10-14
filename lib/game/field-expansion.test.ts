@@ -1,4 +1,11 @@
 import { STARTER_FIELD_CONTENT } from './regions.ts';
+import { SUNKEN_ID } from './sunken-ruins-layout.ts';
+import { sunkenPopulation } from './sunken-ruins-population.ts';
+import { ABYSAL_TRENCH_ID } from './underwater-regions.ts';
+import { isSeaSerpent } from './sea-serpent-combat.ts';
+import { frostPopulation } from './frostfire-population.ts';
+import { IRONVEIL_ID } from './ironveil-mines-layout.ts';
+import { ironveilPopulation } from './ironveil-mines-population.ts';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
@@ -18,6 +25,12 @@ await test('legacy fields retain 42 spawns; the large Plains uses its own tested
     const spawns=fieldSpawns(field);
     assert.deepEqual(spawns,fieldSpawns(field));
     if(field.id==='verdant-plains-v2'){assert.equal(spawns.length,497);continue;}
+    if(field.id==='frostfire-highlands'){assert.equal(spawns.length,frostPopulation().homes.length+1);assert.equal(new Set(spawns.map(s=>s.id)).size,spawns.length);continue;}
+    if(field.id==='whispering-wilds-v2'){assert.equal(spawns.length,273);assert.equal(new Set(spawns.map(s=>s.id)).size,spawns.length);continue;}
+    if(field.id===IRONVEIL_ID){assert.equal(spawns.length,ironveilPopulation().length+1);assert.equal(new Set(spawns.map(s=>s.id)).size,spawns.length);continue;}
+    if(field.id==='deep-ocean-underwater-v1'){assert.equal(spawns.length,335);assert.equal(new Set(spawns.map(s=>s.id)).size,335);continue;}
+    if(field.id===ABYSAL_TRENCH_ID){assert.equal(spawns.length,201);assert.equal(new Set(spawns.map(s=>s.id)).size,201);continue;}
+    if(field.id===SUNKEN_ID){assert.equal(spawns.length,sunkenPopulation().length+1);assert.equal(new Set(spawns.map(s=>s.id)).size,spawns.length);continue;}
     if(!field.fieldBoss){assert.equal(spawns.length,0);assert.deepEqual(field.normalMonsters,[]);assert.deepEqual(field.eliteMonsters,[]);continue;}
     assert.equal(spawns.length,42);
     assert.equal(new Set(spawns.map(s=>s.id)).size,42);
@@ -33,10 +46,11 @@ await test('legacy fields retain 42 spawns; the large Plains uses its own tested
   }
 });
 
-await test('36 named species have distinct valid low-poly geometry, one body draw call, and readable label anchors',()=>{
+await test('42 named species have distinct valid low-poly geometry, one body draw call, and readable label anchors',()=>{
   const hashes=new Set<string>();
   for(const field of Object.values(FIELDS))for(const monster of [...field.normalMonsters,...field.eliteMonsters,field.fieldBoss]){
-    if(!monster)continue;
+    // Imported, skinned serpent GLBs have their own browser/LOD validation.
+    if(!monster||isSeaSerpent(monster.id))continue;
     assert.ok(MONSTER_MODELS[monster.id],monster.name);
     const mesh=createMonsterBody(monster),position=mesh.geometry.getAttribute('position');
     assert.equal(mesh.children.length,0);
@@ -47,7 +61,7 @@ await test('36 named species have distinct valid low-poly geometry, one body dra
     if(field.id!=='verdant-plains-v2')hashes.add(createHash('sha256').update(Buffer.from(position.array.buffer)).digest('hex'));
     mesh.geometry.dispose();mesh.material.dispose();
   }
-  assert.equal(hashes.size,36);
+  assert.equal(hashes.size,42);
 });
 
 await test('respawn uses independent instance deadlines and migrates old species timers without hiding every copy',()=>{
@@ -118,7 +132,7 @@ await test('all ten rune themes, six unique boss runes, optimizer tiers and gear
 });
 
 await test('new monster loot is preserved in overflow and survives save/load without duplication',()=>{
-  const hero=freshHero();hero.inventoryCapacity=hero.inventory.length;
+  const hero=freshHero();hero.inventoryCapacity=hero.inventory.filter(item=>!item.isEquipped).length;
   // Force boss rune branch and a unique, nonstacking item.
   const monster=FIELDS[hero.currentField].fieldBoss;assert.ok(monster);
   const draws=[0,.90,0,.5];const drop=grantMonsterLoot(hero,monster,()=>draws.shift()??.5)!;

@@ -1,3 +1,5 @@
+import { createV2TestHero } from './rules.ts';
+import { unequipItem, getTotalSkillPointsForLevel } from './rules.ts';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
@@ -17,8 +19,9 @@ import { CITIES, getNpcDescription, getNpcServiceLabel } from './regions.ts';
 
 function warrior(level: number) {
   const hero = createNewCharacter(`live-warrior-${level}`, `Live Warrior ${level}`, {}, 'v3_adventurer');
+  unequipItem(hero,'mainHand');
   hero.level = level;
-  hero.skillProgressionV3!.totalEarnedSP = 500;
+  hero.skillProgressionV3!.totalEarnedSP = getTotalSkillPointsForLevel(hero.level);
   assert.equal(chooseCoreJob(hero, 'warrior'), true);
   return hero;
 }
@@ -83,7 +86,7 @@ await test('V3 specialization identity survives save/load and legacy characters 
     assert.equal(getJobProgression(restored)[2].status, 'Current');
     assert.equal(getVisibleJobArchitecture(restored).v3SpecializationChoices.filter((choice) => choice.available).length, 0);
   }
-  const legacy = createNewCharacter('legacy-live', 'Legacy Live');
+  const legacy = createV2TestHero();
   const restoredLegacy = parseSave(JSON.stringify(legacy))!;
   assert.equal(restoredLegacy.skillArchitectureVersion, undefined);
   assert.equal(restoredLegacy.progressionArchitecture, 'v2_test');

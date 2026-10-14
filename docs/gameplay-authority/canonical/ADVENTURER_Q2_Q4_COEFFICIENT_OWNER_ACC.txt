@@ -1,0 +1,60 @@
+LUMENFALL — ADVENTURER Q2+Q4 COEFFICIENT APPLICABILITY: OWNER ACC
+Dicatat Garda, 8 Oktober 2026, dari percakapan langsung ini.
+Waktu pencatatan UTC: 2026-10-08T16:41:53Z.
+STATUS: NUMERIC APPLICABILITY APPROVED / SKILL WIRING NOT IMPLEMENTED BY THIS NOTE.
+
+1. KEPUTUSAN LANGSUNG
+Garda mengajukan tabel Quick Slash dan Power Strike R1–R5 yang ditemukan pada
+LUMENFALL_Warrior_V3_Final.docx.docx, disertai usulan berikut:
+"gunakan tabel yang sudah terdokumentasi itu untuk formula Q2/Q4 yang kamu ACC,
+dengan scaling Bonus STR, tanpa BaseRoll skill ×4 atau pengali rank tambahan.
+Integrasi pertama dibatasi pada Quick Slash R1; Minor Heal tidak disentuh."
+Garda juga menjelaskan bahwa damage tidak dijamin sama dengan runtime lama karena
+komponen formula berbeda, lalu meminta ACC penerapan tabel tersebut pada formula baru.
+Jawaban langsung OWNER: "Ya aku acc".
+
+2. TABEL FINAL UNTUK FORMULA Q2+Q4
+Skill stable ID | Rank | C_rank | BonusSTR coefficient
+v3-adventurer-quick-slash | R1 | 1.05 | 0.02
+v3-adventurer-quick-slash | R2 | 1.08 | 0.03
+v3-adventurer-quick-slash | R3 | 1.12 | 0.04
+v3-adventurer-quick-slash | R4 | 1.16 | 0.05
+v3-adventurer-quick-slash | R5 | 1.20 | 0.06
+v3-adventurer-power-strike | R1 | 1.20 | 0.04
+v3-adventurer-power-strike | R2 | 1.26 | 0.05
+v3-adventurer-power-strike | R3 | 1.32 | 0.06
+v3-adventurer-power-strike | R4 | 1.38 | 0.07
+v3-adventurer-power-strike | R5 | 1.45 | 0.08
+
+BonusSTR=max(0,EffectiveSTR-15). Undeclared VIT/DEX/INT coefficients=0 sesuai
+architecture yang sudah ACC, bukan kontribusi primary stat tambahan.
+Raw=AttackPhysical(selectedHand,u)*C_rank+BonusSTR*STR_coefficient untuk satu hit.
+Reference pertama memakai MAIN/SINGLE_MAIN/weight1, bukan kebijakan seluruh build.
+Tidak ada separate skill BaseRoll, factor4, second RankPowerFactor atau compensation
+multiplier untuk menyamai formula lama. Koefisien/persentase tetap boleh pecahan;
+koreksi bilangan bulat sebelumnya mengenai endpoint base range senjata saja.
+
+3. PROVENANCE DAN SUPERSESSION TERARAH
+Source historis: C:/Users/USER/Documents/LUMENFALL_Warrior_V3_Final.docx.docx.
+SHA256: b91775f71c17a7acd23836be5f2a79e021a5713f4f3a3d0a83a3e71de0a919d6.
+XML paragraphs221/231: tabel;226/236: PATK*coefficient+explicit STR scaling.
+Angka221/231 adalah indeks paragraf XML, bukan nomor halaman hasil render.
+Source registry pembanding: lib/game/adventurer-v3.ts.
+Readiness: outputs/gameplay-migration/adventurer-formula-readiness/run-01/REPORT.txt
+dan INPUT_CONTRACT.json. Gate applicability angka pada laporan tersebut kini ditutup
+oleh ACC ini untuk tabel di atas. Target null/status BLOCKED pada evidence lama
+adalah keadaan historis sebelum ACC, jangan ditimpa atau dianggap otoritas terbaru.
+Q2_Q4_DESIGN_PROPOSAL_V1.txt dan Q2_Q4_OWNER_ACC.txt tetap authority architecture.
+ADVENTURER_CURRENT_KIT_OWNER_DIRECTION.txt tetap authority kit yang dipertahankan.
+
+4. BATAS
+Kit tetap Quick Slash, Power Strike, Minor Heal, dengan stable IDs/progression.
+Tidak delete/refund/rename/re-grant/mapping rank/hotbar/save atau mengubah SP,
+Mana, cooldown, gates, prerequisites, weapon requirement, hit count atau healing.
+Minor Heal tetap6/8/10% MaxHP; tidak dimasukkan ke physical damage kernel.
+Seluruh tabel angka disetujui; wiring pertama hanya Quick Slash R1 pada neutral
+AdventurerLv1/TrainingSword+0 MAIN/OFF kosong, melalui prompt checkpoint terpisah.
+Tidak otomatis mengaktifkan Power Strike, higher ranks, semua actor/gear/level,
+UI/CP/save routing, production atau class lain. Tidak ada perubahan game oleh catatan ini.
+Tidak ada test/build/browser/server/Git write/publish. Tidak mengklaim Q2/Q4,
+Phase14 keseluruhan atau release readiness PASS. Historical evidence dipertahankan.

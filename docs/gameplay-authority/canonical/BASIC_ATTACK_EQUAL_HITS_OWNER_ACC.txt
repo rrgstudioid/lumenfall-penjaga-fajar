@@ -1,0 +1,61 @@
+LUMENFALL — BASIC ATTACK EQUAL-HIT DAMAGE: OWNER ACC
+Dicatat Garda, 9 Oktober 2026 Asia/Jakarta, dari percakapan langsung ini.
+STATUS: FINAL DAMAGE DIRECTION / IMPLEMENTATION NOT PERFORMED BY THIS NOTE.
+
+1. KEPUTUSAN OWNER
+
+OWNER: "kalau basic attack itu semua pukulan ya sama setiap hitnya, yang
+membedakan itu range damage saja".
+
+Garda menjabarkan untuk konfirmasi:
+- semua pukulan basic attack memakai coefficient x1.00;
+- setiap pukulan mengambil roll baru dari range attack yang sama sesuai stat
+  dan senjata saat itu;
+- tidak ada bonus damage finisher x1.65;
+- Crit, Evade dan mitigasi existing tetap terpisah dari roll range;
+- animasi boleh berbeda tanpa bonus damage karena urutan;
+- implementasi berikutnya di jalur development yang sedang dimigrasikan,
+  tanpa mengubah cadence, attack speed atau balance skill lain.
+
+OWNER mengonfirmasi: "ya betul, lanjutkan".
+
+2. KONTRAK FINAL
+
+Coefficient basic event1/event2/event3/dan event berikutnya = 1.00.
+Tidak ada extra finisher damage, scaling bonus khusus urutan, hidden flat term
+atau pembagian budget satu serangan menjadi tiga. Setiap basic event adalah
+execution tersendiri, memakai satu attack sample baru pada valid commitment.
+RawBasic_event = AttackPhysical(actual configured hand, u_event) * 1.00.
+Bonus STR yang sudah ada di character core tidak ditambahkan sebagai scaling
+basic kedua. Equal coefficient tidak berarti forced equal roll/final HP damage.
+Range sama bila stat/equipment/context sama. Perubahan legal sebelum event baru
+boleh mengubah range baru; budget event committed tidak dibaca ulang pada impact.
+Tidak reroll attack akibat Evade. Existing Hit/Crit/mitigation tetap berlaku.
+
+Dalam reference Adventurer Lv1–14 Training Sword +0 MAIN:
+semua event SINGLE_MAIN, satu impact MAIN/weight1 per event, additional scaling0;
+Core=7+floor(L*1.1)+BonusSTR, Attack=Core+sample(BASE[9,11],u).
+Sword .90 sudah authored sekali. Tidak ada dual/OFF/BOTH baru dalam scope ini.
+Tidak mengunci execution-hand rules semua weapon/class lain melalui catatan ini.
+
+3. SUPERSESSION DAN BATAS
+
+Menutup missing numeric decision BASIC-COMBO-01 pada paket Adventurer reference.
+Prototype comboFinisherDamage1.65 BUKAN canonical basic damage dan tidak boleh
+masuk selected migrated basic event mana pun. Report BLOCKED sebelumnya tetap
+historis; jangan ditimpa/dilabel PASS setelah ACC tanpa implementasi/test baru.
+Keputusan final ini bukan izin rollout seluruh actor/class/catalog sekaligus.
+Removal live legacy lain tetap bertahap dan membutuhkan scope implementasinya.
+
+Tidak mengubah combo-window/timer/finisher delay/input autoattack policy, attack
+speed/caps, animation/hit count/targeting, weapon bands, skill damage, Mana/CD,
+SP/ranks/gates, Crit/mitigation atau personal save. Runtime timer existing yang
+dipertahankan bukan otomatis final balance approval terhadap angka tersebut.
+Tidak mengotorisasi global config edit atau menambah continuous autoattack.
+
+4. PENCATATAN
+
+Hanya authority TXT baru dan prompt gabungan berikutnya. Tidak ada gameplay,
+test/browser/server/config/register/history/pin/Git publishing diubah/dijalankan.
+Implementasi harus menghasilkan REPORT.txt baru, bukti actual world/Home dan
+STOP OWNER REVIEW. Default production tetap OFF untuk formula development.

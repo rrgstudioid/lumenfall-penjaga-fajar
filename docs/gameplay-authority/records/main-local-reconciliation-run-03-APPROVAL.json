@@ -1,0 +1,755 @@
+{
+  "scope": "Full local map/gameplay integration; numeric PROTOTYPE_MAIN; preserve approved local systems",
+  "owner": "Ya setuju, pertahankan ketiga quest beserta progres dan rewardnya, pasang NPC lama di entry aman Sunken baru. Lanjutkan integrasi dan pengujiannya, jangan sampai reward bisa diklaim ulang.",
+  "sameIdReplacement": true,
+  "versionedRelocationOnce": true,
+  "preserveQuestIdsProgressRewards": true,
+  "noGitWrite": true,
+  "priorEvidence": "../run-02",
+  "plan": {
+    "utc": "2026-10-14T05:33:18.600Z",
+    "from": "2c637c21ec6dbb3bddeb5fe78595ccdd4a3b8339",
+    "to": "4c8f5c466b16e186d6c6431465acc60b50278e61",
+    "latest": "b229218ead928c9b7914c56c9127ac4672e6d154",
+    "mapCommitBytesIdenticalLatest": true,
+    "newSource": [
+      {
+        "status": "A",
+        "path": "lib/game/abysal-trench-layout.ts"
+      },
+      {
+        "status": "A",
+        "path": "lib/game/abysal-trench-population.ts"
+      },
+      {
+        "status": "A",
+        "path": "lib/game/deep-ocean-hunting.test.ts"
+      },
+      {
+        "status": "A",
+        "path": "lib/game/deep-ocean-layout.ts"
+      },
+      {
+        "status": "A",
+        "path": "lib/game/deep-ocean-monster-models.ts"
+      },
+      {
+        "status": "A",
+        "path": "lib/game/deep-ocean-population.ts"
+      },
+      {
+        "status": "A",
+        "path": "lib/game/sea-serpent-combat.ts"
+      },
+      {
+        "status": "A",
+        "path": "lib/game/sea-serpent-model.ts"
+      },
+      {
+        "status": "A",
+        "path": "lib/game/sea-serpent.test.ts"
+      },
+      {
+        "status": "A",
+        "path": "lib/game/sunken-ruins-artifact-layout.ts"
+      },
+      {
+        "status": "A",
+        "path": "lib/game/sunken-ruins-camera.ts"
+      },
+      {
+        "status": "A",
+        "path": "lib/game/sunken-ruins-layout.ts"
+      },
+      {
+        "status": "A",
+        "path": "lib/game/sunken-ruins-map.ts"
+      },
+      {
+        "status": "A",
+        "path": "lib/game/sunken-ruins-marine-motion.ts"
+      },
+      {
+        "status": "A",
+        "path": "lib/game/sunken-ruins-materials.ts"
+      },
+      {
+        "status": "A",
+        "path": "lib/game/sunken-ruins-navigation.ts"
+      },
+      {
+        "status": "A",
+        "path": "lib/game/sunken-ruins-pbr-kit.ts"
+      },
+      {
+        "status": "A",
+        "path": "lib/game/sunken-ruins-population.ts"
+      },
+      {
+        "status": "A",
+        "path": "lib/game/sunken-ruins-quality.ts"
+      },
+      {
+        "status": "A",
+        "path": "lib/game/sunken-ruins-save-migration.test.ts"
+      },
+      {
+        "status": "A",
+        "path": "lib/game/sunken-ruins-save-migration.ts"
+      },
+      {
+        "status": "A",
+        "path": "lib/game/sunken-ruins-terrain.ts"
+      },
+      {
+        "status": "A",
+        "path": "lib/game/sunken-ruins-vfx.ts"
+      },
+      {
+        "status": "A",
+        "path": "lib/game/sunken-ruins-wall-mesh.ts"
+      },
+      {
+        "status": "A",
+        "path": "lib/game/sunken-ruins.test.ts"
+      },
+      {
+        "status": "A",
+        "path": "lib/game/underwater-contour.ts"
+      },
+      {
+        "status": "A",
+        "path": "lib/game/underwater-motion.ts"
+      },
+      {
+        "status": "A",
+        "path": "lib/game/underwater-regions.ts"
+      }
+    ],
+    "assets": [
+      {
+        "status": "A",
+        "path": "public/assets/maps/sunken-ruins/kit.glb"
+      },
+      {
+        "status": "A",
+        "path": "public/assets/maps/sunken-ruins/manifest.json"
+      },
+      {
+        "status": "A",
+        "path": "public/assets/maps/sunken-ruins/realism/coral-albedo.png"
+      },
+      {
+        "status": "A",
+        "path": "public/assets/maps/sunken-ruins/realism/marine-kit.glb"
+      },
+      {
+        "status": "A",
+        "path": "public/assets/maps/sunken-ruins/realism/sand-albedo.png"
+      },
+      {
+        "status": "A",
+        "path": "public/assets/maps/sunken-ruins/revision12/neptune-statue.glb"
+      },
+      {
+        "status": "A",
+        "path": "public/assets/maps/sunken-ruins/revision13/sea-serpent-boss.glb"
+      },
+      {
+        "status": "A",
+        "path": "public/assets/maps/sunken-ruins/revision13/serpent-guardian.glb"
+      },
+      {
+        "status": "A",
+        "path": "public/assets/maps/sunken-ruins/revision3/limestone-albedo.png"
+      },
+      {
+        "status": "A",
+        "path": "public/assets/maps/sunken-ruins/revision3/ruins-reef-kit.glb"
+      },
+      {
+        "status": "A",
+        "path": "public/assets/maps/sunken-ruins/revision3/tripo-kit.glb"
+      },
+      {
+        "status": "A",
+        "path": "public/assets/maps/sunken-ruins/revision6/ancient-amphora.glb"
+      },
+      {
+        "status": "A",
+        "path": "public/assets/maps/sunken-ruins/revision6/sunken-astrolabe.glb"
+      },
+      {
+        "status": "A",
+        "path": "public/assets/maps/sunken-ruins/revision6/sunken-shipwreck.glb"
+      }
+    ],
+    "shared": [
+      "lib/game/world.ts",
+      "lib/game/rules.ts",
+      "lib/game/regions.ts",
+      "lib/game/field-layout.ts",
+      "lib/game/monster-models.ts",
+      "lib/game/character-animation.ts",
+      "lib/game/revision02-character.ts",
+      "app/page.tsx",
+      "components/game/hud/gameplay-hud.tsx"
+    ],
+    "tests": [
+      "lib/game/character-model.test.ts",
+      "lib/game/field-expansion.test.ts",
+      "lib/game/field-quest-travel.test.ts",
+      "lib/game/field-terrain.test.ts"
+    ],
+    "dependencies": [
+      {
+        "from": "lib/game/abysal-trench-layout.ts",
+        "to": "lib/game/underwater-regions.ts",
+        "local": false,
+        "incomingNew": true
+      },
+      {
+        "from": "lib/game/abysal-trench-layout.ts",
+        "to": "lib/game/underwater-regions.ts",
+        "local": false,
+        "incomingNew": true
+      },
+      {
+        "from": "lib/game/abysal-trench-population.ts",
+        "to": "lib/game/abysal-trench-layout.ts",
+        "local": false,
+        "incomingNew": true
+      },
+      {
+        "from": "lib/game/abysal-trench-population.ts",
+        "to": "lib/game/regions.ts",
+        "local": true,
+        "incomingNew": false
+      },
+      {
+        "from": "lib/game/abysal-trench-population.ts",
+        "to": "lib/game/field-layout.ts",
+        "local": true,
+        "incomingNew": false
+      },
+      {
+        "from": "lib/game/deep-ocean-hunting.test.ts",
+        "to": "lib/game/regions.ts",
+        "local": true,
+        "incomingNew": false
+      },
+      {
+        "from": "lib/game/deep-ocean-hunting.test.ts",
+        "to": "lib/game/field-layout.ts",
+        "local": true,
+        "incomingNew": false
+      },
+      {
+        "from": "lib/game/deep-ocean-hunting.test.ts",
+        "to": "lib/game/underwater-regions.ts",
+        "local": false,
+        "incomingNew": true
+      },
+      {
+        "from": "lib/game/deep-ocean-hunting.test.ts",
+        "to": "lib/game/deep-ocean-layout.ts",
+        "local": false,
+        "incomingNew": true
+      },
+      {
+        "from": "lib/game/deep-ocean-hunting.test.ts",
+        "to": "lib/game/abysal-trench-layout.ts",
+        "local": false,
+        "incomingNew": true
+      },
+      {
+        "from": "lib/game/deep-ocean-hunting.test.ts",
+        "to": "lib/game/sunken-ruins-navigation.ts",
+        "local": false,
+        "incomingNew": true
+      },
+      {
+        "from": "lib/game/deep-ocean-hunting.test.ts",
+        "to": "lib/game/monster-models.ts",
+        "local": true,
+        "incomingNew": false
+      },
+      {
+        "from": "lib/game/deep-ocean-hunting.test.ts",
+        "to": "lib/game/deep-ocean-monster-models.ts",
+        "local": false,
+        "incomingNew": true
+      },
+      {
+        "from": "lib/game/deep-ocean-layout.ts",
+        "to": "lib/game/sunken-ruins-layout.ts",
+        "local": false,
+        "incomingNew": true
+      },
+      {
+        "from": "lib/game/deep-ocean-layout.ts",
+        "to": "lib/game/underwater-regions.ts",
+        "local": false,
+        "incomingNew": true
+      },
+      {
+        "from": "lib/game/deep-ocean-layout.ts",
+        "to": "lib/game/underwater-regions.ts",
+        "local": false,
+        "incomingNew": true
+      },
+      {
+        "from": "lib/game/deep-ocean-layout.ts",
+        "to": "lib/game/sunken-ruins-layout.ts",
+        "local": false,
+        "incomingNew": true
+      },
+      {
+        "from": "lib/game/deep-ocean-monster-models.ts",
+        "to": "lib/game/regions.ts",
+        "local": true,
+        "incomingNew": false
+      },
+      {
+        "from": "lib/game/deep-ocean-population.ts",
+        "to": "lib/game/regions.ts",
+        "local": true,
+        "incomingNew": false
+      },
+      {
+        "from": "lib/game/deep-ocean-population.ts",
+        "to": "lib/game/field-layout.ts",
+        "local": true,
+        "incomingNew": false
+      },
+      {
+        "from": "lib/game/deep-ocean-population.ts",
+        "to": "lib/game/deep-ocean-layout.ts",
+        "local": false,
+        "incomingNew": true
+      },
+      {
+        "from": "lib/game/sea-serpent-model.ts",
+        "to": "lib/game/sea-serpent-combat.ts",
+        "local": false,
+        "incomingNew": true
+      },
+      {
+        "from": "lib/game/sea-serpent-model.ts",
+        "to": "lib/game/abysal-trench-population.ts",
+        "local": false,
+        "incomingNew": true
+      },
+      {
+        "from": "lib/game/sea-serpent.test.ts",
+        "to": "lib/game/regions.ts",
+        "local": true,
+        "incomingNew": false
+      },
+      {
+        "from": "lib/game/sea-serpent.test.ts",
+        "to": "lib/game/field-layout.ts",
+        "local": true,
+        "incomingNew": false
+      },
+      {
+        "from": "lib/game/sea-serpent.test.ts",
+        "to": "lib/game/underwater-regions.ts",
+        "local": false,
+        "incomingNew": true
+      },
+      {
+        "from": "lib/game/sea-serpent.test.ts",
+        "to": "lib/game/abysal-trench-layout.ts",
+        "local": false,
+        "incomingNew": true
+      },
+      {
+        "from": "lib/game/sea-serpent.test.ts",
+        "to": "lib/game/abysal-trench-population.ts",
+        "local": false,
+        "incomingNew": true
+      },
+      {
+        "from": "lib/game/sea-serpent.test.ts",
+        "to": "lib/game/sea-serpent-combat.ts",
+        "local": false,
+        "incomingNew": true
+      },
+      {
+        "from": "lib/game/sea-serpent.test.ts",
+        "to": "lib/game/sunken-ruins-navigation.ts",
+        "local": false,
+        "incomingNew": true
+      },
+      {
+        "from": "lib/game/sea-serpent.test.ts",
+        "to": "lib/game/monster-loot.ts",
+        "local": true,
+        "incomingNew": false
+      },
+      {
+        "from": "lib/game/sunken-ruins-camera.ts",
+        "to": "lib/game/sunken-ruins-layout.ts",
+        "local": false,
+        "incomingNew": true
+      },
+      {
+        "from": "lib/game/sunken-ruins-layout.ts",
+        "to": "lib/game/underwater-regions.ts",
+        "local": false,
+        "incomingNew": true
+      },
+      {
+        "from": "lib/game/sunken-ruins-layout.ts",
+        "to": "lib/game/underwater-contour.ts",
+        "local": false,
+        "incomingNew": true
+      },
+      {
+        "from": "lib/game/sunken-ruins-layout.ts",
+        "to": "lib/game/sunken-ruins-artifact-layout.ts",
+        "local": false,
+        "incomingNew": true
+      },
+      {
+        "from": "lib/game/sunken-ruins-map.ts",
+        "to": "lib/game/sunken-ruins-layout.ts",
+        "local": false,
+        "incomingNew": true
+      },
+      {
+        "from": "lib/game/sunken-ruins-map.ts",
+        "to": "lib/game/deep-ocean-layout.ts",
+        "local": false,
+        "incomingNew": true
+      },
+      {
+        "from": "lib/game/sunken-ruins-map.ts",
+        "to": "lib/game/sunken-ruins-layout.ts",
+        "local": false,
+        "incomingNew": true
+      },
+      {
+        "from": "lib/game/sunken-ruins-map.ts",
+        "to": "lib/game/sunken-ruins-artifact-layout.ts",
+        "local": false,
+        "incomingNew": true
+      },
+      {
+        "from": "lib/game/sunken-ruins-map.ts",
+        "to": "lib/game/sunken-ruins-wall-mesh.ts",
+        "local": false,
+        "incomingNew": true
+      },
+      {
+        "from": "lib/game/sunken-ruins-map.ts",
+        "to": "lib/game/sea-serpent-model.ts",
+        "local": false,
+        "incomingNew": true
+      },
+      {
+        "from": "lib/game/sunken-ruins-map.ts",
+        "to": "lib/game/abysal-trench-population.ts",
+        "local": false,
+        "incomingNew": true
+      },
+      {
+        "from": "lib/game/sunken-ruins-map.ts",
+        "to": "lib/game/sunken-ruins-terrain.ts",
+        "local": false,
+        "incomingNew": true
+      },
+      {
+        "from": "lib/game/sunken-ruins-map.ts",
+        "to": "lib/game/sunken-ruins-pbr-kit.ts",
+        "local": false,
+        "incomingNew": true
+      },
+      {
+        "from": "lib/game/sunken-ruins-map.ts",
+        "to": "lib/game/sunken-ruins-navigation.ts",
+        "local": false,
+        "incomingNew": true
+      },
+      {
+        "from": "lib/game/sunken-ruins-map.ts",
+        "to": "lib/game/sunken-ruins-materials.ts",
+        "local": false,
+        "incomingNew": true
+      },
+      {
+        "from": "lib/game/sunken-ruins-map.ts",
+        "to": "lib/game/sunken-ruins-vfx.ts",
+        "local": false,
+        "incomingNew": true
+      },
+      {
+        "from": "lib/game/sunken-ruins-map.ts",
+        "to": "lib/game/sunken-ruins-quality.ts",
+        "local": false,
+        "incomingNew": true
+      },
+      {
+        "from": "lib/game/sunken-ruins-map.ts",
+        "to": "lib/game/sunken-ruins-camera.ts",
+        "local": false,
+        "incomingNew": true
+      },
+      {
+        "from": "lib/game/sunken-ruins-map.ts",
+        "to": "lib/game/graphics-quality.ts",
+        "local": true,
+        "incomingNew": false
+      },
+      {
+        "from": "lib/game/sunken-ruins-map.ts",
+        "to": "lib/game/underwater-regions.ts",
+        "local": false,
+        "incomingNew": true
+      },
+      {
+        "from": "lib/game/sunken-ruins-map.ts",
+        "to": "lib/game/abysal-trench-layout.ts",
+        "local": false,
+        "incomingNew": true
+      },
+      {
+        "from": "lib/game/sunken-ruins-marine-motion.ts",
+        "to": "lib/game/sunken-ruins-layout.ts",
+        "local": false,
+        "incomingNew": true
+      },
+      {
+        "from": "lib/game/sunken-ruins-marine-motion.ts",
+        "to": "lib/game/sunken-ruins-artifact-layout.ts",
+        "local": false,
+        "incomingNew": true
+      },
+      {
+        "from": "lib/game/sunken-ruins-materials.ts",
+        "to": "lib/game/sunken-ruins-layout.ts",
+        "local": false,
+        "incomingNew": true
+      },
+      {
+        "from": "lib/game/sunken-ruins-navigation.ts",
+        "to": "lib/game/sunken-ruins-layout.ts",
+        "local": false,
+        "incomingNew": true
+      },
+      {
+        "from": "lib/game/sunken-ruins-population.ts",
+        "to": "lib/game/sunken-ruins-layout.ts",
+        "local": false,
+        "incomingNew": true
+      },
+      {
+        "from": "lib/game/sunken-ruins-population.ts",
+        "to": "lib/game/regions.ts",
+        "local": true,
+        "incomingNew": false
+      },
+      {
+        "from": "lib/game/sunken-ruins-population.ts",
+        "to": "lib/game/field-layout.ts",
+        "local": true,
+        "incomingNew": false
+      },
+      {
+        "from": "lib/game/sunken-ruins-quality.ts",
+        "to": "lib/game/graphics-quality.ts",
+        "local": true,
+        "incomingNew": false
+      },
+      {
+        "from": "lib/game/sunken-ruins-save-migration.test.ts",
+        "to": "lib/game/sunken-ruins-save-migration.ts",
+        "local": false,
+        "incomingNew": true
+      },
+      {
+        "from": "lib/game/sunken-ruins-save-migration.test.ts",
+        "to": "lib/game/sunken-ruins-layout.ts",
+        "local": false,
+        "incomingNew": true
+      },
+      {
+        "from": "lib/game/sunken-ruins-save-migration.test.ts",
+        "to": "lib/game/rules.ts",
+        "local": true,
+        "incomingNew": false
+      },
+      {
+        "from": "lib/game/sunken-ruins-save-migration.ts",
+        "to": "lib/game/sunken-ruins-layout.ts",
+        "local": false,
+        "incomingNew": true
+      },
+      {
+        "from": "lib/game/sunken-ruins-terrain.ts",
+        "to": "lib/game/sunken-ruins-layout.ts",
+        "local": false,
+        "incomingNew": true
+      },
+      {
+        "from": "lib/game/sunken-ruins-vfx.ts",
+        "to": "lib/game/sunken-ruins-quality.ts",
+        "local": false,
+        "incomingNew": true
+      },
+      {
+        "from": "lib/game/sunken-ruins-vfx.ts",
+        "to": "lib/game/sunken-ruins-marine-motion.ts",
+        "local": false,
+        "incomingNew": true
+      },
+      {
+        "from": "lib/game/sunken-ruins-vfx.ts",
+        "to": "lib/game/graphics-quality.ts",
+        "local": true,
+        "incomingNew": false
+      },
+      {
+        "from": "lib/game/sunken-ruins-vfx.ts",
+        "to": "lib/game/sunken-ruins-layout.ts",
+        "local": false,
+        "incomingNew": true
+      },
+      {
+        "from": "lib/game/sunken-ruins-wall-mesh.ts",
+        "to": "lib/game/sunken-ruins-layout.ts",
+        "local": false,
+        "incomingNew": true
+      },
+      {
+        "from": "lib/game/sunken-ruins.test.ts",
+        "to": "lib/game/sunken-ruins-vfx.ts",
+        "local": false,
+        "incomingNew": true
+      },
+      {
+        "from": "lib/game/sunken-ruins.test.ts",
+        "to": "lib/game/sunken-ruins-marine-motion.ts",
+        "local": false,
+        "incomingNew": true
+      },
+      {
+        "from": "lib/game/sunken-ruins.test.ts",
+        "to": "lib/game/sunken-ruins-layout.ts",
+        "local": false,
+        "incomingNew": true
+      },
+      {
+        "from": "lib/game/sunken-ruins.test.ts",
+        "to": "lib/game/sunken-ruins-navigation.ts",
+        "local": false,
+        "incomingNew": true
+      },
+      {
+        "from": "lib/game/sunken-ruins.test.ts",
+        "to": "lib/game/underwater-regions.ts",
+        "local": false,
+        "incomingNew": true
+      },
+      {
+        "from": "lib/game/sunken-ruins.test.ts",
+        "to": "lib/game/deep-ocean-layout.ts",
+        "local": false,
+        "incomingNew": true
+      },
+      {
+        "from": "lib/game/sunken-ruins.test.ts",
+        "to": "lib/game/abysal-trench-layout.ts",
+        "local": false,
+        "incomingNew": true
+      },
+      {
+        "from": "lib/game/sunken-ruins.test.ts",
+        "to": "lib/game/sunken-ruins-camera.ts",
+        "local": false,
+        "incomingNew": true
+      },
+      {
+        "from": "lib/game/sunken-ruins.test.ts",
+        "to": "lib/game/regions.ts",
+        "local": true,
+        "incomingNew": false
+      },
+      {
+        "from": "lib/game/sunken-ruins.test.ts",
+        "to": "lib/game/field-layout.ts",
+        "local": true,
+        "incomingNew": false
+      },
+      {
+        "from": "lib/game/sunken-ruins.test.ts",
+        "to": "lib/game/sunken-ruins-population.ts",
+        "local": false,
+        "incomingNew": true
+      },
+      {
+        "from": "lib/game/sunken-ruins.test.ts",
+        "to": "lib/game/field-layout.ts",
+        "local": true,
+        "incomingNew": false
+      },
+      {
+        "from": "lib/game/sunken-ruins.test.ts",
+        "to": "lib/game/rules.ts",
+        "local": true,
+        "incomingNew": false
+      },
+      {
+        "from": "lib/game/sunken-ruins.test.ts",
+        "to": "lib/game/character-model.ts",
+        "local": true,
+        "incomingNew": false
+      },
+      {
+        "from": "lib/game/underwater-motion.ts",
+        "to": "lib/game/character-animation.ts",
+        "local": true,
+        "incomingNew": false
+      }
+    ],
+    "assetReferences": [
+      {
+        "from": "lib/game/sunken-ruins-map.ts",
+        "url": "/assets/maps/sunken-ruins/kit.glb",
+        "local": false
+      },
+      {
+        "from": "lib/game/sunken-ruins-map.ts",
+        "url": "/assets/maps/sunken-ruins/realism/marine-kit.glb",
+        "local": false
+      },
+      {
+        "from": "lib/game/sunken-ruins-map.ts",
+        "url": "/assets/maps/sunken-ruins/revision3/ruins-reef-kit.glb",
+        "local": false
+      },
+      {
+        "from": "lib/game/sunken-ruins-materials.ts",
+        "url": "/assets/maps/sunken-ruins/realism/sand-albedo.png",
+        "local": false
+      },
+      {
+        "from": "lib/game/sunken-ruins-materials.ts",
+        "url": "/assets/maps/sunken-ruins/realism/coral-albedo.png",
+        "local": false
+      },
+      {
+        "from": "lib/game/sunken-ruins-materials.ts",
+        "url": "/assets/maps/sunken-ruins/revision3/limestone-albedo.png",
+        "local": false
+      },
+      {
+        "from": "lib/game/sunken-ruins-pbr-kit.ts",
+        "url": "/assets/maps/sunken-ruins/revision3/tripo-kit.glb",
+        "local": false
+      }
+    ],
+    "policy": "Latest OWNER approves full map/gameplay additions; incoming numeric stays PROTOTYPE_MAIN; no Dragon Veil/glove/skill tables adoption"
+  }
+}

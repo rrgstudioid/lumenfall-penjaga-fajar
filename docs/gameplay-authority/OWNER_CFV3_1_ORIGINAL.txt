@@ -1,0 +1,722 @@
+LUMENFALL — COMBAT FOUNDATION V3
+PHASE CFV3-1 — GLOBAL BASE STATS & PHYSICAL ATTACK FOUNDATION
+
+PURPOSE
+
+Rebuild the global character-stat foundation before rebalancing
+Adventurer, Warrior, Thief, or future Specializations.
+
+This phase establishes the new shared stat baseline inspired by the
+classic MMORPG / Flyff-style progression philosophy.
+
+IMPORTANT:
+
+Do NOT rebalance Warrior skills yet.
+Do NOT rebalance Thief skills yet.
+Do NOT create Specialization skills yet.
+Do NOT add Stun yet.
+Do NOT add FP yet.
+Do NOT change monster HP/DEF yet unless required only for diagnostic tests.
+
+==================================================
+1. CANONICAL PRIMARY STATS
+==================================================
+
+LUMENFALL uses exactly:
+
+STR
+VIT
+DEX
+INT
+
+Do NOT reintroduce:
+
+AGI
+WIS
+LUK
+STA
+
+VIT is the LUMENFALL equivalent of the stamina/constitution role.
+
+==================================================
+2. STARTING BASE STATS
+==================================================
+
+Every new character starts at:
+
+STR = 15
+VIT = 15
+DEX = 15
+INT = 15
+
+These 15 points are BASE STAT.
+
+They are not player-allocated points.
+
+Internally preserve the distinction:
+
+BASE
+ALLOCATED
+EQUIPMENT
+BUFF
+FINAL
+
+Example:
+
+Base STR:       15
+Allocated STR: +28
+Equipment STR: +3
+Final STR:      46
+
+Do not store everything as one irreversible value.
+
+==================================================
+3. STAT POINTS PER LEVEL
+==================================================
+
+Character gains:
+
+2 allocatable stat points
+per level gained.
+
+If character starts at Lv1:
+
+Lv1:
+0 earned allocation points
+
+Lv2:
+2
+
+Lv10:
+18
+
+Lv15:
+28
+
+Lv30:
+58
+
+Lv59:
+116
+
+Formula:
+
+earnedStatPoints =
+max(0, (level - 1) * 2)
+
+Do not grant retroactive extra points beyond this formula.
+
+==================================================
+4. JOB CHANGE LV15 — STAT RESET
+==================================================
+
+At first Core Job change at Lv15:
+
+return all PLAYER-ALLOCATED primary stat points.
+
+Reset allocated component to 0.
+
+Base remains:
+
+15 / 15 / 15 / 15
+
+Then player redistributes all earned points.
+
+Example Lv15:
+
+Base:
+STR 15
+VIT 15
+DEX 15
+INT 15
+
+Available points:
+28
+
+If all placed into STR:
+
+STR = 43
+VIT = 15
+DEX = 15
+INT = 15
+
+Do NOT reset:
+
+equipment bonuses
+temporary buffs
+permanent non-stat progression
+
+Only the player allocation layer.
+
+==================================================
+5. UNIVERSAL PHYSICAL BASE ATK
+==================================================
+
+Create one GLOBAL Base Physical ATK curve.
+
+Melee and ranged physical characters use the SAME level-derived Base ATK.
+
+No Core Job receives free hidden higher Base ATK merely because it is:
+
+Warrior
+Thief
+Archer
+Knight
+etc.
+
+Use:
+
+BasePhysicalATK(level)
+=
+7 + floor(level * 1.1)
+
+Expected values:
+
+Lv1  = 8
+Lv5  = 12
+Lv10 = 18
+Lv14 = 22
+Lv15 = 23
+Lv20 = 29
+Lv30 = 40
+Lv40 = 51
+Lv50 = 62
+Lv59 = 71
+Lv60 = 73
+
+This becomes the global level-derived physical baseline.
+
+==================================================
+6. IMPORTANT: BASE ATK IS NOT FINAL DAMAGE
+==================================================
+
+BasePhysicalATK must NOT equal final outgoing damage.
+
+Architecture should become:
+
+Base Physical ATK
++
+Weapon Contribution
++
+Primary Stat Contribution
++
+Equipment Attack Bonuses
++
+Buff / Passive Attack Bonuses
+=
+Physical Attack Power
+
+Then:
+
+Physical Attack Power
+× attack/skill coefficient
+→ defense mitigation
+→ final damage
+
+Do not mix these layers together.
+
+==================================================
+7. REMOVE UNIVERSAL STR × 2 MODEL
+==================================================
+
+Current generic model such as:
+
+STR × 2 Physical Attack
+
+must no longer be treated as the final universal STR rule.
+
+STR contribution must become compatible with a future
+WEAPON-DEPENDENT factor system.
+
+Architecture target:
+
+PhysicalStatContribution
+=
+Allocated/Effective Offensive Stat
+× WeaponStatFactor
+
+Do NOT yet finalize every weapon coefficient in this phase.
+
+Create the architecture/configuration point so factors can later differ for:
+
+1H Sword
+Greatsword
+Dual Sword
+Dagger
+Spear
+Knuckle
+Bow
+etc.
+
+Do not hardcode one STR coefficient globally into combat logic.
+
+==================================================
+8. BASE STAT CONTRIBUTION POLICY
+==================================================
+
+IMPORTANT DESIGN RULE:
+
+The character's base value of 15 should be part of the character's natural
+stat baseline.
+
+However, avoid accidentally double-counting the base 15 through both:
+
+BasePhysicalATK
+and
+large stat contribution.
+
+Audit the current formula carefully.
+
+Return a recommendation whether offensive stat contribution should use:
+
+A.
+effectiveStat × factor
+
+or
+
+B.
+(effectiveStat - baseStat) × factor
+
+Do not silently decide this without reporting the impact.
+
+We want controlled early-game damage.
+
+==================================================
+9. VIT ARCHITECTURE
+==================================================
+
+Remove the assumption:
+
+1 VIT = permanently +10 HP at every level
+
+as the only canonical model.
+
+Prepare VIT for a level/job-scaled HP formula.
+
+Target architecture:
+
+Base HP
++
+Level HP Growth
++
+VIT-derived HP
++
+Equipment HP
++
+Buff HP
+
+VIT-derived HP should be able to depend on:
+
+Level
+Job HP Factor
+VIT
+
+Do NOT finalize all Job HP Factors yet.
+
+Warrior, Thief, Knight, Mage, etc. will eventually have different
+HP efficiency from VIT.
+
+VIT should also remain the primary contributor toward Physical Defense.
+
+Do NOT include Stagger Resistance.
+
+Stagger is being removed from LUMENFALL gameplay.
+
+==================================================
+10. DEX ARCHITECTURE
+==================================================
+
+DEX remains responsible for physical precision/agility-style secondary stats.
+
+Target responsibilities:
+
+Accuracy / Hit
+Critical Rate
+Attack Speed
+Evasion / avoidance
+
+Critical baseline target:
+
+approximately:
+
+10 DEX ≈ +1 percentage point Crit
+
+or equivalent:
+
+1 DEX ≈ +0.1 percentage point Crit
+
+BUT:
+
+do not count the base 15 incorrectly if existing base Crit already assumes
+baseline stats.
+
+Audit this.
+
+Accuracy should eventually compare attacker and defender values rather than:
+
+Accuracy = 90 + DEX
+
+as the only final formula.
+
+Evasion should move toward a rating/formula model rather than unlimited
+direct percentage gain.
+
+Attack Speed must remain cap-safe.
+
+Do NOT create Flyff-style speed breakpoints yet.
+
+==================================================
+11. INT ARCHITECTURE
+==================================================
+
+INT responsibilities:
+
+Max MP
+Magic-oriented scaling
+Healing-oriented scaling
+
+Prepare Max MP as separated components:
+
+Base MP
++
+Level MP Growth
++
+INT MP Contribution
++
+equipment/buff MP
+
+Starting design target:
+
+approximately +3 MP per relevant INT point
+
+but do NOT redesign Mage/Acolyte damage yet.
+
+Remove the design assumption that:
+
+1 INT universally equals the same fixed Magic Attack
+for every spell.
+
+Future magic/heal skills should support their own INT coefficients.
+
+==================================================
+12. FP — NOT YET
+==================================================
+
+DO NOT implement FP in this phase.
+
+We are considering FP as a future physical-skill resource.
+
+For now:
+
+preserve existing resource behavior sufficiently for compatibility.
+
+Do not redesign Warrior/Thief resource costs yet.
+
+We will make a separate decision:
+
+HP + FP physical classes
+
+versus
+
+HP + Mana universal model.
+
+==================================================
+13. BASIC ATTACK FOUNDATION
+==================================================
+
+Basic Attack must become the reference point for physical skill balance.
+
+Create or centralize a clean Basic Attack calculation based on:
+
+Physical Attack Power
+× basicAttackCoefficient
+
+Initial baseline:
+
+basicAttackCoefficient = 1.0
+
+before defense mitigation.
+
+Do NOT add arbitrary high flat damage.
+
+Do NOT give Warrior/Thief hidden Basic Attack multipliers yet.
+
+==================================================
+14. WEAPONLESS STATE
+==================================================
+
+Character without a weapon must remain playable and must not soft-lock.
+
+However:
+
+weaponless damage must be meaningfully weaker than equipped combat.
+
+Audit current behavior.
+
+Do NOT allow removal of the weapon to leave nearly identical damage.
+
+For this phase:
+
+report the exact current difference between:
+
+unarmed
+starter weapon
+level-appropriate normal weapon
+
+before choosing final unarmed penalties.
+
+==================================================
+15. DAMAGE LAYER SEPARATION
+==================================================
+
+After this phase, combat code should conceptually separate:
+
+A. Level Base ATK
+B. Stat contribution
+C. Weapon contribution
+D. Equipment modifiers
+E. Buff/passive modifiers
+F. Skill coefficient
+G. Target defense/mitigation
+H. Final damage
+
+Avoid double scaling.
+
+Example of forbidden architecture:
+
+STR increases Physical Attack
+→ skill separately multiplies STR again
+→ weapon separately scales STR again
+→ passive multiplies entire result again unintentionally
+
+Audit for these cases.
+
+==================================================
+16. CURRENT SYSTEM AUDIT
+==================================================
+
+Before changing formulas, document CURRENT behavior for:
+
+STR
+VIT
+DEX
+INT
+
+including:
+
+exact source files
+exact formulas
+derived stats affected
+caps
+job modifiers
+equipment modifiers
+skill modifiers
+
+Also audit:
+
+Physical Attack
+Magic Attack
+Basic Attack
+HP
+MP
+Defense
+Accuracy
+Crit
+Attack Speed
+Evasion
+
+==================================================
+17. DAMAGE TEST MATRIX
+==================================================
+
+After foundation implementation, produce a diagnostic character at:
+
+Lv1
+Lv5
+Lv10
+Lv14
+Lv15
+Lv30
+Lv40
+Lv50
+Lv59
+
+For each level test:
+
+A. unarmed
+B. starter/low-tier weapon
+C. appropriate normal-tier weapon
+
+Record:
+
+Base Physical ATK
+STR
+STR contribution
+Weapon Attack contribution
+Total Physical Attack Power
+Basic Attack raw damage
+Basic Attack final damage against a same-level test target
+
+Do NOT use Warrior skills for this test.
+
+We first validate Basic Attack.
+
+==================================================
+18. STAT ALLOCATION TEST
+==================================================
+
+At Lv15 test:
+
+15 STR baseline
++
+28 allocatable points
+
+Compare:
+
+BUILD A
+43 STR / 15 VIT / 15 DEX / 15 INT
+
+BUILD B
+29 STR / 29 VIT / 15 DEX / 15 INT
+
+BUILD C
+15 STR / 15 VIT / 43 DEX / 15 INT
+
+Verify that:
+
+different builds produce meaningful but controlled differences.
+
+No build should produce catastrophic exponential damage at Lv15.
+
+==================================================
+19. UI REQUIREMENT
+==================================================
+
+Character Overview must be able to distinguish:
+
+Base stat
+Allocated stat
+Bonus stat
+Final stat
+
+Owner-facing presentation can remain simple.
+
+Example:
+
+STR 43
+
+Tooltip/details:
+
+Base: 15
+Allocated: +28
+Equipment: +0
+
+Do NOT force all breakdown details onto the main UI.
+
+==================================================
+20. RESET SKILL VS RESET STAT
+==================================================
+
+Do not confuse:
+
+RESET SKILL
+
+with:
+
+RESET STAT.
+
+Stat allocation needs its own data path.
+
+If no stat reset interface exists yet:
+
+do not invent final UI in this phase.
+
+Only implement the underlying safe reset capability needed by Lv15 Job Change.
+
+==================================================
+21. SAVE / DEVELOPMENT POLICY
+==================================================
+
+LUMENFALL is still under development.
+
+Do not keep bad formulas merely for legacy player-save compatibility.
+
+If old development characters become incompatible:
+
+report it clearly.
+
+Prefer clean architecture.
+
+Do not silently migrate nonsensical old stat allocations.
+
+==================================================
+22. DO NOT REBALANCE SKILLS YET
+==================================================
+
+Even if this change makes existing:
+
+Adventurer
+Warrior
+Thief
+
+skills temporarily underpowered or overpowered:
+
+DO NOT fix all of them in this phase.
+
+That is expected.
+
+Next phases will be:
+
+Adventurer rebalance
+Warrior Core audit/rework
+Thief Core audit/rework
+then Specializations
+
+The purpose of CFV3-1 is to create the ruler we will use to measure them.
+
+==================================================
+23. REQUIRED REPORT
+==================================================
+
+Return in Indonesian.
+
+Report:
+
+1. Formula primary stat lama.
+2. Formula Base/Physical Attack lama.
+3. Semua tempat terjadi double-scaling jika ada.
+4. Perubahan architecture yang dibuat.
+5. Base stat 15/15/15/15 verification.
+6. +2 stat points/level verification.
+7. Lv15 allocation reset verification.
+8. Universal Base Physical ATK table.
+9. Basic Attack test results.
+10. Unarmed vs weapon test.
+11. STR contribution architecture.
+12. VIT architecture.
+13. DEX architecture.
+14. INT architecture.
+15. Save impact.
+16. Existing skills affected.
+17. Tests passed/failed.
+18. Recommended next step.
+
+==================================================
+24. STOP
+==================================================
+
+STOP after CFV3-1 foundation is implemented and validated.
+
+Do NOT proceed automatically to:
+
+Adventurer damage rebalance
+Warrior rebalance
+Thief rebalance
+Berserker
+Blade Master
+Rogue
+Assasin
+FP
+Stun
+
+Wait for owner review.
