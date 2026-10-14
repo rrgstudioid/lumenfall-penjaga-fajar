@@ -28,7 +28,7 @@ await test('dashboard exposes every production equipment slot exactly once', () 
     PAPER_DOLL_SLOTS.map((s) => s.id).sort(),
     Object.keys(freshHero().equipment).sort(),
   );
-  assert.equal(new Set(PAPER_DOLL_SLOTS.map((s) => s.id)).size, 14);
+  assert.equal(new Set(PAPER_DOLL_SLOTS.map((s) => s.id)).size, 13);
   assert(!CHARACTER_STAT_ROWS.some((s) => s.id === 'elementalResistance'));
 });
 await test('CP uses the production calculator by default and supports an explicit adapter', () => {

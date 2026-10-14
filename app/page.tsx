@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 import { MINE_ID } from '@/lib/game/ironveil-interior-layout';
 import { IronveilInteriorLocalMap } from '@/components/game/ironveil-interior-local-map';
 
@@ -7,6 +7,7 @@ import { IRONVEIL_ID } from '@/lib/game/ironveil-mines-layout';
 import { DEEP_OCEAN_ID, isUnderwaterSubmap } from '@/lib/game/underwater-regions';
 import { SUNKEN_ID } from '@/lib/game/sunken-ruins-layout';
 import { WILDS_ID } from '@/lib/game/whispering-wilds-layout';
+import { METEORFALL_ID } from '@/lib/game/meteorfall-citadel-layout';
 import { FROSTFIRE_ID } from '@/lib/game/frostfire-highlands-layout';
 import { notifyDevelopmentHomeLifecycle } from '@/lib/game/development-home-lifecycle';
 import { isDaggerItem } from '@/lib/game/dagger';
@@ -341,10 +342,13 @@ export default function Home() {
           console.error(cause);
           if(instance?.isMineInterior)setMapError({id:MINE_ID,label:'Ironveil Mines \u00b7 Interior',message:'Unable to load the mine interior. Your save is safe. Check the connection and retry.'});
           else if(instance?.isIronveil)setMapError({id:IRONVEIL_ID,label:'Ironveil Mines',message:'Unable to load Ironveil Mines. Your save is safe. Check the connection and retry.'});
+          else if(instance?.isMeteorfall)setMapError({id:METEORFALL_ID,label:'Meteorfall Citadel',message:'Unable to load Meteorfall Citadel. Your save is safe. Check the connection and retry.'});
           else if(instance?.isWilds)setMapError({id:WILDS_ID,label:'Whispering Wilds',message:'Unable to load the forest. Your save is safe. Check the connection and retry.'});
           else if(instance?.isAverion||instance?.isPlains||instance?.isFrostfire)setMapError({id:instance.isFrostfire?FROSTFIRE_ID:instance.isPlains?'verdant-plains-v2':'averion',label:instance.isFrostfire?'Frostfire Highlands':instance.isPlains?'Verdant Plains':'Averion',message:'Map gagal dimuat. Save tetap aman. Periksa koneksi lalu tekan Retry.'});
           setError(
-            'Dunia belum dapat dimuat. Save tetap aman. Periksa koneksi dan WebGL, lalu coba Continue atau Load Game lagi.',
+            instance?.actor.userData.equipmentStatus === 'error'
+              ? 'Model Dragon Veil gagal dimuat. Save tetap aman. Periksa koneksi, lalu coba Continue atau Load Game lagi.'
+              : 'Dunia belum dapat dimuat. Save tetap aman. Periksa koneksi dan WebGL, lalu coba Continue atau Load Game lagi.',
           );
           setLoadingSlot(null);
           setFlow('main');
@@ -706,7 +710,7 @@ export default function Home() {
       <InterfaceSettingsRuntime />
       <div ref={host} className="world" data-world-surface />
       <div className="vignette" />
-      <div ref={labels} className="world-labels" aria-hidden={(state.mapId===IRONVEIL_ID||state.mapId===MINE_ID||state.mapId===SUNKEN_ID||isUnderwaterSubmap(state.mapId))?undefined:true} />
+      <div ref={labels} className="world-labels" aria-hidden={(state.mapId===METEORFALL_ID||state.mapId===IRONVEIL_ID||state.mapId===MINE_ID||state.mapId===SUNKEN_ID||isUnderwaterSubmap(state.mapId))?undefined:true} />
       <GameplayHUD state={state} game={engine} mapRef={map} visible={flow === 'world'} active={active} panel={panel} modalOpen={Boolean(panel || activeNpcMenu)} fullscreen={isFullscreen} quest={activeJournalQuest} onOpen={open} onSound={toggleSound} onFullscreen={toggleFullscreen} onEditHotbar={index => {
         setHotbarEditSlot(index);
         open('hotbar');
@@ -2463,7 +2467,7 @@ export default function Home() {
                         onClick={() => game.current?.changeRegion(field.id)}
                       >
                         {unlocked
-                          ? field.id===DEEP_OCEAN_ID?'Enter Deep Ocean':field.id===SUNKEN_ID?'Enter Sunken Ruins':field.id===IRONVEIL_ID?'Enter Ironveil Mines':field.id===WILDS_ID?'Enter Whispering Wilds':'Teleport field'
+                          ? field.id===METEORFALL_ID?'Enter Meteorfall Citadel':field.id===DEEP_OCEAN_ID?'Enter Deep Ocean':field.id===SUNKEN_ID?'Enter Sunken Ruins':field.id===IRONVEIL_ID?'Enter Ironveil Mines':field.id===WILDS_ID?'Enter Whispering Wilds':'Teleport field'
                           : unlockReason(hero, field.id)}
                       </button>
                     </article>

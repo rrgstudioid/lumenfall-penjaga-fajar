@@ -1,3 +1,5 @@
+import { METEORFALL_ID, METEORFALL_EXIT, meteorGroundHeight, meteorWalkable } from './meteorfall-citadel-layout';
+import { METEORFALL_LIGHT } from './meteorfall-citadel-quality';
 import { mineMonsterSpawns, mineSafe, moveMineMonster } from './ironveil-interior-population';
 import { MINE_ID, MINE_ENTRY, MINE_EXIT, MineNavigation, mineGroundHeight, mineLineOfSight } from './ironveil-interior-layout';
 import { IRONVEIL_ID, IRONVEIL_TRANSITION, ironveilGroundHeight, ironveilWalkable } from './ironveil-mines-layout';
@@ -363,6 +365,8 @@ export class Game {
   private readonly deepOceanTrenchFog = new T.Color(DEEP_OCEAN_TRENCH_VIEW.background);
   sunken: Awaited<ReturnType<typeof import('./sunken-ruins-map').buildSunkenRuins>> | null = null;
   get isSunken() {return !this.hero.inCity&&(this.hero.currentField===SUNKEN_ID||isUnderwaterSubmap(this.hero.currentField));}
+  get isMeteorfall() {return !this.hero.inCity&&this.hero.currentField===METEORFALL_ID;}
+  meteorfall: Awaited<ReturnType<typeof import('./meteorfall-citadel-map').buildMeteorfallCitadel>> | null = null;
   get isWilds() {return !this.hero.inCity&&this.hero.currentField===WILDS_ID;}
   graphicsQuality: GraphicsQuality = loadGraphicsQuality();
   wilds: Awaited<ReturnType<typeof import('./whispering-wilds-map').buildWhisperingWilds>> | null = null;
@@ -374,10 +378,11 @@ export class Game {
   private averionCameraDistance = 9;
   get isAverion() { return this.hero.inCity && this.hero.currentCity === 'averion'; }
   get fieldTerrain() { return this.hero.inCity ? undefined : FIELD_TERRAINS[this.hero.currentField]; }
-  get nearSanctuary() {if(this.isAverion||this.isPlains||this.isFrostfire||this.isWilds||this.isSunken||this.isIronveil||this.isMineInterior)return false;const p=this.fieldTerrain?.sanctuary??{x:0,z:0};return Math.hypot(this.hero.x-p.x,this.hero.z-p.z)<5.3;}
+  get nearSanctuary() {if(this.isAverion||this.isPlains||this.isFrostfire||this.isWilds||this.isMeteorfall||this.isSunken||this.isIronveil||this.isMineInterior)return false;const p=this.fieldTerrain?.sanctuary??{x:0,z:0};return Math.hypot(this.hero.x-p.x,this.hero.z-p.z)<5.3;}
   groundHeight(x:number,z:number) {
     if(this.isMineInterior)return mineGroundHeight(x,z);
     if(this.isIronveil)return ironveilGroundHeight(x,z);
+    if(this.isMeteorfall)return meteorGroundHeight({x,z})??Number.NaN;
     if(this.isWilds)return wildsGroundHeight(x,z);
     if(this.isSunken)return this.hero.currentField===ABYSAL_TRENCH_ID?abysalTrenchGroundHeight(x,z):this.hero.currentField===DEEP_OCEAN_ID?deepOceanGroundHeight(x,z):sunkenGroundHeight(x,z);
     if(this.isFrostfire)return frostHeight(x,z);
@@ -387,7 +392,7 @@ export class Game {
   }
   groundDistance(a:T.Vector3,b:T.Vector3) {
     // Preserve the old flat-ground combat ranges when actors stand on different elevations.
-    return this.fieldTerrain||this.isAverion||this.isPlains||this.isFrostfire||this.isWilds||this.isSunken||this.isIronveil||this.isMineInterior?Math.hypot(a.x-b.x,a.z-b.z):a.distanceTo(b);
+    return this.fieldTerrain||this.isAverion||this.isPlains||this.isFrostfire||this.isWilds||this.isMeteorfall||this.isSunken||this.isIronveil||this.isMineInterior?Math.hypot(a.x-b.x,a.z-b.z):a.distanceTo(b);
   }
   enemyContact(enemy:Enemy,origin:{x:number;z:number}=this.actor.position) {
     return oceanContactPoint(origin,enemy.group.position,enemy.group.rotation.y,enemy.group.children[0]?.userData.combatShape);
@@ -396,6 +401,7 @@ export class Game {
     return targetDistance(origin,this.enemyContact(enemy,origin));
   }
   placeActor() {
+    if(this.isMeteorfall){this.actor.visible=!!this.meteorfall;if(!this.meteorfall)return;Object.assign(this.hero,this.meteorfall.navigation.restore(this.hero,this.hero.lastSafePosition));}
     if(this.isSunken){this.actor.visible=!!this.sunken;if(!this.sunken)return;Object.assign(this.hero,this.sunken.navigation.restore(this.hero));}
     if(this.isMineInterior){this.actor.visible=!!this.mineInterior;if(!this.mineInterior)return;Object.assign(this.hero,this.mineInterior.navigation.restore(this.hero));}
     if(this.isIronveil){this.actor.visible=!!this.ironveil;if(!this.ironveil)return;Object.assign(this.hero,this.ironveil.navigation.restore(this.hero));}
@@ -426,6 +432,12 @@ export class Game {
       if(!isFieldSafe(this.hero.currentField,p.x,p.z,e.group.children[0]?.userData.navigationRadius??1))e.group.position.set(p.x,this.groundHeight(p.x,p.z),p.z);
       return;
     }
+    if(this.isMeteorfall){
+      if(!this.meteorfall)return;
+      const p=this.meteorfall.navigation.move(e.group.position,dx,dz,radius);
+      if(!isFieldSafe(METEORFALL_ID,p.x,p.z,radius))e.group.position.set(p.x,this.groundHeight(p.x,p.z),p.z);
+      return;
+    }
     if(this.isWilds){
       if(!this.wilds)return;
       const p=this.wilds.navigation.move(e.group.position,dx,dz,radius);
@@ -453,6 +465,12 @@ export class Game {
   followTerrain(e:Enemy,target:GroundPoint,speed:number,dt:number) {
     const t=this.fieldTerrain,radius=e.group.children[0]?.userData.navigationRadius??(e.boss?1.8:.55);
     let waypoint=target;
+    if(this.isMeteorfall&&this.meteorfall){
+      if(!e.navigation||e.navigation.until<this.elapsed||Math.hypot(e.navigation.target.x-target.x,e.navigation.target.z-target.z)>3)
+        e.navigation={route:this.meteorfall.navigation.route(e.group.position,target,radius),until:this.elapsed+.7,target:{x:target.x,z:target.z}};
+      while(e.navigation.route.length&&Math.hypot(e.navigation.route[0].x-e.group.position.x,e.navigation.route[0].z-e.group.position.z)<.45)e.navigation.route.shift();
+      waypoint=e.navigation.route[0]??e.group.position;
+    }
     if(this.isSunken&&this.sunken){
       if(!e.navigation||e.navigation.until<this.elapsed||Math.hypot(e.navigation.target.x-target.x,e.navigation.target.z-target.z)>3)
         e.navigation={route:this.sunken.navigationForMonster(e.boss).route(e.group.position,target,radius),until:this.elapsed+.7,target:{x:target.x,z:target.z}};
@@ -1522,6 +1540,9 @@ export class Game {
     model.animator.update(0,{movementMode:this.isSunken?'underwater':'ground'});
     this.scene.add(this.actor);
     if (this.isPlains) this.setPlainsCharacterShadows(true);
+    void model.equipmentReady.then(ok => {
+      if (!ok && !this.disposed && this.characterModel === model) this.message('Model Dragon Veil gagal dimuat. Lepas lalu pakai kembali equipment untuk mencoba lagi.');
+    });
     void model.ready.then(() => {
       if (!this.disposed && this.characterModel === model && this.isPlains)
         this.setPlainsCharacterShadows(true);
@@ -1979,6 +2000,7 @@ export class Game {
     if(this.frostfire){this.frostfire.dispose();this.frostfire=null;}
     if(this.ironveil){this.ironveil.dispose();this.ironveil=null;}
     if(this.mineInterior){this.mineInterior.dispose();this.mineInterior=null;}
+    if(this.meteorfall){this.meteorfall.dispose();this.meteorfall=null;}
     if(this.wilds){this.wilds.dispose();this.wilds=null;}
     if(this.sunken){this.sunken.dispose();this.sunken=null;}
     this.renderer.shadowMap.enabled=true;this.renderer.setPixelRatio(Math.min(devicePixelRatio,1.25));
@@ -1995,7 +2017,7 @@ export class Game {
     this.scene.remove(this.regionDecor);
     this.regionDecor.traverse(object => { if(object instanceof T.Mesh){object.geometry.dispose(); const materials=Array.isArray(object.material)?object.material:[object.material]; materials.forEach(material=>material.dispose());} });
     this.regionDecor = new T.Group(); this.scene.add(this.regionDecor);
-    this.followCamera.far=this.freeCamera.far=this.isPlains||this.isFrostfire||this.isWilds||this.isSunken||this.isIronveil||this.isMineInterior?1400:this.isAverion?650:160;
+    this.followCamera.far=this.freeCamera.far=this.isPlains||this.isFrostfire||this.isWilds||this.isMeteorfall||this.isSunken||this.isIronveil||this.isMineInterior?1400:this.isAverion?650:160;
     this.followCamera.updateProjectionMatrix();this.freeCamera.updateProjectionMatrix();
     this.worldLightRig.traverse(o=>{
       if(o instanceof T.HemisphereLight){o.intensity=this.isPlains?PLAINS_DAYLIGHT.ambientIntensity:this.isAverion?1.2:2.2;o.color.set(this.isPlains?PLAINS_DAYLIGHT.ambientSky:this.isAverion?'#eef5ff':'#f2f8d6');o.groundColor.set(this.isPlains?PLAINS_DAYLIGHT.ambientGround:this.isAverion?'#687b55':'#3f5d45');}
@@ -2081,6 +2103,25 @@ export class Game {
           element.appendChild(badge);this.labelHost.appendChild(element);this.portalLabels.push({...p,element,labelHeight:3.8});
         }
         for(const e of this.enemies)if(isSeaSerpent(e.definition?.id)){map.attachSerpent(e.group.children[0] as T.Mesh);this.registerTargetEnemy(e);}
+        this.placeActor();this.cameraFocus.copy(this.actor.position);map.update(this.camera,this.hero,0);this.drawMap();
+      }).catch(error=>{if(!this.disposed&&buildToken===this.regionBuildToken)this.regionLoadError=error;throw error;}));
+      void this.regionLoads.at(-1)!.catch(()=>{});return;
+    }
+    if(this.isMeteorfall) {
+      this.terrain.visible=false;this.shrine.visible=false;this.actor.visible=false;
+      this.scene.background=new T.Color(METEORFALL_LIGHT.background);this.scene.fog=new T.Fog(METEORFALL_LIGHT.background,METEORFALL_LIGHT.fogNear,METEORFALL_LIGHT.fogFar);this.renderer.toneMappingExposure=METEORFALL_LIGHT.exposure;
+      this.worldLightRig.traverse(o=>{
+        if(o instanceof T.HemisphereLight){o.color.set(METEORFALL_LIGHT.ambientSky);o.groundColor.set(METEORFALL_LIGHT.ambientGround);o.intensity=METEORFALL_LIGHT.ambientIntensity;}
+        if(o instanceof T.DirectionalLight){o.color.set(METEORFALL_LIGHT.sunColor);o.intensity=METEORFALL_LIGHT.sunIntensity;}
+      });
+      this.regionLoads.push(import('./meteorfall-citadel-map').then(m=>m.buildMeteorfallCitadel(this.graphicsQuality)).then(map=>{
+        if(this.disposed||buildToken!==this.regionBuildToken){map.dispose();return;}
+        this.meteorfall=map;this.regionDecor.add(map.root);this.setGraphicsQuality(this.graphicsQuality,false);
+        const camp=FIELD_NPCS[METEORFALL_ID],person=new T.Group();person.position.set(camp.x,this.groundHeight(camp.x,camp.z),camp.z);person.userData.npcId=camp.id;this.regionDecor.add(person);
+        this.mesh(new T.CylinderGeometry(.35,.45,1.2,6),this.mat('#8c7057'),person,0,.65,0);
+        this.mesh(new T.SphereGeometry(.3,8,6),this.mat('#cda07a'),person,0,1.5,0);this.addNpcLabel(camp);
+        const element=document.createElement('div');element.className='npc-label';const badge=document.createElement('button');badge.className='npc-service-badge';badge.type='button';badge.textContent='Jayantara · Click to travel';badge.style.pointerEvents='auto';
+        badge.addEventListener('click',()=>{if(Math.hypot(this.hero.x-METEORFALL_EXIT.x,this.hero.z-METEORFALL_EXIT.z)>4.5)this.message('Move closer to the portal to travel.');else void this.changeRegion(METEORFALL_EXIT.destination);});element.appendChild(badge);this.labelHost.appendChild(element);this.portalLabels.push({...METEORFALL_EXIT,element,labelHeight:5});
         this.placeActor();this.cameraFocus.copy(this.actor.position);map.update(this.camera,this.hero,0);this.drawMap();
       }).catch(error=>{if(!this.disposed&&buildToken===this.regionBuildToken)this.regionLoadError=error;throw error;}));
       void this.regionLoads.at(-1)!.catch(()=>{});return;
@@ -2501,6 +2542,7 @@ export class Game {
     const valid = (position: { x: number; z: number }) => {
       if (!Number.isFinite(position.x) || !Number.isFinite(position.z)) return false;
       if(this.isIronveil)return ironveilWalkable(position);
+      if(this.isMeteorfall)return this.meteorfall?.navigation.valid(position)??meteorWalkable(position);
       if(this.isWilds)return this.wilds?.navigation.valid(position)??wildsWalkable(position);
       if(this.isSunken)return this.sunken?.navigation.valid(position)??(this.hero.currentField===ABYSAL_TRENCH_ID?abysalTrenchWalkable(position):isUnderwaterSubmap(this.hero.currentField)?deepOceanWalkable(position):sunkenWalkable(position));
       if(this.isFrostfire)return frostWalkable(position);
@@ -2591,7 +2633,7 @@ export class Game {
     else this.keys.delete(key);
   }
   save() {
-    if (!this.started || this.dead || this.transitioning || this.regionLoadError || ((this.isAverion&&!this.averion)||(this.isPlains&&!this.plains)||(this.isFrostfire&&!this.frostfire)||(this.isWilds&&!this.wilds)||(this.isSunken&&!this.sunken)||(this.isIronveil&&!this.ironveil)||(this.isMineInterior&&!this.mineInterior))) return;
+    if (!this.started || this.dead || this.transitioning || this.regionLoadError || ((this.isAverion&&!this.averion)||(this.isPlains&&!this.plains)||(this.isFrostfire&&!this.frostfire)||(this.isWilds&&!this.wilds)||(this.isMeteorfall&&!this.meteorfall)||(this.isSunken&&!this.sunken)||(this.isIronveil&&!this.ironveil)||(this.isMineInterior&&!this.mineInterior))) return;
     this.hero.stamina = this.stamina;
     this.hero.lastPlayedAt = Date.now();
     this.hero.lastSafePosition = { x: this.hero.x, z: this.hero.z };
@@ -2608,7 +2650,7 @@ export class Game {
     this.hero.hp = maxHP(this.hero);
     this.hero.x = 0;
     this.hero.z = this.hero.inCity ? 7 : 26;
-    if(this.fieldTerrain||this.isPlains||this.isFrostfire||this.isWilds||this.isSunken||this.isIronveil||this.isMineInterior)Object.assign(this.hero,FIELDS[this.hero.currentField].entry);
+    if(this.fieldTerrain||this.isPlains||this.isFrostfire||this.isWilds||this.isMeteorfall||this.isSunken||this.isIronveil||this.isMineInterior)Object.assign(this.hero,FIELDS[this.hero.currentField].entry);
     if(this.isMineInterior)Object.assign(this.hero,MINE_ENTRY);
     this.placeActor();
     this.cameraFocus.copy(this.actor.position);
@@ -3472,7 +3514,7 @@ export class Game {
   }
   private castDevelopmentWarriorReference(definition?:SkillDefinition) {
     const reject=(code:string,path='cast')=>Object.freeze({ok:false as const,code,path,reason:`Warrior reference rejected: ${code}`});
-    const ready=()=>this.started&&!this.paused&&!this.dead&&!this.disposed&&!this.hotbarInteracting&&!this.transitioning&&!this.regionLoadError&&(!this.isAverion||!!this.averion)&&(!this.isPlains||!!this.plains)&&(!this.isSunken||!!this.sunken)&&(!this.isIronveil||!!this.ironveil)&&(!this.isMineInterior||!!this.mineInterior)&&Number.isFinite(this.hero.hp)&&this.hero.hp>0;
+    const ready=()=>this.started&&!this.paused&&!this.dead&&!this.disposed&&!this.hotbarInteracting&&!this.transitioning&&!this.regionLoadError&&(!this.isAverion||!!this.averion)&&(!this.isPlains||!!this.plains)&&(!this.isMeteorfall||!!this.meteorfall)&&(!this.isSunken||!!this.sunken)&&(!this.isIronveil||!!this.ironveil)&&(!this.isMineInterior||!!this.mineInterior)&&Number.isFinite(this.hero.hp)&&this.hero.hp>0;
     if(!ready())return reject('REFERENCE_ACTION_UNAVAILABLE');
     if(this.thiefMovement||this.actionLock.active(this.combatTime)||isStunned(this.hero,this.combatTime))return reject('ACTION_LOCKED');
     if(!definition)return reject('SKILL_UNAVAILABLE');
@@ -4291,7 +4333,7 @@ export class Game {
     else if (autoAim || !this.pointerActive) this.targetNearest();
     else {
       this.raycaster.setFromCamera(this.pointer, this.camera);
-      const hit=this.isSunken&&this.sunken ? this.raycaster.intersectObject(this.sunken.surfaces,true).find(h=>h.object.visible)?.point : this.isMineInterior&&this.mineInterior ? this.raycaster.intersectObject(this.mineInterior.surfaces,true)[0]?.point : this.isIronveil&&this.ironveil ? this.raycaster.intersectObject(this.ironveil.surfaces,true)[0]?.point : this.isWilds&&this.wilds ? this.raycaster.intersectObject(this.wilds.surfaces,true).find(h=>h.object.visible||h.object.userData.bridge)?.point : this.isFrostfire&&this.frostfire ? this.raycaster.intersectObject(this.frostfire.surfaces,true)[0]?.point : this.isPlains&&this.plains ? this.raycaster.intersectObject(this.plains.root,true).find(h=>h.object.visible)?.point : this.terrainSurface?this.raycaster.intersectObject(this.terrainSurface)[0]?.point:this.raycaster.ray.intersectPlane(this.ground,this.aim);
+      const hit=this.isMeteorfall ? (this.meteorfall?this.raycaster.intersectObject(this.meteorfall.surfaces,true).find(h=>meteorWalkable(h.point,0))?.point:undefined) : this.isSunken&&this.sunken ? this.raycaster.intersectObject(this.sunken.surfaces,true).find(h=>h.object.visible)?.point : this.isMineInterior&&this.mineInterior ? this.raycaster.intersectObject(this.mineInterior.surfaces,true)[0]?.point : this.isIronveil&&this.ironveil ? this.raycaster.intersectObject(this.ironveil.surfaces,true)[0]?.point : this.isWilds&&this.wilds ? this.raycaster.intersectObject(this.wilds.surfaces,true).find(h=>h.object.visible||h.object.userData.bridge)?.point : this.isFrostfire&&this.frostfire ? this.raycaster.intersectObject(this.frostfire.surfaces,true)[0]?.point : this.isPlains&&this.plains ? this.raycaster.intersectObject(this.plains.root,true).find(h=>h.object.visible)?.point : this.terrainSurface?this.raycaster.intersectObject(this.terrainSurface)[0]?.point:this.raycaster.ray.intersectPlane(this.ground,this.aim);
       if (hit) {
         this.aim.copy(hit);
         const d = this.aim.clone().sub(this.actor.position).setY(0);
@@ -4337,7 +4379,7 @@ export class Game {
       if (e.hp <= 0) continue;
       if(hard){const damage=resolveBasicDamage(e);if(damage===null)continue;this.hurtEnemy(e,referenceSample?damage:Math.round(damage),this.hero.skillArchitectureVersion===3?0:.8,'physical',referenceSample?stats:undefined,referenceLevel,'direct',referenceSample?'REFERENCE_B_FINAL':'LEGACY');continue;}
       const v = e.group.position.clone().sub(this.actor.position);
-      if(this.fieldTerrain||this.isPlains||this.isFrostfire||this.isWilds||this.isSunken||this.isIronveil||this.isMineInterior)v.y=0;
+      if(this.fieldTerrain||this.isPlains||this.isFrostfire||this.isWilds||this.isMeteorfall||this.isSunken||this.isIronveil||this.isMineInterior)v.y=0;
       const d = v.length();
       if (
         d < (isBow?Math.max(11,profile.range):(e.boss ? 4.3 : profile.range)) &&
@@ -4393,11 +4435,11 @@ export class Game {
     }
     e.flash = 0.14;
     const v = e.group.position.clone().sub(this.actor.position);
-    if(this.fieldTerrain||this.isPlains||this.isFrostfire||this.isWilds||this.isSunken||this.isIronveil||this.isMineInterior)v.y=0;
+    if(this.fieldTerrain||this.isPlains||this.isFrostfire||this.isWilds||this.isMeteorfall||this.isSunken||this.isIronveil||this.isMineInterior)v.y=0;
     v.normalize();
     const knockDistance=e.boss?knock*.15:knock;
     this.moveEnemy(e,v.x*knockDistance,v.z*knockDistance);
-    if(!this.fieldTerrain&&!this.isPlains&&!this.isFrostfire&&!this.isWilds&&!this.isSunken&&!this.isIronveil&&!this.isMineInterior) {
+    if(!this.fieldTerrain&&!this.isPlains&&!this.isFrostfire&&!this.isWilds&&!this.isMeteorfall&&!this.isSunken&&!this.isIronveil&&!this.isMineInterior) {
       const extent=regionHalfExtent(false);
       e.group.position.x=T.MathUtils.clamp(e.group.position.x,-extent,extent);
       e.group.position.z=T.MathUtils.clamp(e.group.position.z,-extent,extent);
@@ -4517,7 +4559,7 @@ export class Game {
     ).normalize();
   }
   move(dx: number, dz: number) {
-    if(this.transitioning||this.regionLoadError||((this.isAverion&&!this.averion)||(this.isPlains&&!this.plains)||(this.isFrostfire&&!this.frostfire)||(this.isWilds&&!this.wilds)||(this.isSunken&&!this.sunken)||(this.isIronveil&&!this.ironveil)||(this.isMineInterior&&!this.mineInterior)))return;
+    if(this.transitioning||this.regionLoadError||((this.isAverion&&!this.averion)||(this.isPlains&&!this.plains)||(this.isFrostfire&&!this.frostfire)||(this.isWilds&&!this.wilds)||(this.isMeteorfall&&!this.meteorfall)||(this.isSunken&&!this.sunken)||(this.isIronveil&&!this.ironveil)||(this.isMineInterior&&!this.mineInterior)))return;
     if(isStunned(this.hero,this.combatTime))return;
     const p=moveWithTreeCollisions(this.hero,dx,dz,this.treeColliders,(from,mx,mz)=>this.moveHeroOnGround(from,mx,mz),(x,z)=>this.groundHeight(x,z));
     this.hero.x=p.x;this.hero.z=p.z;
@@ -4529,6 +4571,17 @@ export class Game {
   autoApproachTarget(target: Enemy, range: number) {
     const desiredRange = Math.max(0, Number.isFinite(range) ? range : 0);
     const contact=this.enemyContact(target);
+    if(this.isMeteorfall&&this.meteorfall){
+      let budget=Math.max(0,Math.hypot(contact.x-this.hero.x,contact.z-this.hero.z)-desiredRange);
+      if(budget<=1e-6)return true;
+      const route=this.meteorfall.navigation.route(this.hero,contact);
+      for(const point of route)while(budget>1e-6&&this.enemyRange(target)>desiredRange+1e-4){
+        const dx=point.x-this.hero.x,dz=point.z-this.hero.z,d=Math.hypot(dx,dz);if(d<.01)break;
+        const step=Math.min(.25,budget,d),before={x:this.hero.x,z:this.hero.z};this.move(dx/d*step,dz/d*step);
+        const moved=Math.hypot(this.hero.x-before.x,this.hero.z-before.z);if(moved<1e-7)return false;budget-=moved;
+      }
+      return this.enemyRange(target)<=desiredRange+1e-4;
+    }
     const direction = new T.Vector3(contact.x-this.actor.position.x,0,contact.z-this.actor.position.z);
     let remaining = Math.max(0, direction.length() - desiredRange);
     if (remaining <= 1e-6) return true;
@@ -4545,6 +4598,7 @@ export class Game {
   moveHeroOnGround(from:GroundPoint,dx:number,dz:number):GroundPoint {
     if(this.isMineInterior)return this.mineInterior?this.mineInterior.move(from,dx,dz):{...from};
     if(this.isIronveil)return this.ironveil?this.ironveil.move(from,dx,dz):{...from};
+    if(this.isMeteorfall)return this.meteorfall?this.meteorfall.move(from,dx,dz):{...from};
     if(this.isWilds)return this.wilds?this.wilds.move(from,dx,dz):{...from};
     if(this.isSunken)return this.sunken?this.sunken.move(from,dx,dz):{...from};
     if(this.isFrostfire)return this.frostfire?this.frostfire.move(from,dx,dz):{...from};
@@ -4574,7 +4628,7 @@ export class Game {
   tick = (time: number) => {
     const frameStarted = performance.now();
     if (this.disposed || !this.started) { this.frame = 0; return; }
-    if(this.transitioning||this.regionLoadError||((this.isAverion&&!this.averion)||(this.isPlains&&!this.plains)||(this.isFrostfire&&!this.frostfire)||(this.isWilds&&!this.wilds)||(this.isSunken&&!this.sunken)||(this.isIronveil&&!this.ironveil)||(this.isMineInterior&&!this.mineInterior))) {
+    if(this.transitioning||this.regionLoadError||((this.isAverion&&!this.averion)||(this.isPlains&&!this.plains)||(this.isFrostfire&&!this.frostfire)||(this.isWilds&&!this.wilds)||(this.isMeteorfall&&!this.meteorfall)||(this.isSunken&&!this.sunken)||(this.isIronveil&&!this.ironveil)||(this.isMineInterior&&!this.mineInterior))) {
       this.renderPerformance.suspend();
       this.lastTime=time;this.frame=requestAnimationFrame(this.tick);return;
     }
@@ -4716,7 +4770,7 @@ export class Game {
     this.cameraFocus.lerp(this.actor.position, 1 - Math.exp(-dt * 6));
     if(this.isSunken)this.cameraFocus.y=this.groundHeight(this.cameraFocus.x,this.cameraFocus.z);
     const targetGroundY = this.groundHeight(this.actor.position.x, this.actor.position.z);
-    this.actor.position.y = this.isPlains||this.isFrostfire||this.isWilds||this.isSunken||this.isIronveil||this.isMineInterior?targetGroundY:T.MathUtils.lerp(this.actor.position.y, targetGroundY, 0.18);
+    this.actor.position.y = this.isPlains||this.isFrostfire||this.isWilds||this.isMeteorfall||this.isSunken||this.isIronveil||this.isMineInterior?targetGroundY:T.MathUtils.lerp(this.actor.position.y, targetGroundY, 0.18);
     this.updateCamera(dt);
     if(this.isMineInterior&&this.mineInterior){
       this.camera.position.copy(this.mineInterior.constrainCamera(this.cameraOrbitTarget,this.camera.position,dt));
@@ -4750,6 +4804,11 @@ export class Game {
       this.camera.position.y=Math.max(this.camera.position.y,this.groundHeight(this.camera.position.x,this.camera.position.z)+1.2);this.camera.updateMatrixWorld();
       this.sunken.update(this.camera,this.hero,this.paused||document.hidden?0:dt);
       this.worldLightRig.traverse(o=>{if(o instanceof T.DirectionalLight){o.position.set(this.actor.position.x-25,this.actor.position.y+60,this.actor.position.z+20);o.target.position.copy(this.actor.position);o.target.updateMatrixWorld();}});
+    }
+    if(this.isMeteorfall&&this.meteorfall){
+      if(this.cameraMode==='follow')this.camera.position.copy(this.meteorfall.constrainCamera(this.cameraOrbitTarget,this.camera.position));
+      this.camera.updateMatrixWorld();this.meteorfall.update(this.camera,this.hero,this.paused||document.hidden?0:dt,moving&&!this.dead&&!this.paused);
+      this.worldLightRig.traverse(o=>{if(o instanceof T.DirectionalLight){o.position.set(this.actor.position.x-30,this.actor.position.y+65,this.actor.position.z+25);o.target.position.copy(this.actor.position);o.target.updateMatrixWorld();}});
     }
     if(this.isWilds&&this.wilds){
       this.camera.position.y=Math.max(this.camera.position.y,wildsGroundHeight(this.camera.position.x,this.camera.position.z)+1.2);this.camera.updateMatrixWorld();
@@ -4923,7 +4982,7 @@ export class Game {
     }
   }
   updateEnemy(e: Enemy, dt: number) {
-    if((this.isPlains||this.isFrostfire||this.isWilds||this.isSunken||this.isIronveil||this.isMineInterior)&&e.hp>0){
+    if((this.isPlains||this.isFrostfire||this.isWilds||this.isMeteorfall||this.isSunken||this.isIronveil||this.isMineInterior)&&e.hp>0){
       const nearby=this.groundDistance(e.group.position,this.actor.position)<(e.boss?160:110);
       e.group.visible=nearby && (!this.isMineInterior || mineLineOfSight(e.group.position,this.hero));
       // Only sleep healthy, idle actors at home. Death timers, damage-over-time,
@@ -5031,12 +5090,12 @@ export class Game {
       // The land approach threshold can be unreachable for a large aquatic
       // collision hull even while the player is already within attack range.
       if (aquatic ? dist >= e.attackRange : dist > (e.boss ? 3.7 : 1.4)) {
-        if(this.fieldTerrain||this.isSunken)this.followTerrain(e,this.actor.position,e.movementSpeed*movementFactor,dt);
+        if(this.fieldTerrain||this.isMeteorfall||this.isSunken)this.followTerrain(e,this.actor.position,e.movementSpeed*movementFactor,dt);
         else {const step=dt*e.movementSpeed*movementFactor;this.moveEnemy(e,dx/dist*step,dz/dist*step);}
         e.group.rotation.y = Math.atan2(-dx, -dz);
       } else if (e.cooldown <= 0) e.windup = e.boss ? 1.1 : e.definition?.attackSpeed ?? 0.65;
     } else if (this.groundDistance(e.group.position,e.home) > 1) {
-      if(this.fieldTerrain||this.isSunken)this.followTerrain(e,e.home,1.6*(1-poisonSlow),dt);
+      if(this.fieldTerrain||this.isMeteorfall||this.isSunken)this.followTerrain(e,e.home,1.6*(1-poisonSlow),dt);
       else {
         const homeX=e.home.x-e.group.position.x,homeZ=e.home.z-e.group.position.z;
         const homeDistance=Math.hypot(homeX,homeZ),step=dt*1.6*(1-poisonSlow);
@@ -5169,8 +5228,8 @@ export class Game {
         const p=this.frameProjection.set(portal.x,this.groundHeight(portal.x,portal.z)+(portal.labelHeight??5),portal.z).project(this.camera);
         // Keep the nearby entrance action reachable when the tall doorway is above the camera.
         const x=p.x*.5+.5,y=-p.y*.5+.5;
-        portal.element.style.left=`${((this.isIronveil||this.isMineInterior)?T.MathUtils.clamp(x,.3,.7):x)*100}%`;
-        portal.element.style.top=`${((this.isIronveil||this.isMineInterior)?T.MathUtils.clamp(y,.28,.72):y)*100}%`;
+        portal.element.style.left=`${((this.isMeteorfall||this.isIronveil||this.isMineInterior)?T.MathUtils.clamp(x,.3,.7):x)*100}%`;
+        portal.element.style.top=`${((this.isMeteorfall||this.isIronveil||this.isMineInterior)?T.MathUtils.clamp(y,.28,.72):y)*100}%`;
       }
     }
     for(const {npc,element,nameElement} of this.npcLabels) {
@@ -5268,10 +5327,11 @@ export class Game {
       return;
     }
 
-    const mapScale = this.isPlains||this.isFrostfire||this.isWilds||this.isSunken||this.isIronveil ? 1000/106 : this.isAverion ? 250/106 : this.fieldTerrain?.id === 'verdant-plains' ? 2 : regionScale(this.hero.inCity);
+    const mapScale = this.isPlains||this.isFrostfire||this.isWilds||this.isMeteorfall||this.isSunken||this.isIronveil ? 1000/106 : this.isAverion ? 250/106 : this.fieldTerrain?.id === 'verdant-plains' ? 2 : regionScale(this.hero.inCity);
     const p = (v: number) => size / 2 + (v * size) / (106 * mapScale);
 
     if(this.isIronveil&&this.ironveil){this.ironveil.drawMinimap(ctx,size);}
+    else if(this.isMeteorfall&&this.meteorfall) {this.meteorfall.drawMinimap(ctx,size);}
     else if(this.isWilds&&this.wilds) {this.wilds.drawMinimap(ctx,size);}
     else if(this.isSunken&&this.sunken) {this.sunken.drawMinimap(ctx,size);}
     else if(this.isFrostfire&&this.frostfire) {this.frostfire.drawMinimap(ctx,size);}
@@ -5393,7 +5453,7 @@ export class Game {
     this.cameraFocus.copy(this.actor.position);
     this.updateCamera(0);
     this.camera.updateMatrixWorld();
-    this.message(this.isWilds||this.isSunken||this.isIronveil ? (mode==='follow'?'Follow Camera - right-drag to orbit, scroll to zoom.':'Free Camera - free movement enabled.') : mode === 'follow'
+    this.message(this.isWilds||this.isMeteorfall||this.isSunken||this.isIronveil ? (mode==='follow'?'Follow Camera - right-drag to orbit, scroll to zoom.':'Free Camera - free movement enabled.') : mode === 'follow'
       ? 'Follow Camera · klik kanan-drag untuk orbit, scroll untuk zoom.'
       : 'Free Camera · kontrol kamera bebas aktif.');
     this.emit();
@@ -5429,6 +5489,7 @@ export class Game {
     this.graphicsQuality=quality;
     this.characterModel?.setQuality(quality);
     this.plains?.setQuality(quality);
+    this.meteorfall?.setQuality(quality);
     this.wilds?.setQuality(quality);
     this.sunken?.setQuality(quality);
     this.ironveil?.setQuality(quality);
@@ -5438,7 +5499,7 @@ export class Game {
     this.worldLightRig.traverse(o=>{if(o instanceof T.DirectionalLight){
       const size=profile.shadow||1024;
       if(o.shadow.mapSize.x!==size){o.shadow.map?.dispose();o.shadow.map=null;o.shadow.mapSize.setScalar(size);}
-      if(this.isWilds||this.isPlains||this.isIronveil)Object.assign(o.shadow.camera,{left:-42,right:42,top:42,bottom:-42,near:.1,far:this.isWilds?180:140});
+      if(this.isMeteorfall||this.isWilds||this.isPlains||this.isIronveil)Object.assign(o.shadow.camera,{left:-42,right:42,top:42,bottom:-42,near:.1,far:this.isWilds?180:140});
       o.shadow.camera.updateProjectionMatrix();
     }});
     this.renderPerformance.reset();
@@ -5464,6 +5525,7 @@ export class Game {
       render: { ...this.renderer.info.render }, memory: { ...this.renderer.info.memory },
       plains: this.plains?.metrics(),
       frostfire: this.frostfire?.metrics(),
+      meteorfallCitadel: this.meteorfall?.metrics(),
       whisperingWilds: this.wilds?.metrics(),
       sunkenRuins: this.sunken?.metrics(),
       ironveilMines: this.ironveil?.metrics(),
@@ -5569,7 +5631,7 @@ export class Game {
           return true;
         }
         if(typeof object.userData.npcId==='string') {this.openNpc(object.userData.npcId);return true;}
-        if((this.fieldTerrain||this.isPlains||this.isWilds||this.isSunken)&&typeof object.userData.destination==='string') {
+        if((this.fieldTerrain||this.isPlains||this.isWilds||this.isMeteorfall||this.isSunken)&&typeof object.userData.destination==='string') {
           const destinationPosition=this.isPlains?new T.Vector3(PLAINS_EXIT.x,0,PLAINS_EXIT.z):object.getWorldPosition(new T.Vector3());
           if(Math.hypot(this.hero.x-destinationPosition.x,this.hero.z-destinationPosition.z)>4.5)this.message(this.isWilds?'Move closer to the portal to travel.':'Dekati gerbang untuk berpindah wilayah.');
           else this.changeRegion(object.userData.destination,object.userData.portalId);
@@ -5709,6 +5771,7 @@ export class Game {
     if(this.frostfire){this.frostfire.dispose();this.frostfire=null;}
     if(this.ironveil){this.ironveil.dispose();this.ironveil=null;}
     if(this.mineInterior){this.mineInterior.dispose();this.mineInterior=null;}
+    if(this.meteorfall){this.meteorfall.dispose();this.meteorfall=null;}
     if(this.wilds){this.wilds.dispose();this.wilds=null;}
     if(this.sunken){this.sunken.dispose();this.sunken=null;}
     setArunikaShrineMaterials(this.shrine,null);

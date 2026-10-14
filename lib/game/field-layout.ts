@@ -1,4 +1,6 @@
 import { PLAINS_ID, plainsSafe } from './verdant-plains-layout.ts';
+import { METEORFALL_ID, meteorSafe } from './meteorfall-citadel-layout.ts';
+import { meteorMonsterSpawns } from './meteorfall-citadel-population.ts';
 import { sunkenMonsterSpawns } from './sunken-ruins-population.ts';
 import { SUNKEN_ID, sunkenSafe, sunkenInsideWall } from './sunken-ruins-layout.ts';
 import { isUnderwaterSubmap, DEEP_OCEAN_ID, ABYSAL_TRENCH_ID } from './underwater-regions.ts';
@@ -24,6 +26,7 @@ export const regionScale = (inCity: boolean) => inCity ? CITY_SCALE : FIELD_SCAL
 export const regionHalfExtent = (inCity: boolean) => FIELD_LAYOUT.oldHalfExtent * regionScale(inCity);
 export type MonsterSpawn = { id: number; x: number; z: number; definition: MonsterDefinition };
 export function isFieldSafe(fieldId: string, x: number, z: number, margin = 0) {
+  if(fieldId===METEORFALL_ID)return meteorSafe({x,z},margin);
   if(fieldId===DEEP_OCEAN_ID)return deepOceanSafe({x,z},margin);
   if(fieldId===ABYSAL_TRENCH_ID)return abysalTrenchSafe({x,z},margin);
   if(isUnderwaterSubmap(fieldId))return true;
@@ -42,6 +45,7 @@ export function isFieldWater(x: number, z: number, margin = 0) {
   return ((x / FIELD_SCALE - 24) / (11.8 + margin)) ** 2 + ((z / FIELD_SCALE + 3) / (7.5 + margin)) ** 2 < 1;
 }
 export function fieldSpawns(field: FieldDefinition): MonsterSpawn[] {
+  if(field.id===METEORFALL_ID)return meteorMonsterSpawns(field);
   if(field.id===DEEP_OCEAN_ID)return deepOceanMonsterSpawns(field);
   if(field.id===ABYSAL_TRENCH_ID)return trenchMonsterSpawns(field);
   if(field.id===SUNKEN_ID)return sunkenMonsterSpawns(field);

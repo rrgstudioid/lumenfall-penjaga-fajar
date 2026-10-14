@@ -1,0 +1,60 @@
+METEORFALL CITADEL - WORLD-SPACE FIRE PARTICLES
+15 October 2026, Asia/Bangkok
+Baseline HEAD: 3df72dc08220c75742a12936c67e77adf9ea5cab (unchanged)
+Local changes only; no commit, push, publication, or new paid generation.
+
+OWNER REQUEST
+Particles appear attached to the camera/walking character. Follow Frostfire
+Highlands' particle system while retaining the existing fire grains.
+
+CAUSE AND FIX
+Meteorfall previously reconstructed every particle position from the hero's
+position on every frame, including its vertical reference. This translated the
+whole cloud whenever the hero moved.
+
+The implementation now follows the persistent world-position and bounded
+recycling approach inspected in lib/game/frostfire-weather.ts:
+- Live particles integrate their own gentle drift and upward motion.
+- Camera movement only changes the local recycling window. It does not translate
+  live particles. Large camera jumps initialize a new local pool.
+- Particles wrap at distant bounds and fade at the boundary and birth/death.
+- Ground sampling is staggered; individual particles recycle above local ground.
+- Existing orange color (#ff9b36), size (0.16), additive glow and quality caps
+  (256 / 512 / 768 / 1024) remain. One Points draw call, no new texture or light.
+- Ground footprints, Frostfire's implementation, population (294), equipment,
+  combat, saves and other existing work are unchanged by this revision.
+
+FILES
+lib/game/meteorfall-citadel-embers.ts - particle pool and renderer
+lib/game/meteorfall-citadel-map.ts - lifecycle, quality and diagnostic integration
+lib/game/meteorfall-citadel-embers.test.ts - movement/recycling regression tests
+scripts/test-meteorfall-embers-browser.mjs - actual app/browser verification
+
+VERIFICATION
+PASS 20/20 targeted tests: embers, Meteorfall layout/navigation/population,
+surfaces, footprints and Frostfire Highlands.
+PASS TypeScript noEmit, targeted oxlint, git diff --check and production build.
+Existing npm, chunk-size and Vinext route-classification warnings remain.
+
+PASS isolated memory-only browser fixture (owner saves not accessed):
+- Hero displacement and camera orbit do not translate live particles.
+- Camera translation/elevation: 214 live interior particles move only by their
+  own drift/rise, with no added camera displacement.
+- Actual W movement: hero travels 16.77 units; 141 of 144 tracked live particles
+  retain natural motion, while the other three recycle.
+- All four quality caps, large camera jump, color/size, identity mesh transform,
+  and 294 enemies verified. No runtime/shader errors recorded.
+- Ember geometry and material are disposed on map exit; re-entry creates a new
+  pool. Screenshots confirm the retained fire-grain rendering.
+
+Warm Medium benchmark: RTX 3060 Laptop, Chrome 155 headless/ANGLE D3D11,
+1440 x 900, 1.2-second warm-up and approximately 4.2-second samples per view.
+Arrival / bridge / citadel: median 60 FPS; p95 16.9 / 17.1 / 17.0 ms.
+These short local samples are not a general hardware guarantee. GPU timestamps,
+cold shader compilation and real multiplayer were not measured.
+
+EVIDENCE
+work/meteorfall-citadel/revision4/{tests,types,lint,build}.log
+work/meteorfall-citadel/revision4/browser-report.json
+work/meteorfall-citadel/revision4/world-space-fire.png
+work/meteorfall-citadel/revision4/embers-view.png

@@ -1,0 +1,107 @@
+{
+  "layoutVersion": 1,
+  "originalAssetsUnmodified": true,
+  "records": [
+    {
+      "asset": "basalt",
+      "sourceArchive": "D:\\Lumenfall\\Master_ Material_ Lumenfall\\Rock_Cliff\\dark_rock_2k.blend.zip",
+      "sourceSha256": "38089bc792e588a8bbeaf3c5637bf06d9576e0eac2d984c3bb3543d20e75831c",
+      "diffuseEntry": "textures/dark_rock_diff_2k.jpg",
+      "normalSource": "textures/dark_rock_disp_2k.png"
+    },
+    {
+      "asset": "paving",
+      "sourceArchive": "D:\\Lumenfall\\Master_ Material_ Lumenfall\\Terrain\\stone_tiles_02_2k.blend.zip",
+      "sourceSha256": "0e51d44fc435e31238111815a4e74451a236567f54255a3966b4e641a1055723",
+      "diffuseEntry": "textures/stone_tiles_02_diff_2k.jpg",
+      "normalSource": "textures/stone_tiles_02_disp_2k.png"
+    },
+    {
+      "asset": "masonry",
+      "sourceArchive": "D:\\Lumenfall\\Master_ Material_ Lumenfall\\Stone_Architecture\\castle_brick_01_2k.blend.zip",
+      "sourceSha256": "b4016798c9f07016644f8b7c7e87b2641a2359c6419e5f7d352858d13d73b70a",
+      "diffuseEntry": "textures/castle_brick_01_diff_2k.jpg",
+      "normalSource": "textures/castle_brick_01_disp_2k.png"
+    },
+    {
+      "asset": "sky",
+      "source": "output\\chaotic-sky\\exported\\t_chaotic_skies_01.tga",
+      "sourceSha256": "5059447f568e00fe3dcea6fa2558817dbf1302eea88c29aee18b943ac684e6e7",
+      "processing": "2048 square; 64px wrap blend; source variant 01 unchanged",
+      "license": "Owner-supplied Chaotic Skies; no AI input"
+    },
+    {
+      "asset": "meteor",
+      "source": "work\\meteorfall-citadel\\tripo-out\\meteorfall-meteor-monolith-d89d6e0d\\model.glb",
+      "sourceSha256": "407330ce1556ef4504577205b2dc0412ac916ad0553a308b47b0c97f3b4008d5",
+      "taskId": "d89d6e0d-4162-441b-9e0d-c1c91e226199",
+      "model": "P1-20260311",
+      "credits": 30,
+      "sourceTriangles": 5494,
+      "triangles": 2788,
+      "watertight": true,
+      "processing": "Local trimesh plane slice at y=-0.285, largest connected component, simple hole repair, base pivot; no Blender cleanup claimed"
+    }
+  ],
+  "reusedRuntimeGeometry": [
+    "/assets/maps/ironveil-mines-exterior-v1/rock.glb",
+    "/assets/maps/ironveil-mines-exterior-v1/rock-face.glb"
+  ],
+  "concepts": [
+    {
+      "jobId": "24735724-d0b1-4a0b-ada2-c296ab835519",
+      "model": "seedream_v4_5",
+      "quality": "basic",
+      "estimatedCredits": 1
+    },
+    {
+      "jobId": "0c159e7b-0a85-4a3a-818f-bf649d9df784",
+      "model": "seedream_v4_5",
+      "quality": "basic",
+      "estimatedCredits": 1
+    }
+  ],
+  "blenderInspection": "Unavailable; modular fort not accepted or imported",
+  "outputs": [
+    {
+      "file": "basalt-normal.webp",
+      "bytes": 35974,
+      "sha256": "53bf0a88001b85d6eddc02261d6af03f935a3e510e723d75ce86bacc6d153f10"
+    },
+    {
+      "file": "basalt.webp",
+      "bytes": 86696,
+      "sha256": "6a2b55a042f27ab8119d2ae74425650e5cad92fde08d48d30b78173c9543043e"
+    },
+    {
+      "file": "chaotic-sky-01.webp",
+      "bytes": 195296,
+      "sha256": "b3fab2b9df6f8e1b03bc5952491f49e95fee5e14d68bd06d638df77a54a9dfd1"
+    },
+    {
+      "file": "masonry-normal.webp",
+      "bytes": 124476,
+      "sha256": "36f34dd6170c3c60fa51c6e1c7a904a37c11481c162a2e285bd81c88afe763f2"
+    },
+    {
+      "file": "masonry.webp",
+      "bytes": 429658,
+      "sha256": "76b76dfe1a170282659339389c50a9aece24c4b5844f65fd0723a2e3315cd87c"
+    },
+    {
+      "file": "meteor-monolith.glb",
+      "bytes": 73748,
+      "sha256": "b53ca8ca2a99d66cca61d4a0a2aa406fb26ce44a4014340b84d02820d25f1b23"
+    },
+    {
+      "file": "paving-normal.webp",
+      "bytes": 118896,
+      "sha256": "be319f68aa700490e81577a1e46ad8399a82bc35b97627cb6fa4a5eee89c4d4d"
+    },
+    {
+      "file": "paving.webp",
+      "bytes": 296438,
+      "sha256": "1d14b32cd0283ef66e191e38d2790d544f77ac6880950972af87aa364b9d1849"
+    }
+  ]
+}

@@ -1,0 +1,147 @@
+CATATAN REVISI: Laporan ini merekam tahap awal. Roster 42 dan batas tidak menambah monster
+berlaku pada tahap tersebut saja. Hasil terbaru adalah 288 normal + 5 elite + 1 boss,
+pemulihan empat armor Dragon Veil, penghapusan Gloves, jalan dan jejak magma.
+Lihat docs/meteorfall-citadel-revision-3.txt untuk perubahan, authority, dan QA terbaru.
+
+METEORFALL CITADEL — IMPLEMENTATION AND QA
+Tanggal: 14 October 2026
+Workspace: D:\lumenfall-penjaga-fajar
+Baseline Git: 3df72dc08220c75742a12936c67e77adf9ea5cab
+Hasil: perubahan lokal belum di-commit; tidak ada push, merge, upload runtime, atau deployment.
+
+OTORITAS DAN BATAS PERUBAHAN
+Sumber scope adalah rencana Meteorfall Citadel yang diminta owner untuk diimplementasikan,
+reference gambar owner, dan persetujuan batch 2 kredit Higgsfield + 30 kredit Tripo.
+Continuity menggunakan handoff/constraints terpilih, termasuk
+docs/gameplay-authority/canonical/HANDOFF.txt; bukan klaim membaca seluruh cabang CLASS DI LUMENFALL.
+Koordinat rencana merupakan rekonstruksi gameplay yang disetujui, bukan pengukuran artwork.
+Data 36 normal, 5 elite, 1 boss dipertahankan sebagai kompatibilitas runtime; tidak ditetapkan
+sebagai balance canonical baru. Tidak ada perubahan formula combat, skill, stats, loot, reward,
+quest, atau progression. accuracy-evasion-fixture.ts tidak diubah.
+
+YANG DIIMPLEMENTASIKAN
+- Field lama diganti pada ID meteorfall-citadel; World Map M tetap satu entry dengan access
+  checks lama. Return portal memakai koneksi Jayantara yang sudah ada.
+- Domain 1000 x 1000: 11 platform octagonal, 14 jembatan, entrance causeway, landing ramps,
+  elevations, safe Arrival Bastion, serta spawn anchors sesuai tabel rencana.
+- Layout tunggal menjadi sumber render top mesh, raycast, ground height, collision,
+  navigation, spawn validation, save recovery, dan minimap. Jurang tidak diberi ground plane.
+- Permukaan platform memakai triangle fan sel 4 unit. Height query mengikuti triangulasi
+  yang sama; overlap visual 0.001 unit pada ujung deck mengatasi pembulatan float32.
+- Swept movement dan radius clearance pada union platform/deck; pools, outfall channels,
+  magma channels, parapets, pylons, dan fortress walls menjadi obstacle yang sesuai.
+  Routing memakai portal/visibility graph kecil dengan cache radius dan detour lokal.
+- Seluruh displacement runtime menggunakan jalur movement map yang sama. Jarak auto-approach,
+  aggro, leash, attack range, dan pursuit tidak dinaikkan untuk mengimbangi skala dunia.
+- Floating cliff shells meruncing, shared PBR stone materials, batu Ironveil yang di-instance,
+  bridge parapets/supports, open courtyard radius 55, ring radius 95, 12 pylons, floor emblems,
+  satu meteor tinggi di atas arena, beam, empat outfalls, embers, dan smoke ber-distance fade.
+- Runtime sky terpisah memakai turunan Chaotic Skies 01, grading crimson, dua/tiga noise layers,
+  gerakan perlahan, lower hemisphere, dan pulse 3%. Source sky dan Whispering Wilds tidak diubah.
+- Empat quality profiles memakai cap ember 256/512/768/1024 dan smoke 8/12/20/28.
+  Satu sky draw; tidak ada point light tambahan. Preferensi DPR/shadow global tetap digunakan.
+- Lazy loader, loading guard, retry, stale-build disposal, camera clearance, lighting restoration,
+  metrics, resource disposal termasuk instance buffers, dan English map/NPC presentation.
+- Layout version 1: save Meteorfall lama dipindah sekali ke arrival; save baru yang valid
+  dipertahankan. Koordinat invalid memakai last-safe valid atau arrival tanpa damage.
+  Inventory, quest baselines/completions, boss history, IDs dan key/deadline respawn tetap.
+
+FILE UTAMA
+Baru: lib/game/meteorfall-citadel-{layout,navigation,population,save-migration,quality,
+materials,sky,map}.ts dan meteorfall-citadel.test.ts.
+Integrasi: lib/game/world.ts, regions.ts, field-layout.ts, rules.ts, app/page.tsx.
+Aset: public/assets/maps/meteorfall-citadel/ dan provenance.json.
+Pipeline: scripts/prepare-meteorfall-assets.py.
+Browser: tests/browser/meteorfall-citadel.{html,tsx}, scripts/test-meteorfall-browser.mjs,
+scripts/test-meteorfall-combat-browser.mjs. Fixture memakai memory-only storage dan browser
+terpisah; save dan preferensi owner tidak dibaca/ditulis oleh fixture.
+
+ASET DAN BIAYA
+Runtime baru: 9 file, 1,365,143 bytes termasuk manifest; estimasi decoded texture memory
+dengan mipmaps 53.33 MiB. Dua GLB batu Ironveil direferensikan tanpa membuat salinan runtime.
+Diffuse dark_rock, stone_tiles_02, castle_brick_01 diambil dari arsip lokal; normal turunan
+dihitung dari displacement, bukan mengklaim memakai normal EXR asli. Basalt mendapat grading
+material runtime agar sisi tebing terbaca. Hash source/output dicatat dalam provenance.json.
+
+Higgsfield: tepat dua konsep Seedream 4.5 basic, 1:1, estimasi masing-masing 1 kredit:
+  24735724-d0b1-4a0b-ada2-c296ab835519 — Citadel Modular Study
+  0c159e7b-0a85-4a3a-818f-bf649d9df784 — Meteor Monolith Study
+Konsep disimpan di work/meteorfall-citadel/concepts/. Reference owner diunggah hanya untuk
+batch konsep yang disetujui. Tidak ada retry berbayar atau generasi tambahan.
+
+Tripo: task d89d6e0d-4162-441b-9e0d-c1c91e226199; CLI tripo-p1, API P1-20260311;
+text-to-model, face_limit 6000, texture=false, pbr=false. Biaya aktual yang dilaporkan: 30 kredit.
+Original 5,494 triangles dipertahankan di staging. Turunan lokal membuang plinth, menggabungkan
+vertex seams, menutup cut, mempertahankan komponen utama, memperbaiki pivot dan normals:
+2,788 triangles, watertight, GLB 73,748 bytes. Cleanup dilakukan dengan trimesh, bukan Blender.
+Original libraries, original .blend, original sky, dan output Tripo mentah tidak ditimpa.
+
+VERIFIKASI
+PASS — 73/73 tests:
+node --experimental-transform-types --test lib/game/meteorfall-citadel.test.ts
+  lib/game/field-terrain.test.ts lib/game/field-quest-travel.test.ts
+  lib/game/whispering-wilds.test.ts lib/game/sunken-ruins-save-migration.test.ts
+  lib/game/canonical-gameplay.test.ts
+Perintah di atas dijalankan sebagai satu baris. Mencakup seluruh koneksi dua arah,
+radius 0.45/0.55/1.8/4, long/diagonal displacement, obstacles, graph connectivity, IDs,
+save lama/baru/invalid/reload, inventory, quest, boss timers, gate level 41/42, return city.
+PASS — tsc --noEmit --pretty false; oxlint terarah; git diff --check.
+PASS — npm run build. Warning tersisa: konfigurasi npm proyek, chunks >500 kB,
+dan klasifikasi route Vinext; build selesai dengan exit 0.
+
+PASS — browser runtime Chrome 155 headless, ANGLE D3D11, NVIDIA GeForce RTX 3060 Laptop,
+viewport 1440 x 900, device DPR 1, quality global yang sudah ada:
+- 42 enemies dan satu NPC; akses M, dialog layanan NPC, actual return portal dan kembali M.
+- 28 traversal jembatan di Game.move; radius monster terbesar terdeteksi 1.8.
+- Selisih raycast/height maksimum 0.0000017929 unit, termasuk offset kiri/tengah/kanan;
+  raycast jurang menghasilkan nol hit.
+- 480 kombinasi orbit/zoom/pitch di arrival, intersection, bridge, arena dan dekat pylon;
+  tidak ada camera obstruction yang lolos pemeriksaan fixture.
+- Abort load GLB menahan gerak; tombol Retry memulihkan map. Overlapping travel ditolak.
+- Sepuluh keluar-masuk: seluruh instance buffer menerima disposal; setelah keluar, stabil
+  pada 125 geometries, 9 textures, 11 city NPC labels, 0 portal labels.
+- Basic attack, executor dash pemain, knockback pemain/normal/boss, kill progression,
+  boss history, exact respawn deadlines setelah round trip, recovery invalid tanpa HP loss.
+- Tidak ada unexpected runtime/shader error.
+
+BENCHMARK WARM RUNTIME (5 lokasi x 2 quality)
+Setiap lokasi diberi warm-up 1.2 detik, collector di-reset, lalu sampel sekitar 4.2 detik.
+Low: median 60 FPS; p95 17.0–17.1 ms.
+Medium: median 60 FPS; p95 16.8–17.1 ms.
+Environment render terpisah dari actor/enemies: 22–92 draw calls, 101,010–208,734 triangles
+pada frame sampel. Ini measured views, bukan klaim worst-case seluruh dunia atau GPU timing.
+Fixture 4/12 static player proxies: median 60 FPS, p95 16.8/17.0 ms.
+Proxy berbagi aset actor dan tidak punya networking maupun independent animation.
+CPU submission dicatat terpisah; GPU timestamp tidak diukur. Cold loading/shader compilation
+tidak termasuk target warm FPS dan memperlihatkan spike pada log initial state.
+
+EVIDENCE LOKAL
+work/meteorfall-citadel/{unit-tests,types,lint,build,browser-tests,combat-tests}.log
+work/meteorfall-citadel/qa/runtime-report.json
+work/meteorfall-citadel/qa/combat-report.json
+work/meteorfall-citadel/qa/overview.png — keseluruhan runtime, tanpa overlay HUD
+work/meteorfall-citadel/qa/{arrival,world-map,entry-medium,bridge-medium,citadel-medium}.png
+work/meteorfall-citadel/qa/meteor-cleaned-preview.png — meteor dengan material runtime
+Gambar failure/brightness/material lama di staging adalah diagnostik iterasi, bukan hasil final.
+
+BATAS YANG MASIH BERLAKU
+Blender MCP addon tidak dapat dihubungi. Inspeksi modular_fort_01, cleanup/export via Blender,
+dan review artistik di Blender belum selesai. Fort itu tidak diimpor/dinyatakan cocok.
+Architecture/terrain runtime memakai geometry procedural dan reuse aset yang terverifikasi.
+Fidelity merupakan rekonstruksi gameplay sederhana; belum menyamai detail ilustrasi reference.
+Tidak ada full terrain LOD remesh; detail batu di-cull berdasarkan jarak dengan surface tetap.
+High/Ultra profiles tersedia; benchmark FPS khusus keduanya belum dilakukan.
+Uji dash memanggil executor geraknya; ini bukan regression UI untuk seluruh skill setiap job.
+Tidak ada pembuktian multiplayer, endurance test lama, atau jaminan FPS perangkat lain.
+Roster 42 membuat hunting lebih jarang dibanding field kecil lama; tidak ada penambahan spawn.
+
+REFERENCE CROSS-CHECK, 14 OCTOBER 2026
+Chaotic Skies listing menjelaskan matte paintings, sky dome dan flowmap animation:
+https://www.fab.com/listings/967505ae-397f-498a-ab4e-1166ff3d2978?lang=en
+Yang dipertahankan di sini: painted-cloud depth dan motion. Yang diadaptasi: crimson palette,
+noise drift, lower hemisphere. Ini shader Three.js lokal, bukan port Blueprint/flowmap Unreal.
+Source Chaotic Skies tidak dikirim sebagai input generasi AI.
+Three.js InstancedMesh documentation:
+https://threejs.org/docs/pages/InstancedMesh.html
+Geometry/material yang sama dipakai ulang per kelompok spasial, bounding sphere dihitung,
+dan instance buffer dilepas saat disposal. Local engine tetap Three.js 0.180.0.

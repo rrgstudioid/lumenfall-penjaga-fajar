@@ -1,4 +1,5 @@
 import { CHARACTER_RULES } from './canonical-config.ts';
+import { METEORFALL_ID, METEORFALL_ENTRY, METEORFALL_EXIT, METEORFALL_NPC, METEORFALL_PLATFORMS } from './meteorfall-citadel-layout.ts';
 import { IRONVEIL_ID, IRONVEIL_ENTRY, IRONVEIL_ENTRANCE, IRONVEIL_POCKETS } from './ironveil-mines-layout.ts';
 import { PLAINS_ID, PLAINS_ENTRY, PLAINS_EXIT } from './verdant-plains-layout.ts';
 import { WILDS_ID, WILDS_ENTRY, WILDS_LANDMARKS } from './whispering-wilds-layout.ts';
@@ -212,6 +213,8 @@ fieldDefinitions[ABYSAL_TRENCH_ID]={
  dropTable:[...sunkenContent.dropTable],materialTable:sunkenContent.materialTable.map(m=>({...m})),recommendedLevel:'58–60',maxLevel:60,
  subAreas:['Trench Landing','Tectonic Maze','Tectonic Basin'],entry:{...ABYSAL_TRENCH_ENTRY},exit:{x:0,z:350},color:'#0b2943',
 };
+// Environment replacement only: keep the existing content, access and quest definitions.
+Object.assign(fieldDefinitions[METEORFALL_ID], {displayName:'Meteorfall Citadel',codename:'Meteorfall Citadel',entry:{...METEORFALL_ENTRY},exit:{x:METEORFALL_EXIT.x,z:METEORFALL_EXIT.z},subAreas:METEORFALL_PLATFORMS.map(p=>p.name),color:'#3a0b16'});
 export const FIELDS: Record<string, FieldDefinition> = Object.fromEntries([
  [PLAINS_ID, fieldDefinitions[PLAINS_ID]],
  ...Object.entries(fieldDefinitions).filter(([id])=>id!==PLAINS_ID&&id!=='verdant-plains'&&id!==WILDS_ID&&id!==IRONVEIL_ID)
@@ -242,6 +245,7 @@ export const FIELD_NPCS: Record<string, NpcDefinition> = {
  'meteorfall-citadel': {id:'field-npc-meteor',name:'Penjaga Benteng Meteor',type:'merchant',service:'field-camp',services:['buy','sell','teleport','quest'],interactionRange:2.5,shopInventory:[],description:'Quest field, teleport, dan toko kebutuhan farming Benteng Hujan Meteor.',x:-26,z:28,fieldId:'meteorfall-citadel'},
 };
 
+Object.assign(FIELD_NPCS[METEORFALL_ID],METEORFALL_NPC,{name:'Citadel Warden',description:'Field quests, travel, and supplies at Arrival Bastion.'});
 FIELD_NPCS['east-gate-arunika']={id:'field-npc-east-gate',name:'Penjaga Pos Timur',type:'merchant',service:'field-camp',services:['buy','sell','teleport','quest'],interactionRange:2.5,shopInventory:[],description:'Perbekalan, perjalanan, dan misi perbatasan East Gate Arunika.',x:-38,z:28,fieldId:'east-gate-arunika'};
 Object.assign(FIELD_NPCS['east-gate-arunika'],EAST_GATE_TERRAIN.camp);
 export function monsterXP(monster:MonsterDefinition, playerLevel:number) { return Math.max(1, Math.floor(monster.exp * Math.max(0.05, 1 - Math.max(0, playerLevel-monster.level-5)*0.08))); }

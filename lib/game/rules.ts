@@ -7,6 +7,8 @@ import { MINE_ID, MineNavigation } from './ironveil-interior-layout.ts';
 import { IRONVEIL_ID, IronveilNavigation } from './ironveil-mines-layout.ts';
 import { SUNKEN_ID, SUNKEN_LAYOUT_VERSION } from './sunken-ruins-layout.ts';
 import { migrateSunkenSave, SunkenQuestMigrationHold } from './sunken-ruins-save-migration.ts';
+import { migrateMeteorfallSave } from './meteorfall-citadel-save-migration.ts';
+import { METEORFALL_ID, METEORFALL_LAYOUT_VERSION } from './meteorfall-citadel-layout.ts';
 import { DEEP_OCEAN_ENTRY, ABYSAL_TRENCH_ID, ABYSAL_TRENCH_ENTRY, isUnderwaterSubmap } from './underwater-regions.ts';
 import { abysalTrenchWalkable } from './abysal-trench-layout.ts';
 import { deepOceanWalkable } from './deep-ocean-layout.ts';
@@ -368,6 +370,7 @@ export type Hero = PrimaryHotbarState & {
   interiorId?: typeof MINE_ID;
   frostfireLayoutVersion?: number;
   sunkenLayoutVersion?: number;
+  meteorfallLayoutVersion?: number;
   inCity: boolean;
   unlockedCities: string[];
   unlockedFields: string[];
@@ -613,6 +616,7 @@ export function freshHero(
     currentCity: 'arunika', currentField: PLAINS_ID, inCity: true,
     frostfireLayoutVersion: FROSTFIRE_LAYOUT_VERSION,
     sunkenLayoutVersion: SUNKEN_LAYOUT_VERSION,
+    meteorfallLayoutVersion: METEORFALL_LAYOUT_VERSION,
     unlockedCities: ['arunika'], unlockedFields: startingFieldIds(),
     completedQuests: [], acceptedQuests: [], activeQuests: [], questCooldowns: {}, cityProgress: {}, fieldProgress: {}, defeatedFieldBosses: [], defeatedBossTimestamp: {}, monsterRespawnState: {}, storage: [],
     characterId: `${slotId}-character`,
@@ -2637,6 +2641,7 @@ function normalizedHero(value: Record<string, unknown>, slotId = 'slot-1') {
   value = migrateWildsSave(value);
   value = migrateIronveilSave(value);
   value = migrateSunkenSave(value);
+  value = migrateMeteorfallSave(value);
   const oldSave = value.version === 1 || value.version === 2;
   const id = typeof value.slotId === 'string' ? value.slotId : slotId;
   const name =
@@ -2725,8 +2730,8 @@ function normalizedHero(value: Record<string, unknown>, slotId = 'slot-1') {
     weapon: integer(value.weapon, 0, 20, 0),
     questClaimed: value.questClaimed === true,
     bossDefeated: value.bossDefeated === true,
-    x: value.inCity===false&&(value.currentField===PLAINS_ID||value.currentField===FROSTFIRE_ID||value.currentField===WILDS_ID||value.currentField===IRONVEIL_ID||value.currentField===SUNKEN_ID||isUnderwaterSubmap(String(value.currentField))) ? (typeof value.x==='number'?value.x:NaN) : integer(value.x, 1-regionHalfExtent(value.inCity !== false), regionHalfExtent(value.inCity !== false)-1, 0),
-    z: value.inCity===false&&(value.currentField===PLAINS_ID||value.currentField===FROSTFIRE_ID||value.currentField===WILDS_ID||value.currentField===IRONVEIL_ID||value.currentField===SUNKEN_ID||isUnderwaterSubmap(String(value.currentField))) ? (typeof value.z==='number'?value.z:NaN) : integer(value.z, 1-regionHalfExtent(value.inCity !== false), regionHalfExtent(value.inCity !== false)-1, 7),
+    x: value.inCity===false&&(value.currentField===PLAINS_ID||value.currentField===FROSTFIRE_ID||value.currentField===WILDS_ID||value.currentField===METEORFALL_ID||value.currentField===IRONVEIL_ID||value.currentField===SUNKEN_ID||isUnderwaterSubmap(String(value.currentField))) ? (typeof value.x==='number'?value.x:NaN) : integer(value.x, 1-regionHalfExtent(value.inCity !== false), regionHalfExtent(value.inCity !== false)-1, 0),
+    z: value.inCity===false&&(value.currentField===PLAINS_ID||value.currentField===FROSTFIRE_ID||value.currentField===WILDS_ID||value.currentField===METEORFALL_ID||value.currentField===IRONVEIL_ID||value.currentField===SUNKEN_ID||isUnderwaterSubmap(String(value.currentField))) ? (typeof value.z==='number'?value.z:NaN) : integer(value.z, 1-regionHalfExtent(value.inCity !== false), regionHalfExtent(value.inCity !== false)-1, 7),
     skillPoints: integer(value.skillPoints, 0, 500, Math.max(0, level - 1)),
     statPoints: integer(value.statPoints, 0, 999, Math.max(0, level - 1) * STAT_POINTS_PER_LEVEL),
     allocatedStats,
@@ -2883,6 +2888,14 @@ function normalizedHero(value: Record<string, unknown>, slotId = 'slot-1') {
     ...item,
     isEquipped: equippedIds.has(item.id),
   }));
+  // Retiring an equipped glove must not overflow the bag or lose the instance.
+  const legacyGloveId = value.equipment && typeof value.equipment === 'object'
+    ? (value.equipment as Record<string, unknown>).gloves : undefined;
+  const retiredGlove = typeof legacyGloveId === 'string' ? h.inventory.find(i => i.id === legacyGloveId && i.equipmentType === 'gloves') : undefined;
+  if (retiredGlove && h.inventory.filter(i => !i.isEquipped).length > h.inventoryCapacity) {
+    h.inventory = h.inventory.filter(i => i.id !== retiredGlove.id);
+    if (!h.pendingLoot.some(i => i.id === retiredGlove.id)) h.pendingLoot.push(retiredGlove);
+  }
   retireUnusedNormalItems(h);
   reconcileHeroSkillFamilies(h);
   const currentSkills = activeSkills(h);
