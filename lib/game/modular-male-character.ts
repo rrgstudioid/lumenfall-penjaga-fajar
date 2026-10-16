@@ -1,5 +1,11 @@
-import { createDragonVeilVisual, applyDragonVeilCoverage } from './dragon-veil-model.ts';
-import type { DragonVeilLoadout, DragonVeilEnhancements } from './dragon-veil.ts';
+import {
+  createDragonVeilVisual,
+  applyDragonVeilCoverage,
+} from './dragon-veil-model.ts';
+import type {
+  DragonVeilLoadout,
+  DragonVeilEnhancements,
+} from './dragon-veil.ts';
 import * as T from 'three';
 import {
   GLTFLoader,
@@ -163,13 +169,16 @@ export async function loadModularMaleCharacter(
   }
   let currentBodyLease = bodyLease;
   const bodyMaterial = createMaleBodyMaterial(textures, appearance),
-    hairMaterial = createMaleHairMaterial(appearance),
-    sourceHairMaterial = createMaleHairMaterial(appearance, textures);
+    hairMaterial = createMaleHairMaterial(appearance, textures);
   bodyMaterial.userData.modularOwned = true;
   applyDragonVeilCoverage(bodyMaterial, equipment);
-  const equipmentVisual = createDragonVeilVisual(scene, body, equipment, enhancements);
+  const equipmentVisual = createDragonVeilVisual(
+    scene,
+    body,
+    equipment,
+    enhancements,
+  );
   hairMaterial.userData.modularOwned = true;
-  sourceHairMaterial.userData.modularOwned = true;
   for (const mesh of meshes(scene)) {
     mesh.material = bodyMaterial;
     mesh.customDepthMaterial = bodyMaterial.userData.depthMaterial;
@@ -233,10 +242,7 @@ export async function loadModularMaleCharacter(
             slot,
             path,
             lease,
-            mesh: bindMesh(
-              meshes(lease.value.scene)[0],
-              path.includes('/hair_01-') ? sourceHairMaterial : hairMaterial,
-            ),
+            mesh: bindMesh(meshes(lease.value.scene)[0], hairMaterial),
           };
         }),
       );
@@ -285,11 +291,9 @@ export async function loadModularMaleCharacter(
       lod = nextLOD;
       bodyMaterial.userData.applyAppearance(desired);
       hairMaterial.color.set(desired.hairColor);
-      sourceHairMaterial.color.set(desired.hairColor);
       if (newTextures) {
         bodyMaterial.userData.setTextures(newTextures);
-        sourceHairMaterial.map = newTextures.base;
-        sourceHairMaterial.normalMap = newTextures.normal;
+        hairMaterial.map = newTextures.hair;
         textures.release();
         textures = newTextures;
         textureSize = desiredSize;
@@ -314,7 +318,6 @@ export async function loadModularMaleCharacter(
     equipmentVisual.dispose();
     bodyMaterial.dispose();
     hairMaterial.dispose();
-    sourceHairMaterial.dispose();
     currentBodyLease.release();
     textures.release();
   };

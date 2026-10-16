@@ -1,317 +1,525 @@
 {
+  "sources": [
+    {
+      "file": "male character bald 3d model.glb",
+      "sha256": "0e9152889ab1b768f9c269fb5419d4cc025f88528f64ef9917a373976a0a98fd"
+    },
+    {
+      "file": "10 hair styles 3d model.glb",
+      "sha256": "7022d7460e27de43e734d65f73b2baecc448002571c9ade9a61a0e46345353a9"
+    }
+  ],
+  "sourceTriangles": 4690,
+  "geometryPolicy": "Owner bald body with A-to-T rest adaptation; original face and UVs. Ten separated owner hairstyles fitted to the supplied scalp. Original files read-only.",
+  "hairPolicy": "Source strand detail and UVs retained at LOD0; remove cornrow display scalp and loose remnants, seat braids, fit rear locks to nape. No generated root cap, no per-vertex scalp clamp, no voxel remesh. Lower LODs preserve separate locks. Mohawk crest repositioned and tilted onto the scalp; root contact fitted against each body LOD, narrow rear tip tucked under the scalp. Ponytail swept base refitted with local textured infill at exposed gaps; bowl fitted lower and narrower; cornrow rear connections repaired with source braid sections and small tube holes closed. No shared basic hair added. Messy Spikes rear locks seated closer to the skull; 125 local triangles fill rear/side gaps exposed in horizontal rear-quarter views. Front and crown spikes retained. No shared basic hairstyle. Messy Spikes excess radius reduced by 28% relative to the actual skull, retaining spike directions and scalp coverage. Long Hair Tied right temple base extended with local textured infill above the ear. Independent component clearance avoids LOD inflation. No shared basic hairstyle. Long Hair Tied swept rear roots extended and seated against the skull beneath the side tie; local source-textured infill covers the lower rear gaps with a fitted nape boundary. Prior right-temple coverage retained. No shared basic hairstyle.",
+  "body": [
+    4690,
+    3600,
+    1800,
+    850
+  ],
+  "hair": {
+    "hair_01": [
+      3548,
+      2306,
+      1242,
+      710
+    ],
+    "hair_02": [
+      10893,
+      7079,
+      3812,
+      1633
+    ],
+    "hair_03": [
+      2740,
+      1780,
+      958,
+      410
+    ],
+    "hair_04": [
+      6666,
+      4332,
+      2332,
+      999
+    ],
+    "hair_05": [
+      6837,
+      4443,
+      2393,
+      1025
+    ],
+    "hair_06": [
+      3996,
+      2596,
+      1398,
+      598
+    ],
+    "hair_07": [
+      5639,
+      3664,
+      1974,
+      845
+    ],
+    "hair_08": [
+      7310,
+      5200,
+      3500,
+      1600
+    ],
+    "hair_09": [
+      5217,
+      3391,
+      1825,
+      782
+    ],
+    "hair_10": [
+      5636,
+      3663,
+      1973,
+      1409
+    ]
+  },
+  "hairFit": [
+    {
+      "style": 1,
+      "sourceFaces": 3429,
+      "scale": 2.45,
+      "crown": 0.575,
+      "maxScalpFit": 0.1096138014434772,
+      "addedScalpFaces": 0,
+      "addedRepairFaces": 119,
+      "removedSourceScalpFaces": 0
+    },
+    {
+      "style": 2,
+      "sourceFaces": 10893,
+      "scale": 2.65,
+      "crown": 0.55,
+      "maxScalpFit": 0.05165150946871326,
+      "addedScalpFaces": 0,
+      "removedSourceScalpFaces": 0
+    },
+    {
+      "style": 3,
+      "sourceFaces": 2740,
+      "scale": 2.5,
+      "crown": 0.52,
+      "maxScalpFit": 0.10193763919077967,
+      "addedScalpFaces": 0,
+      "removedSourceScalpFaces": 0
+    },
+    {
+      "style": 4,
+      "sourceFaces": 6666,
+      "scale": 2.45,
+      "crown": 0.579,
+      "maxScalpFit": 0.10167988040029054,
+      "addedScalpFaces": 0,
+      "removedSourceScalpFaces": 0
+    },
+    {
+      "style": 5,
+      "sourceFaces": 6672,
+      "scale": 2.55,
+      "crown": 0.57,
+      "maxScalpFit": 0.079676995259688,
+      "addedScalpFaces": 0,
+      "addedRepairFaces": 165,
+      "removedSourceScalpFaces": 0
+    },
+    {
+      "style": 6,
+      "sourceFaces": 3996,
+      "scale": 2.6,
+      "crown": 0.212,
+      "maxScalpFit": 0.09113544702574909,
+      "addedScalpFaces": 0,
+      "addedRepairFaces": 0,
+      "removedSourceScalpFaces": 0
+    },
+    {
+      "style": 7,
+      "sourceFaces": 5639,
+      "scale": 2.45,
+      "crown": 0.244,
+      "maxScalpFit": 0.09035767880711017,
+      "addedScalpFaces": 0,
+      "removedSourceScalpFaces": 0
+    },
+    {
+      "style": 8,
+      "sourceFaces": 6935,
+      "scale": 2.7,
+      "crown": 0.249,
+      "maxScalpFit": 0.07053612620708252,
+      "addedScalpFaces": 0,
+      "addedRepairFaces": 654,
+      "removedSourceScalpFaces": 279
+    },
+    {
+      "style": 9,
+      "sourceFaces": 5217,
+      "scale": 2.45,
+      "crown": 0.278,
+      "maxScalpFit": 0.07917356842975277,
+      "addedScalpFaces": 0,
+      "removedSourceScalpFaces": 0
+    },
+    {
+      "style": 10,
+      "sourceFaces": 5535,
+      "scale": 2.6,
+      "crown": 0.26,
+      "maxScalpFit": 0.0666163833306227,
+      "addedScalpFaces": 0,
+      "addedRepairFaces": 101,
+      "removedSourceScalpFaces": 0
+    }
+  ],
   "version": 2,
-  "sourceSHA256": "9101f134e5c08a90c9aeae19ac3f30a29469a8f10603f5a44736b56fa5271461",
-  "sourceTriangles": 4722,
-  "geometryPolicy": "LOD0 original positions and UVs; hidden scalp only",
   "assets": [
     {
       "path": "body/body-lod0.glb",
-      "triangles": 6652,
-      "vertices": 4427,
-      "bytes": 107324,
+      "triangles": 4690,
+      "vertices": 3483,
+      "bytes": 284168,
       "lod": 0
     },
     {
       "path": "body/body-lod1.glb",
-      "triangles": 3599,
-      "vertices": 2885,
-      "bytes": 74792,
+      "triangles": 3600,
+      "vertices": 2841,
+      "bytes": 240532,
       "lod": 1
     },
     {
       "path": "body/body-lod2.glb",
-      "triangles": 1799,
-      "vertices": 1804,
-      "bytes": 50600,
+      "triangles": 1800,
+      "vertices": 1672,
+      "bytes": 148908,
       "lod": 2
     },
     {
       "path": "body/body-lod3.glb",
-      "triangles": 849,
-      "vertices": 1019,
-      "bytes": 32816,
+      "triangles": 850,
+      "vertices": 974,
+      "bytes": 90656,
       "lod": 3
     },
     {
       "path": "hair/hair_01-lod0.glb",
-      "triangles": 970,
-      "vertices": 882,
-      "bytes": 26028,
+      "triangles": 3548,
+      "vertices": 4067,
+      "bytes": 258252,
       "lod": 0
     },
     {
       "path": "hair/hair_01-lod1.glb",
-      "triangles": 899,
-      "vertices": 843,
-      "bytes": 25252,
+      "triangles": 2306,
+      "vertices": 2893,
+      "bytes": 185156,
       "lod": 1
     },
     {
       "path": "hair/hair_01-lod2.glb",
-      "triangles": 550,
-      "vertices": 633,
-      "bytes": 21016,
+      "triangles": 1242,
+      "vertices": 1841,
+      "bytes": 119996,
       "lod": 2
     },
     {
       "path": "hair/hair_01-lod3.glb",
-      "triangles": 249,
-      "vertices": 349,
-      "bytes": 15292,
+      "triangles": 710,
+      "vertices": 1257,
+      "bytes": 83992,
       "lod": 3
     },
     {
       "path": "hair/hair_02-lod0.glb",
-      "triangles": 3000,
-      "vertices": 1502,
-      "bytes": 34424,
+      "triangles": 10893,
+      "vertices": 14314,
+      "bytes": 875016,
       "lod": 0
     },
     {
       "path": "hair/hair_02-lod1.glb",
-      "triangles": 1800,
-      "vertices": 902,
-      "bytes": 24024,
+      "triangles": 7079,
+      "vertices": 10931,
+      "bytes": 660108,
       "lod": 1
     },
     {
       "path": "hair/hair_02-lod2.glb",
-      "triangles": 1000,
-      "vertices": 502,
-      "bytes": 16896,
+      "triangles": 3812,
+      "vertices": 7500,
+      "bytes": 447300,
       "lod": 2
     },
     {
       "path": "hair/hair_02-lod3.glb",
-      "triangles": 400,
-      "vertices": 202,
-      "bytes": 11524,
+      "triangles": 1633,
+      "vertices": 3751,
+      "bytes": 228260,
       "lod": 3
     },
     {
       "path": "hair/hair_03-lod0.glb",
-      "triangles": 3000,
-      "vertices": 1502,
-      "bytes": 34328,
+      "triangles": 2740,
+      "vertices": 3228,
+      "bytes": 207588,
       "lod": 0
     },
     {
       "path": "hair/hair_03-lod1.glb",
-      "triangles": 1800,
-      "vertices": 902,
-      "bytes": 24008,
+      "triangles": 1780,
+      "vertices": 2341,
+      "bytes": 151892,
       "lod": 1
     },
     {
       "path": "hair/hair_03-lod2.glb",
-      "triangles": 1000,
-      "vertices": 502,
-      "bytes": 16888,
+      "triangles": 958,
+      "vertices": 1527,
+      "bytes": 101016,
       "lod": 2
     },
     {
       "path": "hair/hair_03-lod3.glb",
-      "triangles": 400,
-      "vertices": 202,
-      "bytes": 11544,
+      "triangles": 410,
+      "vertices": 868,
+      "bytes": 60352,
       "lod": 3
     },
     {
       "path": "hair/hair_04-lod0.glb",
-      "triangles": 3000,
-      "vertices": 1484,
-      "bytes": 34456,
+      "triangles": 6666,
+      "vertices": 7813,
+      "bytes": 487776,
       "lod": 0
     },
     {
       "path": "hair/hair_04-lod1.glb",
-      "triangles": 1800,
-      "vertices": 884,
-      "bytes": 23772,
+      "triangles": 4332,
+      "vertices": 5677,
+      "bytes": 355080,
       "lod": 1
     },
     {
       "path": "hair/hair_04-lod2.glb",
-      "triangles": 1000,
-      "vertices": 484,
-      "bytes": 16648,
+      "triangles": 2332,
+      "vertices": 3670,
+      "bytes": 229768,
       "lod": 2
     },
     {
       "path": "hair/hair_04-lod3.glb",
-      "triangles": 400,
-      "vertices": 184,
-      "bytes": 11256,
+      "triangles": 999,
+      "vertices": 2071,
+      "bytes": 131472,
       "lod": 3
     },
     {
       "path": "hair/hair_05-lod0.glb",
-      "triangles": 3000,
-      "vertices": 1494,
-      "bytes": 34852,
+      "triangles": 6837,
+      "vertices": 7871,
+      "bytes": 490752,
       "lod": 0
     },
     {
       "path": "hair/hair_05-lod1.glb",
-      "triangles": 1800,
-      "vertices": 894,
-      "bytes": 24056,
+      "triangles": 4443,
+      "vertices": 5598,
+      "bytes": 350884,
       "lod": 1
     },
     {
       "path": "hair/hair_05-lod2.glb",
-      "triangles": 1000,
-      "vertices": 494,
-      "bytes": 16856,
+      "triangles": 2393,
+      "vertices": 3605,
+      "bytes": 226820,
       "lod": 2
     },
     {
       "path": "hair/hair_05-lod3.glb",
-      "triangles": 400,
-      "vertices": 194,
-      "bytes": 11440,
+      "triangles": 1025,
+      "vertices": 1960,
+      "bytes": 126312,
       "lod": 3
     },
     {
       "path": "hair/hair_06-lod0.glb",
-      "triangles": 3000,
-      "vertices": 1482,
-      "bytes": 34724,
+      "triangles": 3996,
+      "vertices": 4258,
+      "bytes": 271992,
       "lod": 0
     },
     {
       "path": "hair/hair_06-lod1.glb",
-      "triangles": 1800,
-      "vertices": 882,
-      "bytes": 24064,
+      "triangles": 2596,
+      "vertices": 3042,
+      "bytes": 195024,
       "lod": 1
     },
     {
       "path": "hair/hair_06-lod2.glb",
-      "triangles": 1000,
-      "vertices": 482,
-      "bytes": 16820,
+      "triangles": 1398,
+      "vertices": 1911,
+      "bytes": 124524,
       "lod": 2
     },
     {
       "path": "hair/hair_06-lod3.glb",
-      "triangles": 400,
-      "vertices": 182,
-      "bytes": 11260,
+      "triangles": 598,
+      "vertices": 1003,
+      "bytes": 68964,
       "lod": 3
     },
     {
       "path": "hair/hair_07-lod0.glb",
-      "triangles": 3000,
-      "vertices": 1488,
-      "bytes": 34768,
+      "triangles": 5639,
+      "vertices": 6550,
+      "bytes": 412572,
       "lod": 0
     },
     {
       "path": "hair/hair_07-lod1.glb",
-      "triangles": 1800,
-      "vertices": 888,
-      "bytes": 24080,
+      "triangles": 3664,
+      "vertices": 4721,
+      "bytes": 298484,
       "lod": 1
     },
     {
       "path": "hair/hair_07-lod2.glb",
-      "triangles": 1000,
-      "vertices": 488,
-      "bytes": 16864,
+      "triangles": 1974,
+      "vertices": 3002,
+      "bytes": 190532,
       "lod": 2
     },
     {
       "path": "hair/hair_07-lod3.glb",
-      "triangles": 400,
-      "vertices": 188,
-      "bytes": 11376,
+      "triangles": 845,
+      "vertices": 1621,
+      "bytes": 105824,
       "lod": 3
     },
     {
       "path": "hair/hair_08-lod0.glb",
-      "triangles": 3000,
-      "vertices": 1502,
-      "bytes": 34568,
+      "triangles": 7310,
+      "vertices": 11706,
+      "bytes": 689664,
       "lod": 0
     },
     {
       "path": "hair/hair_08-lod1.glb",
-      "triangles": 1800,
-      "vertices": 902,
-      "bytes": 24072,
+      "triangles": 5200,
+      "vertices": 9370,
+      "bytes": 548168,
       "lod": 1
     },
     {
       "path": "hair/hair_08-lod2.glb",
-      "triangles": 1000,
-      "vertices": 502,
-      "bytes": 16940,
+      "triangles": 3500,
+      "vertices": 7174,
+      "bytes": 417656,
       "lod": 2
     },
     {
       "path": "hair/hair_08-lod3.glb",
-      "triangles": 400,
-      "vertices": 202,
-      "bytes": 11544,
+      "triangles": 1600,
+      "vertices": 3905,
+      "bytes": 229336,
       "lod": 3
     },
     {
       "path": "hair/hair_09-lod0.glb",
-      "triangles": 3000,
-      "vertices": 1474,
-      "bytes": 34624,
+      "triangles": 5217,
+      "vertices": 5957,
+      "bytes": 372852,
       "lod": 0
     },
     {
       "path": "hair/hair_09-lod1.glb",
-      "triangles": 1800,
-      "vertices": 874,
-      "bytes": 23880,
+      "triangles": 3391,
+      "vertices": 4259,
+      "bytes": 268392,
       "lod": 1
     },
     {
       "path": "hair/hair_09-lod2.glb",
-      "triangles": 1000,
-      "vertices": 474,
-      "bytes": 16640,
+      "triangles": 1825,
+      "vertices": 2722,
+      "bytes": 172424,
       "lod": 2
     },
     {
       "path": "hair/hair_09-lod3.glb",
-      "triangles": 400,
-      "vertices": 174,
-      "bytes": 11104,
+      "triangles": 782,
+      "vertices": 1463,
+      "bytes": 95936,
       "lod": 3
     },
     {
       "path": "hair/hair_10-lod0.glb",
-      "triangles": 3000,
-      "vertices": 1476,
-      "bytes": 34568,
+      "triangles": 5636,
+      "vertices": 6311,
+      "bytes": 395184,
       "lod": 0
     },
     {
       "path": "hair/hair_10-lod1.glb",
-      "triangles": 1800,
-      "vertices": 876,
-      "bytes": 23884,
+      "triangles": 3663,
+      "vertices": 4528,
+      "bytes": 284628,
       "lod": 1
     },
     {
       "path": "hair/hair_10-lod2.glb",
-      "triangles": 1000,
-      "vertices": 476,
-      "bytes": 16652,
+      "triangles": 1973,
+      "vertices": 2872,
+      "bytes": 181944,
       "lod": 2
     },
     {
       "path": "hair/hair_10-lod3.glb",
-      "triangles": 400,
-      "vertices": 176,
-      "bytes": 11108,
+      "triangles": 1409,
+      "vertices": 2245,
+      "bytes": 143536,
       "lod": 3
     }
   ],
-  "geometryBytes": 1133632
+  "skinReference": [
+    0.9215818562772946,
+    0.3564001441459435,
+    0.17464740365558504
+  ],
+  "geometryBytes": 12009692,
+  "mohawkFit": {
+    "samples": 39,
+    "drop": 0.015283371925354004,
+    "maximumRootGap": -0.002
+  },
+  "mohawkLodContact": [
+    {
+      "samples": 39,
+      "drop": 2.5749206543010383e-8,
+      "maximumRootGap": -0.002
+    },
+    {
+      "samples": 39,
+      "drop": 0,
+      "maximumRootGap": -0.0022448301315307617
+    },
+    {
+      "samples": 39,
+      "drop": 0.005296613693237305,
+      "maximumRootGap": -0.002
+    },
+    {
+      "samples": 39,
+      "drop": 0.006112958908081055,
+      "maximumRootGap": -0.002
+    }
+  ],
+  "skinPolicy": "Skin palette segmentation includes the chest/shoulders and authored UV-island padding. Mask R = skin coverage; G = original mouth value-detail preservation. Runtime tint removes source chroma and limits broad albedo variation; skin normal-map intensity reduced to avoid baked faceting. Eyes, eyebrows and clothing retain source colors."
 }

@@ -35,7 +35,7 @@ export function planCharacterCrowd(
   }>,
   quality: PlainsQuality,
 ) {
-  const costs = [10000, 5500, 2800, 1300]; // source body + most expensive optional hairstyle
+  const costs = [16000, 11000, 6000, 2600]; // source body + most expensive optional hairstyle
   const ordered = [...entries]
     .filter((e) => e.visible || e.self)
     .sort(

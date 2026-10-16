@@ -1,6 +1,6 @@
 /** Cosmetic data only. No progression, equipment, or simulation state lives here. */
-export const MALE_BODY_ASSET_REVISION = 'source-chibi-bald-3';
-export const MALE_HAIR_ASSET_REVISION = 'source-chibi-bald-3';
+export const MALE_BODY_ASSET_REVISION = 'owner-even-skin-20261017-2';
+export const MALE_HAIR_ASSET_REVISION = 'owner-hair-revision-20261017-7';
 export const MALE_HAIR_STYLES = [
   ['hair_01', 'Messy Spikes'],
   ['hair_02', 'Crew Cut'],
