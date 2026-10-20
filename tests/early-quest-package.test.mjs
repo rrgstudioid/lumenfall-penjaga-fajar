@@ -32,6 +32,20 @@ const regions=await load('regions'),early=await load('early-quest-contract'),sc=
 const {MINE_ID:I,MINE_ROOMS,MineNavigation}=await load('ironveil-interior-layout'),{IRONVEIL_ID:E,IRONVEIL_TRANSITION,ironveilWalkable}=await load('ironveil-mines-layout'),{PLAINS_ID:V,plainsWalkable}=await load('verdant-plains-layout');
 const {MINE_MONSTERS,mineMonsterSpawns}=await load('ironveil-interior-population'),nav=await load('quest-navigation-game'),{questMineRoute}=await load('quest-mine-route');
 const prefix='dev-quest-v1-',quantity=(h,id)=>h.inventory.filter(i=>i.templateId===id).reduce((n,i)=>n+i.quantity,0);
+for(const enabled of [true,false])await test(`legacy once-map pack ${enabled?'renews prior Warrior':'leaves OFF'}; no EXP duplication`,()=>{
+ const g=game(24,{},enabled);g.hero.questClaimed=true;const n=CITIES.arunika.npcList.find(n=>n.id==='aruna-0');g.hero.x=n.x;g.hero.z=n.z;g.actor.position.set(n.x,0,n.z);assert(g.openNpc(n.id));
+ const xp=g.hero.xp,mana=g.hero.mana,hp=g.hero.hp,seed=g.seed;assert(g.cityAction('scroll-pack',V));assert.equal(quantity(g.hero,'map-scroll-v1-'+V),5);
+ assert.equal(g.hero.xp,xp);assert.equal(g.hero.hp,hp);assert.equal(g.hero.mana,mana);assert.equal(g.seed,seed);assert.equal(g.getDevelopmentAdventurerRange()?.ok??null,enabled?true:null);
+ assert(!g.cityAction('scroll-pack',V));assert.equal(quantity(g.hero,'map-scroll-v1-'+V),5);g.dispose();
+});
+await test('checkpoint button keeps actual reach, living/current region and mine wall validity; read is pure',()=>{
+ const g=game(24,{},false),npc=early.EARLY_NPCS[2],navigation=new MineNavigation();g.hero.inCity=false;g.hero.currentField=E;g.hero.interiorId=I;g.mineInterior={move:(...args)=>navigation.move(...args),dispose(){}};
+ g.hero.x=npc.x+1;g.hero.z=npc.z;g.actor.position.set(g.hero.x,0,g.hero.z);
+ const before=JSON.stringify({hero:g.hero,seed:g.seed,cd:g.skillCooldowns,queue:g.skillHits.size});
+ assert(g.canInteractDevelopmentQuestNpc(npc));assert.equal(JSON.stringify({hero:g.hero,seed:g.seed,cd:g.skillCooldowns,queue:g.skillHits.size}),before);
+ g.hero.x=npc.x+3;assert(!g.canInteractDevelopmentQuestNpc(npc));g.hero.x=npc.x;g.dead=true;assert(!g.canInteractDevelopmentQuestNpc(npc));g.dead=false;g.transitioning=true;assert(!g.canInteractDevelopmentQuestNpc(npc));g.transitioning=false;
+ const move=g.moveHeroOnGround;g.moveHeroOnGround=from=>({...from});g.hero.x=npc.x+1;assert(!g.canInteractDevelopmentQuestNpc(npc));g.moveHeroOnGround=move;delete g.hero.interiorId;assert(!g.canInteractDevelopmentQuestNpc(npc));g.dispose();
+});
 const place=(g,p)=>{Object.assign(g.hero,{x:p.x,z:p.z});g.actor.position.set(p.x,0,p.z);g.actor.visible=true;};
 const settle=()=>new Promise(r=>setImmediate(r));
 const expected=[
@@ -129,6 +143,20 @@ await test('approved General price, capacity atomicity, interior first visit and
  const inventory=g.hero.inventory;g.hero.inventory=[];g.hero.inventoryCapacity=0;const gold=g.hero.gold;assert(!shops.buyShopItem(g.hero,row.templateId,'consumable').ok);assert.equal(g.hero.gold,gold);g.hero.inventory=inventory;g.hero.inventoryCapacity=60;
  delete g.hero.cityProgress[sc.mapVisitReceipt(I)];assert(!g.useItem(item.id));await travelTo(g,I);assert.equal(g.hero.cityProgress[sc.mapVisitReceipt(I)],1);await travelTo(g,'arunika');
  const hp=g.hero.hp,mana=g.hero.mana;let release;g.waitForRegionLoads=()=>new Promise(r=>release=r);assert(g.useItem(item.id));assert.equal(quantity(g.hero,row.templateId),1);assert(!g.useItem(item.id));release();await settle();assert.equal(g.activeLocationId,I);assert.equal(quantity(g.hero,row.templateId),0);assert.equal(g.hero.hp,hp);assert.equal(g.hero.mana,mana);g.dispose();
+});
+await test('successful scroll debit renews only prior valid policy, with one item and no resource/clock/RNG refund',async()=>{
+ for(const destination of [E,I])for(const enabled of [true,false]){
+  const g=game(24,{},false);await travelTo(g,destination);await travelTo(g,'arunika');
+  const n=CITIES.arunika.npcList.find(n=>n.service==='consumable');place(g,n);assert(g.openNpc(n.id));g.hero.gold=1000;
+  const row=sc.MAP_SCROLLS.find(r=>r.region===destination);assert(g.npcBuy(row.templateId,2));g.closeNpcMenu();
+  if(enabled)assert(g.enableDevelopmentWarriorReference({lifecycleRenewal:true}).ok);
+  g.hero.hp-=7;g.hero.mana-=3;g.skillCooldowns['v3-warrior-strike']=1.25;
+  const hp=g.hero.hp,mana=g.hero.mana,seed=g.seed,clock=g.combatTime;
+  const item=g.hero.inventory.find(i=>i.templateId===row.templateId);assert(g.useItem(item.id));assert(!g.getDevelopmentWarriorAvailability()?.ok);await settle();
+  assert.equal(g.activeLocationId,destination);assert.equal(quantity(g.hero,row.templateId),1);
+  assert.equal(g.hero.hp,hp);assert.equal(g.hero.mana,mana);assert.equal(g.seed,seed);assert.equal(g.combatTime,clock);assert.equal(g.skillCooldowns['v3-warrior-strike'],1.25);
+  assert.equal(g.getDevelopmentWarriorAvailability()?.ok??null,enabled?true:null,JSON.stringify(g.getDevelopmentWarriorAvailability()));g.dispose();
+ }
 });
 await test('legacy Bisikan receipt catch-up does not require manufactured completed history',()=>{
  const h=rules.createV3AdventurerHero('legacy-bisikan');h.questClaimed=true;

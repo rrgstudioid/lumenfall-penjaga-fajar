@@ -1,3 +1,4 @@
+import {approvedQuestsEnabled} from './public-rollout';
 import type {Game} from './world';
 import {FIELDS,regionNpcs,fieldForQuest,getAllQuestJournalEntries,getQuestReportLocation,unlockReason} from './regions';
 import {earlyQuest,eligibleEarlyKill} from './early-quest-contract';
@@ -30,7 +31,7 @@ export function questRoute(game: Game, to: QuestPoint): readonly QuestPoint[] {
 
 /** Read-only bridge to the existing journal and currently loaded world. No enrollment, RNG or save. */
 export function readDevelopmentQuestNavigation(game: Game, questId: string, previousId?: string) {
-  if(process.env.NODE_ENV === 'production') return unavailableNavigation('DEVELOPMENT_ONLY');
+  if(!approvedQuestsEnabled()) return unavailableNavigation('DEVELOPMENT_ONLY');
   if(game.disposed || !game.started || game.dead || game.transitioning || !game.actor.visible)
     return unavailableNavigation('Navigasi ditangguhkan saat loading atau karakter mati');
   const q=getAllQuestJournalEntries(game.hero).find(q=>q.id===questId);

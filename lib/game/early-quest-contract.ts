@@ -1,3 +1,4 @@
+import {approvedQuestsEnabled} from './public-rollout';
 import type {Hero} from './rules';
 import type {MonsterDefinition,NpcDefinition,QuestJournalEntry} from './regions';
 import {MINE_ID,MINE_ROOMS} from './ironveil-interior-layout';
@@ -13,7 +14,7 @@ export const EARLY_NPCS:readonly NpcDefinition[]=Object.freeze([
  npc('dev-ironveil-foreman-v1','Mandor Ironveil',IRONVEIL_ID,190,-40),
  npc('dev-ironveil-surveyor-v1','Surveyor Tambang',MINE_ID,-416,51),
 ]);
-export const developmentQuestNpcs=()=>process.env.NODE_ENV==='production'?[]:EARLY_NPCS;
+export const developmentQuestNpcs=()=>!approvedQuestsEnabled()?[]:EARLY_NPCS;
 const hunt=(region:string,id:string,name:string,level:number,required:number):EarlyObjective=>({type:'kill',region,targetId:id,targetName:`${name} Lv${level} · Normal`,level,variant:'normal',required});
 const normal=(region:string):EarlyObjective=>({type:'kill',region,targetId:'normal-region',targetName:'Monster normal wilayah ini',variant:'normal',required:5});
 const V=PLAINS_ID,E=IRONVEIL_ID,I=MINE_ID;
@@ -44,7 +45,7 @@ const definitions:EarlyQuest[]=rows.map(([id,title,requiredLevel,previous,xp,gol
  targetMapId:objectives[0].region,targetMapName:mapName(objectives[0].region),description:objectives.map(o=>`${o.required} ${o.targetName}`).join(' + '),
  objectives,rewards:{xp,gold,items:potions?[{templateId:'health-potion-1',quantity:potions},{templateId:'mana-potion-1',quantity:potions}]:[]},repeatable:false,cooldownHours:0,status:'locked',progress:[]};
 });
-export const earlyQuests=():EarlyQuest[]=>process.env.NODE_ENV==='production'?[]:structuredClone(definitions);
+export const earlyQuests=():EarlyQuest[]=>!approvedQuestsEnabled()?[]:structuredClone(definitions);
 export const earlyQuest=(id:string)=>earlyQuests().find(q=>q.id===id);
 export const objectiveKey=(id:string,index:number)=>`${id}:objective:${index}`;
 export const earlyProgress=(h:Hero,q:EarlyQuest)=>q.objectives.map((o,i)=>({required:o.required,current:h.completedQuests.includes(q.id)?o.required:Math.min(o.required,Math.max(0,o.type==='collect'?h.inventory.filter(it=>it.templateId===MINE_SAMPLE_ID).reduce((n,it)=>n+it.quantity,0):h.cityProgress[objectiveKey(q.id,i)]??0))}));
@@ -61,7 +62,7 @@ export function recordEarlyKill(h:Hero,region:string,m:MonsterDefinition,grantSa
  });
 }
 export function recordEarlyVisits(h:Hero) {
- if(process.env.NODE_ENV==='production'||h.hp<=0)return false;
+ if(!approvedQuestsEnabled()||h.hp<=0)return false;
  let changed=false;
  for(const q of earlyQuests())if(h.activeQuests.includes(q.id)&&!h.completedQuests.includes(q.id))q.objectives.forEach((o,i)=>{
   const r=o.type==='visit'&&o.region===questRegion(h)?MINE_ROOMS.find(r=>r.id===o.room):undefined,key=objectiveKey(q.id,i);
@@ -71,7 +72,7 @@ export function recordEarlyVisits(h:Hero) {
 }
 /** Change only quest-visible level AFTER prototype stats are authored. Preserve reward level. */
 export function questTargetLevel<T extends {id:string;level:number;variant:string}>(m:T,region:string):T & {rewardLevel?:number} {
- if(process.env.NODE_ENV==='production'||m.variant!=='normal')return m;
+ if(!approvedQuestsEnabled()||m.variant!=='normal')return m;
  const target=definitions.flatMap(q=>q.objectives).find(o=>o.region===region&&o.targetId===m.id&&o.level!==undefined);
  return target?{...m,level:target.level!,rewardLevel:m.level}:m;
 }

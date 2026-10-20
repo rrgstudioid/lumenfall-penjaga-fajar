@@ -1,8 +1,10 @@
+import {rolloutDisabled} from './helpers/rollout-disabled.mjs';
+// Explicit rollout-disabled compatibility fixture; not shipping-mode proof.
 // Production-mode transformed original modules; no Game construction or browser.
 import assert from 'node:assert/strict';
 import {createServer} from 'vite';
 assert(process.env.SPECIALIZATION_CHECKPOINT,'Explicit isolated production-guard cache directory required');
-const server=await createServer({configFile:false,mode:'production',define:{'process.env.NODE_ENV':'"production"'},appType:'custom',optimizeDeps:{noDiscovery:true,entries:[]},server:{middlewareMode:true,hmr:false},cacheDir:process.env.SPECIALIZATION_CHECKPOINT+'/production-guard-cache'});
+const server=await createServer({configFile:false,plugins:[rolloutDisabled()],mode:'production',define:{'process.env.NODE_ENV':'"production"'},appType:'custom',optimizeDeps:{noDiscovery:true,entries:[]},server:{middlewareMode:true,hmr:false},cacheDir:process.env.SPECIALIZATION_CHECKPOINT+'/production-guard-cache'});
 try {
  const {createItem,normalizeItem,ITEM_CATALOG}=await server.ssrLoadModule('/lib/game/items.ts');
  const {Game}=await server.ssrLoadModule('/lib/game/world.ts');

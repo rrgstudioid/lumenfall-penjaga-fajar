@@ -1,4 +1,5 @@
 'use client';
+import {approvedQuestsEnabled} from '@/lib/game/public-rollout';
 import {useEffect,useRef} from 'react';
 import {Vector3} from 'three';
 import type {Game} from '@/lib/game/world';
@@ -9,7 +10,7 @@ import './quest-navigation.css';
 export function QuestNavigation({game,questId,onComplete}:{game:Game|null;questId:string|null;onComplete:()=>void}) {
   const element=useRef<HTMLDivElement>(null);
   useEffect(()=>{
-    if(process.env.NODE_ENV==='production'||!game||!questId)return;
+    if(!approvedQuestsEnabled()||!game||!questId)return;
     const root=element.current!;
     let frame=0,last=-Infinity,previousId:string|undefined,region='',result:ReturnType<typeof readDevelopmentQuestNavigation>|undefined;
     const origin=new Vector3(),ahead=new Vector3(),head=new Vector3();
@@ -43,8 +44,8 @@ export function QuestNavigation({game,questId,onComplete}:{game:Game|null;questI
     frame=requestAnimationFrame(update);
     return()=>cancelAnimationFrame(frame);
   },[game,questId,onComplete]);
-  if(process.env.NODE_ENV==='production'||!game||!questId)return null;
-  return <div ref={element} className="development-quest-navigation" aria-label="Arah quest development" hidden>
+  if(!approvedQuestsEnabled()||!game||!questId)return null;
+  return <div ref={element} className="development-quest-navigation" aria-label="Arah quest" hidden>
     <span data-quest-arrow aria-hidden="true">↑</span><span data-quest-label />
   </div>;
 }

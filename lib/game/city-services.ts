@@ -1,3 +1,4 @@
+import {approvedQuestsEnabled} from './public-rollout';
 import {mapScroll,mapVisitReceipt} from './map-scroll-contract.ts';
 import {addItemToInventory,createItem,ITEM_CATALOG,POTION_IDS,removeItemQuantity,type ItemData} from './items.ts';
 import {maxHP,derivedStats,restoreMana,type Hero} from './rules.ts';
@@ -9,13 +10,13 @@ import { JAYANTARA_RANGE_V3 } from './jayantara-range-v3.ts';
 export function shopStock(hero:Hero,service:string) {
  return Object.values(ITEM_CATALOG).filter(item=>{
  const scroll=mapScroll(item.templateId);
- if(scroll)return process.env.NODE_ENV!=='production'&&service==='consumable'&&hero.inCity&&scroll.price!==null&&hero.cityProgress[mapVisitReceipt(scroll.region)]===1&&
+ if(scroll)return approvedQuestsEnabled()&&service==='consumable'&&hero.inCity&&scroll.price!==null&&hero.cityProgress[mapVisitReceipt(scroll.region)]===1&&
   (scroll.region!==MINE_ID||IRONVEIL_TRANSITION.available)&&!unlockReason(hero,scroll.region===MINE_ID?IRONVEIL_ID:scroll.region);
  return service==='developer-materials'?(item.category==='material'||item.itemType==='eternalSeal'||item.templateId==='dragon-veil-wings'||item.templateId==='developer-level-100-potion'):service==='equipment'?item.templateId!=='dragon-veil-wings'&&['weapon','armor','accessory'].includes(item.category):service==='seal'?['fateRune','eternalSeal'].includes(item.itemType):service==='consumable'?item.templateId!=='developer-level-100-potion'&&['consumable','potion'].includes(item.category):false;
  });
 }
 export function shopItemPrice(item:Pick<ItemData,'buyValue'|'sellValue'|'levelRequirement'> & Partial<Pick<ItemData,'templateId'|'authoredAttackVersion'>>,service:string) {
- const scroll=item.templateId&&mapScroll(item.templateId);if(scroll)return process.env.NODE_ENV!=='production'&&scroll.price!==null?scroll.price:Infinity;
+ const scroll=item.templateId&&mapScroll(item.templateId);if(scroll)return approvedQuestsEnabled()&&scroll.price!==null?scroll.price:Infinity;
  const pricingLevel=item.templateId===JAYANTARA_RANGE_V3.templateId&&item.authoredAttackVersion===JAYANTARA_RANGE_V3.version?24:item.levelRequirement;
  return service==='developer-materials'?0:item.buyValue||Math.max(60,item.sellValue*4+pricingLevel*5);
 }

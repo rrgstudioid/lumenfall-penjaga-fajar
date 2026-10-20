@@ -1,0 +1,43 @@
+PUBLIC ROLLOUT CANDIDATE — PREVIEW FIRST, NOT PRODUCTION PROMOTION APPROVAL
+
+Direct OWNER instruction in the active conversation:
+"Ok siapkan rollout publik untuk equipment, formula combat dan quest yang sudah
+disetujui. Uji dulu di Preview, pertahankan item serta save lama, lalu laporkan
+sebelum merge dan deploy produksi."
+Message ID/time were not supplied; neither is invented here.
+
+This supersedes DEVELOPMENT_ONLY applicability for the approved release feature
+set in candidate APPROVED_EQUIPMENT_COMBAT_QUEST_PUBLIC_V1 only. It does not
+authorize automatic main merge/production deployment, new numeric, wider class
+admission or blanket removal of development guards. AGENTS size/scope approval
+before upload remains a separate gate.
+
+Equipment: existing approved acquisition/version mappings and five Lv1 balanced
+armor identities; profile availability does not grant class/equip/cast permission.
+Old unmarked instances retain their own fields and compatibility. Loading is not
+acquisition. Iron/Jayantara grandfather unchanged; no Forge economy rollout.
+
+Combat: reuse exact actor/source validation in existing adapters. Adventurer1–14
+Training/newIron; Warrior15–61 newIron/approved mapped Sword; Berserker60–80
+Jayantara45+0; Blade Master60–80 newIron single/approved dual mastery. Five
+balanced bodies may be admitted. No source stripping, broader magic/Thief route,
+extra coefficient, second sample, finisher or compensation. Public start/Continue
+and accepted original lifecycle transactions validate current references. An
+already-selected invalid context fails closed. Existing unsupported contexts
+retain compatibility until full admission; Character distinguishes these modes.
+Standalone development opt-in/debug APIs and CP diagnostics remain closed.
+
+Quests: approved twelve Verdant/Ironveil chains, exact target levels only, NPC
+checkpoints, tracking arrow and map-scroll transactions/prices. Six protected
+Sunken/Meteorfall quests and independent once-only rewards remain. Global N1/N2,
+EXP/rewardLevel tuning proposals, equipment milestone and unapproved map-scroll
+prices are excluded.
+
+Exact earlier approval sources (immutable historical evidence):
+- OWNER balanced loadout prompt, outputs/.../weapon-balanced-armor-loadout-development/run-01/INPUT_CONTRACT.json
+- Attachment6902274d-ace9-4934-8158-6f2768dcbcb6/Pasted text.txt: SB1–SB6/Jayantara196–204
+- Attachment9a6b958b-77f0-4c9c-8c2b-04a9d8951324/Pasted text.txt: exact early quest package
+- Existing docs/gameplay-authority canonical decisions for shared stats/resources,
+  WarriorW1–W4, Q2/Q4, equalBasic and Training/Iron.
+The new instruction changes release applicability; historical approval files are
+preserved. This file is a scope record, not a manufactured numeric OWNER_ACC.

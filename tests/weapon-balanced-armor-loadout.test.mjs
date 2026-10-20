@@ -52,6 +52,23 @@ function buyBody(g){
 }
 function target(g){const group=new T.Group();group.add(new T.Mesh(new T.BoxGeometry(),new T.MeshStandardMaterial()));group.position.copy(g.actor.position).add(new T.Vector3(0,0,-1));const e={id:++serial,group,home:group.position.clone(),hp:10000,max:10000,boss:false,dummy:false,spawnGeneration:0,respawnKey:'FIXTURE-'+serial,definition:{defense:70,magicDefense:300},ring:new T.Mesh(new T.RingGeometry(),new T.MeshBasicMaterial()),windup:0,cooldown:0,flash:0,stun:0,slow:0,root:0,poison:0,defenseDown:0,statusEffects:{},attack:10,attackRange:2,movementSpeed:1,evasion:0,marked:false,weakPoint:false};g.scene.add(group);g.enemies.push(e);g.registerTargetEnemy(e);assert(g.setCurrentTarget(e));g.faceTarget(e);return e;}
 function probe(g,values){let count=0;g.rand=()=>{assert(count<values.length,'unexpected draw');return values[count++];};return()=>count;}
+await test('pickup cannot repair a stale source or opt-in an invalid actor; full inventory retains source',()=>{
+ const g=game();buyBody(g);activate(g);const item=g.hero.inventory.find(i=>i.id===g.hero.equipment.mainHand);item.baseStats.attack+=1;
+ assert(!g.getDevelopmentAdventurerRange().ok);g.spawnGroundLoot(items.createItem('iron'),g.actor.position.clone());assert(g.pickupGroundLoot());assert(!g.getDevelopmentAdventurerRange().ok);g.dispose();
+ const h=game();buyBody(h);activate(h);h.hero.inventoryCapacity=0;h.spawnGroundLoot(items.createItem('iron'),h.actor.position.clone());const seed=h.seed;
+ assert(!h.pickupGroundLoot());assert.equal(h.groundLoot.length,1);assert.equal(h.seed,seed);assert(h.getDevelopmentAdventurerRange().ok);h.dispose();
+});
+for(const scope of ['adventurer','warrior'])for(const enabled of [true,false])await test(`quest hunting pickup/potion preserves ${scope} ${enabled?'prior active':'OFF'} without refill/RNG/CD changes`,()=>{
+ const g=game(scope,scope==='warrior'?16:14);buyBody(g);
+ own(g,'health-potion-1');const potion=g.hero.inventory.find(i=>i.templateId==='health-potion-1');assert(potion);g.hero.hp=rules.maxHP(g.hero)-50;
+ if(enabled)activate(g);
+ const seed=g.seed,mana=g.hero.mana,hp=g.hero.hp;g.skillCooldowns['quest-ux-probe']=3.5;
+ const drop=items.createItem('iron');g.spawnGroundLoot(drop,g.actor.position.clone());
+ assert(g.pickupGroundLoot());assert.equal(g.hero.hp,hp);assert.equal(g.hero.mana,mana);assert.equal(g.seed,seed);assert.equal(g.skillCooldowns['quest-ux-probe'],3.5);
+ assert.equal(g.getDevelopmentAdventurerRange()?.ok??null,enabled?true:null);
+ assert(g.useItem(potion.id));assert.equal(g.hero.hp,Math.min(rules.maxHP(g.hero),hp+Math.round(rules.maxHP(g.hero)*.30)));assert.equal(g.hero.mana,mana);assert.equal(g.seed,seed);assert.equal(g.skillCooldowns['quest-ux-probe'],3.5);
+ assert.equal(g.getDevelopmentAdventurerRange()?.ok??null,enabled?true:null);g.dispose();
+});
 for(const [id,slot,def,base,bonus] of body)await test('exact balanced acquisition '+id+'; core only enhancement; old/new/locked/empty socket',()=>{
  const i=items.createItem(id),snapshot=JSON.stringify(i);assert.equal(i.authoredEquipmentProfile,`BODY_LV1_balanced_${slot}_V1`);assert.deepEqual(i.baseStats,base);assert.deepEqual(i.bonusStats,bonus);assert.equal(i.uniqueStatsLocked,false);
  for(const n of [0,5,10,15]){const fixture={...i,enhancementLevel:n};const stats=items.calculateEnhancedBaseStats(fixture);close(stats.defense,def*(1+.04*n));close(stats.magicDefense,def*(1+.04*n));for(const [k,v] of Object.entries(base))if(k!=='defense')assert.equal(stats[k],v);}

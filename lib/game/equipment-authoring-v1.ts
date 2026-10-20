@@ -1,3 +1,4 @@
+import {approvedEquipmentEnabled} from './public-rollout';
 import type { ItemData, StatBlock } from './items.ts';
 import { WEAPON_VALUES, weaponProfileId, type WeaponFamily } from './weapon-progression-v1.ts';
 
@@ -305,7 +306,7 @@ export function resolveAuthoredEquipmentItem(item: Partial<ItemData>) {
 
 /** New acquisition only. Does not enroll an actor or change weapon permissions. */
 export function developmentEquipmentAuthoring(item: ItemData): ItemData {
-  if (process.env.NODE_ENV !== 'development' || hasEquipmentAuthoring(item)) return item;
+  if (!approvedEquipmentEnabled() || hasEquipmentAuthoring(item)) return item;
   const body=mappedBody(item);
   if(body&&bodyMappingMatches(item,body))return {...item,authoredEquipmentVersion:EQUIPMENT_AUTHORING_VERSION,authoredEquipmentProfile:body.profile};
   const mapping=mappedItem(item);

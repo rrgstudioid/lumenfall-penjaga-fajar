@@ -1,3 +1,4 @@
+import {approvedQuestsEnabled} from './public-rollout';
 import { decodeCharacterV2, serializeSaveCollection } from './save-v2.ts';
 import { approvedResourceProfile, intrinsicClassResources } from './resource-profiles.ts';
 import { resolveArmorSets } from './equipment-layers.ts';
@@ -2209,7 +2210,7 @@ export function consumeInventoryItem(hero: Hero, itemId: string, now=Date.now())
   if((item.requiredCoreJob&&item.requiredCoreJob!==hero.coreJob)||(item.requiredSpecialJob&&item.requiredSpecialJob!==hero.specialization))return {ok:false,reason:'Item tidak sesuai job.'};
   const effect=item.useEffect ?? ITEM_CATALOG[item.templateId]?.useEffect ?? (item.itemType==='potion'?{type:'heal' as const,amount:65}:null);
   if(!effect)return {ok:false,reason:'Item ini tidak dapat digunakan langsung.'};
-  if(effect.type==='mapTeleport')return {ok:false,reason:process.env.NODE_ENV==='production'?'DEVELOPMENT_ONLY':'Scroll memerlukan transaksi travel asli.'};
+  if(effect.type==='mapTeleport')return {ok:false,reason:!approvedQuestsEnabled()?'DEVELOPMENT_ONLY':'Scroll memerlukan transaksi travel asli.'};
   if(effect.type==='stamina'&&!isResourceEnabled(hero, 'stamina'))return {ok:false,reason:'Sistem stamina sedang dinonaktifkan. Item tidak terpakai.'};
   const remaining=getItemCooldownRemaining(hero.itemCooldowns,item,now);
   if(remaining>0)return {ok:false,reason:`${item.name} masih cooldown ${Math.ceil(remaining)} dtk.`};

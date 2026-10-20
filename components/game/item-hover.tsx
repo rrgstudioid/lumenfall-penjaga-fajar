@@ -1,5 +1,7 @@
-﻿'use client';
+'use client';
+import {approvedQuestsEnabled} from '@/lib/game/public-rollout';
 import { JobText, useJobText } from './job-presentation-context';
+import {mapScroll} from '@/lib/game/map-scroll-contract';
 import { statBonusText } from '@/lib/game/stat-presentation';
 
 import { useEffect, useLayoutEffect, useRef, useState, type ButtonHTMLAttributes, type PointerEvent, type ReactNode } from 'react';
@@ -50,6 +52,7 @@ export function ItemHoverTooltip({ item, point, buyPrice, game, children, onPoin
 
       <div className="floating-item-group">
         {equipment ? <EquipmentDetail item={item} game={game} compact/> : <p><JobText>{item.description}</JobText></p>}
+        {approvedQuestsEnabled()&&mapScroll(item.templateId)&&<p>Dari kota, saat hidup dan tidak loading. Tujuan harus pernah dikunjungi dan aksesnya tetap terbuka. Satu scroll dipakai setelah tiba.</p>}
       </div>
 
       {item.category === 'rune' && <div className="floating-item-group npc-item-tooltip-stats">
@@ -108,6 +111,12 @@ export function ItemHover({ as = 'span', item, buyPrice, children, ...props }: {
   const follow = (event: PointerEvent<HTMLElement>) => {
     // Touch continues to use the existing click flow; dragging doesn't spawn tooltips.
     if (event.pointerType === 'touch' || event.buttons || !item) return;
+    // A nested transaction control owns pointer input. A following tooltip must
+    // not appear over Buy/quantity controls between pointer movement and click.
+    if ((event.target as Element).closest('button,input,select,textarea,a') &&
+        (event.target as Element).closest('button,input,select,textarea,a') !== event.currentTarget) {
+      keep();setPoint(null);return;
+    }
     // A nested material target owns its own tooltip instead of the recipe's.
     if ((event.target as Element).closest('[data-item-hover]') !== event.currentTarget) {
       setPoint(null);

@@ -172,6 +172,7 @@ export function CharacterScreen({
   const range=game?.getDevelopmentAdventurerRange();
   const rangeSelected=range!==null && range!==undefined;
   const main=range?.ok ? range.value : null;
+  const publicCombat=game?.getPublicCombatStatus();
   const breakdown = characterStatBreakdown(hero),
     final = breakdown.final;
   const profile = combatProfile(hero);
@@ -517,6 +518,10 @@ export function CharacterScreen({
                 {characterLabel(hero)}
               </p>
               <JobArchitecturePreview hero={hero} compact />
+              {publicCombat?.managed && <p data-combat-route={publicCombat.route}>
+                {publicCombat.route==='compatibility'?'Formula compatibility · equipment lama atau context belum didukung':
+                  main?'Formula range aktif':'Formula range tidak tersedia untuk kondisi saat ini'}
+              </p>}
               {getDaggerEquipmentLabel(hero) && <p>{getDaggerEquipmentLabel(hero)}</p>}
             </div>
           </div>

@@ -1,7 +1,9 @@
+import {rolloutDisabled} from './helpers/rollout-disabled.mjs';
+// Explicit rollout-disabled compatibility fixture; not shipping-mode proof.
 import assert from 'node:assert/strict';
 import {createServer} from 'vite';
 assert(process.env.EQUIPMENT_CHECKPOINT);
-const server=await createServer({configFile:false,mode:'production',define:{'process.env.NODE_ENV':'"production"'},appType:'custom',optimizeDeps:{noDiscovery:true,entries:[]},server:{middlewareMode:true,hmr:false},cacheDir:process.env.EQUIPMENT_CHECKPOINT+'/production-cache'});
+const server=await createServer({configFile:false,plugins:[rolloutDisabled()],mode:'production',define:{'process.env.NODE_ENV':'"production"'},appType:'custom',optimizeDeps:{noDiscovery:true,entries:[]},server:{middlewareMode:true,hmr:false},cacheDir:process.env.EQUIPMENT_CHECKPOINT+'/production-cache'});
 try {
  const items=await server.ssrLoadModule('/lib/game/items.ts'),rules=await server.ssrLoadModule('/lib/game/rules.ts'),core=await server.ssrLoadModule('/lib/game/equipment-authoring-v1.ts'),{Game}=await server.ssrLoadModule('/lib/game/world.ts');
  const item=items.createItem(core.TRAINING_DAGGER_TEMPLATE,{sockets:[]});
