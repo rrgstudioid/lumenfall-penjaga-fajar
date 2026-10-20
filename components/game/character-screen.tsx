@@ -19,6 +19,7 @@ import {
   Gem,
   PawPrint,
   Feather,
+  Hand,
   Shirt,
   Footprints,
   Columns2,
@@ -776,7 +777,8 @@ export function CharacterScreen({
                             <Feather size={22} />
                           ) : slot.id === 'chest' ? (
                             <Shirt size={22} />
-
+                          ) : slot.id === 'gloves' ? (
+                            <Hand size={22} />
                           ) : slot.id === 'legs' ? (
                             <Columns2 size={22} />
                           ) : slot.id === 'boots' ? (

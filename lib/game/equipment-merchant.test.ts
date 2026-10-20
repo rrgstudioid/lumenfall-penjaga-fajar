@@ -5,7 +5,7 @@ import { buyShopItem, sellInventoryItem, shopStock, shopItemPrice } from './city
 import { freshHero, unlockUniqueStats } from './rules.ts';
 
 const catalogEquipment = Object.values(ITEM_CATALOG).filter((item) =>
-  ['weapon', 'armor', 'accessory'].includes(item.category) && item.equipmentType !== 'gloves' && item.source.sourceId !== 'aruna-developer-materials',
+  ['weapon', 'armor', 'accessory'].includes(item.category),
 );
 
 await test('Equipment Merchant lists every catalog weapon, armor, and accessory for every job', () => {

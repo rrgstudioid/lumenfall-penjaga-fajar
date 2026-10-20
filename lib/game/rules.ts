@@ -2892,14 +2892,6 @@ function normalizedHero(value: Record<string, unknown>, slotId = 'slot-1') {
     ...item,
     isEquipped: equippedIds.has(item.id),
   }));
-  // Retiring an equipped glove must not overflow the bag or lose the instance.
-  const legacyGloveId = value.equipment && typeof value.equipment === 'object'
-    ? (value.equipment as Record<string, unknown>).gloves : undefined;
-  const retiredGlove = typeof legacyGloveId === 'string' ? h.inventory.find(i => i.id === legacyGloveId && i.equipmentType === 'gloves') : undefined;
-  if (retiredGlove && h.inventory.filter(i => !i.isEquipped).length > h.inventoryCapacity) {
-    h.inventory = h.inventory.filter(i => i.id !== retiredGlove.id);
-    if (!h.pendingLoot.some(i => i.id === retiredGlove.id)) h.pendingLoot.push(retiredGlove);
-  }
   retireUnusedNormalItems(h);
   reconcileHeroSkillFamilies(h);
   const currentSkills = activeSkills(h);
