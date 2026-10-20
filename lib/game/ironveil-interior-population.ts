@@ -1,4 +1,5 @@
 import type { MonsterDefinition } from './regions.ts';
+import {questTargetLevel} from './early-quest-contract.ts';
 import type { MonsterSpawn } from './field-layout.ts';
 import {
   MINE_ID,
@@ -25,7 +26,7 @@ export const MINE_MONSTERS: MonsterDefinition[] = Array.from(
     const exp = Math.round(
       level <= 16 ? 520 + (level - 12) * 30 : 640 + (level - 16) * 67.5,
     );
-    return {
+    return questTargetLevel({
       id: `${MINE_ID}-level-${level}`,
       name,
       level,
@@ -46,7 +47,7 @@ export const MINE_MONSTERS: MonsterDefinition[] = Array.from(
       visualScale: 1,
       nameColor: '#d6e5bd',
       statusLabel: 'Normal',
-    };
+    },MINE_ID);
   },
 );
 export function mineSafe(p: MinePoint, margin = 0) {

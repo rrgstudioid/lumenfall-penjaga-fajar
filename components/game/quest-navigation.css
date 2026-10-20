@@ -1,0 +1,9 @@
+.development-quest-navigation {
+  position:fixed;z-index:5;transform:translate(-50%,-100%);pointer-events:none;
+  display:flex;flex-direction:column;align-items:center;gap:2px;max-width:260px;
+  color:#fff3bb;text-align:center;font:12px/1.35 system-ui,sans-serif;
+  text-shadow:0 1px 3px #000,0 0 4px #000;
+}
+.development-quest-navigation[hidden],.development-quest-navigation [hidden]{display:none}
+.development-quest-navigation [data-quest-arrow]{font-size:34px;line-height:1;display:block}
+.development-quest-navigation [data-quest-label]{background:#17221bd9;border:1px solid #c9ac6480;border-radius:6px;padding:3px 7px}

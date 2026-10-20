@@ -1,10 +1,12 @@
-import { DRAGON_VEIL_PIECES, DRAGON_VEIL_REVISION, canonicalDragonVeilTemplateId, resolveDragonVeilTemplateId, isDragonVeil } from './dragon-veil.ts';
+import {MAP_SCROLLS,mapScroll} from './map-scroll-contract.ts';
 import { ITEMIZATION_RULES, WEAPON_TUNING } from './canonical-config.ts';
 import type { CoreJobId, RuntimeCoreJobId, SpecializationId, WeaponType } from './skills.ts';
 import { STAMINA_ENABLED } from './gameplay-config.ts';
 import { statBonusText, statDisplayLabel } from './stat-presentation.ts';
 import { canonicalizeDaggerItem, isDaggerItem, isOneHandDagger, isThiefLineage } from './dagger.ts';
 import { IRON_SWORD_RANGE_V2 } from './iron-sword-range-v2.ts';
+import { JAYANTARA_RANGE_V3 } from './jayantara-range-v3.ts';
+import { developmentEquipmentAuthoring, resolveAuthoredEquipmentItem } from './equipment-authoring-v1.ts';
 
 export type ItemRarity = 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary' | 'mythic' | 'ancient' | 'normal' | 'unique' | 'legacy';
 export type EquipmentRarity = 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary' | 'mythic' | 'ancient';
@@ -31,6 +33,7 @@ export type EquipSlot =
   | 'offHand'
   | 'head'
   | 'chest'
+  | 'gloves'
   | 'legs'
   | 'boots'
   | 'necklace'
@@ -126,13 +129,13 @@ export type ItemSource = { type: 'starter' | 'shop' | 'monster' | 'elite' | 'fie
 export type RuneOptimizerHistory = { rerollCount: number; lastOptimizerAt: number | null };
 
 export type SkillModifierMap = Record<string, number>;
-export type ItemUseEffect = { type: 'heal' | 'mana' | 'resource' | 'stamina' | 'buff' | 'ammunition' | 'mount' | 'developerLevel100'; amount?: number; percentage?: number; duration?: number; buffId?: string; mountId?: string };
+export type ItemUseEffect = { type: 'heal' | 'mana' | 'resource' | 'stamina' | 'buff' | 'ammunition' | 'mount' | 'developerLevel100' | 'mapTeleport'; amount?: number; percentage?: number; duration?: number; buffId?: string; mountId?: string };
 
 export const POTION_ALIASES: Record<string,string> = {
   'potion-light':'health-potion-1', 'minor-health-potion':'health-potion-1', 'small-health-potion':'health-potion-1',
   'potion-mana':'mana-potion-1', 'minor-mana-potion':'mana-potion-1', 'small-mana-potion':'mana-potion-1',
 };
-export const canonicalItemTemplateId = (id:string) => POTION_ALIASES[id] ?? canonicalDragonVeilTemplateId(id);
+export const canonicalItemTemplateId = (id:string) => POTION_ALIASES[id] ?? id;
 export const itemCooldownKey = (item:Pick<ItemData,'templateId'|'potionType'>) => item.potionType ? `potion:${item.potionType}` : item.templateId;
 export const getItemCooldownRemaining = (cooldowns:Record<string,number>,item:Pick<ItemData,'templateId'|'potionType'>,now=Date.now()) => Math.max(0,((cooldowns[itemCooldownKey(item)] ?? 0)-now)/1000);
 export const potionRestoreAmount = (item:Pick<ItemData,'restoreType'|'restoreValue'>,maximum:number) => item.restoreType==='percentage' ? Math.ceil(maximum*(item.restoreValue??0)/100) : Math.max(0,item.restoreValue??0);
@@ -159,6 +162,9 @@ export type ItemData = {
   levelRequirement: number;
   /** Additive Iron authoring provenance; absent on historical legacy instances. */
   authoredAttackVersion?: string;
+  /** Versioned development core authoring; never inherited by legacy load. */
+  authoredEquipmentVersion?: string;
+  authoredEquipmentProfile?: string;
   jobRequirement: string | null;
   requiredGender?: 'male' | 'female';
   stackable: boolean;
@@ -234,7 +240,7 @@ const EQUIPMENT_TYPE_ALIASES: Record<string, EquipmentType> = {
   twoHandedKnuckle: 'knuckle', holyKnuckle: 'knuckle', staff: 'staff', wand: 'wand',
   mace: 'mace', shield: 'shield', offHandDagger: 'off_hand_dagger', tome: 'tome',
   orb: 'orb', quiver: 'quiver', talisman: 'talisman', relic: 'talisman',
-  head: 'helmet', chest: 'armor', legs: 'legs', boots: 'boots',
+  head: 'helmet', chest: 'armor', gloves: 'gloves', legs: 'legs', boots: 'boots',
   necklace: 'necklace', ring1: 'ring', ring2: 'ring', earring1: 'earring', earring2: 'earring', petEgg: 'pet',
   accessory: 'accessory', wings: 'accessory',
 };
@@ -825,23 +831,6 @@ ITEM_CATALOG['dragon-veil-wings']=base({
   source:{type:'shop',sourceId:'aruna-developer-materials',label:'Developer Material Lab'},
 });
 
-// Historical identity remains readable, but Gloves are no longer an equip slot.
-ITEM_CATALOG['arunika-gloves']=base({templateId:'arunika-gloves',name:'Bronzegrip Gauntlets',category:'armor',itemType:'gloves',equipmentType:'gloves',equipSlot:null,rarity:'rare',baseStats:{defense:3,hp:8},bonusStats:{sta:1},description:'Perlengkapan lama. Slot Gloves telah dihapus; item ini tidak dapat dipakai.'});
-for (const piece of DRAGON_VEIL_PIECES) {
-  const icon = `/assets/icons/items/${piece.id}.webp?v=${DRAGON_VEIL_REVISION}`;
-  ITEM_CATALOG[piece.id] = base({
-    templateId: piece.id, name: piece.name, category: 'armor', itemType: piece.slot,
-    equipmentType: piece.slot === 'head' ? 'helmet' : piece.slot === 'chest' ? 'armor' : piece.slot,
-    equipSlot: piece.slot, rarity: 'ancient', levelRequirement: 1, requiredGender: 'male',
-    baseStats: piece.stats, bonusStats: {}, maxEnhancementLevel: ITEMIZATION_RULES.maxEnhancement,
-    buyValue: 0, sellValue: 0, isSellable: false, isTradable: false, isSoulbound: true,
-    description: 'Dragon Veil: perlengkapan endgame khusus laki-laki. Tersedia di Developer Material Lab.',
-    asset: { icon, sprite: icon, model: `/assets/equipment/dragon-veil/${piece.piece}-lod0.glb`, fallback: piece.slot },
-    source: { type: 'shop', sourceId: 'aruna-developer-materials', label: 'Developer Material Lab' },
-  });
-}
-
-
 ITEM_CATALOG['developer-level-100-potion']=base({
   templateId:'developer-level-100-potion',name:'Developer Level 100 Potion',
   category:'consumable',itemType:'developerPotion',icon:'✦',
@@ -863,6 +852,7 @@ for(const rune of uniqueBossRunes)ITEM_CATALOG[rune.id]=base({templateId:rune.id
 
 for (const [slot, name] of Object.entries({
   head: 'Arunika Dawn Circlet',
+  gloves: 'Bronzegrip Gauntlets',
   legs: 'Woven Trailguards',
   boots: 'Wildwood Striders',
   ring1: 'Dawnfire Ring',
@@ -888,6 +878,9 @@ for (const [id,name] of Object.entries({iron:'Iron',titanium:'Titanium',vibraniu
   ITEM_CATALOG[id]=base({templateId:id,name,category:'material',itemType:'enhancementMaterial',stackable:true,maxStack:99,icon:'◆',buyValue:40,sellValue:8,rarity:id==='meteorite-core'?'legendary':id==='vibranium'?'unique':'normal',description:`Material ${name} dari field Chapter 1.`});
 }
 ITEM_CATALOG['monster-essence']=base({templateId:'monster-essence',name:'Monster Essence',category:'material',itemType:'monsterEssence',stackable:true,maxStack:99,icon:'✦',buyValue:0,sellValue:12,description:'Inti energi yang tersisa dari monster Lumenfall. Nama dan deskripsinya mengikuti spesies sumber.'});
+// Known in all modes so saved owned items survive normalization; no production acquisition/use.
+for(const row of MAP_SCROLLS) ITEM_CATALOG[row.templateId]=base({templateId:row.templateId,name:'Teleport Scroll: '+row.name,category:'consumable',itemType:'mapTeleportScroll',stackable:true,maxStack:99,icon:'↗',description:'Dari kota ke entry '+row.name+' yang pernah dikunjungi. Development saja.'+(row.price===null?' Pembelian belum tersedia.':''),isSellable:false,isSoulbound:true,sellValue:0,buyValue:row.price??0,usableFromHotbar:true,useEffect:{type:'mapTeleport'}});
+ITEM_CATALOG['quest-ironveil-survey-sample-v1']=base({templateId:'quest-ironveil-survey-sample-v1',name:'Sampel Survei Ironveil',category:'quest',itemType:'questSample',stackable:true,maxStack:5,icon:'◆',description:'Sampel dari Ore Grub Lv21 normal untuk laporan Surveyor Tambang.',isQuestItem:true,isSellable:false,isSoulbound:true,sellValue:0,buyValue:0});
 ITEM_CATALOG['rice-meal']=base({templateId:'rice-meal',name:'Blessed Rice Meal',category:'consumable',itemType:'food',stackable:true,maxStack:20,buyValue:30,icon:'◉',description:'Memulihkan stamina sepenuhnya.',usableFromHotbar:true,useEffect:{type:'stamina'},useCooldown:8});
 ITEM_CATALOG.magnifier=base({templateId:'magnifier',name:'Arcane Magnifier',category:'consumable',itemType:'magnifier',stackable:true,maxStack:99,icon:'⌕',description:'Mengungkap Unique Stats equipment yang masih terkunci.',isSellable:false});
 export const POTION_TIERS = [
@@ -907,7 +900,6 @@ ITEM_CATALOG['arrows']=base({templateId:'arrows',name:'Hunter Arrows',category:'
 // Named equipment with a fixed rarity, including old saves and random loot rolls.
 /** Training weapons are deliberately Common in every acquisition path. */
 const FIXED_ITEM_RARITIES: Readonly<Partial<Record<string, ItemRarity>>> = {
-  ...Object.fromEntries(DRAGON_VEIL_PIECES.map(p => [p.id, 'ancient' as const])),
   'field-verdant-plains-sword': 'common',
   'field-verdant-plains-dagger': 'common',
   'field-verdant-plains-staff': 'common',
@@ -952,6 +944,13 @@ const OFF_HAND_TEMPLATES: Array<Partial<ItemData> & Pick<ItemData,'templateId'|'
 ];
 for (const template of OFF_HAND_TEMPLATES) ITEM_CATALOG[template.templateId]=base(template);
 ITEM_CATALOG['jayantara-two-hand-sword']=base({templateId:'jayantara-two-hand-sword',name:'Jayantara Greatsword',category:'weapon',itemType:'twoHandSword',equipmentType:'two_hand_sword',icon:'⚔️',equipSlot:'mainHand',mainHand:true,twoHanded:true,handedness:'two_hand',attackType:'melee',allowedJobs:['warrior'],weaponType:'sword_shield',rarity:'epic',levelRequirement:24,baseStats:{attack:46,str:4},description:'Two-Hand Sword dengan damage besar yang menggunakan kedua tangan.'});
+// Local development acquisition only. Public acquisition retains the Lv24
+// compatibility definition; authored saved instances retain their own fields.
+// buy/sell/source/socket rules are unchanged, not regenerated from requirement.
+if (process.env.NODE_ENV === 'development') {
+  ITEM_CATALOG[JAYANTARA_RANGE_V3.templateId].levelRequirement = JAYANTARA_RANGE_V3.requiredLevel;
+  ITEM_CATALOG[JAYANTARA_RANGE_V3.templateId].authoredAttackVersion = JAYANTARA_RANGE_V3.version;
+}
 
 // Keep previous built-in copy only for save compatibility; the catalog remains
 // the single source of descriptions used by inventory and newly created items.
@@ -973,14 +972,13 @@ const ITEM_USAGE_NOTES: Record<string, string> = {
 };
 const DESCRIPTION_SLOT_NAMES: Record<EquipSlot, string> = {
   mainHand:'Main Hand', offHand:'Off Hand', head:'Head', chest:'Body Armor',
-  legs:'Legs', boots:'Boots', necklace:'Necklace',
+  gloves:'Gloves', legs:'Legs', boots:'Boots', necklace:'Necklace',
   ring1:'Ring 1 / Ring 2', ring2:'Ring 1 / Ring 2',
   earring1:'Earring 1 / Earring 2', earring2:'Earring 1 / Earring 2', accessory:'Accessories', pet:'Pet',
 };
 const usageStatLabel = (stat: keyof StatBlock) => statDisplayLabel(stat);
 
 export function equipmentUsageDescription(item: Omit<ItemData, 'id' | 'quantity'>): string {
-  if (item.equipmentType === 'gloves') return 'Perlengkapan lama. Slot Gloves telah dihapus; item ini tidak dapat dipakai. Rune dan nilai jual tetap tersimpan.';
   const stats = Object.entries({...item.baseStats, ...item.bonusStats})
     .map(([stat, value]) => statBonusText(stat, Number(value)))
     .join(' · ');
@@ -1058,6 +1056,7 @@ export function createItem(
   overrides: Partial<ItemData> = {},
 ): ItemData {
   templateId=canonicalItemTemplateId(templateId);
+  if(process.env.NODE_ENV==='production'&&(mapScroll(templateId)||templateId==='quest-ironveil-survey-sample-v1'))throw new Error('DEVELOPMENT_ONLY');
   if(LEGACY_OPTIMIZER_MIGRATION[templateId])throw new Error('Optimizer lama hanya tersedia melalui migrasi save.');
   if(Object.hasOwn(RETIRED_NORMAL_MATERIALS,templateId))throw new Error(`Item tidak lagi tersedia: ${templateId}`);
   const template = ITEM_CATALOG[templateId] ?? ITEM_CATALOG['lumut-fiber'];
@@ -1092,7 +1091,7 @@ export function createItem(
     uniqueEffect,
   });
   if (equipment) normalizedItem.description = equipmentUsageDescription(normalizedItem);
-  return canonicalizeDaggerItem(normalizedItem);
+  return developmentEquipmentAuthoring(canonicalizeDaggerItem(normalizedItem));
 }
 
 function legacyCategory(raw: Record<string, unknown>): ItemCategory {
@@ -1178,13 +1177,6 @@ export function normalizeItem(raw: unknown): ItemData | null {
                 ? 'forest-vest'
                 : `legacy-${typeof value.id === 'string' ? value.id : uniqueItemId()}`;
   templateId=canonicalItemTemplateId(templateId);
-  if (!ITEM_CATALOG[templateId]) templateId=resolveDragonVeilTemplateId({
-    templateId,
-    name: typeof value.name === 'string' ? value.name : undefined,
-    category: typeof value.category === 'string' ? value.category : undefined,
-    equipSlot: typeof value.equipSlot === 'string' ? value.equipSlot : undefined,
-    itemType: typeof value.itemType === 'string' ? value.itemType : undefined,
-  });
   if (isLegacyGenericOptimizer(value, templateId)) {
     templateId = 'rune-optimizer-basic';
     const current = ITEM_CATALOG[templateId];
@@ -1201,15 +1193,23 @@ export function normalizeItem(raw: unknown): ItemData | null {
     });
   }
   if(ITEM_CATALOG[templateId]?.potionType&&typeof value.quantity==='number'&&value.quantity<=0)return null;
-  const template = Object.hasOwn(RETIRED_NORMAL_MATERIALS,templateId) ? legacyRetiredMaterial(templateId,typeof value.id==='string'?value.id:undefined) : createItem(templateId, {
+  const template = mapScroll(templateId)||templateId==='quest-ironveil-survey-sample-v1' ? {...ITEM_CATALOG[templateId],id:typeof value.id==='string'?value.id:uniqueItemId()} : Object.hasOwn(RETIRED_NORMAL_MATERIALS,templateId) ? legacyRetiredMaterial(templateId,typeof value.id==='string'?value.id:undefined) : createItem(templateId, {
     id: typeof value.id === 'string' ? value.id : undefined,
     affixes: [],
   });
+  // Loading is not acquisition. Only exact saved fields may retain a new version.
+  delete template.authoredEquipmentVersion;
+  delete template.authoredEquipmentProfile;
   if (templateId === IRON_SWORD_RANGE_V2.templateId) {
     // Loading is not new acquisition: never inherit a current template marker.
     // Missing historical requirement stays on the old Lv8 compatibility path.
     delete template.authoredAttackVersion;
     if (!Object.hasOwn(value, 'authoredAttackVersion')) template.levelRequirement = 8;
+  }
+  if (templateId === JAYANTARA_RANGE_V3.templateId) {
+    delete template.authoredAttackVersion;
+    // Old missing fields mean old acquisition, regardless of current dev catalog.
+    template.levelRequirement = 24;
   }
   const rawCategory = typeof value.category === 'string' ? value.category : '';
   const rarityText = typeof value.rarity === 'string' ? value.rarity : '';
@@ -1249,7 +1249,6 @@ export function normalizeItem(raw: unknown): ItemData | null {
     // Grandfather saved Wings enhancement; their zero cap still prevents new upgrades.
     enhancementLevel: Math.max(0, Math.min(ITEMIZATION_RULES.maxEnhancement, Math.floor(Number(value.enhancementLevel) || 0))),
     equipmentType:migratedEquipmentType,
-    equipSlot: value.equipSlot === 'gloves' || migratedEquipmentType === 'gloves' ? null : (value.equipSlot as EquipSlot | undefined) ?? template.equipSlot,
     handedness:['one_hand','two_hand','off_hand','none'].includes(String(value.handedness))?value.handedness as Handedness:inferHandedness(migratedEquipmentType,value.twoHanded===true||template.twoHanded),
     attackType:['melee','ranged','magic','hybrid','none'].includes(String(value.attackType))?value.attackType as AttackType:inferAttackType(migratedEquipmentType),
     allowedJobs:Array.isArray(value.allowedJobs)?value.allowedJobs.filter((entry):entry is CoreJobId=>['warrior','rogue','hunter','wizard','acolyte'].includes(String(entry))):template.allowedJobs??defaultAllowedJobs(migratedEquipmentType),
@@ -1293,10 +1292,6 @@ export function normalizeItem(raw: unknown): ItemData | null {
       typeof value.isSellable === 'boolean'
         ? value.isSellable
         : !(value.isQuestItem === true || value.isSoulbound === true),
-    // Dragon Veil uses the current shared enhancement cap, even when an old save
-    // persisted a disabled cap. Keep the owned enhancement level and Rune data.
-    ...(isDragonVeil(templateId) ? { requiredGender: 'male' as const, isSellable: false, isTradable: false, isSoulbound: true, sellValue: 0, asset: template.asset, maxEnhancementLevel: template.maxEnhancementLevel } : {}),
-    ...(templateId === 'dragon-veil-legs' ? { itemType: template.itemType, equipmentType: template.equipmentType, equipSlot: template.equipSlot } : {}),
     ...(template.potionType ? {name:template.name,description:template.description,itemType:template.itemType,potionType:template.potionType,tier:template.tier,restoreType:template.restoreType,restoreValue:template.restoreValue,buyValue:template.buyValue,sellValue:template.sellValue,stackable:true,usableFromHotbar:true,useCooldown:3} : {}),
   }));
 }
@@ -1306,6 +1301,7 @@ export const emptyEquipment = (): EquipmentLoadout => ({
   offHand: null,
   head: null,
   chest: null,
+  gloves: null,
   legs: null,
   boots: null,
   necklace: null,
@@ -1435,8 +1431,6 @@ export function canEquipItem(
   },
   targetSlot: EquipSlot | null = item.equipSlot,
 ) {
-  if (item.itemType === 'gloves' || item.equipmentType === 'gloves' || (targetSlot && !Object.hasOwn(emptyEquipment(), targetSlot)))
-    return { ok: false, reason: 'Slot equipment ini sudah tidak tersedia.' };
   if (item.requiredGender && context.gender !== item.requiredGender)
     return { ok: false, reason: `Equipment ini khusus karakter ${item.requiredGender === 'male' ? 'laki-laki' : 'perempuan'}.` };
   if (isDaggerItem(item)) {
@@ -1508,8 +1502,12 @@ export function validateOffHandCompatibility(main: ItemData | null, offHand: Ite
 
 export function calculateBaseEquipmentStats(item: ItemData): StatBlock { return {...item.baseStats}; }
 export function calculateEnhancedBaseStats(
-  item: Pick<ItemData, 'baseStats' | 'enhancementLevel'>,
+  item: Pick<ItemData, 'baseStats' | 'enhancementLevel'> & Partial<ItemData>,
 ): StatBlock {
+  const authored = resolveAuthoredEquipmentItem(item);
+  if (authored.ok) return {...authored.compatibilityBase};
+  // Unknown metadata remains visibly unavailable through the pure authoring API.
+  // Unmigrated generic consumers retain compatibility data, never a guessed range.
   const factor = 1 + item.enhancementLevel * WEAPON_TUNING.enhancementPerLevel;
   return Object.fromEntries(
     Object.entries(item.baseStats).map(([key, value]) => [key, (value ?? 0) * factor]),

@@ -13,6 +13,7 @@ import { AMBUSH_DURATION, AMBUSH_FINAL_DAMAGE } from './rogue-ambush.ts';
 import { BLADE_MASTER_MASTERY_MANA_REDUCTION_BY_RANK, BLADE_MASTER_MASTERY_MANA_SKILLS, BLADE_MASTER_V3_SKILLS } from './blade-master-v3.ts';
 import type { adventurerReferenceSkillMetadata } from './adventurer-ranks-reference-v2.ts';
 import type { warriorReferenceSkillMetadata } from './warrior-reference-v3.ts';
+import type { specializationSkillMetadata } from './warrior-specialization-reference-v3.ts';
 
 export type SkillPresentationRow = { label: string; value: string };
 
@@ -269,9 +270,14 @@ function nextRankRows(definition: SkillDefinitionV3, runtime: SkillDefinition, r
 }
 
 export function resolveSkillPresentation(hero: Hero, definition: SkillDefinitionV3, runtime: SkillDefinition,
-  development: ReturnType<typeof adventurerReferenceSkillMetadata> | ReturnType<typeof warriorReferenceSkillMetadata> = null): SkillPresentationModel {
-  if(development?.version==='WARRIOR_IRON_W1_W4_V1' && development.id===runtime.id && definition.jobId==='warrior') {
-    const currentRank=hero.skillProgressionV3?.skillRanks[runtime.id]??0,view=skillNodePresentation(hero,runtime.id),isDamage=development.hits===1;
+  development: ReturnType<typeof adventurerReferenceSkillMetadata> | ReturnType<typeof warriorReferenceSkillMetadata> | ReturnType<typeof specializationSkillMetadata> = null): SkillPresentationModel {
+  if((development?.version==='WARRIOR_IRON_W1_W4_V1'&&definition.jobId==='warrior'||development?.version==='WARRIOR_SPECIALIZATIONS_SB1_SB6_V1') && development.id===runtime.id) {
+    const currentRank=hero.skillProgressionV3?.skillRanks[runtime.id]??0,view=skillNodePresentation(hero,runtime.id),isDamage=development.hits>0;
+    const specialization=development.version==='WARRIOR_SPECIALIZATIONS_SB1_SB6_V1';
+    const mechanics=rowsForMechanics(definition,runtime,development.rank).filter(row=>!specialization||row.label!=='Flow');
+    if(specialization&&runtime.tags?.includes('flow-eligible'))mechanics.push({label:'Flow',value:'+5% Critical Rate for the sequence; consumed on first successful damage'});
+    if(specialization&&runtime.id==='v3-berserker-earth-splitter')mechanics.push({label:'Four stomps',value:'20 / 22 / 25 / 33%; Mini Stun 0.1s on eligible hits; Major Stun only on stomp 4'});
+    if(specialization&&runtime.id==='v3-blade-master-blade-tempest')mechanics.push({label:'Shared budget',value:'Core and scaling distributed in proportion to each hit coefficient; OFF weapon contribution 50%'});
     // Selected effects retain the resolved numeric row when the legacy description
     // also names the same effect. Labels remain unique in the existing UI list.
     const effects=rowsForEffects(definition,runtime,development.rank).filter((r,index,rows)=>r.label!=='Damage Reduction'&&!rows.slice(index+1).some(next=>next.label===r.label));
@@ -281,12 +287,12 @@ export function resolveSkillPresentation(hero: Hero, definition: SkillDefinition
     }
     return {skillName:runtime.name,description:runtime.description,skillType:definition.skillType,currentRank,maxRank:definition.maxRank,
       status:currentRank>=definition.maxRank?'MAX RANK':currentRank>0?'LEARNED':view?.purchase.ok?'AVAILABLE':'LOCKED',
-      requirements:[{label:'Character Requirement',value:`Lv. ${development.gate}`},{label:'Job Requirement',value:'Warrior'},
-        {label:'Skill Point Cost',value:'2 SP / rank'},{label:'Prerequisite',value:definition.prerequisiteSkills?.map(p=>`${canonicalSkillName(p.skillId)} R${p.requiredRank}`).join(' + ')||'None'},
-        {label:'Weapon',value:'Owned Iron Sword +0 · main hand'}],
+      requirements:[{label:'Character Requirement',value:`Lv. ${development.gate}`},{label:'Job Requirement',value:jobLabels[definition.jobId]??definition.jobId},
+        {label:'Skill Point Cost',value:`${Array.isArray(definition.spCostPerRank)?definition.spCostPerRank[development.rank-1]:definition.spCostPerRank} SP / rank`},{label:'Prerequisite',value:definition.prerequisiteSkills?.map(p=>`${canonicalSkillName(p.skillId)} R${p.requiredRank}`).join(' + ')||'None'},
+        {label:'Weapon',value:specialization?(runtime.weaponRequirement.map(weaponRequirementLabel).join(' / ')||'None'):'Owned Iron Sword +0 · main hand'}],
       damage:isDamage?[{label:'Damage Type',value:'Physical · can Crit'},{label:'Physical Attack',value:coefficient(development.coefficient!)},
-        {label:'Bonus STR',value:coefficient(development.bonusSTRCoefficient!)},...(development.bonusDEXCoefficient?[{label:'Bonus DEX',value:coefficient(development.bonusDEXCoefficient)}]:[]),{label:'Hits',value:'1 · MAIN per target'}]:[],
-      effects,specialMechanics:[{label:'Formula',value:isDamage?'Main-hand Physical Attack × skill coefficient + declared Bonus STR / DEX scaling':'Self buff · no attack roll or damage'},...rowsForMechanics(definition,runtime,development.rank)],
+        {label:'Bonus STR',value:coefficient(development.bonusSTRCoefficient!)},...(development.bonusDEXCoefficient?[{label:'Bonus DEX',value:coefficient(development.bonusDEXCoefficient)}]:[]),{label:'Hits',value:`${development.hits} per target`}]:[],
+      effects,specialMechanics:[{label:'Formula',value:isDamage?(specialization?'One shared core and declared weapon-hand budgets × coefficient + Bonus STR / DEX scaling':'Main-hand Physical Attack × skill coefficient + declared Bonus STR / DEX scaling'):'Self buff / passive · no attack roll or damage'},...mechanics],
       area:[{label:'Target Type',value:development.targetType==='self'?'Self':development.targetType==='single'?'Single Target':development.targetType==='area'?'Area Around You':'Frontal Area'},
         ...(development.range?[{label:'Range',value:`${development.range} m`}]:[]),...(development.radius?[{label:'Radius',value:`${development.radius} m`}]:[]),...(isDamage?[{label:'Max Targets',value:String(development.maxTargets)}]:[])],
       resource:[{label:'Mana',value:`${development.mana} MP`},{label:'Cooldown',value:`${development.cooldown}s`},...(development.duration?[{label:'Duration',value:`${development.duration}s`}]:[])],

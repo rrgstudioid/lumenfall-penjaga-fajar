@@ -1,11 +1,3 @@
-import {
-  createDragonVeilVisual,
-  applyDragonVeilCoverage,
-} from './dragon-veil-model.ts';
-import type {
-  DragonVeilLoadout,
-  DragonVeilEnhancements,
-} from './dragon-veil.ts';
 import * as T from 'three';
 import {
   GLTFLoader,
@@ -144,8 +136,6 @@ export async function loadModularMaleCharacter(
   initialLOD: CharacterLOD = 1,
   renderer?: T.WebGLRenderer,
   animated = true,
-  equipment: DragonVeilLoadout = {},
-  enhancements: DragonVeilEnhancements = {},
 ) {
   let appearance = normalizeMaleAppearance(value),
     lod = initialLOD,
@@ -171,13 +161,6 @@ export async function loadModularMaleCharacter(
   const bodyMaterial = createMaleBodyMaterial(textures, appearance),
     hairMaterial = createMaleHairMaterial(appearance, textures);
   bodyMaterial.userData.modularOwned = true;
-  applyDragonVeilCoverage(bodyMaterial, equipment);
-  const equipmentVisual = createDragonVeilVisual(
-    scene,
-    body,
-    equipment,
-    enhancements,
-  );
   hairMaterial.userData.modularOwned = true;
   for (const mesh of meshes(scene)) {
     mesh.material = bodyMaterial;
@@ -252,13 +235,7 @@ export async function loadModularMaleCharacter(
         if (r.status === 'rejected') throw r.reason;
         return r.value;
       });
-      // A slow body/hair request must not replace equipment from a newer LOD.
-      if (disposed || token !== revision) {
-        acquired.forEach((l) => l.release());
-        newTextures?.release();
-        return;
-      }
-      await equipmentVisual.update(nextLOD);
+      // A slow body/hair request must not replace a newer appearance or LOD.
       if (disposed || token !== revision) {
         acquired.forEach((l) => l.release());
         newTextures?.release();
@@ -315,7 +292,6 @@ export async function loadModularMaleCharacter(
       item.lease.release();
     }
     slots.clear();
-    equipmentVisual.dispose();
     bodyMaterial.dispose();
     hairMaterial.dispose();
     currentBodyLease.release();
@@ -325,8 +301,6 @@ export async function loadModularMaleCharacter(
   scene.userData.setAppearance = update;
   scene.userData.characterVisualProfile = MALE_V2_PROFILE;
   scene.userData.preserveAuthoredAppearance = true;
-  // This open crown must retain the player's complete selected hairstyle.
-  scene.userData.preserveHairWithHeadEquipment = Boolean(equipment.head);
   scene.userData.importedSwordGripRoll = 0;
   try {
     await update(appearance, lod);

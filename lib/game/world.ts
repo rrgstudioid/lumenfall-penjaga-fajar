@@ -1,3 +1,6 @@
+import {MAP_SCROLLS,mapScroll,mapScrollReceipt,mapVisitReceipt,availableMapScrollPacks} from './map-scroll-contract';
+import {developmentQuestNpcs,recordEarlyKill,recordEarlyVisits,MINE_SAMPLE_ID} from './early-quest-contract';
+import {regionNpcs,questTurnInInventory} from './regions';
 import { METEORFALL_ID, METEORFALL_EXIT, meteorGroundHeight, meteorWalkable } from './meteorfall-citadel-layout';
 import { METEORFALL_LIGHT } from './meteorfall-citadel-quality';
 import { mineMonsterSpawns, mineSafe, moveMineMonster } from './ironveil-interior-population';
@@ -30,7 +33,8 @@ import { sampleRawAttackExecution, type AttackExecutionSnapshot, type Foundation
 import { QUICK_SLASH_REFERENCE, openQuickSlashBinding, prepareQuickSlash, type QuickSlashBinding } from './quick-slash-reference-v2.ts';
 import { POWER_STRIKE_REFERENCE, openPowerStrikeBinding, preparePowerStrike, currentPowerStrikeBinding, coherentHigherPowerRank, type PowerStrikeBinding } from './power-strike-reference-v2.ts';
 import { ADVENTURER_RANKS_REFERENCE, adventurerReferenceSkillMetadata, adventurerRangePresentation, adventurerOwnedItemRangePresentation, adventurerLifecycleSignature, openAdventurerRanksBinding, prepareAdventurerRanks, prepareAdventurerBasic, currentAdventurerRanksBinding, type AdventurerRanksBinding } from './adventurer-ranks-reference-v2.ts';
-import { WARRIOR_REFERENCE, warriorReferenceSkillMetadata, warriorLifecycleSignature, openWarriorBinding, readWarriorBinding, prepareWarriorReference, recordCommittedWarriorBuffs, type WarriorBinding } from './warrior-reference-v3.ts';
+import { WARRIOR_REFERENCE, warriorReferenceSkillMetadata, warriorRangePresentation, warriorSkillCost, warriorLifecycleSignature, openWarriorBinding, readWarriorBinding, prepareWarriorReference, prepareWarriorBasic, recordCommittedWarriorBuffs, type WarriorBinding } from './warrior-reference-v3.ts';
+import { SPECIALIZATION_REFERENCE, specializationSkillMetadata, specializationRangePresentation, specializationSkillCost, openSpecializationBinding, readSpecializationBinding, prepareSpecializationReference, prepareSpecializationBasic, recordCommittedSpecializationBuffs, type SpecializationBinding } from './warrior-specialization-reference-v3.ts';
 import type { RogueAmbushState } from './rogue-ambush.ts';
 import { AssasinPoisonState } from './assasin-poison.ts';
 import { AssasinCombatState } from './assasin-combat.ts';
@@ -59,11 +63,11 @@ import { oceanContactPoint } from './deep-ocean-monster-models';
 import { commitDrop, getInventorySlots, type DragSource, type DropTarget } from './drag-drop';
 import { BgmPlayer, loadAudioSettings, saveAudioSettings, resolveBgmTrack, type AudioSettings, type BgmStatus } from './bgm';
 import { createCharacterModel, disposeCharacterModel, updateCharacterAura, updateCharacterBillboards, type CharacterModel } from './character-model';
-import { CITIES, FIELDS, FIELD_NPCS, travel, refreshUnlocks, monsterXP, acceptRegionQuest, completeRegionQuest, getQuestRegistry, regionQuestReward, regionQuestStatus, type MonsterDefinition, type NpcDefinition } from './regions';
+import { CITIES, FIELDS, FIELD_NPCS, getQuestReportLocation, unlockReason, travel, refreshUnlocks, monsterXP, acceptRegionQuest, completeRegionQuest, getQuestRegistry, regionQuestReward, regionQuestStatus, type MonsterDefinition, type NpcDefinition } from './regions';
 import { buildStylizedTreeDecor } from './stylized-tree-map';
 import { moveWithTreeCollisions, type TreeCollider } from './tree-collision';
 import { buyShopItem, buyFieldShopItem, sellInventoryItem, transferStorage, healAtCity } from './city-services';
-import { addItemToInventory, createItem, sortInventory, type ItemData } from './items';
+import { addItemToInventory, createItem, removeItemQuantity, sortInventory, type ItemData } from './items';
 import {
   attackPower,
   basicAttackPower,
@@ -140,7 +144,7 @@ import { COMBAT_MECHANICS, criticalChance, evasionChance, passiveBlockChance, ba
 import { resolveCriticalDamage } from './combat-resolver.ts';
 import { SkillHitQueue, selectSkillTargets, skillHitDamage, type ResolvedSkillAction } from './skill-action';
 import { applySourceOwnedStatus, applyStatus, clearExpiredSourceStatuses, effectiveArmorBreakStrength, getActiveStatusApplications, hasActiveStatusFromSource, hasStatus, getStatus, DefenseEvents, counterContextAllowed, type DefenseResult, type SourceOwnedStatus } from './combat-status';
-import {addTemporaryModifier,tickTemporaryModifiers,receivedMultiplier,resolveTargetHit,NO_COUNTER,setManualGuard} from './combat-modifiers';
+import {addTemporaryModifier,tickTemporaryModifiers,receivedMultiplier,resolveTargetHit,actionDamageMultiplier,NO_COUNTER,setManualGuard} from './combat-modifiers';
 import {forwardFromYaw} from './combat-position';
 import {enterStealth,exitStealth,isStealthed,breakStealth} from './stealth';
 import { VanishState } from './vanish.ts';
@@ -342,7 +346,7 @@ export class Game {
     if (skillId !== 'v3-blade-master-twin-assault') return;
     this.developmentTrace?.({ system: 'v3-live-damage', skillId, stage, time: this.combatTime, ...data });
   }
-  portalLabels: Array<{element:HTMLDivElement;x:number;z:number;name:string;labelHeight?:number}> = [];
+  portalLabels: Array<{element:HTMLDivElement;x:number;z:number;name:string;labelHeight?:number;destination?:string}> = [];
   terrainSurface: T.Mesh | null = null;
   plains: Awaited<ReturnType<typeof import('./verdant-plains-map').buildVerdantPlains>> | null = null;
   private plainsShadowState = new WeakMap<T.Mesh,boolean>();
@@ -642,17 +646,24 @@ export class Game {
   #adventurerRenewal?: {hero: Hero; signature: string};
   #adventurerRenewalEvent?: Readonly<{reason:string;ok:boolean}>;
   #adventurerRegionTransaction?: object;
+  #mapScrollPending?: {hero:Hero;item:ItemData;quantity:number;destination:string;started?:boolean;origin:Pick<Hero,'inCity'|'currentCity'|'currentField'|'interiorId'|'x'|'z'>};
   /** Read-only lifecycle availability; never opens or repairs a binding. */
   isDevelopmentDiagnosticLifecycleAvailable() {
     return this.started && !this.dead && !this.disposed && !this.transitioning && !this.regionLoadError;
   }
   getDevelopmentAdventurerRenewal() { return this.#adventurerRenewalEvent; }
   getDevelopmentAdventurerRange() {
+    if(this.#specializationSelected)return this.isDevelopmentDiagnosticLifecycleAvailable()?specializationRangePresentation(this.#specializationBinding,this):Object.freeze({ok:false as const,code:'INACTIVE_LIFECYCLE',path:'hero',reason:'Range unavailable'});
+    if(this.#warriorSelected)return this.isDevelopmentDiagnosticLifecycleAvailable()?warriorRangePresentation(this.#warriorBinding,this):Object.freeze({ok:false as const,code:'INACTIVE_LIFECYCLE',path:'hero',reason:'Range unavailable'});
     if(!this.#adventurerRanksSelected)return null;
     if(this.dead || this.disposed)return Object.freeze({ok:false as const,code:'INACTIVE_LIFECYCLE',path:'hero',reason:'Range unavailable'});
     return adventurerRangePresentation(this.#adventurerRanksBinding,this);
   }
   getDevelopmentAdventurerItemRange(item: Partial<ItemData>) {
+    if(this.#specializationSelected||this.#warriorSelected) {
+      const range=this.getDevelopmentAdventurerRange();
+      return range?.ok&&this.hero.inventory.includes(item as ItemData)&&[this.hero.equipment.mainHand,this.hero.equipment.offHand].includes(item.id??'')?range.value.weapon:null;
+    }
     const range=this.getDevelopmentAdventurerRange();
     if(!this.hero.inventory.includes(item as ItemData))return null;
     if(range?.ok && item.id===range.value.itemId)return range.value.weapon;
@@ -660,12 +671,21 @@ export class Game {
       ? adventurerOwnedItemRangePresentation(this.hero,item as ItemData) : null;
   }
   #beginAdventurerTransaction() {
+    if(this.#specializationSelected)return !!this.#specializationRenewal && this.#specializationRenewal.hero===this.hero && this.#specializationRenewal.signature===warriorLifecycleSignature(this.hero);
     if(this.#warriorSelected)return !!this.#warriorRenewal && this.#warriorRenewal.hero===this.hero && this.#warriorRenewal.signature===warriorLifecycleSignature(this.hero);
     return !!this.#adventurerRenewal && this.#adventurerRenewal.hero===this.hero &&
       this.#adventurerRenewal.signature===adventurerLifecycleSignature(this.hero);
   }
   #renewAdventurerTransaction(authorized: boolean, reason: string) {
     if(!authorized)return;
+    if(this.#specializationSelected) {
+      const opened=!this.dead&&!this.disposed ? openSpecializationBinding(this,this.#specializationSourceBinding) : undefined;
+      this.#specializationBinding=opened?.ok?opened.value:undefined;
+      if(opened?.ok)this.#specializationSourceBinding=opened.value;
+      this.#specializationFailure=opened&&!opened.ok?opened:Object.freeze({ok:false,code:'REFERENCE_REBIND_REQUIRED',path:'lifecycle',reason:'Inactive specialization'});
+      this.#specializationRenewal={hero:this.hero,signature:warriorLifecycleSignature(this.hero)};
+      this.#specializationRenewalEvent=Object.freeze({reason,ok:opened?.ok===true});return;
+    }
     if(this.#warriorSelected) {
       const opened=!this.dead&&!this.disposed ? openWarriorBinding(this,this.#warriorSourceBinding) : undefined;
       this.#warriorBinding=opened?.ok ? opened.value : undefined;
@@ -689,10 +709,37 @@ export class Game {
   #adventurerRanksExecutions = new WeakMap<ResolvedSkillAction, { hero: Hero; actorId: string; slotId: string }>();
   getDevelopmentAdventurerRanksResult() { return this.#adventurerRanksResult; }
   getDevelopmentAdventurerSkillMetadata(id: string, rank = Math.max(1,this.hero.skillLevels[id]??0)) {
+    if(this.#specializationSelected)return specializationSkillMetadata(id,rank);
     if(this.#warriorSelected)return warriorReferenceSkillMetadata(id,rank);
     return this.#adventurerRanksSelected ? adventurerReferenceSkillMetadata(id,rank) : null;
   }
   #warriorSelected=false;
+  #specializationSelected=false;
+  #specializationBinding?:SpecializationBinding;
+  #specializationSourceBinding?:SpecializationBinding;
+  #specializationFailure?:FoundationFailure;
+  #specializationRenewal?:{hero:Hero;signature:string};
+  #specializationRenewalEvent?:Readonly<{reason:string;ok:boolean}>;
+  #specializationResult?:FoundationFailure|Readonly<{ok:true;rank:number;level:number;execution?:AttackExecutionSnapshot;sample?:SampledRawExecution}>;
+  getDevelopmentSpecializationResult(){return this.#specializationResult;}
+  getDevelopmentSpecializationRenewal(){return this.#specializationRenewalEvent;}
+  getDevelopmentSpecializationAvailability(){
+    return this.#specializationSelected ? !this.isDevelopmentDiagnosticLifecycleAvailable()?Object.freeze({ok:false as const,code:'INACTIVE_LIFECYCLE',path:'hero',reason:'Specialization unavailable'}):readSpecializationBinding(this.#specializationBinding,this):null;
+  }
+  enableDevelopmentWarriorSpecializationReference(options?:{lifecycleRenewal:true}) {
+    if(process.env.NODE_ENV!=='development')return Object.freeze({ok:false as const,code:'DEVELOPMENT_ONLY',path:'route',reason:'Specialization is development-only.'});
+    this.#specializationSelected=true;
+    if(this.#warriorSelected||this.#adventurerRanksSelected||this.#quickSlashReferenceSelected||this.#powerStrikeReferenceSelected||this.#basicReferenceSelected){
+      this.#specializationBinding=undefined;
+      return this.#specializationFailure=Object.freeze({ok:false,code:'AMBIGUOUS_REFERENCE_ROUTE',path:'route',reason:'Independent development routes cannot be combined.'});
+    }
+    const opened=!this.dead&&!this.disposed?openSpecializationBinding(this):undefined;
+    this.#specializationBinding=opened?.ok?opened.value:undefined;
+    this.#specializationSourceBinding=this.#specializationBinding;
+    this.#specializationFailure=opened&&!opened.ok?opened:Object.freeze({ok:false,code:'INACTIVE_LIFECYCLE',path:'hero',reason:'Specialization inactive.'});
+    this.#specializationRenewal=opened?.ok&&options?.lifecycleRenewal?{hero:this.hero,signature:warriorLifecycleSignature(this.hero)}:undefined;
+    return opened?.ok?Object.freeze({ok:true as const,version:opened.value.version}):this.#specializationFailure;
+  }
   #warriorBinding?:WarriorBinding;
   #warriorSourceBinding?:WarriorBinding;
   #warriorFailure?:FoundationFailure;
@@ -709,7 +756,7 @@ export class Game {
   enableDevelopmentWarriorReference(options?:{lifecycleRenewal:true}) {
     if(process.env.NODE_ENV!=='development')return Object.freeze({ok:false as const,code:'DEVELOPMENT_ONLY',path:'route',reason:'Warrior reference is development-only.'});
     this.#warriorSelected=true;
-    if(this.#adventurerRanksSelected||this.#quickSlashReferenceSelected||this.#powerStrikeReferenceSelected||this.#basicReferenceSelected){
+    if(this.#specializationSelected||this.#adventurerRanksSelected||this.#quickSlashReferenceSelected||this.#powerStrikeReferenceSelected||this.#basicReferenceSelected){
       this.#warriorBinding=undefined;
       return this.#warriorFailure=Object.freeze({ok:false,code:'AMBIGUOUS_REFERENCE_ROUTE',path:'route',reason:'Warrior and Adventurer opt-ins are mutually exclusive.'});
     }
@@ -1038,6 +1085,11 @@ export class Game {
   }
   clearSkillRuntime() {
     this.#adventurerRegionTransaction=undefined;
+    if(this.#specializationSelected){
+      this.#specializationBinding=undefined;this.#specializationSourceBinding=undefined;this.#warriorCounterReceipt=undefined;
+      this.#specializationFailure=Object.freeze({ok:false,code:'REFERENCE_REBIND_REQUIRED',path:'lifecycle',reason:'Specialization runtime reset.'});
+      for(const id of SPECIALIZATION_REFERENCE.skills)delete this.hero.activeBuffs[id];
+    }
     if(this.#warriorSelected){
       this.#warriorBinding=undefined;this.#warriorSourceBinding=undefined;this.#warriorCounterReceipt=undefined;
       this.#warriorFailure=Object.freeze({ok:false,code:'REFERENCE_REBIND_REQUIRED',path:'lifecycle',reason:'Warrior runtime was reset.'});
@@ -1540,9 +1592,6 @@ export class Game {
     model.animator.update(0,{movementMode:this.isSunken?'underwater':'ground'});
     this.scene.add(this.actor);
     if (this.isPlains) this.setPlainsCharacterShadows(true);
-    void model.equipmentReady.then(ok => {
-      if (!ok && !this.disposed && this.characterModel === model) this.message('Model Dragon Veil gagal dimuat. Lepas lalu pakai kembali equipment untuk mencoba lagi.');
-    });
     void model.ready.then(() => {
       if (!this.disposed && this.characterModel === model && this.isPlains)
         this.setPlainsCharacterShadows(true);
@@ -2044,6 +2093,7 @@ export class Game {
     const sanctuary=this.fieldTerrain?.sanctuary??{x:0,z:0};
     this.shrine.position.set(sanctuary.x,this.groundHeight(sanctuary.x,sanctuary.z),sanctuary.z);
     this.shrine.visible=true;
+    this.buildDevelopmentQuestNpcs();
     if(this.isMineInterior) {
       this.terrain.visible=false;this.shrine.visible=false;this.actor.visible=false;
       this.scene.background=new T.Color('#08090b');this.scene.fog=new T.Fog('#08090b',130,240);
@@ -2303,12 +2353,17 @@ export class Game {
   private loadActiveLocation(id:string,destinationLabel:string,message:string) {
     // Capture only a current, fully admitted policy. Retrying a failed load does
     // not recover discarded intent. This object never escapes the transaction.
-    const prior=this.#beginAdventurerTransaction() && (this.#warriorSelected ? this.getDevelopmentWarriorAvailability()?.ok : this.getDevelopmentAdventurerRange()?.ok)
+    const prior=this.#beginAdventurerTransaction() && (this.#specializationSelected?this.getDevelopmentSpecializationAvailability()?.ok:this.#warriorSelected ? this.getDevelopmentWarriorAvailability()?.ok : this.getDevelopmentAdventurerRange()?.ok)
       ? {hero:this.hero,item:this.hero.inventory.find(item=>item.id===this.hero.equipment.mainHand),
-         signature:this.#warriorSelected?warriorLifecycleSignature(this.hero):adventurerLifecycleSignature(this.hero)} : undefined;
+         offItem:this.hero.equipment.offHand?this.hero.inventory.find(item=>item.id===this.hero.equipment.offHand):undefined,
+         signature:this.#warriorSelected||this.#specializationSelected?warriorLifecycleSignature(this.hero):adventurerLifecycleSignature(this.hero)} : undefined;
+    const scroll=this.#mapScrollPending?.destination===id&&!this.#mapScrollPending.started?this.#mapScrollPending:undefined;
+    if(scroll)scroll.started=true;
+    let scrollCommitted=false;
     this.clearSkillRuntime();
     this.#adventurerRenewal=undefined;
     this.#warriorRenewal=undefined;
+    this.#specializationRenewal=undefined;
     const transaction={};
     this.#adventurerRegionTransaction=transaction;
     this.assasinPoison.clear(); this.assasinCombat.clear(); // Old target instances leave the loaded world.
@@ -2327,11 +2382,21 @@ export class Game {
         this.cameraFocus.copy(this.actor.position);
         await this.waitForRegionLoads();
         if(this.disposed || this.#adventurerRegionTransaction!==transaction || generation!==this.regionBuildToken || this.activeLocationId!==id)return;
+        if(scroll){
+          if(this.#mapScrollPending!==scroll||this.hero!==scroll.hero||this.dead||this.hero.hp<=0||!this.hero.inventory.includes(scroll.item)||scroll.item.quantity!==scroll.quantity)
+            throw new Error('Transaksi scroll tidak lagi valid.');
+          const debit=removeItemQuantity(this.hero.inventory,scroll.item.id,1);
+          if(debit.removed!==1)throw new Error('Item scroll tidak tersedia.');
+          this.hero.inventory=debit.inventory;scrollCommitted=true;
+        }
+        if(process.env.NODE_ENV!=='production'&&!this.dead&&this.hero.hp>0&&(id===MINE_ID||FIELDS[id]&&!FIELDS[id].warpOnly))
+          this.hero.cityProgress[mapVisitReceipt(id)]=1;
         this.invincible=2;
         this.transitioning=false;
         if(prior && this.started && !this.dead && prior.hero===this.hero &&
             prior.item===this.hero.inventory.find(item=>item.id===this.hero.equipment.mainHand) &&
-            prior.signature===(this.#warriorSelected?warriorLifecycleSignature(this.hero):adventurerLifecycleSignature(this.hero)))
+            prior.offItem===(this.hero.equipment.offHand?this.hero.inventory.find(item=>item.id===this.hero.equipment.offHand):undefined) &&
+            prior.signature===(this.#warriorSelected||this.#specializationSelected?warriorLifecycleSignature(this.hero):adventurerLifecycleSignature(this.hero)))
           this.#renewAdventurerTransaction(true,'successful region transaction');
         this.save();
         this.message(message);
@@ -2341,6 +2406,13 @@ export class Game {
         this.regionLoadError=error instanceof Error?error:new Error(String(error));
         this.message((id===IRONVEIL_ID||id===MINE_ID)?'Unable to load Ironveil Mines. Please retry.':id===WILDS_ID?'Unable to load Whispering Wilds. Please retry.':'Map tujuan belum siap sepenuhnya. Silakan coba lagi sebentar.');
       } finally {
+        if(scroll&&this.#mapScrollPending===scroll){
+          this.#mapScrollPending=undefined;
+          if(!scrollCommitted&&this.hero===scroll.hero&&!this.disposed&&this.activeLocationId===id&&(!this.#adventurerRegionTransaction||this.#adventurerRegionTransaction===transaction)){
+            Object.assign(this.hero,scroll.origin);
+            this.regionLoadError=new Error('Perjalanan scroll dibatalkan; item tetap tersedia. Muat ulang lokasi asal.');
+          }
+        }
         if(!this.disposed && (!this.#adventurerRegionTransaction || this.#adventurerRegionTransaction===transaction)) {
           this.#adventurerRegionTransaction=undefined;
           this.transitioning=false;
@@ -2352,7 +2424,7 @@ export class Game {
     return true;
   }
   openNpc(id:string) {
-    const npc=this.hero.inCity?CITIES[this.hero.currentCity].npcList.find(entry=>entry.id===id):FIELD_NPCS[this.hero.currentField]?.id===id?FIELD_NPCS[this.hero.currentField]:undefined;
+    const npc=regionNpcs(this.activeLocationId).find(n=>n.id===id);
     if(!npc)return false;
     if(Math.hypot(this.hero.x-npc.x,this.hero.z-npc.z)>npc.interactionRange){this.message('Terlalu jauh dari NPC');return false;}
     this.closeForge();
@@ -2368,6 +2440,14 @@ export class Game {
     const nameElement=document.createElement('div');nameElement.className='npc-name';nameElement.textContent=`◆ ${npc.name}`;
     element.appendChild(serviceElement);element.appendChild(nameElement);
     this.labelHost.appendChild(element);this.npcLabels.push({npc,element,nameElement});
+  }
+  private buildDevelopmentQuestNpcs() {
+    for(const npc of developmentQuestNpcs().filter(n=>n.fieldId===this.activeLocationId)){
+      const person=new T.Group();person.position.set(npc.x,this.groundHeight(npc.x,npc.z),npc.z);person.userData.npcId=npc.id;
+      this.mesh(new T.CylinderGeometry(.35,.45,1.2,6),this.mat('#d0a95c'),person,0,.65,0);
+      this.mesh(new T.SphereGeometry(.3,8,6),this.mat('#cda07a'),person,0,1.5,0);
+      this.regionDecor.add(person);this.addNpcLabel(npc);
+    }
   }
   closeNpcMenu() {
     this.closeForge();
@@ -2395,6 +2475,7 @@ export class Game {
   }
   npcBuy(templateId:string,quantity=1) {
     const npc=this.currentNpc;if(!npc||!this.activeNpcMenu||!npc.services.includes('buy')){this.message('NPC ini tidak menyediakan layanan beli.');return false;}
+    if(mapScroll(templateId)&&(!this.started||this.dead||this.transitioning||this.regionLoadError||npc.service!=='consumable'||!regionNpcs(this.activeLocationId).includes(npc)||Math.hypot(this.hero.x-npc.x,this.hero.z-npc.z)>npc.interactionRange))return false;
     const renewal=this.#beginAdventurerTransaction();
     const result=npc.fieldId?buyFieldShopItem(this.hero,npc.fieldId,templateId,quantity):buyShopItem(this.hero,templateId,npc.service,quantity);
     if(result.ok)this.#renewAdventurerTransaction(renewal,'npcBuy');
@@ -2407,15 +2488,33 @@ export class Game {
     this.save();this.message(result.reason);return result.ok;
   }
   cityAction(action:string,id='',quantity=1) {
-    if(!this.hero.inCity&&!['accept','complete'].includes(action)){this.message('Kembali ke kota untuk layanan ini.');return false;}
+    if(!this.hero.inCity&&!['accept','complete','scroll-pack'].includes(action)){this.message('Kembali ke kota untuk layanan ini.');return false;}
     const services=this.currentNpc?.services ?? [];
-    const requiredService=action==='heal'?'heal':action==='tutorial'?'tutorial':action==='deposit'||action==='withdraw'?'storage':action.startsWith('buy-')?'buy':action==='accept'||action==='complete'||action==='claim-main'?'quest':null;
+    const requiredService=action==='heal'?'heal':action==='tutorial'?'tutorial':action==='deposit'||action==='withdraw'?'storage':action.startsWith('buy-')?'buy':action==='accept'||action==='complete'||action==='claim-main'||action==='scroll-pack'?'quest':null;
     if(requiredService&&(!this.activeNpcMenu||!services.includes(requiredService))){this.message('Klik NPC dengan layanan yang sesuai terlebih dahulu.');return false;}
+    if(['accept','complete','claim-main','scroll-pack'].includes(action)){
+      const quest=getQuestRegistry().find(q=>q.id===(action==='claim-main'?'main-verdant-bisikan':action==='scroll-pack'?MAP_SCROLLS.find(row=>row.region===id)?.intro:id));
+      const destination=quest&&(action==='accept'?{npcId:quest.giverNpcId,mapId:quest.giverMapId}:getQuestReportLocation(quest));
+      const npc=this.currentNpc;
+      if(!this.started||this.dead||this.transitioning||this.regionLoadError||!npc||!destination||npc.id!==destination.npcId||this.activeLocationId!==destination.mapId||Math.hypot(this.hero.x-npc.x,this.hero.z-npc.z)>npc.interactionRange){this.message('Temui NPC quest yang benar pada wilayah dan jarak interaksi yang sah.');return false;}
+    }
     let result={ok:false,reason:'Layanan tidak tersedia.'};
+    if(action==='scroll-pack'){
+      const row=availableMapScrollPacks(this.hero,this.currentNpc!.id).find(row=>row.region===id);
+      if(!row){this.message('Paket scroll tidak tersedia atau sudah diambil.');return false;}
+      const item=createItem(row.templateId,{quantity:5,source:{type:'quest',sourceId:row.intro,label:'Paket pengenalan map'}});
+      const grant=addItemToInventory(this.hero.inventory,item,this.hero.inventoryCapacity);
+      if(grant.remaining){this.message('Inventory penuh. Paket scroll belum diberikan.');return false;}
+      this.hero.inventory=grant.inventory;this.hero.cityProgress[mapScrollReceipt(row.region)]=1;
+      this.save();this.emit();return true;
+    }
     if(action==='heal'){healAtCity(this.hero);if(isResourceEnabled(this.hero, 'stamina'))this.stamina=derivedStats(this.hero).staminaMax;result={ok:true,reason:isResourceEnabled(this.hero, 'stamina')?'HP, Mana, stamina, dan status dipulihkan.':'HP, Mana, dan status dipulihkan.'};}
     if(action==='tutorial'){this.hero.activeBuffs.damageReduction=300;result={ok:true,reason:'Berkah Pijar aktif selama 5 menit. WASD bergerak dengan lari otomatis berkecepatan sedang, klik kiri menyerang, klik kanan-drag kamera, F guard, 1–0 PrimaryHotbar (awal: skill di 1–4). C Character Overview, J Jurnal Misi, K Job Skill. Klik + atau drag skill/item ke hotbar untuk mengatur shortcut.'};}
     if(action==='deposit'||action==='withdraw')result=transferStorage(this.hero,id,action==='withdraw',quantity);
-    if(action.startsWith('buy-'))result=buyShopItem(this.hero,id,action.slice(4));
+    if(action.startsWith('buy-')){
+      if(mapScroll(id))return this.npcBuy(id,quantity);
+      result=buyShopItem(this.hero,id,action.slice(4));
+    }
     if(action==='accept'){
       const accepted=acceptRegionQuest(this.hero,id);
       const entry=getQuestRegistry().find(quest=>quest.id===id);
@@ -2427,8 +2526,10 @@ export class Game {
     }
     if(action==='complete'){
       const planned=regionQuestReward(id);
-      const rewardItems=planned.items.map(reward=>createItem(reward.templateId,{quantity:reward.quantity}));
-      let simulatedInventory=this.hero.inventory;
+      const scroll=process.env.NODE_ENV!=='production'?MAP_SCROLLS.find(row=>row.intro===id&&!this.hero.cityProgress[mapScrollReceipt(row.region)]):undefined;
+      const plannedItems=[...planned.items,...(scroll?[{templateId:scroll.templateId,quantity:5}]:[])];
+      const rewardItems=plannedItems.map(reward=>createItem(reward.templateId,{quantity:reward.quantity}));
+      let simulatedInventory=questTurnInInventory(this.hero,id);
       for(const rewardItem of rewardItems){
         const preview=addItemToInventory(simulatedInventory,rewardItem,this.hero.inventoryCapacity);
         if(preview.remaining){
@@ -2441,7 +2542,8 @@ export class Game {
       const quest=completeRegionQuest(this.hero,id);
       result={ok:quest.ok,reason:quest.reason};
       if(quest.ok){
-        for(const rewardItem of rewardItems)this.hero.inventory=addItemToInventory(this.hero.inventory,rewardItem,this.hero.inventoryCapacity).inventory;
+        if(scroll)this.hero.cityProgress[mapScrollReceipt(scroll.region)]=1;
+        this.hero.inventory=simulatedInventory;
         this.hero.gold+=quest.reward.gold;
         gainXP(this.hero,quest.reward.xp);
         this.#renewAdventurerTransaction(renewal,'quest gainXP');
@@ -2814,9 +2916,11 @@ export class Game {
     return this.commitRuneAction(hero=>removeInventoryRune(hero,equipmentId,socketIndex,this.forgeNpcId));
   }
   useItem(itemId: string) {
+    const scrollItem=this.hero.inventory.find(item=>item.id===itemId);
+    if(scrollItem&&mapScroll(scrollItem.templateId))return this.useMapScroll(scrollItem);
     // Only the explicitly selected Warrior policy renews through this exact
     // original consumable transaction; item IDs alone never authorize a bind.
-    const warriorRenewal=this.#warriorSelected && this.#beginAdventurerTransaction() && this.getDevelopmentWarriorAvailability()?.ok===true;
+    const warriorRenewal=(this.#warriorSelected||this.#specializationSelected) && this.#beginAdventurerTransaction() && (this.#specializationSelected?this.getDevelopmentSpecializationAvailability()?.ok:this.getDevelopmentWarriorAvailability()?.ok)===true;
     const warriorPrior=warriorRenewal ? this.hero : undefined;
     const warriorSignature=warriorPrior ? warriorLifecycleSignature(warriorPrior) : undefined;
     this.hero={...this.hero,stamina:this.stamina};
@@ -2832,6 +2936,28 @@ export class Game {
       this.emit();
     }
     return result.ok;
+  }
+  private useMapScroll(item:ItemData) {
+    const destination=mapScroll(item.templateId)?.region;
+    const reason=process.env.NODE_ENV==='production'?'DEVELOPMENT_ONLY':
+      !this.started||this.disposed||this.dead||this.hero.hp<=0?'Karakter harus hidup.':
+      this.transitioning||this.regionLoadError||this.#mapScrollPending?'Tunggu perjalanan selesai.':
+      !this.hero.inCity||this.hero.interiorId?'Scroll hanya dapat digunakan dari kota.':
+      item.isLocked||!Number.isSafeInteger(item.quantity)||item.quantity<1||item.useEffect?.type!=='mapTeleport'?'Item scroll tidak valid.':
+      !destination||destination===MINE_ID&&!IRONVEIL_TRANSITION.available||destination!==MINE_ID&&(!FIELDS[destination]||FIELDS[destination].warpOnly)?'Tujuan memerlukan portal khusus.':
+      this.hero.cityProgress[mapVisitReceipt(destination)]!==1?'Kunjungi tujuan melalui perjalanan sah terlebih dahulu.':unlockReason(this.hero,destination===MINE_ID?IRONVEIL_ID:destination);
+    if(reason||!destination){this.message(reason||'Tujuan tidak tersedia.');return false;}
+    const h=this.hero;
+    this.#mapScrollPending={hero:h,item,quantity:item.quantity,destination,origin:{inCity:h.inCity,currentCity:h.currentCity,currentField:h.currentField,interiorId:h.interiorId,x:h.x,z:h.z}};
+    // Approved return scroll only after original doorway completion recorded a visit.
+    // Generic travel still rejects interior; available doorway + exterior access remain required.
+    let accepted:boolean;
+    if(destination===MINE_ID){
+      h.inCity=false;h.currentField=IRONVEIL_ID;h.currentCity=FIELDS[IRONVEIL_ID].cityId;h.interiorId=MINE_ID;Object.assign(h,MINE_ENTRY);
+      accepted=this.loadActiveLocation(MINE_ID,'Ironveil Interior','Tiba di entry Ironveil Interior.');
+    }else accepted=this.changeRegion(destination);
+    if(!accepted)this.#mapScrollPending=undefined;
+    return accepted;
   }
   commitUIDrop(source: DragSource, target: DropTarget) {
     if (!this.started || this.dead) return false;
@@ -3114,10 +3240,29 @@ export class Game {
       return true;
     });
   }
-  canCastSkill(skillId:string) {return canCastSkillRules(this.hero,skillId,this.skillCooldowns,this.equippedWeaponType(),undefined,{ambush:this.transientCombat.rogueAmbush,vanish:this.vanish,now:this.combatTime,assasinRequirement:this.assasinCastRequirement});}
+  canCastSkill(skillId:string) {
+    const selected=this.#specializationSelected&&SPECIALIZATION_REFERENCE.skills.includes(skillId)||this.#warriorSelected&&WARRIOR_REFERENCE.skills.includes(skillId);
+    const cost=selected?this.getSkillManaCost(skillId):undefined;
+    if(selected&&(!this.isDevelopmentDiagnosticLifecycleAvailable()||!Number.isFinite(cost)))return {ok:false,reason:'Development reference unavailable'};
+    if(selected){
+      const definition=activeSkills(this.hero).find(s=>s.id===skillId),policy=definition?.counterPolicy,receipt=this.#warriorCounterReceipt;
+      if(policy&&(!receipt||receipt.hero!==this.hero||receipt.event!==this.defenseEvents.lastDefenseEvent||(receipt.event.result!=='blocked'&&receipt.event.result!=='parried')||!policy.accepted.includes(receipt.event.result)||!this.defenseEvents.recent(receipt.event.result,policy.windowMs,this.combatTime*1000)))return {ok:false,reason:'COUNTER_REQUIRED'};
+      if(skillId==='v3-berserker-breaker-entry'&&!this.transientCombat.breakerEntryActive(this.combatTime))return {ok:false,reason:'BREAKER_WINDOW_REQUIRED'};
+      if(skillId==='v3-blade-master-tempo-drive'&&!this.transientCombat.tempoCount(this.combatTime))return {ok:false,reason:'TEMPO_REQUIRED'};
+    }
+    return canCastSkillRules(this.hero,skillId,this.skillCooldowns,this.equippedWeaponType(),cost,{ambush:this.transientCombat.rogueAmbush,vanish:this.vanish,now:this.combatTime,assasinRequirement:this.assasinCastRequirement});
+  }
   getSkillManaCost(skillId:string) {
     skillId = heroFamilySkillReference(this.hero, skillId) ?? '';
     const skill=activeSkills(this.hero).find(candidate=>candidate.id===skillId);
+    if(skill&&this.#specializationSelected&&SPECIALIZATION_REFERENCE.skills.includes(skillId)){
+      const drive=this.transientCombat.bladeTempoDrive;
+      const read=specializationSkillCost(this.#specializationBinding,this,skill,drive&&drive.expiresAt>this.combatTime?drive.manaReductionPercent:0);
+      return read.ok?read.value:Number.NaN;
+    }
+    if(skill&&this.#warriorSelected&&WARRIOR_REFERENCE.skills.includes(skillId)){
+      const read=warriorSkillCost(this.#warriorBinding,this,skill);return read.ok?read.value:Number.NaN;
+    }
     if(skill&&this.hero.skillArchitectureVersion===3&&this.hero.specialization==='blade_master'){
       const drive=this.transientCombat.bladeTempoDrive;
       const reduction=drive&&drive.expiresAt>this.combatTime&&bladeMasterDualWieldActive(this.hero)&&modifierContextFor(this.hero,derivedStats(this.hero)).weaponStyle==='dual_sword'?drive.manaReductionPercent:0;
@@ -3129,6 +3274,14 @@ export class Game {
   restoreMana(amount:number) {return restoreManaRules(this.hero,amount);}
   castSkill(idOrSlot: string | 1 | 2 | 3 | 4) {
     if (typeof idOrSlot === 'string') idOrSlot = heroFamilySkillReference(this.hero, idOrSlot) ?? '';
+    if(this.#specializationSelected) {
+      const requested=activeSkills(this.hero).find(candidate=>typeof idOrSlot==='string'?candidate.id===idOrSlot:candidate.slot===idOrSlot);
+      if(SPECIALIZATION_REFERENCE.skills.includes(typeof idOrSlot==='string'?idOrSlot:requested?.id??'')){
+        this.#specializationResult=this.#warriorSelected||this.#adventurerRanksSelected||this.#quickSlashReferenceSelected||this.#powerStrikeReferenceSelected||this.#basicReferenceSelected
+          ? Object.freeze({ok:false,code:'AMBIGUOUS_REFERENCE_ROUTE',path:'route',reason:'Conflicting development opt-ins.'}):this.castDevelopmentWarriorReference(requested);
+        return this.#specializationResult.ok;
+      }
+    }
     if(this.#warriorSelected) {
       const requested=activeSkills(this.hero).find(candidate=>typeof idOrSlot==='string'?candidate.id===idOrSlot:candidate.slot===idOrSlot);
       if(WARRIOR_REFERENCE.skills.includes(typeof idOrSlot==='string'?idOrSlot:requested?.id??'')){
@@ -3518,12 +3671,17 @@ export class Game {
     if(!ready())return reject('REFERENCE_ACTION_UNAVAILABLE');
     if(this.thiefMovement||this.actionLock.active(this.combatTime)||isStunned(this.hero,this.combatTime))return reject('ACTION_LOCKED');
     if(!definition)return reject('SKILL_UNAVAILABLE');
+    if(this.#specializationSelected&&definition.id==='v3-berserker-breaker-entry'&&!this.transientCombat.breakerEntryActive(this.combatTime))return reject('BREAKER_WINDOW_REQUIRED');
+    if(this.#specializationSelected&&definition.id==='v3-blade-master-tempo-drive'&&!this.transientCombat.tempoCount(this.combatTime))return reject('TEMPO_REQUIRED');
     const receipt=this.#warriorCounterReceipt;
     const counter=definition.counterPolicy ? this.defenseEvents.snapshot(definition.counterPolicy.accepted,definition.counterPolicy.windowMs,this.combatTime*1000) : NO_COUNTER;
     const counterValid=()=>!definition.counterPolicy || !!receipt&&receipt.hero===this.hero&&receipt.event===this.defenseEvents.lastDefenseEvent&&counterContextAllowed(counter,definition.counterPolicy.accepted)&&this.defenseEvents.recent(counter.result,definition.counterPolicy.windowMs,this.combatTime*1000);
     if(!counterValid())return reject('COUNTER_REQUIRED');
     const definitionProof=JSON.stringify(definition);
-    const prepared=this.#warriorBinding ? prepareWarriorReference(this.#warriorBinding,this,definition,counter) : this.#warriorFailure!;
+    const drive=this.transientCombat.bladeTempoDrive;
+    const prepared=this.#specializationSelected
+      ? this.#specializationBinding?prepareSpecializationReference(this.#specializationBinding,this,definition,counter,drive&&drive.expiresAt>this.combatTime?drive.manaReductionPercent:0):this.#specializationFailure!
+      : this.#warriorBinding ? prepareWarriorReference(this.#warriorBinding,this,definition,counter) : this.#warriorFailure!;
     if(!prepared.ok)return prepared;
     const {snapshot,action,stats,hero,rank,level}=prepared.value;
     const key=heroSkillCooldownKey(hero,definition.id),cd=this.skillCooldowns[key]??0;
@@ -3562,13 +3720,13 @@ export class Game {
     try{sampled=snapshot?sampleRawAttackExecution(snapshot,()=>this.rand()):undefined;}
     catch{return reject('ATTACK_RNG_EXCEPTION_AFTER_ONE_ATTEMPT');}
     if(sampled&&!sampled.ok)return sampled;
-    if(!readWarriorBinding(this.#warriorBinding,this).ok||JSON.stringify(definition)!==definitionProof||this.hero!==hero||!ready()||!counterValid()||
+    if(!(this.#specializationSelected?readSpecializationBinding(this.#specializationBinding,this):readWarriorBinding(this.#warriorBinding,this)).ok||JSON.stringify(definition)!==definitionProof||this.hero!==hero||!ready()||!counterValid()||
       this.actor.position.x!==start.x||this.actor.position.z!==start.z||positions.some(p=>p.e.group.position.x!==p.x||p.e.group.position.z!==p.z||this.getCastTarget(identities.get(p.e))!==p.e||!this.enemies.includes(p.e))||
       !Number.isFinite(hero.mana)||hero.mana<action.manaCost||(this.skillCooldowns[key]??0)!==0||this.actionLock.active(this.combatTime)||isStunned(hero,this.combatTime))return reject('STALE_COMMITMENT');
     if(!this.consumeMana(action.manaCost))return reject('INSUFFICIENT_MANA');
     if(definition.counterPolicy){this.defenseEvents.consume(counter.result,definition.counterPolicy.windowMs,this.combatTime*1000);this.#warriorCounterReceipt=undefined;}
     if(sampled?.ok) {
-      const hit=action.hitSequence[0];hit.composedPhysicalPower=sampled.value.hits[0].raw;hit.weaponHand='MAIN';Object.freeze(hit);Object.freeze(action.hitSequence);
+      action.hitSequence.forEach((hit,index)=>{hit.composedPhysicalPower=sampled!.ok?sampled!.value.hits[index].raw:0;hit.weaponHand=sampled!.ok?sampled!.value.hits[index].hand:'MAIN';Object.freeze(hit);});Object.freeze(action.hitSequence);
     }
     if(selected)action.targetIdentity=identities.get(selected);
     this.#warriorExecutions.set(action,{hero,actorId:hero.characterId,slotId:hero.slotId,level,targets,identities});
@@ -3579,7 +3737,8 @@ export class Game {
     this.actionLock.start(this.combatTime,action.actionLockDuration??0,action.movementAllowedDuringLock);
     this.skillCooldowns[key]=action.cooldown;
     this.applySkill(definition,rank,undefined,action,stats);
-    recordCommittedWarriorBuffs(this.#warriorBinding!,this,action);
+    if(this.#specializationSelected){this.syncCombatModifiers();recordCommittedSpecializationBuffs(this.#specializationBinding!,this,action,this.transientCombat.bladeTempoDrive?.expiresAt);}
+    else recordCommittedWarriorBuffs(this.#warriorBinding!,this,action);
     this.save();this.emit();
     return Object.freeze({ok:true as const,rank,level,execution:snapshot,sample:sampled?.ok?sampled.value:undefined});
   }
@@ -4013,6 +4172,7 @@ export class Game {
         // Only a successful damaging hit applies CC. Choose one duration so
         // the final Major Stun replaces Mini Stun rather than adding to it.
         if (!(amount > 0 && (enemy.hp < beforeHP || dummyImpact))) return;
+        if(this.#specializationSelected&&enemy.stunImmune)return;
         const profile = skill.stunProfile!;
         const chance = stunChanceForRank(profile.chance, skill.rank);
         const major = stompIndex === 3 && this.rand() < chance;
@@ -4264,7 +4424,9 @@ export class Game {
         .normalize();
   }
   attack(autoAim = false) {
-    const selectedReference = this.#basicReferenceSelected || this.#adventurerRanksSelected;
+    const selectedReference = this.#basicReferenceSelected || this.#adventurerRanksSelected || this.#warriorSelected || this.#specializationSelected;
+    if([this.#basicReferenceSelected,this.#adventurerRanksSelected,this.#warriorSelected,this.#specializationSelected,this.#quickSlashReferenceSelected,this.#powerStrikeReferenceSelected].filter(Boolean).length>1)
+      return Object.freeze({ok:false as const,code:'AMBIGUOUS_REFERENCE_ROUTE'});
     if (selectedReference && (!this.started || this.paused || this.dead || this.hero.hp <= 0 || this.hotbarInteracting || this.disposed || this.transitioning || this.regionLoadError))
       return Object.freeze({ ok: false as const, code: 'REFERENCE_ACTION_UNAVAILABLE' });
     if(isStunned(this.hero,this.combatTime)){this.message('Karakter sedang Stun.');return;}
@@ -4276,7 +4438,11 @@ export class Game {
         !Number.isFinite(this.comboWindow) || this.comboWindow < 0 || this.comboWindow > 0 && this.combo === 0))
       return Object.freeze({ok:false as const,code:'UNSUPPORTED_COMBO',reason:'Invalid Basic presentation state'});
     const nextCombo = this.comboWindow > 0 ? (this.combo % 3) + 1 : 1;
-    const referencePreparation = this.#adventurerRanksSelected
+    const referencePreparation = this.#specializationSelected
+      ? this.#specializationBinding?prepareSpecializationBasic(this.#specializationBinding,this,nextCombo):this.#specializationFailure!
+      : this.#warriorSelected
+      ? this.#warriorBinding?prepareWarriorBasic(this.#warriorBinding,this,nextCombo):this.#warriorFailure!
+      : this.#adventurerRanksSelected
       ? this.#adventurerRanksBinding
         ? prepareAdventurerBasic(this.#adventurerRanksBinding, this, nextCombo)
         : this.#adventurerRanksFailure!
@@ -4308,9 +4474,11 @@ export class Game {
     if (referencePreparation?.ok) {
       const sampled = sampleRawAttackExecution(referencePreparation.value.snapshot, () => this.rand());
       if (!sampled.ok) { this.message(sampled.reason); return sampled; }
+      if(this.#specializationSelected&&!readSpecializationBinding(this.#specializationBinding,this).ok||this.#warriorSelected&&!readWarriorBinding(this.#warriorBinding,this).ok)
+        return Object.freeze({ok:false as const,code:'STALE_ACTOR_OR_ITEM'});
       if (this.#adventurerRanksSelected && (!this.#adventurerRanksBinding || !currentAdventurerRanksBinding(this.#adventurerRanksBinding, this)))
         return Object.freeze({ok:false as const,code:'STALE_ACTOR_EPOCH',reason:'Reference identity changed during attack sampling'});
-      if (this.#adventurerRanksSelected && (this.dead || this.paused || this.disposed || this.hero.hp<=0 ||
+      if ((this.#adventurerRanksSelected || this.#warriorSelected || this.#specializationSelected) && (this.dead || this.paused || this.disposed || this.hero.hp<=0 ||
           hard && (!selection.target || this.resolveCurrentTarget(Infinity).target !== selection.target ||
           this.enemyRange(selection.target)>(selection.target.boss?4.3:combatProfile(this.hero).range))))
         return Object.freeze({ok:false as const,code:'REFERENCE_TARGET_CHANGED',reason:'Reference target/action changed during attack sampling'});
@@ -4361,7 +4529,9 @@ export class Game {
       : basicAttackPower(this.hero);
     const baseDamage =
       attackPowerForHand *
-      (referenceSample ? 1 : this.combo === 3 ? COMBAT_MECHANICS.comboFinisherDamage : 1);
+      (referenceSample ? this.#warriorSelected||this.#specializationSelected
+        ? actionDamageMultiplier(combatModifiersFor(this.hero),modifierContextFor(this.hero,stats),{tags:['physical-damage','basic-attack']})
+        : 1 : this.combo === 3 ? COMBAT_MECHANICS.comboFinisherDamage : 1);
     const resolveBasicDamage = (enemy: Enemy) => {
       const hitResolution = resolveHitAgainstEvasion({ attackerAccuracy: stats.accuracy, targetEvasion: enemy.evasion ?? 0, rng: () => this.rand() });
       if (hitResolution.result === 'EVADED') {
@@ -4391,7 +4561,7 @@ export class Game {
     }
     if (dualBasicActive) this.dualBasicNextHand = basicHand === 'MAIN' ? 'OFF' : 'MAIN';
     if (referencePreparation?.ok && referenceSample) return Object.freeze({ ok: true as const,
-      version: this.#adventurerRanksSelected ? ADVENTURER_RANKS_REFERENCE.version : 'Q2_Q4_BASIC_REFERENCE_B_1' as const, execution: referencePreparation.value.snapshot, sample: referenceSample });
+      version: this.#specializationSelected?SPECIALIZATION_REFERENCE.version:this.#warriorSelected?WARRIOR_REFERENCE.version:this.#adventurerRanksSelected ? ADVENTURER_RANKS_REFERENCE.version : 'Q2_Q4_BASIC_REFERENCE_B_1' as const, execution: referencePreparation.value.snapshot, sample: referenceSample });
   }
   nova() {
     if(this.actionLock?.active(this.combatTime))return this.failTarget('ACTION_LOCKED');
@@ -4456,16 +4626,22 @@ export class Game {
       if (e.boss && e.definition) this.hero.defeatedBossTimestamp[this.hero.currentField] = Date.now();
       const rewardStats=derivedStats(this.hero);
       const xp = Math.floor((e.definition ? monsterXP(e.definition, this.hero.level) : e.boss ? 160 : 35)*(1+rewardStats.expGain/100));
-      const monsterLevel = e.definition?.level ?? this.hero.level;
+      const monsterLevel = e.definition?.rewardLevel ?? e.definition?.level ?? this.hero.level;
       const goldMultiplier = e.definition?.variant === 'boss' || e.boss ? 1.8 : e.definition?.variant === 'elite' ? 1.5 : 1;
       const goldReward=Math.floor((8 + monsterLevel * 1.5) * goldMultiplier * (1 + rewardStats.goldDropRate / 100));
+      const renewal=this.#beginAdventurerTransaction();
+      let questSampleGranted=false;
       this.hero.kills += 1;
       this.hero.fieldProgress[this.activeLocationId] = (this.hero.fieldProgress[this.activeLocationId] ?? 0) + 1;
+      if(e.definition)recordEarlyKill(this.hero,this.activeLocationId,e.definition,()=>{
+        const grant=addItemToInventory(this.hero.inventory,createItem(MINE_SAMPLE_ID,{source:{type:'quest',sourceId:e.definition!.id,label:'Sampel survei'}}),this.hero.inventoryCapacity);
+        if(grant.remaining){this.message('Inventory penuh; sampel quest belum diperoleh.');return false;}
+        this.hero.inventory=grant.inventory;questSampleGranted=true;return true;
+      });
       const goldPosition = e.group.position.clone().add(new T.Vector3(0.85, 0, 0));
       this.spawnGoldDrop(goldReward, goldPosition);
-      const renewal=this.#beginAdventurerTransaction();
       const levels = gainXP(this.hero, xp);
-      if(levels)this.#renewAdventurerTransaction(renewal,'reward gainXP');
+      if(levels||questSampleGranted)this.#renewAdventurerTransaction(renewal,questSampleGranted?'quest sample/reward gainXP':'reward gainXP');
       const loots = e.definition ? rollMonsterLootDrops(this.hero, e.definition, () => this.rand()) : [];
       const lootPositions = [
         new T.Vector3(-0.85, 0, 0),
@@ -4502,7 +4678,7 @@ export class Game {
     if (this.invincible > 0 || this.dead) return;
     if(hasStatus(this.hero,'parry')){
       this.defenseEvents.record(this.hero,false,this.combatTime*1000,sourceId);
-      this.#warriorCounterReceipt=this.#warriorSelected&&damageKind==='direct'&&blockable ? {hero:this.hero,event:this.defenseEvents.lastDefenseEvent!}:undefined;
+      this.#warriorCounterReceipt=(this.#warriorSelected||this.#specializationSelected)&&damageKind==='direct'&&blockable ? {hero:this.hero,event:this.defenseEvents.lastDefenseEvent!}:undefined;
       this.float(this.actor.position,'PARRY','reward');
       return;
     }
@@ -4520,7 +4696,7 @@ export class Game {
     const passiveChance = passiveBlockChance(stats.blockRate,{damageType:'physical',damageKind,blockable});
     const blocked=passiveChance > 0 && this.rand() < passiveChance;
     this.defenseEvents.record(this.hero,blocked||this.blocking,this.combatTime*1000,sourceId);
-    this.#warriorCounterReceipt=this.#warriorSelected&&damageKind==='direct'&&blockable&&(blocked||this.blocking) ? {hero:this.hero,event:this.defenseEvents.lastDefenseEvent!}:undefined;
+    this.#warriorCounterReceipt=(this.#warriorSelected||this.#specializationSelected)&&damageKind==='direct'&&blockable&&(blocked||this.blocking) ? {hero:this.hero,event:this.defenseEvents.lastDefenseEvent!}:undefined;
     const context=modifierContextFor(this.hero,stats),modifiers=combatModifiersFor(this.hero);
     const defenseMultiplier=(1-stats.damageReduction/100)*(blocked?1-COMBAT_MECHANICS.blockDamageReduction:1)*(this.blocking?.3:1);
     damage *= receivedMultiplier(modifiers,context,'damageMultiplier',defenseMultiplier);
@@ -4672,6 +4848,7 @@ export class Game {
       this.attackTimer = Math.max(0, this.attackTimer - dt);
       const manaStats=derivedStats(this.hero);
       recoverActiveResources(this.hero,dt,manaStats);
+      if(!this.dead&&!this.transitioning&&!this.regionLoadError&&recordEarlyVisits(this.hero))this.save();
       this.invincible = Math.max(0, this.invincible - dt);
       this.comboWindow = Math.max(0, this.comboWindow - dt);
       this.swing = Math.max(0, this.swing - dt);

@@ -1194,6 +1194,9 @@
   border-radius: 7px;
   position: sticky;
   top: 0;
+  /* Long selected-skill details must scroll inside the bounded modal body. */
+  max-height: calc(90dvh - 200px);
+  overflow-y: auto;
 }
 .js-detail-emblem {
   display: grid;

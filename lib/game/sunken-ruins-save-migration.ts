@@ -58,9 +58,10 @@ export function migrateSunkenSave(
   const active=[...(Array.isArray(saved.activeQuests)?saved.activeQuests:[]),...(Array.isArray(saved.acceptedQuests)?saved.acceptedQuests:[])];
   if(active.includes(alias)&&!completed.includes(alias)&&!completed.includes(easy)) {
     const progress=saved.cityProgress && typeof saved.cityProgress==='object'&&!Array.isArray(saved.cityProgress)?saved.cityProgress as Record<string,unknown>:{};
-    const legacy=progress[`baseline-${alias}`]??0, current=progress[`baseline-${easy}`];
-    if(typeof legacy!=='number'||!Number.isFinite(legacy)||legacy<0 || current!==undefined&&current!==legacy)throw new SunkenQuestMigrationHold();
-    result.cityProgress={...progress,[`baseline-${easy}`]:legacy};
+    const legacy=progress[`baseline-${alias}`], current=progress[`baseline-${easy}`];
+    if(typeof legacy!=='number'||!Number.isFinite(legacy)||legacy<0 || current!==undefined&&current!==legacy){
+      result.questProgressHolds={...(saved.questProgressHolds && typeof saved.questProgressHolds==='object'?saved.questProgressHolds:{}),[easy]:{reason:'SUNKEN_QUEST_PROGRESS_CONFLICT',original:{activeQuests:saved.activeQuests,acceptedQuests:saved.acceptedQuests,cityProgress:saved.cityProgress,fieldProgress:saved.fieldProgress}}};
+    }else result.cityProgress={...progress,[`baseline-${easy}`]:legacy};
   }
   if (saved.inCity === false && result.currentField === SUNKEN_ID) {
     result.currentCity = 'jayantara';

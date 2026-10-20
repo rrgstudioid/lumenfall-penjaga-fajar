@@ -1,5 +1,4 @@
 'use client';
-import { statBonusText } from '@/lib/game/stat-presentation';
 import { JobText } from './job-presentation-context';
 import { presentJobText } from '@/lib/game/job-presentation';
 import { useId, useRef, useState, type CSSProperties, type ReactNode } from 'react';
@@ -20,6 +19,7 @@ import {
   Gem,
   PawPrint,
   Feather,
+  Hand,
   Shirt,
   Footprints,
   Columns2,
@@ -44,7 +44,6 @@ import {
 } from '@/lib/game/rules';
 import {
   RARITY_META,
-  RUNE_RARITY_RULES,
   type EquipSlot,
   type ItemData,
 } from '@/lib/game/items';
@@ -77,7 +76,7 @@ import { CharacterPreview } from './character-preview';
 import { CombatPowerComparison, AttributeCombatPowerPreview } from './combat-power-preview';
 import { StatBlockList } from './stat-block-list';
 import { ItemIcon } from './entry-icon';
-import { SelectedItemBaseStats } from './item-hover';
+import { EquipmentDetail } from './equipment-detail';
 import { SkillIcon } from './skill-icon';
 import { useGameDrag } from './drag-drop-provider';
 
@@ -198,6 +197,7 @@ export function CharacterScreen({
       {main ? <dl><div><dt>Base Physical Attack</dt><dd>{main.base}</dd></div>
         <div><dt>Bonus STR</dt><dd>{main.bonusSTR}</dd></div>
         <div><dt>Main-hand weapon</dt><dd>{main.weapon.min}–{main.weapon.max}</dd></div>
+        {'OFF' in main && main.OFF && <div><dt>Off-hand weapon · 50%</dt><dd>{main.OFF.min}–{main.OFF.max}</dd></div>}
         <div><dt>Total</dt><dd>{main.MAIN.min}–{main.MAIN.max}</dd></div></dl>
         : <p>Range unavailable for the current equipment or character context.</p>}
       <small>Physical Attack range; skill coefficients are applied separately.</small>
@@ -268,85 +268,7 @@ export function CharacterScreen({
   function itemDetails(item: ItemData) {
     return (
       <div className="cs-item-details">
-        <p className="cs-requirement">
-          {item.requiredGender && `${item.requiredGender === 'male' ? 'Karakter laki-laki' : 'Karakter perempuan'} · `}
-          Requires Lv. {item.levelRequirement} ·{' '}
-          <JobText>{(item.requiredSpecialJob ??
-            item.requiredCoreJob ??
-            item.allowedJobs.join(' / ')) ||
-            'All jobs'}</JobText>{' '}
-          · {item.handedness.replaceAll('_', ' ')}
-        </p>
-        <h4>
-          {item.enhancementLevel > 0
-            ? `Base stats after enhancement (+${item.enhancementLevel})`
-            : 'Base stats (+0)'}
-        </h4>
-        <SelectedItemBaseStats item={item} game={game}/>
-        <h4>Unique stats</h4>
-        {item.uniqueStatsLocked ? (
-          <>
-            <p>Unique Stats terkunci.</p>
-            <button
-              className="cs-button"
-              disabled={
-                !game ||
-                !hero.inventory.some(
-                  (i) => i.itemType === 'magnifier' && i.quantity > 0,
-                )
-              }
-              onClick={() => game?.unlockUniqueStats(item.id)}
-            >
-              Unlock · 1 Magnifier
-            </button>
-          </>
-        ) : (
-          <>
-            <StatBlockList value={item.bonusStats} />
-            {item.uniqueEffect && (
-              <p className="cs-unique">✦ <JobText>{item.uniqueEffect}</JobText></p>
-            )}
-            {!item.uniqueEffect && !Object.keys(item.bonusStats).length && (
-              <small>Belum ada Unique Stats.</small>
-            )}
-          </>
-        )}
-        <h4>Rune & sockets</h4>
-        {item.sockets.length ? (
-          item.sockets.map((socket) => (
-            <div
-              className="cs-socket"
-              key={socket.id}
-              style={{
-                color: socket.rune?.runeRarity
-                  ? RUNE_RARITY_RULES[socket.rune.runeRarity].color
-                  : undefined,
-              }}
-            >
-              {socket.rune ? (
-                <ItemIcon item={socket.rune} />
-              ) : (
-                <Gem size={16} />
-              )}
-              <div>
-                <JobText>{socket.rune?.name ?? 'Empty socket'}</JobText>
-                {socket.rune && (
-                  <small>
-                    {socket.rune.runeRarity} · <JobText>{socket.rune.uniqueEffect}</JobText>{' '}
-                    {socket.rune.affixes
-                      .map(
-                        (a) =>
-                          statBonusText(a.stat, a.value),
-                      )
-                      .join(' · ')}
-                  </small>
-                )}
-              </div>
-            </div>
-          ))
-        ) : (
-          <small>Tidak memiliki socket.</small>
-        )}
+        <EquipmentDetail item={item} game={game} unlockAction={<button className="cs-button" disabled={!game || !hero.inventory.some(i=>i.itemType==='magnifier'&&i.quantity>0)} onClick={()=>game?.unlockUniqueStats(item.id)}>Unlock · 1 Magnifier</button>}/>
         {selectedSlot === 'pet' && hero.pet?.id === item.id && (
           <div className="cs-pet-detail">
             <h4>Companion · Lv. {hero.pet.level}</h4>
@@ -435,13 +357,15 @@ export function CharacterScreen({
                     return (
                       <>
                         <ItemSummary item={item} />
+                        <EquipmentDetail item={item} game={game} compact/>
                         <p>Compare dengan <JobText>{equipped?.name ?? 'slot kosong'}</JobText></p>
                         <CombatPowerComparison comparison={comparison.combatPower} />
+                        {rangeSelected && <small>Legacy CP comparison; validated Physical Attack range is shown after Equip.</small>}
                         {comparison.validation.ok ? (
                           <dl>
                             {CHARACTER_STAT_ROWS.filter(
                               (s) =>
-                                comparison.before[s.id] !==
+                                (!rangeSelected || s.id!=='physicalAttack') && comparison.before[s.id] !==
                                 comparison.after[s.id],
                             ).map((s) => (
                               <div key={s.id}>
@@ -538,9 +462,9 @@ export function CharacterScreen({
                 </dl>
               )}
               {preview.validation.ok &&
-                CHARACTER_STAT_ROWS.every(
-                  (stat) => (!rangeSelected || stat.id!=='physicalAttack') && preview.after[stat.id] === preview.before[stat.id],
-                ) && <small>Tidak mengubah statistik efektif.</small>}
+                CHARACTER_STAT_ROWS.filter(stat=>!rangeSelected || stat.id!=='physicalAttack').every(
+                  (stat) => preview.after[stat.id] === preview.before[stat.id],
+                ) && <small>{rangeSelected ? 'Stat lain yang ditampilkan tetap; range Physical Attack divalidasi setelah Equip.' : 'Tidak mengubah statistik efektif.'}</small>}
               <details>
                 <summary>Item details</summary>
                 {itemDetails(candidate)}
@@ -819,12 +743,7 @@ export function CharacterScreen({
                                 {slot.label} ·{' '}
                                 {equipped.handedness.replaceAll('_', ' ')}
                               </p>
-                              <SelectedItemBaseStats item={equipped} game={game}/>
-                              {equipped.uniqueStatsLocked ? (
-                                <small>Unique Stats terkunci.</small>
-                              ) : (
-                                <StatBlockList value={equipped.bonusStats} />
-                              )}
+                              <EquipmentDetail item={equipped} game={game} compact/>
                               <small>
                                 Klik untuk detail, compare, atau unequip.
                               </small>
@@ -858,7 +777,8 @@ export function CharacterScreen({
                             <Feather size={22} />
                           ) : slot.id === 'chest' ? (
                             <Shirt size={22} />
-
+                          ) : slot.id === 'gloves' ? (
+                            <Hand size={22} />
                           ) : slot.id === 'legs' ? (
                             <Columns2 size={22} />
                           ) : slot.id === 'boots' ? (

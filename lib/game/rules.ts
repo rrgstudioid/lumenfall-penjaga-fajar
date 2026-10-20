@@ -1,6 +1,7 @@
 import { decodeCharacterV2, serializeSaveCollection } from './save-v2.ts';
 import { approvedResourceProfile, intrinsicClassResources } from './resource-profiles.ts';
 import { resolveArmorSets } from './equipment-layers.ts';
+import { hasEquipmentAuthoring } from './equipment-authoring-v1.ts';
 import { CHARACTER_RULES, STAT_TUNING, MANUAL_SKILL_RESET, ENHANCEMENT_STEPS, skillPointsAtLevel, totalSkillPoints } from './canonical-config.ts';
 import { migrateIronveilSave } from './ironveil-mines-save-migration.ts';
 import { MINE_ID, MineNavigation } from './ironveil-interior-layout.ts';
@@ -378,6 +379,7 @@ export type Hero = PrimaryHotbarState & {
   acceptedQuests: string[];
   activeQuests: string[];
   questCooldowns: Record<string, number>;
+  questProgressHolds?: Record<string, unknown>;
   cityProgress: Record<string,number>;
   fieldProgress: Record<string,number>;
   defeatedFieldBosses: string[];
@@ -1115,13 +1117,13 @@ export function derivedStats(
   const vit = base.vit + (gear.vit ?? gear.sta ?? 0);
   const maxMana = resolveMaxMana(hero, allocated, gear);
   const weaponStyle = resolveWeaponStyle(itemById(hero.inventory, hero.equipment.mainHand), itemById(hero.inventory, hero.equipment.offHand), hero);
-  const berserkerMasteryRank = hero.skillArchitectureVersion === 3 && hero.specialization === 'berserker' && weaponStyle === 'two_hand_sword'
+  const berserkerMasteryRank = hero.skillArchitectureVersion === 3 && hero.specialization === 'berserker' && (weaponStyle === 'two_hand_sword' || process.env.NODE_ENV==='development' && weaponStyle === 'greatsword')
     ? hero.skillProgressionV3?.skillRanks['v3-berserker-two-hand-mastery'] ?? 0
     : 0;
   const bladeMasteryRank = hero.skillArchitectureVersion === 3 && hero.specialization === 'blade_master' && weaponStyle === 'dual_sword'
     ? hero.skillProgressionV3?.skillRanks['v3-blade-master-twin-blade-mastery'] ?? 0
     : 0;
-  const masteryAccuracy = (weaponStyle === 'two_hand_sword' ? [0, 2, 4, 6, 8, 10][Math.min(5, berserkerMasteryRank)] : 0)
+  const masteryAccuracy = ((weaponStyle === 'two_hand_sword' || process.env.NODE_ENV==='development' && weaponStyle === 'greatsword') ? [0, 2, 4, 6, 8, 10][Math.min(5, berserkerMasteryRank)] : 0)
     + (weaponStyle === 'dual_sword' ? [0, 2, 4, 6, 8, 10][Math.min(5, bladeMasteryRank)] : 0);
   const physicalStatFactor = PHYSICAL_WEAPON_STAT_FACTORS[weaponStyle] ?? 0;
   const physicalStatContribution = Math.max(0, str - BASE_PRIMARY_STAT) * physicalStatFactor;
@@ -1358,7 +1360,7 @@ export function resolveHeroSkill(hero:Hero, skill:SkillDefinition, rank=hero.ski
   const bladeSkill = hero.skillArchitectureVersion === 3 && hero.specialization === 'blade_master' && skill.tags?.includes('v3-blade-master');
   const bladeMasteryRank = bladeSkill ? (hero.skillProgressionV3?.skillRanks['v3-blade-master-twin-blade-mastery'] ?? 0) : 0;
   const weaponStyle = resolveWeaponStyle(itemById(hero.inventory, hero.equipment.mainHand), itemById(hero.inventory, hero.equipment.offHand), hero);
-  const masteryActive = masteryRank > 0 && weaponStyle === 'two_hand_sword' && BERSERKER_MASTERY_MANA_SKILLS.has(skill.id);
+  const masteryActive = masteryRank > 0 && (weaponStyle === 'two_hand_sword' || process.env.NODE_ENV==='development' && weaponStyle === 'greatsword') && BERSERKER_MASTERY_MANA_SKILLS.has(skill.id);
   const tranceRank = hero.specialization === 'berserker' ? (hero.skillProgressionV3?.skillRanks['v3-berserker-trance'] ?? 0) : 0;
   const tranceActive = tranceRank > 0 && Number(hero.activeBuffs['v3-berserker-trance'] ?? 0) > 0;
   const dualSkill = BLADE_MASTER_DUAL_MANA_SKILLS.has(skill.id);
@@ -1417,7 +1419,7 @@ export function resolveHeroSkill(hero:Hero, skill:SkillDefinition, rank=hero.ski
       offHandEfficiency(hero),
     );
   }
-  if (tranceActive && berserkerSkill && BERSERKER_TRANCE_DAMAGE_SKILLS.has(skill.id) && weaponStyle === 'two_hand_sword') {
+  if (tranceActive && berserkerSkill && BERSERKER_TRANCE_DAMAGE_SKILLS.has(skill.id) && (weaponStyle === 'two_hand_sword' || process.env.NODE_ENV==='development' && weaponStyle === 'greatsword')) {
     const bonus = [0, 6, 8, 10][Math.min(3, tranceRank)] / 100;
     resolved.hitSequence = resolved.hitSequence.map((hit) => ({ ...hit, damageMultiplier: hit.damageMultiplier * (1 + bonus) }));
     resolved.damageMultiplier *= 1 + bonus;
@@ -2207,6 +2209,7 @@ export function consumeInventoryItem(hero: Hero, itemId: string, now=Date.now())
   if((item.requiredCoreJob&&item.requiredCoreJob!==hero.coreJob)||(item.requiredSpecialJob&&item.requiredSpecialJob!==hero.specialization))return {ok:false,reason:'Item tidak sesuai job.'};
   const effect=item.useEffect ?? ITEM_CATALOG[item.templateId]?.useEffect ?? (item.itemType==='potion'?{type:'heal' as const,amount:65}:null);
   if(!effect)return {ok:false,reason:'Item ini tidak dapat digunakan langsung.'};
+  if(effect.type==='mapTeleport')return {ok:false,reason:process.env.NODE_ENV==='production'?'DEVELOPMENT_ONLY':'Scroll memerlukan transaksi travel asli.'};
   if(effect.type==='stamina'&&!isResourceEnabled(hero, 'stamina'))return {ok:false,reason:'Sistem stamina sedang dinonaktifkan. Item tidak terpakai.'};
   const remaining=getItemCooldownRemaining(hero.itemCooldowns,item,now);
   if(remaining>0)return {ok:false,reason:`${item.name} masih cooldown ${Math.ceil(remaining)} dtk.`};
@@ -2312,7 +2315,7 @@ export function enhancementPreview(
   const materialOwned = hero.inventory
     .filter(m => m.templateId === materialId && !m.isLocked)
     .reduce((n, m) => n + Math.max(0, m.quantity), 0);
-  const blockedReason = !step ? 'Peluang dan biaya level enhancement ini belum ditetapkan.' : hero.gold < step.gold ? 'GOLD tidak cukup.' : item.isLocked
+  const blockedReason = hasEquipmentAuthoring(item) ? 'Peluang, material dan GOLD enhancement versi equipment baru masih HOLD.' : !step ? 'Peluang dan biaya level enhancement ini belum ditetapkan.' : hero.gold < step.gold ? 'GOLD tidak cukup.' : item.isLocked
     ? 'Equipment terkunci. Buka kunci sebelum menempa.'
     : useFateRune && !hasFateRune
       ? 'Tidak ada Fate Rune di inventory untuk dipakai.'
@@ -2720,6 +2723,7 @@ function normalizedHero(value: Record<string, unknown>, slotId = 'slot-1') {
     defeatedFieldBosses: Array.isArray(value.defeatedFieldBosses) ? value.defeatedFieldBosses.filter((id):id is string=>typeof id==='string') : [],
     defeatedBossTimestamp: recordNumbers(value.defeatedBossTimestamp),
     monsterRespawnState: recordNumbers(value.monsterRespawnState),
+    questProgressHolds: value.questProgressHolds && typeof value.questProgressHolds==='object' && !Array.isArray(value.questProgressHolds) ? structuredClone(value.questProgressHolds) as Record<string,unknown> : undefined,
     cityProgress: recordNumbers(value.cityProgress), fieldProgress: recordNumbers(value.fieldProgress),
     storage: Array.isArray(value.storage) ? value.storage.map(normalizeItem).filter((item):item is ItemData=>Boolean(item)) : [],
     level,
@@ -2888,14 +2892,6 @@ function normalizedHero(value: Record<string, unknown>, slotId = 'slot-1') {
     ...item,
     isEquipped: equippedIds.has(item.id),
   }));
-  // Retiring an equipped glove must not overflow the bag or lose the instance.
-  const legacyGloveId = value.equipment && typeof value.equipment === 'object'
-    ? (value.equipment as Record<string, unknown>).gloves : undefined;
-  const retiredGlove = typeof legacyGloveId === 'string' ? h.inventory.find(i => i.id === legacyGloveId && i.equipmentType === 'gloves') : undefined;
-  if (retiredGlove && h.inventory.filter(i => !i.isEquipped).length > h.inventoryCapacity) {
-    h.inventory = h.inventory.filter(i => i.id !== retiredGlove.id);
-    if (!h.pendingLoot.some(i => i.id === retiredGlove.id)) h.pendingLoot.push(retiredGlove);
-  }
   retireUnusedNormalItems(h);
   reconcileHeroSkillFamilies(h);
   const currentSkills = activeSkills(h);

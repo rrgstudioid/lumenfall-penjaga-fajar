@@ -1,0 +1,2138 @@
+{
+  "status": "OWNER_APPROVED_PREFERRED_WEAPON_PROGRESSION",
+  "approval": "Direct current user prompt APPROVED WEAPON PROGRESSION DEVELOPMENT IMPLEMENTATION; no message ID or approval timestamp supplied.",
+  "source": "C:\\Users\\USER\\Documents\\ChatGPT\\PROJECT GAME NGEMPER\\outputs\\gameplay-migration\\equipment-foundation-development\\run-01\\REMAINING_WEAPON_REVIEW.json",
+  "sourceSHA256": "9d095408489b31015d190c64764e4f34efbcaaeeac7b621975ea1ba340ff8af7",
+  "bow": "unrounded upper * family reference * 1.21 then Math.round once; lower unchanged",
+  "rows": [
+    {
+      "family": "one_hand_sword",
+      "level": 1,
+      "PATK": [
+        9,
+        11
+      ],
+      "MATK": null,
+      "budget100": [
+        10,
+        12
+      ],
+      "factor": 0.9,
+      "source": "REVIEW_TABLE",
+      "secondary": null
+    },
+    {
+      "family": "one_hand_sword",
+      "level": 5,
+      "PATK": [
+        18,
+        22
+      ],
+      "MATK": null,
+      "budget100": [
+        20,
+        24
+      ],
+      "factor": 0.9,
+      "source": "REVIEW_TABLE",
+      "secondary": null
+    },
+    {
+      "family": "one_hand_sword",
+      "level": 10,
+      "PATK": [
+        32,
+        36
+      ],
+      "MATK": null,
+      "budget100": [
+        35,
+        40
+      ],
+      "factor": 0.9,
+      "source": "REVIEW_TABLE",
+      "secondary": null
+    },
+    {
+      "family": "one_hand_sword",
+      "level": 15,
+      "PATK": [
+        45,
+        50
+      ],
+      "MATK": null,
+      "budget100": [
+        50,
+        56
+      ],
+      "factor": 0.9,
+      "source": "REVIEW_TABLE",
+      "secondary": null
+    },
+    {
+      "family": "one_hand_sword",
+      "level": 25,
+      "PATK": [
+        72,
+        77
+      ],
+      "MATK": null,
+      "budget100": [
+        80,
+        86
+      ],
+      "factor": 0.9,
+      "source": "REVIEW_TABLE",
+      "secondary": null
+    },
+    {
+      "family": "one_hand_sword",
+      "level": 40,
+      "PATK": [
+        113,
+        118
+      ],
+      "MATK": null,
+      "budget100": [
+        125,
+        131
+      ],
+      "factor": 0.9,
+      "source": "REVIEW_TABLE",
+      "secondary": null
+    },
+    {
+      "family": "one_hand_sword",
+      "level": 47,
+      "PATK": [
+        131,
+        137
+      ],
+      "MATK": null,
+      "budget100": [
+        146,
+        152
+      ],
+      "factor": 0.9,
+      "source": "REVIEW_TABLE",
+      "secondary": null
+    },
+    {
+      "family": "one_hand_sword",
+      "level": 54,
+      "PATK": [
+        150,
+        156
+      ],
+      "MATK": null,
+      "budget100": [
+        167,
+        173
+      ],
+      "factor": 0.9,
+      "source": "REVIEW_TABLE",
+      "secondary": null
+    },
+    {
+      "family": "one_hand_sword",
+      "level": 60,
+      "PATK": [
+        167,
+        172
+      ],
+      "MATK": null,
+      "budget100": [
+        185,
+        191
+      ],
+      "factor": 0.9,
+      "source": "REVIEW_TABLE",
+      "secondary": null
+    },
+    {
+      "family": "one_hand_sword",
+      "level": 67,
+      "PATK": [
+        185,
+        191
+      ],
+      "MATK": null,
+      "budget100": [
+        206,
+        212
+      ],
+      "factor": 0.9,
+      "source": "REVIEW_TABLE",
+      "secondary": null
+    },
+    {
+      "family": "one_hand_sword",
+      "level": 74,
+      "PATK": [
+        204,
+        210
+      ],
+      "MATK": null,
+      "budget100": [
+        227,
+        233
+      ],
+      "factor": 0.9,
+      "source": "REVIEW_TABLE",
+      "secondary": null
+    },
+    {
+      "family": "one_hand_sword",
+      "level": 80,
+      "PATK": [
+        221,
+        226
+      ],
+      "MATK": null,
+      "budget100": [
+        245,
+        251
+      ],
+      "factor": 0.9,
+      "source": "REVIEW_TABLE",
+      "secondary": null
+    },
+    {
+      "family": "one_hand_sword",
+      "level": 87,
+      "PATK": [
+        239,
+        245
+      ],
+      "MATK": null,
+      "budget100": [
+        266,
+        272
+      ],
+      "factor": 0.9,
+      "source": "REVIEW_TABLE",
+      "secondary": null
+    },
+    {
+      "family": "one_hand_sword",
+      "level": 95,
+      "PATK": [
+        261,
+        266
+      ],
+      "MATK": null,
+      "budget100": [
+        290,
+        296
+      ],
+      "factor": 0.9,
+      "source": "REVIEW_TABLE",
+      "secondary": null
+    },
+    {
+      "family": "dagger",
+      "level": 1,
+      "PATK": [
+        8,
+        11
+      ],
+      "MATK": null,
+      "budget100": [
+        9,
+        13
+      ],
+      "factor": 0.85,
+      "source": "REVIEW_TABLE",
+      "secondary": null
+    },
+    {
+      "family": "dagger",
+      "level": 8,
+      "PATK": [
+        25,
+        28
+      ],
+      "MATK": null,
+      "budget100": [
+        29.3,
+        33.3
+      ],
+      "factor": 0.85,
+      "source": "REVIEW_TABLE",
+      "secondary": null
+    },
+    {
+      "family": "dagger",
+      "level": 16,
+      "PATK": [
+        46,
+        50
+      ],
+      "MATK": null,
+      "budget100": [
+        53.76,
+        58.24
+      ],
+      "factor": 0.85,
+      "source": "REVIEW_TABLE",
+      "secondary": null
+    },
+    {
+      "family": "dagger",
+      "level": 24,
+      "PATK": [
+        65,
+        71
+      ],
+      "MATK": null,
+      "budget100": [
+        76.8,
+        83.2
+      ],
+      "factor": 0.85,
+      "source": "REVIEW_TABLE",
+      "secondary": null
+    },
+    {
+      "family": "dagger",
+      "level": 32,
+      "PATK": [
+        85,
+        92
+      ],
+      "MATK": null,
+      "budget100": [
+        99.84,
+        108.16
+      ],
+      "factor": 0.85,
+      "source": "REVIEW_TABLE",
+      "secondary": null
+    },
+    {
+      "family": "dagger",
+      "level": 42,
+      "PATK": [
+        109,
+        118
+      ],
+      "MATK": null,
+      "budget100": [
+        128.64,
+        139.36
+      ],
+      "factor": 0.85,
+      "source": "REVIEW_TABLE",
+      "secondary": null
+    },
+    {
+      "family": "dagger",
+      "level": 47,
+      "PATK": [
+        122,
+        132
+      ],
+      "MATK": null,
+      "budget100": [
+        143.04,
+        154.96
+      ],
+      "factor": 0.85,
+      "source": "REVIEW_TABLE",
+      "secondary": null
+    },
+    {
+      "family": "dagger",
+      "level": 54,
+      "PATK": [
+        139,
+        150
+      ],
+      "MATK": null,
+      "budget100": [
+        163.2,
+        176.8
+      ],
+      "factor": 0.85,
+      "source": "REVIEW_TABLE",
+      "secondary": null
+    },
+    {
+      "family": "dagger",
+      "level": 60,
+      "PATK": [
+        153,
+        166
+      ],
+      "MATK": null,
+      "budget100": [
+        180.48,
+        195.52
+      ],
+      "factor": 0.85,
+      "source": "REVIEW_TABLE",
+      "secondary": null
+    },
+    {
+      "family": "dagger",
+      "level": 67,
+      "PATK": [
+        171,
+        185
+      ],
+      "MATK": null,
+      "budget100": [
+        200.64,
+        217.36
+      ],
+      "factor": 0.85,
+      "source": "REVIEW_TABLE",
+      "secondary": null
+    },
+    {
+      "family": "dagger",
+      "level": 74,
+      "PATK": [
+        188,
+        203
+      ],
+      "MATK": null,
+      "budget100": [
+        220.8,
+        239.2
+      ],
+      "factor": 0.85,
+      "source": "REVIEW_TABLE",
+      "secondary": null
+    },
+    {
+      "family": "dagger",
+      "level": 80,
+      "PATK": [
+        202,
+        219
+      ],
+      "MATK": null,
+      "budget100": [
+        238.08,
+        257.92
+      ],
+      "factor": 0.85,
+      "source": "REVIEW_TABLE",
+      "secondary": null
+    },
+    {
+      "family": "dagger",
+      "level": 87,
+      "PATK": [
+        220,
+        238
+      ],
+      "MATK": null,
+      "budget100": [
+        258.24,
+        279.76
+      ],
+      "factor": 0.85,
+      "source": "REVIEW_TABLE",
+      "secondary": null
+    },
+    {
+      "family": "dagger",
+      "level": 95,
+      "PATK": [
+        239,
+        259
+      ],
+      "MATK": null,
+      "budget100": [
+        281.28,
+        304.72
+      ],
+      "factor": 0.85,
+      "source": "REVIEW_TABLE",
+      "secondary": null
+    },
+    {
+      "family": "bow",
+      "level": 1,
+      "PATK": [
+        9,
+        16
+      ],
+      "MATK": null,
+      "budget100": [
+        9,
+        13
+      ],
+      "factor": 1,
+      "source": "REVIEW_TABLE",
+      "secondary": null
+    },
+    {
+      "family": "bow",
+      "level": 8,
+      "PATK": [
+        29,
+        41
+      ],
+      "MATK": null,
+      "budget100": [
+        28.796,
+        33.804
+      ],
+      "factor": 1,
+      "source": "REVIEW_TABLE",
+      "secondary": null
+    },
+    {
+      "family": "bow",
+      "level": 16,
+      "PATK": [
+        52,
+        73
+      ],
+      "MATK": null,
+      "budget100": [
+        51.52,
+        60.48
+      ],
+      "factor": 1,
+      "source": "REVIEW_TABLE",
+      "secondary": null
+    },
+    {
+      "family": "bow",
+      "level": 24,
+      "PATK": [
+        74,
+        105
+      ],
+      "MATK": null,
+      "budget100": [
+        73.6,
+        86.4
+      ],
+      "factor": 1,
+      "source": "REVIEW_TABLE",
+      "secondary": null
+    },
+    {
+      "family": "bow",
+      "level": 32,
+      "PATK": [
+        96,
+        136
+      ],
+      "MATK": null,
+      "budget100": [
+        95.68,
+        112.32
+      ],
+      "factor": 1,
+      "source": "REVIEW_TABLE",
+      "secondary": null
+    },
+    {
+      "family": "bow",
+      "level": 42,
+      "PATK": [
+        123,
+        175
+      ],
+      "MATK": null,
+      "budget100": [
+        123.28,
+        144.72
+      ],
+      "factor": 1,
+      "source": "REVIEW_TABLE",
+      "secondary": null
+    },
+    {
+      "family": "bow",
+      "level": 54,
+      "PATK": [
+        156,
+        222
+      ],
+      "MATK": null,
+      "budget100": [
+        156.4,
+        183.6
+      ],
+      "factor": 1,
+      "source": "REVIEW_TABLE",
+      "secondary": null
+    },
+    {
+      "family": "bow",
+      "level": 60,
+      "PATK": [
+        173,
+        246
+      ],
+      "MATK": null,
+      "budget100": [
+        172.96,
+        203.04
+      ],
+      "factor": 1,
+      "source": "REVIEW_TABLE",
+      "secondary": null
+    },
+    {
+      "family": "bow",
+      "level": 67,
+      "PATK": [
+        192,
+        273
+      ],
+      "MATK": null,
+      "budget100": [
+        192.28,
+        225.72
+      ],
+      "factor": 1,
+      "source": "REVIEW_TABLE",
+      "secondary": null
+    },
+    {
+      "family": "bow",
+      "level": 74,
+      "PATK": [
+        212,
+        301
+      ],
+      "MATK": null,
+      "budget100": [
+        211.6,
+        248.4
+      ],
+      "factor": 1,
+      "source": "REVIEW_TABLE",
+      "secondary": null
+    },
+    {
+      "family": "bow",
+      "level": 80,
+      "PATK": [
+        228,
+        324
+      ],
+      "MATK": null,
+      "budget100": [
+        228.16,
+        267.84
+      ],
+      "factor": 1,
+      "source": "REVIEW_TABLE",
+      "secondary": null
+    },
+    {
+      "family": "bow",
+      "level": 87,
+      "PATK": [
+        247,
+        352
+      ],
+      "MATK": null,
+      "budget100": [
+        247.48,
+        290.52
+      ],
+      "factor": 1,
+      "source": "REVIEW_TABLE",
+      "secondary": null
+    },
+    {
+      "family": "bow",
+      "level": 95,
+      "PATK": [
+        270,
+        383
+      ],
+      "MATK": null,
+      "budget100": [
+        269.56,
+        316.44
+      ],
+      "factor": 1,
+      "source": "REVIEW_TABLE",
+      "secondary": null
+    },
+    {
+      "family": "mace",
+      "level": 1,
+      "PATK": [
+        9,
+        13
+      ],
+      "MATK": null,
+      "budget100": [
+        9,
+        13
+      ],
+      "factor": 1,
+      "source": "REVIEW_TABLE",
+      "secondary": null
+    },
+    {
+      "family": "mace",
+      "level": 8,
+      "PATK": [
+        29,
+        33
+      ],
+      "MATK": null,
+      "budget100": [
+        29.3,
+        33.3
+      ],
+      "factor": 1,
+      "source": "REVIEW_TABLE",
+      "secondary": null
+    },
+    {
+      "family": "mace",
+      "level": 16,
+      "PATK": [
+        54,
+        58
+      ],
+      "MATK": null,
+      "budget100": [
+        54,
+        58
+      ],
+      "factor": 1,
+      "source": "REVIEW_TABLE",
+      "secondary": null
+    },
+    {
+      "family": "mace",
+      "level": 24,
+      "PATK": [
+        78,
+        82
+      ],
+      "MATK": null,
+      "budget100": [
+        77.6,
+        82.4
+      ],
+      "factor": 1,
+      "source": "REVIEW_TABLE",
+      "secondary": null
+    },
+    {
+      "family": "mace",
+      "level": 32,
+      "PATK": [
+        101,
+        107
+      ],
+      "MATK": null,
+      "budget100": [
+        100.88,
+        107.12
+      ],
+      "factor": 1,
+      "source": "REVIEW_TABLE",
+      "secondary": null
+    },
+    {
+      "family": "mace",
+      "level": 42,
+      "PATK": [
+        130,
+        138
+      ],
+      "MATK": null,
+      "budget100": [
+        129.98,
+        138.02
+      ],
+      "factor": 1,
+      "source": "REVIEW_TABLE",
+      "secondary": null
+    },
+    {
+      "family": "mace",
+      "level": 54,
+      "PATK": [
+        165,
+        175
+      ],
+      "MATK": null,
+      "budget100": [
+        164.9,
+        175.1
+      ],
+      "factor": 1,
+      "source": "REVIEW_TABLE",
+      "secondary": null
+    },
+    {
+      "family": "mace",
+      "level": 60,
+      "PATK": [
+        182,
+        194
+      ],
+      "MATK": null,
+      "budget100": [
+        182.36,
+        193.64
+      ],
+      "factor": 1,
+      "source": "REVIEW_TABLE",
+      "secondary": null
+    },
+    {
+      "family": "mace",
+      "level": 67,
+      "PATK": [
+        203,
+        215
+      ],
+      "MATK": null,
+      "budget100": [
+        202.73,
+        215.27
+      ],
+      "factor": 1,
+      "source": "REVIEW_TABLE",
+      "secondary": null
+    },
+    {
+      "family": "mace",
+      "level": 74,
+      "PATK": [
+        223,
+        237
+      ],
+      "MATK": null,
+      "budget100": [
+        223.1,
+        236.9
+      ],
+      "factor": 1,
+      "source": "REVIEW_TABLE",
+      "secondary": null
+    },
+    {
+      "family": "mace",
+      "level": 80,
+      "PATK": [
+        241,
+        255
+      ],
+      "MATK": null,
+      "budget100": [
+        240.56,
+        255.44
+      ],
+      "factor": 1,
+      "source": "REVIEW_TABLE",
+      "secondary": null
+    },
+    {
+      "family": "mace",
+      "level": 87,
+      "PATK": [
+        261,
+        277
+      ],
+      "MATK": null,
+      "budget100": [
+        260.93,
+        277.07
+      ],
+      "factor": 1,
+      "source": "REVIEW_TABLE",
+      "secondary": null
+    },
+    {
+      "family": "mace",
+      "level": 95,
+      "PATK": [
+        284,
+        302
+      ],
+      "MATK": null,
+      "budget100": [
+        284.21,
+        301.79
+      ],
+      "factor": 1,
+      "source": "REVIEW_TABLE",
+      "secondary": null
+    },
+    {
+      "family": "knuckle",
+      "level": 10,
+      "PATK": [
+        33,
+        35
+      ],
+      "MATK": null,
+      "budget100": [
+        36.375,
+        38.625
+      ],
+      "factor": 0.9,
+      "source": "REVIEW_TABLE",
+      "secondary": null
+    },
+    {
+      "family": "knuckle",
+      "level": 25,
+      "PATK": [
+        72,
+        77
+      ],
+      "MATK": null,
+      "budget100": [
+        80.51,
+        85.49
+      ],
+      "factor": 0.9,
+      "source": "REVIEW_TABLE",
+      "secondary": null
+    },
+    {
+      "family": "knuckle",
+      "level": 40,
+      "PATK": [
+        112,
+        119
+      ],
+      "MATK": null,
+      "budget100": [
+        124.16,
+        131.84
+      ],
+      "factor": 0.9,
+      "source": "REVIEW_TABLE",
+      "secondary": null
+    },
+    {
+      "family": "knuckle",
+      "level": 60,
+      "PATK": [
+        164,
+        174
+      ],
+      "MATK": null,
+      "budget100": [
+        182.36,
+        193.64
+      ],
+      "factor": 0.9,
+      "source": "REVIEW_TABLE",
+      "secondary": null
+    },
+    {
+      "family": "knuckle",
+      "level": 67,
+      "PATK": [
+        182,
+        194
+      ],
+      "MATK": null,
+      "budget100": [
+        202.73,
+        215.27
+      ],
+      "factor": 0.9,
+      "source": "REVIEW_TABLE",
+      "secondary": null
+    },
+    {
+      "family": "knuckle",
+      "level": 74,
+      "PATK": [
+        201,
+        213
+      ],
+      "MATK": null,
+      "budget100": [
+        223.1,
+        236.9
+      ],
+      "factor": 0.9,
+      "source": "REVIEW_TABLE",
+      "secondary": null
+    },
+    {
+      "family": "knuckle",
+      "level": 80,
+      "PATK": [
+        217,
+        230
+      ],
+      "MATK": null,
+      "budget100": [
+        240.56,
+        255.44
+      ],
+      "factor": 0.9,
+      "source": "REVIEW_TABLE",
+      "secondary": null
+    },
+    {
+      "family": "knuckle",
+      "level": 87,
+      "PATK": [
+        235,
+        249
+      ],
+      "MATK": null,
+      "budget100": [
+        260.93,
+        277.07
+      ],
+      "factor": 0.9,
+      "source": "REVIEW_TABLE",
+      "secondary": null
+    },
+    {
+      "family": "knuckle",
+      "level": 95,
+      "PATK": [
+        256,
+        272
+      ],
+      "MATK": null,
+      "budget100": [
+        284.21,
+        301.79
+      ],
+      "factor": 0.9,
+      "source": "REVIEW_TABLE",
+      "secondary": null
+    },
+    {
+      "family": "two_hand_sword",
+      "level": 45,
+      "PATK": [
+        196,
+        204
+      ],
+      "MATK": null,
+      "budget100": [
+        140,
+        146
+      ],
+      "factor": 1.4,
+      "source": "REVIEW_TABLE",
+      "secondary": null
+    },
+    {
+      "family": "two_hand_sword",
+      "level": 60,
+      "PATK": [
+        259,
+        267
+      ],
+      "MATK": null,
+      "budget100": [
+        185,
+        191
+      ],
+      "factor": 1.4,
+      "source": "REVIEW_TABLE",
+      "secondary": null
+    },
+    {
+      "family": "two_hand_sword",
+      "level": 67,
+      "PATK": [
+        288,
+        297
+      ],
+      "MATK": null,
+      "budget100": [
+        206,
+        212
+      ],
+      "factor": 1.4,
+      "source": "REVIEW_TABLE",
+      "secondary": null
+    },
+    {
+      "family": "two_hand_sword",
+      "level": 74,
+      "PATK": [
+        318,
+        326
+      ],
+      "MATK": null,
+      "budget100": [
+        227,
+        233
+      ],
+      "factor": 1.4,
+      "source": "REVIEW_TABLE",
+      "secondary": null
+    },
+    {
+      "family": "two_hand_sword",
+      "level": 80,
+      "PATK": [
+        343,
+        351
+      ],
+      "MATK": null,
+      "budget100": [
+        245,
+        251
+      ],
+      "factor": 1.4,
+      "source": "REVIEW_TABLE",
+      "secondary": null
+    },
+    {
+      "family": "two_hand_sword",
+      "level": 87,
+      "PATK": [
+        372,
+        381
+      ],
+      "MATK": null,
+      "budget100": [
+        266,
+        272
+      ],
+      "factor": 1.4,
+      "source": "REVIEW_TABLE",
+      "secondary": null
+    },
+    {
+      "family": "two_hand_sword",
+      "level": 95,
+      "PATK": [
+        406,
+        414
+      ],
+      "MATK": null,
+      "budget100": [
+        290,
+        296
+      ],
+      "factor": 1.4,
+      "source": "REVIEW_TABLE",
+      "secondary": null
+    },
+    {
+      "family": "staff",
+      "level": 1,
+      "PATK": [
+        4,
+        5
+      ],
+      "MATK": [
+        12,
+        14
+      ],
+      "budget100": [
+        11.28,
+        12.72
+      ],
+      "factor": 1.1,
+      "source": "REVIEW_TABLE",
+      "secondary": {
+        "status": "NEW_DESIGN_PROPOSAL_INPUT_ONLY",
+        "budget100": [
+          10,
+          12
+        ],
+        "authoringFactor": 0.4,
+        "BASE": [
+          4,
+          5
+        ],
+        "rationale": "Weak separate physicalweapon core for physicalBasic; notscalarconversion orPATK+MATKcombinedhit. Exactclass/consumer applicability remainsgated."
+      }
+    },
+    {
+      "family": "staff",
+      "level": 8,
+      "PATK": [
+        12,
+        13
+      ],
+      "MATK": [
+        33,
+        37
+      ],
+      "budget100": [
+        29.704,
+        33.496
+      ],
+      "factor": 1.1,
+      "source": "REVIEW_TABLE",
+      "secondary": {
+        "status": "NEW_DESIGN_PROPOSAL_INPUT_ONLY",
+        "budget100": [
+          29,
+          33.6
+        ],
+        "authoringFactor": 0.4,
+        "BASE": [
+          12,
+          13
+        ],
+        "rationale": "Weak separate physicalweapon core for physicalBasic; notscalarconversion orPATK+MATKcombinedhit. Exactclass/consumer applicability remainsgated."
+      }
+    },
+    {
+      "family": "staff",
+      "level": 16,
+      "PATK": [
+        21,
+        24
+      ],
+      "MATK": [
+        56,
+        63
+      ],
+      "budget100": [
+        50.76,
+        57.24
+      ],
+      "factor": 1.1,
+      "source": "REVIEW_TABLE",
+      "secondary": {
+        "status": "NEW_DESIGN_PROPOSAL_INPUT_ONLY",
+        "budget100": [
+          53,
+          59
+        ],
+        "authoringFactor": 0.4,
+        "BASE": [
+          21,
+          24
+        ],
+        "rationale": "Weak separate physicalweapon core for physicalBasic; notscalarconversion orPATK+MATKcombinedhit. Exactclass/consumer applicability remainsgated."
+      }
+    },
+    {
+      "family": "staff",
+      "level": 24,
+      "PATK": [
+        31,
+        33
+      ],
+      "MATK": [
+        79,
+        89
+      ],
+      "budget100": [
+        71.816,
+        80.984
+      ],
+      "factor": 1.1,
+      "source": "REVIEW_TABLE",
+      "secondary": {
+        "status": "NEW_DESIGN_PROPOSAL_INPUT_ONLY",
+        "budget100": [
+          77,
+          83
+        ],
+        "authoringFactor": 0.4,
+        "BASE": [
+          31,
+          33
+        ],
+        "rationale": "Weak separate physicalweapon core for physicalBasic; notscalarconversion orPATK+MATKcombinedhit. Exactclass/consumer applicability remainsgated."
+      }
+    },
+    {
+      "family": "staff",
+      "level": 32,
+      "PATK": [
+        40,
+        43
+      ],
+      "MATK": [
+        102,
+        115
+      ],
+      "budget100": [
+        92.872,
+        104.728
+      ],
+      "factor": 1.1,
+      "source": "REVIEW_TABLE",
+      "secondary": {
+        "status": "NEW_DESIGN_PROPOSAL_INPUT_ONLY",
+        "budget100": [
+          101,
+          107
+        ],
+        "authoringFactor": 0.4,
+        "BASE": [
+          40,
+          43
+        ],
+        "rationale": "Weak separate physicalweapon core for physicalBasic; notscalarconversion orPATK+MATKcombinedhit. Exactclass/consumer applicability remainsgated."
+      }
+    },
+    {
+      "family": "staff",
+      "level": 42,
+      "PATK": [
+        52,
+        55
+      ],
+      "MATK": [
+        131,
+        148
+      ],
+      "budget100": [
+        119.192,
+        134.408
+      ],
+      "factor": 1.1,
+      "source": "REVIEW_TABLE",
+      "secondary": {
+        "status": "NEW_DESIGN_PROPOSAL_INPUT_ONLY",
+        "budget100": [
+          131,
+          137
+        ],
+        "authoringFactor": 0.4,
+        "BASE": [
+          52,
+          55
+        ],
+        "rationale": "Weak separate physicalweapon core for physicalBasic; notscalarconversion orPATK+MATKcombinedhit. Exactclass/consumer applicability remainsgated."
+      }
+    },
+    {
+      "family": "staff",
+      "level": 54,
+      "PATK": [
+        67,
+        69
+      ],
+      "MATK": [
+        166,
+        187
+      ],
+      "budget100": [
+        150.776,
+        170.024
+      ],
+      "factor": 1.1,
+      "source": "REVIEW_TABLE",
+      "secondary": {
+        "status": "NEW_DESIGN_PROPOSAL_INPUT_ONLY",
+        "budget100": [
+          167,
+          173
+        ],
+        "authoringFactor": 0.4,
+        "BASE": [
+          67,
+          69
+        ],
+        "rationale": "Weak separate physicalweapon core for physicalBasic; notscalarconversion orPATK+MATKcombinedhit. Exactclass/consumer applicability remainsgated."
+      }
+    },
+    {
+      "family": "staff",
+      "level": 60,
+      "PATK": [
+        74,
+        76
+      ],
+      "MATK": [
+        183,
+        207
+      ],
+      "budget100": [
+        166.568,
+        187.832
+      ],
+      "factor": 1.1,
+      "source": "REVIEW_TABLE",
+      "secondary": {
+        "status": "NEW_DESIGN_PROPOSAL_INPUT_ONLY",
+        "budget100": [
+          185,
+          191
+        ],
+        "authoringFactor": 0.4,
+        "BASE": [
+          74,
+          76
+        ],
+        "rationale": "Weak separate physicalweapon core for physicalBasic; notscalarconversion orPATK+MATKcombinedhit. Exactclass/consumer applicability remainsgated."
+      }
+    },
+    {
+      "family": "staff",
+      "level": 67,
+      "PATK": [
+        82,
+        85
+      ],
+      "MATK": [
+        203,
+        229
+      ],
+      "budget100": [
+        184.992,
+        208.608
+      ],
+      "factor": 1.1,
+      "source": "REVIEW_TABLE",
+      "secondary": {
+        "status": "NEW_DESIGN_PROPOSAL_INPUT_ONLY",
+        "budget100": [
+          206,
+          212
+        ],
+        "authoringFactor": 0.4,
+        "BASE": [
+          82,
+          85
+        ],
+        "rationale": "Weak separate physicalweapon core for physicalBasic; notscalarconversion orPATK+MATKcombinedhit. Exactclass/consumer applicability remainsgated."
+      }
+    },
+    {
+      "family": "staff",
+      "level": 74,
+      "PATK": [
+        91,
+        93
+      ],
+      "MATK": [
+        224,
+        252
+      ],
+      "budget100": [
+        203.416,
+        229.384
+      ],
+      "factor": 1.1,
+      "source": "REVIEW_TABLE",
+      "secondary": {
+        "status": "NEW_DESIGN_PROPOSAL_INPUT_ONLY",
+        "budget100": [
+          227,
+          233
+        ],
+        "authoringFactor": 0.4,
+        "BASE": [
+          91,
+          93
+        ],
+        "rationale": "Weak separate physicalweapon core for physicalBasic; notscalarconversion orPATK+MATKcombinedhit. Exactclass/consumer applicability remainsgated."
+      }
+    },
+    {
+      "family": "staff",
+      "level": 80,
+      "PATK": [
+        98,
+        100
+      ],
+      "MATK": [
+        241,
+        272
+      ],
+      "budget100": [
+        219.208,
+        247.192
+      ],
+      "factor": 1.1,
+      "source": "REVIEW_TABLE",
+      "secondary": {
+        "status": "NEW_DESIGN_PROPOSAL_INPUT_ONLY",
+        "budget100": [
+          245,
+          251
+        ],
+        "authoringFactor": 0.4,
+        "BASE": [
+          98,
+          100
+        ],
+        "rationale": "Weak separate physicalweapon core for physicalBasic; notscalarconversion orPATK+MATKcombinedhit. Exactclass/consumer applicability remainsgated."
+      }
+    },
+    {
+      "family": "staff",
+      "level": 87,
+      "PATK": [
+        106,
+        109
+      ],
+      "MATK": [
+        261,
+        295
+      ],
+      "budget100": [
+        237.632,
+        267.968
+      ],
+      "factor": 1.1,
+      "source": "REVIEW_TABLE",
+      "secondary": {
+        "status": "NEW_DESIGN_PROPOSAL_INPUT_ONLY",
+        "budget100": [
+          266,
+          272
+        ],
+        "authoringFactor": 0.4,
+        "BASE": [
+          106,
+          109
+        ],
+        "rationale": "Weak separate physicalweapon core for physicalBasic; notscalarconversion orPATK+MATKcombinedhit. Exactclass/consumer applicability remainsgated."
+      }
+    },
+    {
+      "family": "staff",
+      "level": 95,
+      "PATK": [
+        116,
+        118
+      ],
+      "MATK": [
+        285,
+        321
+      ],
+      "budget100": [
+        258.688,
+        291.712
+      ],
+      "factor": 1.1,
+      "source": "REVIEW_TABLE",
+      "secondary": {
+        "status": "NEW_DESIGN_PROPOSAL_INPUT_ONLY",
+        "budget100": [
+          290,
+          296
+        ],
+        "authoringFactor": 0.4,
+        "BASE": [
+          116,
+          118
+        ],
+        "rationale": "Weak separate physicalweapon core for physicalBasic; notscalarconversion orPATK+MATKcombinedhit. Exactclass/consumer applicability remainsgated."
+      }
+    },
+    {
+      "family": "wand",
+      "level": 10,
+      "PATK": [
+        9,
+        10
+      ],
+      "MATK": [
+        29,
+        31
+      ],
+      "budget100": [
+        35.712,
+        38.688
+      ],
+      "factor": 0.8,
+      "source": "REVIEW_TABLE",
+      "secondary": {
+        "status": "NEW_DESIGN_PROPOSAL_INPUT_ONLY",
+        "budget100": [
+          35,
+          40
+        ],
+        "authoringFactor": 0.25,
+        "BASE": [
+          9,
+          10
+        ],
+        "rationale": "Weak separate physicalweapon core for physicalBasic; notscalarconversion orPATK+MATKcombinedhit. Exactclass/consumer applicability remainsgated."
+      }
+    },
+    {
+      "family": "wand",
+      "level": 25,
+      "PATK": [
+        20,
+        22
+      ],
+      "MATK": [
+        61,
+        66
+      ],
+      "budget100": [
+        76.032,
+        82.368
+      ],
+      "factor": 0.8,
+      "source": "REVIEW_TABLE",
+      "secondary": {
+        "status": "NEW_DESIGN_PROPOSAL_INPUT_ONLY",
+        "budget100": [
+          80,
+          86
+        ],
+        "authoringFactor": 0.25,
+        "BASE": [
+          20,
+          22
+        ],
+        "rationale": "Weak separate physicalweapon core for physicalBasic; notscalarconversion orPATK+MATKcombinedhit. Exactclass/consumer applicability remainsgated."
+      }
+    },
+    {
+      "family": "wand",
+      "level": 40,
+      "PATK": [
+        31,
+        33
+      ],
+      "MATK": [
+        93,
+        101
+      ],
+      "budget100": [
+        116.352,
+        126.048
+      ],
+      "factor": 0.8,
+      "source": "REVIEW_TABLE",
+      "secondary": {
+        "status": "NEW_DESIGN_PROPOSAL_INPUT_ONLY",
+        "budget100": [
+          125,
+          131
+        ],
+        "authoringFactor": 0.25,
+        "BASE": [
+          31,
+          33
+        ],
+        "rationale": "Weak separate physicalweapon core for physicalBasic; notscalarconversion orPATK+MATKcombinedhit. Exactclass/consumer applicability remainsgated."
+      }
+    },
+    {
+      "family": "wand",
+      "level": 60,
+      "PATK": [
+        46,
+        48
+      ],
+      "MATK": [
+        136,
+        147
+      ],
+      "budget100": [
+        170.112,
+        184.288
+      ],
+      "factor": 0.8,
+      "source": "REVIEW_TABLE",
+      "secondary": {
+        "status": "NEW_DESIGN_PROPOSAL_INPUT_ONLY",
+        "budget100": [
+          185,
+          191
+        ],
+        "authoringFactor": 0.25,
+        "BASE": [
+          46,
+          48
+        ],
+        "rationale": "Weak separate physicalweapon core for physicalBasic; notscalarconversion orPATK+MATKcombinedhit. Exactclass/consumer applicability remainsgated."
+      }
+    },
+    {
+      "family": "wand",
+      "level": 67,
+      "PATK": [
+        52,
+        53
+      ],
+      "MATK": [
+        151,
+        164
+      ],
+      "budget100": [
+        188.928,
+        204.672
+      ],
+      "factor": 0.8,
+      "source": "REVIEW_TABLE",
+      "secondary": {
+        "status": "NEW_DESIGN_PROPOSAL_INPUT_ONLY",
+        "budget100": [
+          206,
+          212
+        ],
+        "authoringFactor": 0.25,
+        "BASE": [
+          52,
+          53
+        ],
+        "rationale": "Weak separate physicalweapon core for physicalBasic; notscalarconversion orPATK+MATKcombinedhit. Exactclass/consumer applicability remainsgated."
+      }
+    },
+    {
+      "family": "wand",
+      "level": 74,
+      "PATK": [
+        57,
+        58
+      ],
+      "MATK": [
+        166,
+        180
+      ],
+      "budget100": [
+        207.744,
+        225.056
+      ],
+      "factor": 0.8,
+      "source": "REVIEW_TABLE",
+      "secondary": {
+        "status": "NEW_DESIGN_PROPOSAL_INPUT_ONLY",
+        "budget100": [
+          227,
+          233
+        ],
+        "authoringFactor": 0.25,
+        "BASE": [
+          57,
+          58
+        ],
+        "rationale": "Weak separate physicalweapon core for physicalBasic; notscalarconversion orPATK+MATKcombinedhit. Exactclass/consumer applicability remainsgated."
+      }
+    },
+    {
+      "family": "wand",
+      "level": 80,
+      "PATK": [
+        61,
+        63
+      ],
+      "MATK": [
+        179,
+        194
+      ],
+      "budget100": [
+        223.872,
+        242.528
+      ],
+      "factor": 0.8,
+      "source": "REVIEW_TABLE",
+      "secondary": {
+        "status": "NEW_DESIGN_PROPOSAL_INPUT_ONLY",
+        "budget100": [
+          245,
+          251
+        ],
+        "authoringFactor": 0.25,
+        "BASE": [
+          61,
+          63
+        ],
+        "rationale": "Weak separate physicalweapon core for physicalBasic; notscalarconversion orPATK+MATKcombinedhit. Exactclass/consumer applicability remainsgated."
+      }
+    },
+    {
+      "family": "wand",
+      "level": 87,
+      "PATK": [
+        67,
+        68
+      ],
+      "MATK": [
+        194,
+        210
+      ],
+      "budget100": [
+        242.688,
+        262.912
+      ],
+      "factor": 0.8,
+      "source": "REVIEW_TABLE",
+      "secondary": {
+        "status": "NEW_DESIGN_PROPOSAL_INPUT_ONLY",
+        "budget100": [
+          266,
+          272
+        ],
+        "authoringFactor": 0.25,
+        "BASE": [
+          67,
+          68
+        ],
+        "rationale": "Weak separate physicalweapon core for physicalBasic; notscalarconversion orPATK+MATKcombinedhit. Exactclass/consumer applicability remainsgated."
+      }
+    },
+    {
+      "family": "wand",
+      "level": 95,
+      "PATK": [
+        73,
+        74
+      ],
+      "MATK": [
+        211,
+        229
+      ],
+      "budget100": [
+        264.192,
+        286.208
+      ],
+      "factor": 0.8,
+      "source": "REVIEW_TABLE",
+      "secondary": {
+        "status": "NEW_DESIGN_PROPOSAL_INPUT_ONLY",
+        "budget100": [
+          290,
+          296
+        ],
+        "authoringFactor": 0.25,
+        "BASE": [
+          73,
+          74
+        ],
+        "rationale": "Weak separate physicalweapon core for physicalBasic; notscalarconversion orPATK+MATKcombinedhit. Exactclass/consumer applicability remainsgated."
+      }
+    },
+    {
+      "family": "talisman_main",
+      "level": 10,
+      "PATK": [
+        11,
+        12
+      ],
+      "MATK": [
+        34,
+        37
+      ],
+      "budget100": [
+        35.34,
+        39.06
+      ],
+      "factor": 0.95,
+      "source": "REVIEW_TABLE",
+      "secondary": {
+        "status": "NEW_DESIGN_PROPOSAL_INPUT_ONLY",
+        "budget100": [
+          35,
+          40
+        ],
+        "authoringFactor": 0.3,
+        "BASE": [
+          11,
+          12
+        ],
+        "rationale": "Weak separate physicalweapon core for physicalBasic; notscalarconversion orPATK+MATKcombinedhit. Exactclass/consumer applicability remainsgated."
+      }
+    },
+    {
+      "family": "talisman_main",
+      "level": 25,
+      "PATK": [
+        24,
+        26
+      ],
+      "MATK": [
+        71,
+        79
+      ],
+      "budget100": [
+        75.24,
+        83.16
+      ],
+      "factor": 0.95,
+      "source": "REVIEW_TABLE",
+      "secondary": {
+        "status": "NEW_DESIGN_PROPOSAL_INPUT_ONLY",
+        "budget100": [
+          80,
+          86
+        ],
+        "authoringFactor": 0.3,
+        "BASE": [
+          24,
+          26
+        ],
+        "rationale": "Weak separate physicalweapon core for physicalBasic; notscalarconversion orPATK+MATKcombinedhit. Exactclass/consumer applicability remainsgated."
+      }
+    },
+    {
+      "family": "talisman_main",
+      "level": 40,
+      "PATK": [
+        38,
+        39
+      ],
+      "MATK": [
+        109,
+        121
+      ],
+      "budget100": [
+        115.14,
+        127.26
+      ],
+      "factor": 0.95,
+      "source": "REVIEW_TABLE",
+      "secondary": {
+        "status": "NEW_DESIGN_PROPOSAL_INPUT_ONLY",
+        "budget100": [
+          125,
+          131
+        ],
+        "authoringFactor": 0.3,
+        "BASE": [
+          38,
+          39
+        ],
+        "rationale": "Weak separate physicalweapon core for physicalBasic; notscalarconversion orPATK+MATKcombinedhit. Exactclass/consumer applicability remainsgated."
+      }
+    },
+    {
+      "family": "talisman_main",
+      "level": 60,
+      "PATK": [
+        56,
+        57
+      ],
+      "MATK": [
+        160,
+        177
+      ],
+      "budget100": [
+        168.34,
+        186.06
+      ],
+      "factor": 0.95,
+      "source": "REVIEW_TABLE",
+      "secondary": {
+        "status": "NEW_DESIGN_PROPOSAL_INPUT_ONLY",
+        "budget100": [
+          185,
+          191
+        ],
+        "authoringFactor": 0.3,
+        "BASE": [
+          56,
+          57
+        ],
+        "rationale": "Weak separate physicalweapon core for physicalBasic; notscalarconversion orPATK+MATKcombinedhit. Exactclass/consumer applicability remainsgated."
+      }
+    },
+    {
+      "family": "talisman_main",
+      "level": 67,
+      "PATK": [
+        62,
+        64
+      ],
+      "MATK": [
+        178,
+        196
+      ],
+      "budget100": [
+        186.96,
+        206.64
+      ],
+      "factor": 0.95,
+      "source": "REVIEW_TABLE",
+      "secondary": {
+        "status": "NEW_DESIGN_PROPOSAL_INPUT_ONLY",
+        "budget100": [
+          206,
+          212
+        ],
+        "authoringFactor": 0.3,
+        "BASE": [
+          62,
+          64
+        ],
+        "rationale": "Weak separate physicalweapon core for physicalBasic; notscalarconversion orPATK+MATKcombinedhit. Exactclass/consumer applicability remainsgated."
+      }
+    },
+    {
+      "family": "talisman_main",
+      "level": 74,
+      "PATK": [
+        68,
+        70
+      ],
+      "MATK": [
+        195,
+        216
+      ],
+      "budget100": [
+        205.58,
+        227.22
+      ],
+      "factor": 0.95,
+      "source": "REVIEW_TABLE",
+      "secondary": {
+        "status": "NEW_DESIGN_PROPOSAL_INPUT_ONLY",
+        "budget100": [
+          227,
+          233
+        ],
+        "authoringFactor": 0.3,
+        "BASE": [
+          68,
+          70
+        ],
+        "rationale": "Weak separate physicalweapon core for physicalBasic; notscalarconversion orPATK+MATKcombinedhit. Exactclass/consumer applicability remainsgated."
+      }
+    },
+    {
+      "family": "talisman_main",
+      "level": 80,
+      "PATK": [
+        74,
+        75
+      ],
+      "MATK": [
+        210,
+        233
+      ],
+      "budget100": [
+        221.54,
+        244.86
+      ],
+      "factor": 0.95,
+      "source": "REVIEW_TABLE",
+      "secondary": {
+        "status": "NEW_DESIGN_PROPOSAL_INPUT_ONLY",
+        "budget100": [
+          245,
+          251
+        ],
+        "authoringFactor": 0.3,
+        "BASE": [
+          74,
+          75
+        ],
+        "rationale": "Weak separate physicalweapon core for physicalBasic; notscalarconversion orPATK+MATKcombinedhit. Exactclass/consumer applicability remainsgated."
+      }
+    },
+    {
+      "family": "talisman_main",
+      "level": 87,
+      "PATK": [
+        80,
+        82
+      ],
+      "MATK": [
+        228,
+        252
+      ],
+      "budget100": [
+        240.16,
+        265.44
+      ],
+      "factor": 0.95,
+      "source": "REVIEW_TABLE",
+      "secondary": {
+        "status": "NEW_DESIGN_PROPOSAL_INPUT_ONLY",
+        "budget100": [
+          266,
+          272
+        ],
+        "authoringFactor": 0.3,
+        "BASE": [
+          80,
+          82
+        ],
+        "rationale": "Weak separate physicalweapon core for physicalBasic; notscalarconversion orPATK+MATKcombinedhit. Exactclass/consumer applicability remainsgated."
+      }
+    },
+    {
+      "family": "talisman_main",
+      "level": 95,
+      "PATK": [
+        87,
+        89
+      ],
+      "MATK": [
+        248,
+        275
+      ],
+      "budget100": [
+        261.44,
+        288.96
+      ],
+      "factor": 0.95,
+      "source": "REVIEW_TABLE",
+      "secondary": {
+        "status": "NEW_DESIGN_PROPOSAL_INPUT_ONLY",
+        "budget100": [
+          290,
+          296
+        ],
+        "authoringFactor": 0.3,
+        "BASE": [
+          87,
+          89
+        ],
+        "rationale": "Weak separate physicalweapon core for physicalBasic; notscalarconversion orPATK+MATKcombinedhit. Exactclass/consumer applicability remainsgated."
+      }
+    },
+    {
+      "family": "one_hand_sword",
+      "level": 16,
+      "PATK": [
+        48,
+        53
+      ],
+      "MATK": null,
+      "budget100": [
+        53,
+        59
+      ],
+      "factor": 0.9,
+      "source": "APPROVED_EQUATION_DERIVED_REQUIREMENT",
+      "secondary": null
+    },
+    {
+      "family": "one_hand_sword",
+      "level": 24,
+      "PATK": [
+        69,
+        75
+      ],
+      "MATK": null,
+      "budget100": [
+        77,
+        83
+      ],
+      "factor": 0.9,
+      "source": "APPROVED_EQUATION_DERIVED_REQUIREMENT",
+      "secondary": null
+    },
+    {
+      "family": "one_hand_sword",
+      "level": 32,
+      "PATK": [
+        91,
+        96
+      ],
+      "MATK": null,
+      "budget100": [
+        101,
+        107
+      ],
+      "factor": 0.9,
+      "source": "APPROVED_EQUATION_DERIVED_REQUIREMENT",
+      "secondary": null
+    }
+  ]
+}

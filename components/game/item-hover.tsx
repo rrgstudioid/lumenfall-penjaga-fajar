@@ -2,65 +2,28 @@
 import { JobText, useJobText } from './job-presentation-context';
 import { statBonusText } from '@/lib/game/stat-presentation';
 
-import { createContext, useContext, createElement, useEffect, useLayoutEffect, useRef, useState, type ButtonHTMLAttributes, type PointerEvent, type ReactNode } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, type ButtonHTMLAttributes, type PointerEvent, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
-import { calculateEnhancedBaseStats, equipmentUsageDescription, RARITY_META, type ItemData } from '@/lib/game/items';
+import { RARITY_META, type ItemData } from '@/lib/game/items';
 import { ItemIcon } from './entry-icon';
 import type { Game } from '@/lib/game/world';
-import { ironSwordAuthoredRange } from '@/lib/game/iron-sword-range-v2';
-export const ItemRangeContext = createContext<Game | null>(null);
-
-/** Exact owned selected instance only. Templates/default callers keep legacy data. */
+import { EquipmentDetail, ItemRangeContext, readEquipmentDetail } from './equipment-detail';
+export { ItemRangeContext };
+/** Text compatibility for existing read-only callers, from the same DTO. */
 export function equipmentPresentation(item: HoverItem, game: Game | null, baseOnly=false) {
-  const range=ironSwordAuthoredRange(item) ?? game?.getDevelopmentAdventurerItemRange(item);
-  const baseStats={...calculateEnhancedBaseStats(item)};
-  if(range)delete baseStats.attack;
-  const text=equipmentUsageDescription({...item,baseStats,bonusStats:baseOnly?{}:item.bonusStats});
-  return range ? `${text} · Physical Attack: ${range.min}–${range.max}` :
-    item.templateId==='field-ironveil-mines-sword' && !item.authoredAttackVersion && item.levelRequirement===8
-      ? `${text} · Legacy scalar attack` : text;
+ const d=readEquipmentDetail(item,game);
+ return [...d.metadata,...d.core.map(r=>r.label+': '+r.value),...d.intrinsic.map(r=>r.label+' '+r.value),...d.uncertain.map(r=>r.label+' '+r.value),...(!baseOnly?d.options.map(r=>r.label+' '+r.value):[]),...d.notes].join(' · ');
 }
-
-export function SelectedItemBaseStats({item,game}:{item: ItemData;game:Game|null}) {
-  const range=ironSwordAuthoredRange(item) ?? game?.getDevelopmentAdventurerItemRange(item);
-  const stats={...calculateEnhancedBaseStats(item)};
-  if(range)delete stats.attack;
-  return <>{range && <p data-item-physical-range>Physical Attack {range.min}–{range.max}</p>}<StatBlockList value={stats}/></>;
-}
-import { StatBlockList } from './stat-block-list';
+export function SelectedItemBaseStats({item,game}:{item:ItemData;game:Game|null}) { return <EquipmentDetail item={item} game={game} compact/>; }
 
 // Accept shop templates as well as actual owned instances. Never manufacture
 // an inventory item just to show a tooltip (which could roll new random stats).
 type HoverItem = Omit<ItemData, 'id' | 'quantity'> & Partial<Pick<ItemData, 'id' | 'quantity'>>;
 type Point = { x: number; y: number };
 
-function equipmentTooltipSections(item: HoverItem,game:Game|null) {
-  const lines = equipmentPresentation(item,game,true).split(' · ');
-  const isMetadata = (line: string) => /^(Level|Jenis|Slot|Syarat|Harga jual):/.test(line);
-  return {
-    metadata: lines.filter(line => /^(Level|Jenis|Slot):/.test(line)),
-    requirement: lines.find(line => line.startsWith('Syarat:')),
-    stats: lines.filter(line => !isMetadata(line)),
-    price: lines.find(line => line.startsWith('Harga jual:')),
-  };
-}
-
-function uniqueStatLines(item: HoverItem) {
-  if (item.uniqueStatsLocked || !Object.keys(item.bonusStats).length) return [];
-  return equipmentUsageDescription({ ...item, baseStats: {}, bonusStats: item.bonusStats })
-    .split(' · ')
-    .filter(line => !/^(Syarat|Level|Jenis|Slot|Harga jual):/.test(line));
-}
-
-function ItemHoverTooltip({ item, point, buyPrice }: { item: HoverItem; point: Point; buyPrice?: number }) {
-  const game=useContext(ItemRangeContext);
+export function ItemHoverTooltip({ item, point, buyPrice, game, children, onPointerEnter, onPointerLeave }: { item: HoverItem; point: Point; buyPrice?: number; game?:Game|null; children?:ReactNode; onPointerEnter?:()=>void; onPointerLeave?:()=>void }) {
   const text = useJobText();
   const popup = useRef<HTMLDivElement>(null);
-  const equipmentSections = ['weapon', 'armor', 'accessory'].includes(item.category)
-    ? equipmentTooltipSections(item,game)
-    : null;
-  const uniqueStats = equipmentSections ? uniqueStatLines(item) : [];
-  const showUnmagnified = item.uniqueStatsLocked || uniqueStats.length === 0;
   useLayoutEffect(() => {
     const element = popup.current;
     if (!element) return;
@@ -76,7 +39,7 @@ function ItemHoverTooltip({ item, point, buyPrice }: { item: HoverItem; point: P
 
   const equipment = ['weapon', 'armor', 'accessory'].includes(item.category);
   return createPortal(
-    <div ref={popup} className={`floating-item-tooltip npc-item-tooltip rarity-${item.rarity}`} role="tooltip" aria-label={`Detail ${text(item.name)}`}>
+    <div ref={popup} onPointerEnter={onPointerEnter} onPointerLeave={onPointerLeave} className={`floating-item-tooltip npc-item-tooltip rarity-${item.rarity}`} role="tooltip" aria-label={`Detail ${text(item.name)}`}>
       <div className="floating-item-title">
         <ItemIcon item={item} className="item-symbol" />
         <div>
@@ -86,25 +49,7 @@ function ItemHoverTooltip({ item, point, buyPrice }: { item: HoverItem; point: P
       </div>
 
       <div className="floating-item-group">
-        {equipmentSections ? (
-          <>
-            <div className="floating-item-equipment-meta">
-              {equipmentSections.metadata.map(line => <small key={line} className="floating-item-detail-line"><JobText>{line}</JobText></small>)}
-              {equipmentSections.requirement && <small className="floating-item-detail-line"><JobText>{equipmentSections.requirement}</JobText></small>}
-            </div>
-            <div className="floating-item-equipment-stats">
-              {equipmentSections.stats.map(line => <small key={line} className="floating-item-detail-line floating-item-stat-line"><JobText>{line}</JobText></small>)}
-            </div>
-            <div className="floating-item-unique-stats">
-              <small className="floating-item-unique-label">Unique status</small>
-              {showUnmagnified
-                ? <small className="floating-item-unmagnified">Unmagnified</small>
-                : uniqueStats.map(line => <small key={line} className="floating-item-detail-line floating-item-stat-line"><JobText>{line}</JobText></small>)}
-            </div>
-          </>
-        ) : (
-          <p><JobText>{item.description}</JobText></p>
-        )}
+        {equipment ? <EquipmentDetail item={item} game={game} compact/> : <p><JobText>{item.description}</JobText></p>}
       </div>
 
       {item.category === 'rune' && <div className="floating-item-group npc-item-tooltip-stats">
@@ -114,8 +59,8 @@ function ItemHoverTooltip({ item, point, buyPrice }: { item: HoverItem; point: P
       </div>}
 
       <div className="floating-item-group floating-item-meta-block">
-        {equipment && <small>Socket: <JobText>{item.sockets.length ? item.sockets.map(socket => socket.rune?.name ?? 'Kosong').join(' · ') : 'Tidak memiliki socket'}</JobText></small>}
-        {equipmentSections?.price && <small className="floating-item-price-line"><JobText>{equipmentSections.price}</JobText></small>}
+        {children}
+        {equipment && <small>Harga jual: {item.sellValue.toLocaleString()} GOLD / item</small>}
         {buyPrice !== undefined && <small>Harga beli: {buyPrice.toLocaleString()} GOLD / item</small>}
         {!equipment && <small>Harga jual: {item.sellValue.toLocaleString()} GOLD / item</small>}
         {item.quantity !== undefined && <small>Jumlah: {item.quantity}</small>}
@@ -135,10 +80,14 @@ export function ItemHover({ as = 'span', item, buyPrice, children, ...props }: {
   children: ReactNode;
 } & ButtonHTMLAttributes<HTMLElement>) {
   const [point, setPoint] = useState<Point | null>(null);
+  const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const keep = () => {if(hideTimer.current)clearTimeout(hideTimer.current);};
+  const leave = () => {keep();hideTimer.current=setTimeout(()=>setPoint(null),180);};
+  useEffect(()=>()=>{if(hideTimer.current)clearTimeout(hideTimer.current);},[]);
   const isOpen = Boolean(point);
   useEffect(() => {
     if (!isOpen) return;
-    const hide = () => setPoint(null);
+    const hide = (event?: Event) => {if(event?.target instanceof Element && event.target.closest('.floating-item-tooltip'))return;setPoint(null);};
     const key = (event: KeyboardEvent) => { if (event.key === 'Escape') hide(); };
     window.addEventListener('blur', hide);
     window.addEventListener('resize', hide);
@@ -166,16 +115,15 @@ export function ItemHover({ as = 'span', item, buyPrice, children, ...props }: {
     }
     setPoint({ x: event.clientX, y: event.clientY });
   };
+  const HoverElement = as;
   return <>
-    {createElement(as, {
-      ...props,
-      'data-item-hover': item?.templateId,
-      onPointerEnter: (event: PointerEvent<HTMLElement>) => { props.onPointerEnter?.(event); follow(event); },
-      onPointerMove: (event: PointerEvent<HTMLElement>) => { props.onPointerMove?.(event); follow(event); },
-      onPointerLeave: (event: PointerEvent<HTMLElement>) => { props.onPointerLeave?.(event); setPoint(null); },
-      onPointerCancel: (event: PointerEvent<HTMLElement>) => { props.onPointerCancel?.(event); setPoint(null); },
-    }, children)}
-    {item && point && <ItemHoverTooltip item={item} point={point} buyPrice={buyPrice} />}
+    <HoverElement {...props} data-item-hover={item?.templateId}
+      onPointerEnter={(event: PointerEvent<HTMLElement>) => { keep(); props.onPointerEnter?.(event); follow(event); }}
+      onPointerMove={(event: PointerEvent<HTMLElement>) => { props.onPointerMove?.(event); follow(event); }}
+      onPointerLeave={(event: PointerEvent<HTMLElement>) => { props.onPointerLeave?.(event); leave(); }}
+      onPointerCancel={(event: PointerEvent<HTMLElement>) => { props.onPointerCancel?.(event); setPoint(null); }}
+    >{children}</HoverElement>
+    {item && point && <ItemHoverTooltip item={item} point={point} buyPrice={buyPrice} onPointerEnter={keep} onPointerLeave={leave}/>}
   </>;
 }
 

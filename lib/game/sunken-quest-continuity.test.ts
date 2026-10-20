@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {freshHero,gainXP,xpNeeded,parseSave,parseSaveCollection} from './rules.ts';
 import {FIELDS,FIELD_NPCS,travel,acceptRegionQuest,completeRegionQuest,regionQuestProgress,regionQuestReward,getQuestRegistry} from './regions.ts';
 import {SUNKEN_ID,SUNKEN_ENTRY,SUNKEN_LAYOUT_VERSION,sunkenSafe,sunkenWalkable} from './sunken-ruins-layout.ts';
-import {migrateSunkenSave,SunkenQuestMigrationHold} from './sunken-ruins-save-migration.ts';
+import {migrateSunkenSave} from './sunken-ruins-save-migration.ts';
 const cohort=()=>{const h=freshHero();while(h.level<40)gainXP(h,xpNeeded(h.level));assert(travel(h,SUNKEN_ID).ok);return h;};
 for(const [suffix,target,xp,gold,quantity] of [['easy',5,1120,515,2],['veteran',10,2016,927,3],['elite',15,3360,1545,5]] as const){
  await test(`Sunken ${suffix}: old/new save preserves partial progress and reward is once-only`,()=>{
@@ -31,11 +31,11 @@ await test('old quest alias keeps its acceptance baseline and completed alias ca
  const loaded=parseSave(JSON.stringify(h))!;assert.deepEqual(regionQuestProgress(loaded,'field-sunken-ruins-easy'),{current:3,target:5});
  h.completedQuests=['story-sunken-ruins'];const done=parseSave(JSON.stringify(h))!;assert(done.completedQuests.includes('field-sunken-ruins-easy'));assert.equal(completeRegionQuest(done,'field-sunken-ruins-easy').ok,false);
 });
-await test('conflicting alias counters hold only affected character and preserve original collection bytes',()=>{
+await test('conflicting alias counters hold only affected quest and retain original evidence',()=>{
  const h=cohort();h.activeQuests=h.acceptedQuests=['story-sunken-ruins','field-sunken-ruins-easy'];h.cityProgress={'baseline-story-sunken-ruins':10,'baseline-field-sunken-ruins-easy':20};
- const before=JSON.stringify(h);assert.throws(()=>migrateSunkenSave(h as unknown as Record<string,unknown>),SunkenQuestMigrationHold);assert.equal(JSON.stringify(h),before);
+ const before=JSON.stringify(h);const migrated=migrateSunkenSave(h as unknown as Record<string,unknown>);assert((migrated.questProgressHolds as Record<string,unknown>)['field-sunken-ruins-easy']);assert.equal(JSON.stringify(h),before);
  const other=freshHero(),collection=parseSaveCollection(JSON.stringify({characters:{held:h,other},activeSlot:'other'}))!;
- assert(collection.characters.other);assert(!collection.characters.held);assert.deepEqual(collection.preservedCharacters?.held,JSON.parse(before));
+ assert(collection.characters.other);assert(collection.characters.held);assert(collection.characters.held.questProgressHolds?.['field-sunken-ruins-easy']);assert.equal(collection.characters.held.cityProgress['baseline-story-sunken-ruins'],10);assert.equal(collection.characters.held.cityProgress['baseline-field-sunken-ruins-easy'],20);assert(!completeRegionQuest(collection.characters.held,'field-sunken-ruins-easy').ok);assert(acceptRegionQuest(collection.characters.held,'field-sunken-ruins-veteran'));
 });
 await test('same NPC identity is safe and three quest definitions/rewards remain available',()=>{
  const camp=FIELD_NPCS[SUNKEN_ID];assert.equal(camp.id,'field-npc-sunken');assert(sunkenSafe(camp));assert(sunkenWalkable(camp));assert(Math.hypot(camp.x-SUNKEN_ENTRY.x,camp.z-SUNKEN_ENTRY.z)<10);

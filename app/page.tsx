@@ -1,8 +1,12 @@
 'use client';
+import {developmentQuestNpcs} from '@/lib/game/early-quest-contract';
+import {MAP_SCROLLS,mapScrollReceipt,availableMapScrollPacks} from '../lib/game/map-scroll-contract';
+import { EquipmentDetail } from '@/components/game/equipment-detail';
+
 import { MINE_ID } from '@/lib/game/ironveil-interior-layout';
 import { IronveilInteriorLocalMap } from '@/components/game/ironveil-interior-local-map';
 
-import { lazy, Suspense, useEffect, useRef, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { IRONVEIL_ID } from '@/lib/game/ironveil-mines-layout';
 import { DEEP_OCEAN_ID, isUnderwaterSubmap } from '@/lib/game/underwater-regions';
 import { SUNKEN_ID } from '@/lib/game/sunken-ruins-layout';
@@ -18,6 +22,7 @@ import './character-panels.css';
 import './primary-hotbar.css';
 import './gameplay-hud.css';
 import { GameplayHUD } from '@/components/game/hud/gameplay-hud';
+import { QuestNavigation } from '@/components/game/quest-navigation';
 import { HUD_RESET_EVENT } from '@/lib/game/hud-layout';
 import type { HotbarSlot } from '@/lib/game/hotbar';
 import './drag-drop.css';
@@ -27,7 +32,6 @@ import './character-screen.css';
 import './menu-presentation.css';
 import { MenuPresentation, type MenuFlow, type SelectionMode } from '@/components/game/menu-presentation';
 import { RuneForgePanel } from '@/components/game/rune-forge-panel';
-import { RuneDetails } from '@/components/game/rune-details';
 import { ForgePanel } from '@/components/game/forge-panel';
 import { InterfaceSettings, InterfaceSettingsRuntime } from '@/components/game/interface-settings';
 import { GameDragDropProvider } from '@/components/game/drag-drop-provider';
@@ -88,16 +92,14 @@ import {
 import {
   ITEM_CATALOG,
   RARITY_META,
-  equipmentUsageDescription,
   type InventorySort,
 } from '@/lib/game/items';
-import { StatBlockList } from '@/components/game/stat-block-list';
 import {
   DraggableAlertDialogContent,
   DraggableDialogContent,
 } from '@/components/game/draggable-window';
 import { ItemIcon } from '@/components/game/entry-icon';
-import { ItemHover, ItemRangeContext, equipmentPresentation } from '@/components/game/item-hover';
+import { ItemHover, ItemRangeContext, ItemHoverTooltip } from '@/components/game/item-hover';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -240,6 +242,7 @@ export default function Home() {
     [deleteTarget, setDeleteTarget] = useState<CharacterSlot | null>(null),
     [inventorySort, setInventorySort] = useState<InventorySort>('manual'),
     [selectedItemId, setSelectedItemId] = useState<string | null>(null),
+    [inventoryDetailOpen, setInventoryDetailOpen] = useState(false),
     [hoveredItemId, setHoveredItemId] = useState<string | null>(null),
     [hoveredItemPosition, setHoveredItemPosition] = useState<{ x: number; y: number } | null>(null),
     [hotbarEditSlot, setHotbarEditSlot] = useState<HotbarSlot>(0),
@@ -261,6 +264,7 @@ export default function Home() {
       'all' | 'active' | 'ready_to_complete' | 'locked' | 'completed' | 'class'
     >('all'),
     [selectedQuestId, setSelectedQuestId] = useState<string | null>(null),
+    [trackedQuestId, setTrackedQuestId] = useState<string | null>(null),
     [questMarkerId, setQuestMarkerId] = useState<string | null>(null),
     [forgeTab, setForgeTab] = useState<'main' | 'rune-menu' | 'enhance' | 'rune' | 'crafting'>('main'),
     [pauseMenuView, setPauseMenuView] = useState<PauseMenuView>('main'),
@@ -334,6 +338,7 @@ export default function Home() {
           await instance.prepareWorld();
           if (cancelled) return;
           instance.start();
+          setTrackedQuestId(null);
           setEngine(instance);
           setFlow('world');
           refreshRoster();
@@ -346,9 +351,7 @@ export default function Home() {
           else if(instance?.isWilds)setMapError({id:WILDS_ID,label:'Whispering Wilds',message:'Unable to load the forest. Your save is safe. Check the connection and retry.'});
           else if(instance?.isAverion||instance?.isPlains||instance?.isFrostfire)setMapError({id:instance.isFrostfire?FROSTFIRE_ID:instance.isPlains?'verdant-plains-v2':'averion',label:instance.isFrostfire?'Frostfire Highlands':instance.isPlains?'Verdant Plains':'Averion',message:'Map gagal dimuat. Save tetap aman. Periksa koneksi lalu tekan Retry.'});
           setError(
-            instance?.actor.userData.equipmentStatus === 'error'
-              ? 'Model Dragon Veil gagal dimuat. Save tetap aman. Periksa koneksi, lalu coba Continue atau Load Game lagi.'
-              : 'Dunia belum dapat dimuat. Save tetap aman. Periksa koneksi dan WebGL, lalu coba Continue atau Load Game lagi.',
+            'Dunia belum dapat dimuat. Save tetap aman. Periksa koneksi dan WebGL, lalu coba Continue atau Load Game lagi.',
           );
           setLoadingSlot(null);
           setFlow('main');
@@ -394,6 +397,8 @@ export default function Home() {
   useEffect(() => {
     if (panel !== 'pause') setPauseMenuView('main');
   }, [panel]);
+  const inventoryHoverTimer=useRef<ReturnType<typeof setTimeout>|null>(null);
+  useEffect(()=>()=>{if(inventoryHoverTimer.current)clearTimeout(inventoryHoverTimer.current);},[]);
   useEffect(() => {
     // The inventory grid can unmount without firing pointerleave. Clear the
     // page-level tooltip state whenever the inventory is no longer visible so
@@ -411,7 +416,7 @@ export default function Home() {
         Object.values(CITIES)
           .flatMap((city) => city.npcList)
           .find((entry) => entry.id === id) ??
-        Object.values(FIELD_NPCS).find((entry) => entry.id === id) ??
+        [...Object.values(FIELD_NPCS),...developmentQuestNpcs()].find((entry) => entry.id === id) ??
         null;
       if (!npc) return;
 
@@ -542,7 +547,7 @@ export default function Home() {
         ) ?? null)
       : null;
   const activeJournalQuest =
-    questEntries.find(
+    questEntries.find(entry => entry.id === trackedQuestId && ['active','ready_to_complete','available'].includes(entry.status)) ?? questEntries.find(
       (entry) =>
         entry.status === 'ready_to_complete' || entry.status === 'active',
     ) ?? null;
@@ -557,7 +562,7 @@ export default function Home() {
     npcQuestEntries = currentNpc?.services.includes('quest')
       ? questEntries.filter(
           (entry) =>
-            entry.giverNpcId === currentNpc.id &&
+            (entry.status==='ready_to_complete'?(entry.reportNpcId??entry.giverNpcId):entry.giverNpcId) === currentNpc.id &&
             entry.status !== 'completed' &&
             entry.status !== 'cooldown',
         )
@@ -703,6 +708,9 @@ export default function Home() {
     : currentNpc?.service === 'storage' ? 'storage-keeper'
     : currentNpc?.service === 'equipment' ? 'equipment-merchant' : null;
   const isResizableNpc = resizableNpcWindowId !== null;
+  const stopQuestTracking = useCallback(() => setTrackedQuestId(null), []);
+  // Tracking is session UI state, never saved or carried to another Game/Continue.
+
 
   return (
     <JobPresentationContext.Provider value={hero}><ItemRangeContext.Provider value={engine}><GameDragDropProvider game={engine}>
@@ -710,8 +718,9 @@ export default function Home() {
       <InterfaceSettingsRuntime />
       <div ref={host} className="world" data-world-surface />
       <div className="vignette" />
+      {flow === 'world' && !panel && !activeNpcMenu && <QuestNavigation game={engine} questId={trackedQuestId} onComplete={stopQuestTracking} />}
       <div ref={labels} className="world-labels" aria-hidden={(state.mapId===METEORFALL_ID||state.mapId===IRONVEIL_ID||state.mapId===MINE_ID||state.mapId===SUNKEN_ID||isUnderwaterSubmap(state.mapId))?undefined:true} />
-      <GameplayHUD state={state} game={engine} mapRef={map} visible={flow === 'world'} active={active} panel={panel} modalOpen={Boolean(panel || activeNpcMenu)} fullscreen={isFullscreen} quest={activeJournalQuest} onOpen={open} onSound={toggleSound} onFullscreen={toggleFullscreen} onEditHotbar={index => {
+      <GameplayHUD state={state} game={engine} mapRef={map} visible={flow === 'world'} active={active} panel={panel} modalOpen={Boolean(panel || activeNpcMenu)} fullscreen={isFullscreen} quest={activeJournalQuest} trackedQuestId={trackedQuestId} onTrackQuest={setTrackedQuestId} onOpen={open} onSound={toggleSound} onFullscreen={toggleFullscreen} onEditHotbar={index => {
         setHotbarEditSlot(index);
         open('hotbar');
       }} />
@@ -1125,6 +1134,7 @@ export default function Home() {
               )}
               {currentNpc.services.includes('quest') && (
                 <div className="npc-shop-list">
+                  {process.env.NODE_ENV!=='production'&&availableMapScrollPacks(hero,currentNpc.id).map(pack=><article className="shop-row" key={pack.region}><div><strong>Paket pengenalan {pack.name}</strong><small>5 teleport scroll · sekali per map · tanpa EXP ulang</small></div><button onClick={()=>game.current?.cityAction('scroll-pack',pack.region)}>Ambil 5 Scroll</button></article>)}
                   {npcQuestEntries.map((entry) => {
                     const status = entry.status;
                     return (
@@ -1132,15 +1142,17 @@ export default function Home() {
                         <div>
                           <strong>{entry.title}</strong>
                           <small>{entry.description}</small>
+                          {process.env.NODE_ENV!=='production'&&MAP_SCROLLS.some(pack=>pack.intro===entry.id&&!hero.cityProgress[mapScrollReceipt(pack.region)])&&<small>Bonus pengenalan: 5 scroll tujuan map, sekali per map.</small>}
                           <small>
                             Progress:{' '}
                             {entry.progress
                               .map(
                                 (progress) =>
-                                  `${progress.current}/${progress.required}`,
+                                  progress.unavailable ? 'Perlu rekonsiliasi progres' : `${progress.current}/${progress.required}`,
                               )
                               .join(' · ')}{' '}
                             · Status: {questStatusLabel(status)}
+                            {status==='locked'&&` · ${getQuestRequirements(entry,hero).join('; ')}`}
                           </small>
                         </div>
                         {status === 'available' && (
@@ -1203,74 +1215,11 @@ export default function Home() {
         )}
       </Dialog>
 
-      {hoveredItem && hoveredItemPosition && typeof document !== 'undefined' && createPortal(
-        <div
-          className={`floating-item-tooltip rarity-${hoveredItem.rarity}`}
-          style={{
-            left: Math.max(8, hoveredItemPosition.x + 14),
-            top: Math.max(8, hoveredItemPosition.y - 230),
-          }}
-          role="tooltip"
-          aria-label={`Detail ${presentJobText(hero, hoveredItem.name)}`}
-        >
-          <div className="floating-item-title">
-            <ItemIcon item={hoveredItem} className="item-symbol" />
-            <div>
-              <strong><JobText>{hoveredItem.name}</JobText>{hoveredItem.enhancementLevel > 0 ? ` +${hoveredItem.enhancementLevel}` : ''}</strong>
-              <small>{RARITY_META[hoveredItem.rarity].label} · {hoveredItem.category}</small>
-            </div>
-          </div>
-
-          <div className="floating-item-group">
-            {['weapon', 'armor', 'accessory'].includes(hoveredItem.category) ? (() => {
-              const hoveredEquipmentLines = equipmentPresentation(hoveredItem,engine,true).split(' · ');
-              const hoveredMetadata = hoveredEquipmentLines.filter(line => /^(Level|Jenis|Slot):/.test(line));
-              const hoveredRequirement = hoveredEquipmentLines.find(line => line.startsWith('Syarat:'));
-              const hoveredStats = hoveredEquipmentLines.filter(line => !/^(Level|Jenis|Slot|Syarat|Harga jual):/.test(line));
-              const hoveredUniqueStats = hoveredItem.uniqueStatsLocked || !Object.keys(hoveredItem.bonusStats).length
-                ? []
-                : equipmentUsageDescription({ ...hoveredItem, baseStats: {}, bonusStats: hoveredItem.bonusStats })
-                  .split(' · ')
-                  .filter(line => !/^(Syarat|Level|Jenis|Slot|Harga jual):/.test(line));
-              const showUnmagnified = hoveredItem.uniqueStatsLocked || hoveredUniqueStats.length === 0;
-              return (
-                <>
-                  <div className="floating-item-equipment-meta">
-                    {hoveredMetadata.map(line => <small key={line} className="floating-item-detail-line"><JobText>{line}</JobText></small>)}
-                    {hoveredRequirement && <small className="floating-item-detail-line"><JobText>{hoveredRequirement}</JobText></small>}
-                  </div>
-                  <div className="floating-item-equipment-stats">
-                    {hoveredStats.map(line => <small key={line} className="floating-item-detail-line floating-item-stat-line"><JobText>{line}</JobText></small>)}
-                  </div>
-                  <div className="floating-item-unique-stats">
-                    <small className="floating-item-unique-label">Unique status</small>
-                    {showUnmagnified
-                      ? <small className="floating-item-unmagnified">Unmagnified</small>
-                      : hoveredUniqueStats.map(line => <small key={line} className="floating-item-detail-line floating-item-stat-line"><JobText>{line}</JobText></small>)}
-                  </div>
-                  <div className="floating-item-sockets">
-                    <small className="floating-item-unique-label">Socket</small>
-                    {hoveredItem.sockets.length ? hoveredItem.sockets.map((socket, index) => (
-                      <small key={socket.id} className={`floating-item-detail-line${socket.rune ? ' floating-item-stat-line' : ''}`}>
-                        Socket {index + 1} : <JobText>{socket.rune
-                          ? socket.rune.affixes.map(affix => `${affix.label} +${affix.value}${affix.unit === 'percent' ? '%' : ''}`).join(' · ') || socket.rune.name
-                          : 'Kosong'}</JobText>
-                      </small>
-                    )) : <small className="floating-item-detail-line">Tidak memiliki socket</small>}
-                  </div>
-                </>
-              );
-            })() : <p><JobText>{hoveredItem.description}</JobText></p>}
-          </div>
-          <div className="floating-item-group floating-item-meta-block">
-            <small className="floating-item-price-line">Harga jual: {hoveredItem.sellValue.toLocaleString()} GOLD</small>
-          </div>
-
-          {engine?.getDevelopmentAdventurerRange()!=null && <small>Legacy CP comparison; it does not evaluate the Physical Attack range.</small>}
-          <InventoryCombatPowerPreview hero={hero} item={hoveredItem} />
-        </div>,
-        document.body,
-      )}
+      {hoveredItem && hoveredItemPosition && <ItemHoverTooltip item={hoveredItem} point={hoveredItemPosition} game={engine}
+        onPointerEnter={()=>{if(inventoryHoverTimer.current)clearTimeout(inventoryHoverTimer.current);}}
+        onPointerLeave={()=>{setHoveredItemId(null);setHoveredItemPosition(null);}}>
+        <InventoryCombatPowerPreview hero={hero} item={hoveredItem}/>
+      </ItemHoverTooltip>}
 
       <AlertDialog open={sellConfirmOpen} onOpenChange={setSellConfirmOpen}>
         <DraggableAlertDialogContent windowId="sell-confirm">
@@ -1803,12 +1752,13 @@ export default function Home() {
                     filter="all"
                     sort={inventorySort}
                     selectedId={selectedItemId}
-                    onSelect={setSelectedItemId}
+                    onSelect={id=>{setSelectedItemId(id);setInventoryDetailOpen(false);}}
                     onHover={(id, position) => {
-                      setHoveredItemId(id || null);
-                      setHoveredItemPosition(position);
+                      if(inventoryHoverTimer.current)clearTimeout(inventoryHoverTimer.current);
+                      if(position){setHoveredItemId(id);setHoveredItemPosition(position);}
+                      else inventoryHoverTimer.current=setTimeout(()=>{setHoveredItemId(null);setHoveredItemPosition(null);},180);
                     }}
-                    renderActions={(item, point) => (
+                    renderActions={(item, point) => inventoryDetailOpen ? null : (
                       <div
                         className="inventory-slot-actions"
                         data-open-above={point.y > window.innerHeight * 0.55 ? 'true' : undefined}
@@ -1819,6 +1769,7 @@ export default function Home() {
                             : Math.min(point.y + 10, window.innerHeight - 80),
                         }}
                       >
+                        <button className="secondary-button" onClick={()=>setInventoryDetailOpen(true)}>Detail item</button>
                         {item.equipSlot && isDaggerItem(item) && (
                           <>
                             <button className="secondary-button" onClick={() => game.current?.equipItem(item.id, 'mainHand')}>Equip Main Hand</button>
@@ -1883,7 +1834,8 @@ export default function Home() {
                 </div>
                 {selectedItem ? (
                 <article
-                  className={`item-detail inventory-action-panel rarity-${selectedItem.rarity}`}
+                  className={`item-detail inventory-action-panel rarity-${selectedItem.rarity}${inventoryDetailOpen?' is-detail-open':''}`}
+                  aria-label="Detail item inventory"
                 >
                   <div className="item-detail-head">
                     <ItemIcon item={selectedItem} className="item-symbol" />
@@ -1901,18 +1853,27 @@ export default function Home() {
                     </div>
                     <button
                       className="icon-button"
-                      onClick={() => setSelectedItemId(null)}
+                      onClick={() => {setInventoryDetailOpen(false);setSelectedItemId(null);}}
                       aria-label="Tutup detail item"
                     >
                       <X size={16} />
                     </button>
                   </div>
+                  <InventoryCombatPowerPreview hero={hero} item={selectedItem} />
+                  {equippedForSelected &&
+                    equippedForSelected.id !== selectedItem.id && (
+                      <div className="compare-box">
+                        <strong>
+                          Perbandingan compatibility dengan <JobText>{equippedForSelected.name}</JobText>
+                        </strong>
+                        <details><summary>Rincian sumber kedua item</summary>
+                          <h4><JobText>{selectedItem.name}</JobText></h4><EquipmentDetail item={selectedItem} game={engine} compact/>
+                          <h4><JobText>{equippedForSelected.name}</JobText></h4><EquipmentDetail item={equippedForSelected} game={engine} compact/>
+                        </details>
+                      </div>
+                    )}
                   <div className="item-detail-description">
-                    <p>
-                      <JobText>{['weapon', 'armor', 'accessory'].includes(selectedItem.category)
-                        ? equipmentPresentation(selectedItem,engine)
-                        : selectedItem.description}</JobText>
-                    </p>
+                    {['weapon','armor','accessory'].includes(selectedItem.category) ? <EquipmentDetail item={selectedItem} game={engine}/> : <p><JobText>{selectedItem.description}</JobText></p>}
                   </div>
                   {selectedItem.itemType === 'magnifier' && (
                     <p className="unique-stats-help">
@@ -1926,41 +1887,6 @@ export default function Home() {
                       Tier {selectedItem.tier} · Qty {selectedItem.quantity} ·
                       Harga jual: {selectedItem.sellValue} GOLD / item
                     </p>
-                  )}
-                  {['weapon', 'armor', 'accessory'].includes(
-                    selectedItem.category,
-                  ) && (
-                    <div className="unique-stats-panel">
-                      <span className="eyebrow">UNIQUE STATS</span>
-                      {selectedItem.uniqueStatsLocked ? (
-                        <p>🔒 Unique Stats tersembunyi. Gunakan Arcane Magnifier untuk membukanya.</p>
-                      ) : Object.keys(selectedItem.bonusStats).length ? (
-                        <StatBlockList value={selectedItem.bonusStats} />
-                      ) : (
-                        <small>Equipment ini tidak memiliki Unique Stats tersembunyi.</small>
-                      )}
-                    </div>
-                  )}
-                  {['weapon', 'armor', 'accessory'].includes(
-                    selectedItem.category,
-                  ) && (
-                    <div className="affix-socket-panel">
-                      {selectedItem.uniqueEffect && (
-                        <p className="unique-effect">
-                          ✦ <JobText>{selectedItem.uniqueEffect}</JobText>
-                        </p>
-                      )}
-                      <span className="eyebrow">SOCKET RUNE</span>
-                      {!selectedItem.sockets.length && <p>Tidak memiliki socket.</p>}
-                      {selectedItem.sockets.map((socket, index) => (
-                        <div className="socketed-rune" key={socket.id}>
-                          <strong>Socket {index + 1}</strong>
-                          {socket.rune ? <RuneDetails rune={socket.rune} /> : <span>○ Kosong</span>}
-                        </div>
-                      ))}
-                      <p className="muted-copy">Modifikasi Rune hanya tersedia di NPC Forge Master.</p>
-                      <small>Sumber item: {selectedItem.source.label}</small>
-                    </div>
                   )}
                   {selectedItem.itemType === 'socketRune' && (
                     <div className="affix-socket-panel">
@@ -2118,29 +2044,6 @@ export default function Home() {
                       </button>
                     )}
                   </div>
-                  <InventoryCombatPowerPreview hero={hero} item={selectedItem} />
-                  {equippedForSelected &&
-                    equippedForSelected.id !== selectedItem.id && (
-                      <div className="compare-box">
-                        <strong>
-                          Compare dengan <JobText>{equippedForSelected.name}</JobText>
-                        </strong>
-                        <span>
-                          {Array.from(
-                            new Set([
-                              ...Object.keys(itemStats(selectedItem)),
-                              ...Object.keys(itemStats(equippedForSelected)),
-                            ]),
-                          )
-                            .map((key) => {
-                              const a = itemStats(selectedItem);
-                              const b = itemStats(equippedForSelected);
-                              return `${key}: ${Number(a[key as keyof typeof a] ?? 0).toFixed(1)} vs ${Number(b[key as keyof typeof b] ?? 0).toFixed(1)}`;
-                            })
-                            .join(' · ')}
-                        </span>
-                      </div>
-                    )}
                 </article>
                 ) : (
                   null
@@ -2309,7 +2212,7 @@ export default function Home() {
                             {entry.progress
                               .map(
                                 (progress) =>
-                                  `${progress.current}/${progress.required}`,
+                                  progress.unavailable ? 'Perlu rekonsiliasi progres' : `${progress.current}/${progress.required}`,
                               )
                               .join(' · ')}
                           </span>
@@ -2347,6 +2250,12 @@ export default function Home() {
                             </div>
                           )}
                           <div className="item-actions">
+                            {process.env.NODE_ENV !== 'production' && entry.category !== 'class' && ['available','active','ready_to_complete'].includes(entry.status) && (
+                              <button className="secondary-button" aria-pressed={trackedQuestId === entry.id}
+                                onClick={() => setTrackedQuestId(trackedQuestId === entry.id ? null : entry.id)}>
+                                {trackedQuestId === entry.id ? 'Berhenti melacak' : 'Lacak quest'}
+                              </button>
+                            )}
                             {entry.status === 'available' && (
                               <button
                                 className="secondary-button"
