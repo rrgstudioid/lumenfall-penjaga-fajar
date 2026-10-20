@@ -8,6 +8,28 @@ const items=await server.ssrLoadModule('/lib/game/items.ts'),p=await server.ssrL
 const copy=id=>({...structuredClone(items.ITEM_CATALOG[id]),id:'test-'+id,quantity:1});
 const newDagger=()=>({...copy(core.TRAINING_DAGGER_TEMPLATE),authoredEquipmentVersion:core.EQUIPMENT_AUTHORING_VERSION,authoredEquipmentProfile:core.TRAINING_DAGGER_PROFILE});
 const detail=i=>p.equipmentDetail(i,{development:true});
+await test('Training Sword shop and owned +0 share approved9–11 without granting admission; production stays scalar8',async()=>{
+ const {readEquipmentDetail,EquipmentDetail}=await server.ssrLoadModule('/components/game/equipment-detail.tsx');
+ const template=structuredClone(items.ITEM_CATALOG['field-verdant-plains-sword']),owned=copy(template.templateId);
+ const before=JSON.stringify([template,owned]),oldRandom=Math.random;let draws=0;
+ Math.random=()=>{draws++;throw Error('Range presentation must not sample');};
+ try {
+  for(const i of [template,owned]) {
+   const d=detail(i);assert.equal(d.core[0].value,'9–11');assert.equal(d.core[0].base,'9–11');assert.equal(d.core[0].enhancement,'0–0');
+   assert(d.notes.some(n=>n.includes('memerlukan loadout')));assert(!d.notes.some(n=>n.includes('scalar legacy')));
+   assert.equal(p.equipmentDetail(i,{development:false}).core[0].value,'8');
+   assert.match(p.equipmentDetail(i,{development:false}).core[0].label,/scalar/);
+  }
+  assert(detail(owned).diagnostics.includes('Q2_Q4_BASIC_REFERENCE_B_1'));
+  assert(p.equipmentDetail(owned,{development:true,selected:true}).notes.includes('Loadout diterima formula development.'));
+  for(const altered of [{enhancementLevel:1},{authoredAttackVersion:'UNKNOWN'},{levelRequirement:2},{equipmentType:'dagger'},{baseStats:{attack:99}}])
+   assert.match(detail({...owned,...altered}).core[0].label,/scalar/);
+  assert.equal(readEquipmentDetail(template,null).core[0].value,'9–11');
+  const html=renderToStaticMarkup(React.createElement(EquipmentDetail,{item:template,game:null,compact:true}));
+  assert(html.includes('9–11'));assert(!html.includes('scalar legacy'));
+  assert.equal(JSON.stringify([template,owned]),before);assert.equal(draws,0);
+ } finally {Math.random=oldRandom;}
+});
 await test('authored Dagger core range and enhancement are one contribution; compatibility is explicit',()=>{
  const i={...newDagger(),enhancementLevel:10};const d=detail(i);assert.equal(d.core.length,1);assert.equal(d.core[0].value,'11.2–15.4');assert.equal(d.core[0].base,'8–11');assert.equal(d.core[0].enhancement,'3.2–4.4');assert(d.notes.some(x=>x.includes('compatibility')));assert(d.diagnostics.some(x=>x.includes(core.EQUIPMENT_AUTHORING_VERSION)));
 });

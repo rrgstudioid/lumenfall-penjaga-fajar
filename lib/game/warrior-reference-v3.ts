@@ -11,6 +11,7 @@ import type { SkillDefinition } from './skills.ts';
 import { BERSERKER_V3_SKILL_MAP } from './berserker-v3.ts';
 import { BLADE_MASTER_V3_SKILL_MAP } from './blade-master-v3.ts';
 import { JAYANTARA_RANGE_V3, jayantaraAuthoredRange } from './jayantara-range-v3.ts';
+import { selectedItemSources, selectedPhysicalWeaponRange, validateMappedWarriorSword, validateSelectedBodyLoadout } from './selected-loadout-v1.ts';
 
 /** W1–W4 human approval; local Warrior authority, never an Adventurer token. */
 export const WARRIOR_REFERENCE = Object.freeze({ version:'WARRIOR_IRON_W1_W4_V1', skills:Object.freeze(WARRIOR_V3_SKILLS.map(s=>s.id)) });
@@ -83,7 +84,8 @@ export function validateWarriorFamilyContext(host:Host,receipts:Receipt[],scope:
   if(Object.entries(s.skillRanks).some(([id,r])=>!canonical[id]&&r!==0)||Object.entries(h.skillLevels).some(([id,r])=>!canonical[id]&&r!==0)||s.totalEarnedSP<spent||spentSkillPointsV3(s,canonical)!==spent||availableSkillPointsV3(s,canonical)!==h.skillPoints||h.skillPoints!==s.totalEarnedSP-spent)return fail('INVALID_LEDGER');
   if(!obj(h.allocatedStats)||Object.keys(h.allocatedStats).length!==4||primary.some(k=>!Number.isSafeInteger(h.allocatedStats[k])||h.allocatedStats[k]!<0)||!Number.isSafeInteger(h.statPoints)||h.statPoints<0||h.statPoints+primary.reduce((n,k)=>n+h.allocatedStats[k]!,0)!==2*(h.level-1))return fail('INVALID_PRIMARY_BUDGET');
   if(h.pet!==null||h.fateRune!==null||h.eternalSeal!==null||!zero(h.passiveLevels)||!obj(h.masteryChoices)||Object.keys(h.masteryChoices).length||!validReceipts(h,receipts,host.combatTime))return fail('UNPROVEN_BONUS_SOURCE');
-  if(!obj(h.equipment)||Object.keys(h.equipment).length!==Object.keys(slots).length||Object.entries(h.equipment).some(([k,id])=>!Object.hasOwn(slots,k)||k!=='mainHand'&&!(scope==='blade_master'&&dual&&k==='offHand')&&id!==null)||!Array.isArray(h.inventory))return fail('UNSUPPORTED_EQUIPMENT');
+  if(!obj(h.equipment)||Object.keys(h.equipment).length!==Object.keys(slots).length||Object.keys(h.equipment).some(k=>!Object.hasOwn(slots,k))||!Array.isArray(h.inventory))return fail('UNSUPPORTED_EQUIPMENT');
+  const body=validateSelectedBodyLoadout(h,dual?['mainHand','offHand']:['mainHand']);if(!body.ok)return body;
   const matches=h.inventory.filter(i=>i.id===h.equipment.mainHand);
   if(matches.length!==1)return fail('AMBIGUOUS_ITEM');
   const i=matches[0];
@@ -94,11 +96,17 @@ export function validateWarriorFamilyContext(host:Host,receipts:Receipt[],scope:
     items.push(off[0]);
   }
   for(const [index,item] of items.entries()) {
-    if(item.authoredEquipmentVersion !== undefined || item.authoredEquipmentProfile !== undefined)return fail('UNSUPPORTED_EQUIPMENT_AUTHORING');
+    if(item.authoredEquipmentVersion !== undefined || item.authoredEquipmentProfile !== undefined) {
+      // Only standalone Warrior MAIN gains mapped field Sword admission here.
+      if(scope!=='warrior'||index!==0)return fail('UNSUPPORTED_EQUIPMENT_AUTHORING');
+      const sword=validateMappedWarriorSword(h,item);if(!sword.ok)return sword;
+      continue;
+    }
     const great=scope==='berserker',c=ITEM_CATALOG[great?'jayantara-two-hand-sword':IRON_SWORD_RANGE_V2.templateId];
     if(!c||c.authoredAttackVersion!==(great?JAYANTARA_RANGE_V3.version:IRON_SWORD_RANGE_V2.version)||c.levelRequirement!==(great?45:10)||c.baseStats.attack!==(great?46:14)||JSON.stringify(item.allowedJobs)!==JSON.stringify(c.allowedJobs))return fail('CATALOG_PROVENANCE');
     if(!(great?jayantaraAuthoredRange(item):ironSwordAuthoredRange(item))||!c||!item.id.trim()||item.quantity!==1||!item.isEquipped||item.itemType!==c.itemType||item.weaponType!==c.weaponType||item.requiredCoreJob!==null||item.requiredSpecialJob!==null||item.jobRequirement!==null||!canEquipItem(item,h,index?'offHand':'mainHand').ok)return fail(great?'UNSUPPORTED_OWNED_JAYANTARA':'UNSUPPORTED_OWNED_IRON');
-    if(!obj(item.baseStats)||Object.entries(item.baseStats).some(([k,n])=>k!=='attack'&&!(great&&k==='str'&&n===4)&&n!==0)||!zero(item.bonusStats)||!Array.isArray(item.affixes)||item.affixes.length||!Array.isArray(item.sockets)||item.sockets.length||!obj(item.skillModifiers)||Object.keys(item.skillModifiers).length||item.uniqueEffect!==null||item.uniqueEffectData!==undefined||item.runeRarity!==null||item.runeTheme!==null||item.runeSource!==null||item.runeJobRequirement!==null)return fail('UNSUPPORTED_ITEM_BONUS');
+    if(!obj(item.baseStats)||Object.entries(item.baseStats).some(([k,n])=>k!=='attack'&&!(great&&k==='str'&&n===4)&&n!==0))return fail('UNSUPPORTED_ITEM_BONUS');
+    const sources=selectedItemSources(item);if(!sources.ok)return sources;
   }
   const b=calculateBaseStats(h);
   if(primary.some(k=>b[k]!==15+h.allocatedStats[k]!))return fail('INVALID_EFFECTIVE_PRIMARY');
@@ -135,7 +143,7 @@ function composeWarriorBasic(binding:WarriorBinding,host:Host,combo:number,readO
   const source=(category:AttackSource['category'],suffix:string):AttackSource=>({category,sourceId:state.owner.actorId+':'+state.owner.epoch+':basic:'+suffix,owner:state.owner});
   const core=composeAttackCore({damageType:'physical',owner:state.owner,base:{value:basePhysicalAttackForLevel(host.hero.level),source:source('BASE','base')},primary:{stat:'STR',effective:stats.str,source:source('PRIMARY_STAT','str')},globalFlat:[]});if(!core.ok)return core;
   const identity={instanceId:state.item.id,kind:'weapon' as const,owner:state.owner};
-  const result=prepareRawAttackExecution({context:{validation:'VALIDATED_EXECUTION_CONTEXT',executionId:state.owner.actorId+':'+state.owner.epoch+':'+(readOnly?'PRESENTATION':++state.serial),owner:state.owner,mode:'SINGLE_MAIN',dualWeaponAuthorized:false,thrownAuthorized:false,magicSourceHands:[],instances:{MAIN:identity}},core:core.value,layers:{MAIN:{hand:'MAIN',identity,damageType:'physical',source:source('RAW_WEAPON','iron'),composition:{stage:'BASE',range:IRON_SWORD_RANGE_V2.baseRange,enhancementMultiplier:1,contributionMultiplier:1}}},attackModifier:{scope:'ATTACK_RANGE',damageType:'physical',multiplier:1,sources:[]},rankBudget:{coefficient:1,scaling:0,source:source('SKILL_RANK','C1')},hits:[{hand:'MAIN',weight:1}]});
+  const result=prepareRawAttackExecution({context:{validation:'VALIDATED_EXECUTION_CONTEXT',executionId:state.owner.actorId+':'+state.owner.epoch+':'+(readOnly?'PRESENTATION':++state.serial),owner:state.owner,mode:'SINGLE_MAIN',dualWeaponAuthorized:false,thrownAuthorized:false,magicSourceHands:[],instances:{MAIN:identity}},core:core.value,layers:{MAIN:{hand:'MAIN',identity,damageType:'physical',source:source('RAW_WEAPON','iron'),composition:{stage:'BASE',range:selectedPhysicalWeaponRange(state.item)!,enhancementMultiplier:1,contributionMultiplier:1}}},attackModifier:{scope:'ATTACK_RANGE',damageType:'physical',multiplier:1,sources:[]},rankBudget:{coefficient:1,scaling:0,source:source('SKILL_RANK','C1')},hits:[{hand:'MAIN',weight:1}]});
   return result.ok?Object.freeze({ok:true as const,value:Object.freeze({snapshot:result.value,stats,level:host.hero.level})}):result;
 }
 export const prepareWarriorBasic=(binding:WarriorBinding,host:Host,combo:number)=>composeWarriorBasic(binding,host,combo);
@@ -143,7 +151,7 @@ export function warriorRangePresentation(binding:WarriorBinding|undefined,host:H
   if(!binding)return fail('STALE_ACTOR_OR_ITEM');
   const result=composeWarriorBasic(binding,host,1,true);if(!result.ok)return result;
   const state=bindings.get(binding)!;
-  return Object.freeze({ok:true as const,value:Object.freeze({version:WARRIOR_REFERENCE.version,base:basePhysicalAttackForLevel(host.hero.level),bonusSTR:result.value.stats.str-15,core:result.value.snapshot.hits[0].attack.min-IRON_SWORD_RANGE_V2.baseRange.min,weapon:IRON_SWORD_RANGE_V2.baseRange,OFF:null,MAIN:result.value.snapshot.hits[0].attack,itemId:state.item.id})});
+  return Object.freeze({ok:true as const,value:Object.freeze({version:WARRIOR_REFERENCE.version,base:basePhysicalAttackForLevel(host.hero.level),bonusSTR:result.value.stats.str-15,core:result.value.snapshot.hits[0].attack.min-selectedPhysicalWeaponRange(state.item)!.min,weapon:selectedPhysicalWeaponRange(state.item)!,OFF:null,MAIN:result.value.snapshot.hits[0].attack,itemId:state.item.id})});
 }
 function composeWarriorAction(binding:WarriorBinding,host:Host,definition:SkillDefinition,counter:CounterContext=NO_COUNTER,execute=true):FoundationResult<PreparedWarrior> {
   const admitted=readWarriorBinding(binding,host);if(!admitted.ok)return admitted;
@@ -151,7 +159,7 @@ function composeWarriorAction(binding:WarriorBinding,host:Host,definition:SkillD
   if(!entry||entry.source!==definition||JSON.stringify(definition)!==entry.fingerprint||JSON.stringify(WARRIOR_V3_SKILL_MAP[definition.id])!==entry.canonical)return fail('DEFINITION_PROVENANCE',definition.id);
   const meta=warriorReferenceSkillMetadata(definition.id,rank);if(!meta)return fail('UNLEARNED_OR_INVALID_RANK',definition.id);
   const stats=Object.freeze(derivedStats({...host.hero,activeBuffs:{...host.hero.activeBuffs},temporaryModifiers:host.hero.temporaryModifiers?.slice()}));
-  if(primary.some(k=>stats[k]!==15+host.hero.allocatedStats[k]!)||[stats.bossDamage,stats.eliteDamage,stats.physicalPenetration,stats.magicPenetration,stats.skillDamage].some(n=>n!==0))return fail('UNSUPPORTED_RESOLVED_SOURCE');
+  if(Object.values(stats).some(n=>typeof n==='number'&&!Number.isFinite(n))||[stats.bossDamage,stats.eliteDamage,stats.physicalPenetration,stats.magicPenetration,stats.skillDamage].some(n=>n!==0))return fail('UNSUPPORTED_RESOLVED_SOURCE');
   const fresh=structuredClone(definition);
   fresh.baseDamage=0;fresh.physicalCoefficient=0;fresh.magicCoefficient=0;fresh.skillPowerCoefficient=0;fresh.statScaling={};fresh.baseDamageMinByRank=undefined;fresh.baseDamageMaxByRank=undefined;fresh.skillPowerFactor=0;fresh.rankPowerFactorByRank=Array(definition.maxLevel).fill(1);fresh.knockbackStrength=0;fresh.nonDamaging=meta.hits===0;fresh.canCrit=meta.canCrit;fresh.modifierComposition='scoped_additive';
   fresh.rankValues=fresh.rankValues?.map(v=>({...v,baseDamage:0,physicalCoefficient:0,magicCoefficient:0,skillPowerCoefficient:0,statScaling:{},knockbackStrength:0}));
@@ -171,7 +179,7 @@ function composeWarriorAction(binding:WarriorBinding,host:Host,definition:SkillD
     const core=composeAttackCore({damageType:'physical',owner:state.owner,base:{value:basePhysicalAttackForLevel(host.hero.level),source:source('BASE','base')},primary:{stat:'STR',effective:stats.str,source:source('PRIMARY_STAT','str')},globalFlat:[]});if(!core.ok)return core;
     const scaling=composeBonusScaling({STR:stats.str,DEX:stats.dex,VIT:stats.vit,INT:stats.int},{STR:meta.bonusSTRCoefficient!,DEX:meta.bonusDEXCoefficient!});if(!scaling.ok)return scaling;
     const identity=Object.freeze({instanceId:state.item.id,kind:'weapon' as const,owner:state.owner});
-    const result=prepareRawAttackExecution({context:{validation:'VALIDATED_EXECUTION_CONTEXT',executionId:`${state.owner.actorId}:${state.owner.epoch}:${++state.serial}`,owner:state.owner,mode:'SINGLE_MAIN',dualWeaponAuthorized:false,thrownAuthorized:false,magicSourceHands:[],instances:{MAIN:identity}},core:core.value,layers:{MAIN:{hand:'MAIN',identity,damageType:'physical',source:source('RAW_WEAPON','iron'),composition:{stage:'BASE',range:IRON_SWORD_RANGE_V2.baseRange,enhancementMultiplier:1,contributionMultiplier:1}}},attackModifier:{scope:'ATTACK_RANGE',damageType:'physical',multiplier:1,sources:[]},rankBudget:{coefficient:meta.coefficient!,scaling:scaling.value,source:source('SKILL_RANK','rank')},hits:[{hand:'MAIN',weight:1}]});
+    const result=prepareRawAttackExecution({context:{validation:'VALIDATED_EXECUTION_CONTEXT',executionId:`${state.owner.actorId}:${state.owner.epoch}:${++state.serial}`,owner:state.owner,mode:'SINGLE_MAIN',dualWeaponAuthorized:false,thrownAuthorized:false,magicSourceHands:[],instances:{MAIN:identity}},core:core.value,layers:{MAIN:{hand:'MAIN',identity,damageType:'physical',source:source('RAW_WEAPON','iron'),composition:{stage:'BASE',range:selectedPhysicalWeaponRange(state.item)!,enhancementMultiplier:1,contributionMultiplier:1}}},attackModifier:{scope:'ATTACK_RANGE',damageType:'physical',multiplier:1,sources:[]},rankBudget:{coefficient:meta.coefficient!,scaling:scaling.value,source:source('SKILL_RANK','rank')},hits:[{hand:'MAIN',weight:1}]});
     if(!result.ok)return result;snapshot=result.value;
   }
   if(execute)prepared.set(action,state);

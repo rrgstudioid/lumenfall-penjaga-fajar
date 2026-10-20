@@ -9,6 +9,7 @@ import type { SkillDefinition } from './skills.ts';
 import { ITEM_CATALOG, canEquipItem, emptyEquipment, type ItemData } from './items.ts';
 import { BASE_PRIMARY_STAT, basePhysicalAttackForLevel, calculateBaseStats, derivedStats,
   type DerivedStats, type Hero } from './rules.ts';
+import { selectedItemSources, validateSelectedBodyLoadout } from './selected-loadout-v1.ts';
 
 /** Adventurer development context; shared B metadata is authoring data only,
  * never a Basic/standalone R1 token. */
@@ -69,13 +70,13 @@ function resolvedReferenceCore(hero: Hero, owner: AttackOwner, prefix: string) {
     Object.freeze({category, sourceId: `${prefix}:${suffix}`, owner});
   return composeAttackCore({damageType:'physical',owner,
     base:{value:basePhysicalAttackForLevel(hero.level),source:source('BASE',`approved-base-lv${hero.level}`)},
-    primary:{stat:'STR',effective:calculateBaseStats(hero).str,source:source('PRIMARY_STAT','bonus-str')},globalFlat:[]});
+    primary:{stat:'STR',effective:derivedStats({...hero,activeBuffs:{...hero.activeBuffs}}).str,source:source('PRIMARY_STAT','bonus-str')},globalFlat:[]});
 }
 
 /** Pure current presentation. Does not mark bindings stale or allocate an execution. */
 export function adventurerRangePresentation(binding: AdventurerRanksBinding | undefined, host: Host) {
   const state=binding && bindings.get(binding);
-  if(!state || state.host!==host || state.stale || state.hero!==host.hero || state.signature!==rankSignature(host.hero))
+  if(!state || state.host!==host || state.stale || state.hero!==host.hero || state.signature!==adventurerLifecycleSignature(host.hero))
     return failure('REFERENCE_UNAVAILABLE','binding');
   const checked=admittedItem(host.hero);
   if(!checked.ok)return checked;
@@ -142,9 +143,10 @@ function admittedItem(hero: Hero, presentationItem?: ItemData): FoundationResult
     return failure('UNSUPPORTED_BONUS_SOURCE', 'hero.modifiers');
   if (!dataObject(hero.equipment) || hero.equipment.offHand !== null || (!presentationItem && !hero.equipment.mainHand) ||
       Object.keys(hero.equipment).length !== Object.keys(catalogEquipmentSlots).length ||
-      Object.entries(hero.equipment).some(([slot, id]) => !Object.hasOwn(catalogEquipmentSlots, slot) || slot !== 'mainHand' && id !== null))
+      Object.keys(hero.equipment).some(slot => !Object.hasOwn(catalogEquipmentSlots, slot)))
     return failure('UNSUPPORTED_EQUIPMENT', 'hero.equipment');
   if (!Array.isArray(hero.inventory)) return failure('AMBIGUOUS_OR_MISSING_INSTANCE', 'hero.inventory');
+  const body=validateSelectedBodyLoadout(hero,['mainHand']);if(!body.ok)return body;
   const matches = hero.inventory.filter(item => item.id === (presentationItem?.id ?? hero.equipment.mainHand));
   if (matches.length !== 1) return failure('AMBIGUOUS_OR_MISSING_INSTANCE', 'hero.inventory');
   const item = matches[0];
@@ -170,10 +172,11 @@ function admittedItem(hero: Hero, presentationItem?: ItemData): FoundationResult
   // Inspect actual normal sources. The compatibility scalar is checked, then
   // deliberately excluded from core; only the authored range owns raw weapon ATK.
   if (!dataObject(item.baseStats) || item.baseStats.attack !== scalar || Object.entries(item.baseStats).some(([key, n]) => key !== 'attack' && n !== 0) ||
-      !zeroStats(item.bonusStats) || !Array.isArray(item.affixes) || item.affixes.length || !Array.isArray(item.sockets) || item.sockets.length ||
+      !zeroStats(item.bonusStats) || !Array.isArray(item.affixes) || item.affixes.length || !Array.isArray(item.sockets) || item.sockets.some(s=>s.rune!==null) ||
       !dataObject(item.skillModifiers) || Object.keys(item.skillModifiers).length || item.uniqueEffect !== null || item.uniqueEffectData !== undefined ||
       item.runeRarity !== null || item.runeTheme !== null || item.runeSource !== null || item.runeJobRequirement !== null)
     return failure('UNSUPPORTED_ITEM_BONUS', 'MAIN.options');
+  const sources=selectedItemSources(item);if(!sources.ok)return sources;
   const base = calculateBaseStats(hero);
   if (primaryKeys.some(key=>base[key]!==15+hero.allocatedStats[key]!))
     return failure('UNSUPPORTED_PRIMARY', 'hero.effectivePrimary');
@@ -193,7 +196,7 @@ export function readAdventurerDiagnosticSource(hero: Hero) {
   if (!checked.ok) return checked;
   const stats = Object.freeze(derivedStats({ ...hero, activeBuffs: { ...hero.activeBuffs },
     temporaryModifiers: hero.temporaryModifiers?.slice() }));
-  if (primaryKeys.some(key => stats[key] !== 15 + hero.allocatedStats[key]!) ||
+  if (Object.values(stats).some(n=>typeof n==='number'&&!Number.isFinite(n)) ||
       [stats.bossDamage, stats.eliteDamage, stats.physicalPenetration, stats.magicPenetration, stats.skillDamage].some(n => n !== 0))
     return failure('UNSUPPORTED_RESOLVED_BONUS', 'resolvedStats');
   const item = checked.value, state = hero.skillProgressionV3!;
@@ -221,7 +224,7 @@ export function openAdventurerRanksBinding(host: Host): FoundationResult<Adventu
   const owner = Object.freeze({ actorId: host.hero.characterId, epoch: ++epoch });
   const binding = Object.freeze({ version: ADVENTURER_RANKS_REFERENCE.version });
   bindings.set(binding, { host, hero: host.hero, item: checked.value, owner, slotId: host.hero.slotId,
-    itemId: checked.value.id, serial: 0, stale: false, signature: rankSignature(host.hero) });
+    itemId: checked.value.id, serial: 0, stale: false, signature: adventurerLifecycleSignature(host.hero) });
   return Object.freeze({ ok: true, value: binding });
 }
 
@@ -251,7 +254,7 @@ export function prepareAdventurerBasic(binding: AdventurerRanksBinding, host: Ho
     rankBudget:{coefficient:1,scaling:0,source:source('SKILL_RANK','owner-basic-equal-event')},hits:[{hand:'MAIN',weight:1}]});
   if(!prepared.ok)return prepared;
   const stats=Object.freeze(derivedStats({...host.hero,activeBuffs:{...host.hero.activeBuffs},temporaryModifiers:host.hero.temporaryModifiers?.slice()}));
-  if(primaryKeys.some(key=>stats[key]!==15+host.hero.allocatedStats[key]!) ||
+  if(Object.values(stats).some(n=>typeof n==='number'&&!Number.isFinite(n)) ||
     [stats.bossDamage,stats.eliteDamage,stats.physicalPenetration,stats.magicPenetration,stats.skillDamage].some(n=>n!==0))
     return failure('UNSUPPORTED_RESOLVED_BONUS','resolvedStats');
   return Object.freeze({ok:true,value:Object.freeze({snapshot:prepared.value,stats,hero:host.hero,level:host.hero.level})});
@@ -260,7 +263,7 @@ export function prepareAdventurerRanks(binding: AdventurerRanksBinding, host: Ho
   reference: unknown = BASIC_REFERENCE_B): FoundationResult<PreparedAdventurerRanks> {
   const state = bindings.get(binding);
   if (!state || state.host !== host) return failure('BINDING_IDENTITY_MISMATCH', 'host');
-  if (state.stale || state.hero !== host.hero || state.owner.actorId !== host.hero.characterId || state.slotId !== host.hero.slotId || state.signature !== rankSignature(host.hero)) {
+  if (state.stale || state.hero !== host.hero || state.owner.actorId !== host.hero.characterId || state.slotId !== host.hero.slotId || state.signature !== adventurerLifecycleSignature(host.hero)) {
     state.stale = true;
     return failure('STALE_ACTOR_EPOCH', 'hero');
   }
@@ -278,7 +281,7 @@ export function prepareAdventurerRanks(binding: AdventurerRanksBinding, host: Ho
     Object.freeze({ category, sourceId: `${owner.actorId}:${owner.epoch}:QP:${suffix}`, owner });
   const core = resolvedReferenceCore(host.hero,owner,`${owner.actorId}:${owner.epoch}:QP`);
   if (!core.ok) return core;
-  const primary = calculateBaseStats(host.hero);
+  const primary = derivedStats({...host.hero,activeBuffs:{...host.hero.activeBuffs}});
   const scaling = composeBonusScaling({ STR: primary.str, VIT: primary.vit, DEX: primary.dex, INT: primary.int },
     { STR: bonusSTRCoefficient });
   if (!scaling.ok) return scaling;
@@ -297,7 +300,7 @@ export function prepareAdventurerRanks(binding: AdventurerRanksBinding, host: Ho
   // admitted clone so a later rejected RNG sample cannot mutate the live Hero.
   const stats = Object.freeze(derivedStats({ ...host.hero, activeBuffs: { ...host.hero.activeBuffs },
     temporaryModifiers: host.hero.temporaryModifiers?.slice() }));
-  if (primaryKeys.some(key=>stats[key]!==15+host.hero.allocatedStats[key]!) ||
+  if (Object.values(stats).some(n=>typeof n==='number'&&!Number.isFinite(n)) ||
       [stats.bossDamage, stats.eliteDamage, stats.physicalPenetration, stats.magicPenetration, stats.skillDamage].some(n => n !== 0))
     return failure('UNSUPPORTED_RESOLVED_BONUS', 'resolvedStats');
   const metadata: SkillDefinition = { ...definition, baseDamage: 0, physicalCoefficient: 0, magicCoefficient: 0,
@@ -343,7 +346,7 @@ function validDefinition(definition: SkillDefinition, index: number, rank: numbe
 export function currentAdventurerRanksBinding(binding: AdventurerRanksBinding, host: Host): boolean {
   const state = bindings.get(binding);
   if (!state || state.host !== host || state.stale) return false;
-  if (host.hero !== state.hero || state.signature !== rankSignature(host.hero) || host.hero.characterId !== state.owner.actorId || host.hero.slotId !== state.slotId ||
+  if (host.hero !== state.hero || state.signature !== adventurerLifecycleSignature(host.hero) || host.hero.characterId !== state.owner.actorId || host.hero.slotId !== state.slotId ||
       host.hero.equipment.mainHand !== state.itemId ||
       host.hero.inventory.filter(item => item.id === state.itemId).length !== 1 ||
       host.hero.inventory.find(item => item.id === state.itemId) !== state.item) {

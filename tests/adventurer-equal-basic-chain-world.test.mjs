@@ -25,7 +25,7 @@ const server = await createServer({ configFile: false, appType: 'custom',
     resolveId(id) { if (id === 'virtual:basic-test-three') return '\0basic-test-three'; },
     load(id) { if (id === '\0basic-test-three') return `export * from 'three';
       export class WebGLRenderer { shadowMap={}; domElement={setAttribute(){},addEventListener(){},removeEventListener(){},remove(){}};
-      setPixelRatio(){} setSize(){} render(){} dispose(){} forceContextLoss(){} }`; },
+      setPixelRatio(v){this.pixelRatio=v;} getPixelRatio(){return this.pixelRatio??1;} setSize(){} render(){} dispose(){} forceContextLoss(){} }`; },
     transform(source, id) {
       if (id.replaceAll('\\', '/').endsWith('/lib/game/world.ts'))
         return source.replace("import * as T from 'three';", "import * as T from 'virtual:basic-test-three';");
@@ -41,7 +41,7 @@ const basic = await load('basic-attack-reference-v2');
 for (const name of ['buildTerrain', 'buildShrine', 'buildEnemies', 'buildRegionDecor', 'placeActor', 'createPlayerStatusLabel', 'updateTargetPresentation', 'rebuildHeroAppearance', 'drawMap'])
   Game.prototype[name] = function() {};
 Game.prototype.buildHero = function() {
-  this.characterModel = { animator: { play: (...args) => this.testAnimations.push(args), update() {}, reset() {} }, ready: Promise.resolve(true), dispose() {} };
+  this.characterModel = { animator: { play: (...args) => this.testAnimations.push(args), update() {}, reset() {} }, ready: Promise.resolve(true), updateVisual(){}, dispose() {} };
   this.testAnimations = [];
 };
 let serial = 0;

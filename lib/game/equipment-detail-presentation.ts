@@ -2,6 +2,7 @@ import { ITEM_CATALOG, calculateEnhancedBaseStats, calculateEquipmentUniqueStats
 import { ARMOR_SETS, validateArmorSet, type ArmorSet } from './equipment-layers.ts';
 import { ironSwordAuthoredRange } from './iron-sword-range-v2.ts';
 import { jayantaraAuthoredRange } from './jayantara-range-v3.ts';
+import { BASIC_REFERENCE_B } from './basic-attack-reference-v2.ts';
 import { hasEquipmentAuthoring, resolveAuthoredEquipmentItem } from './equipment-authoring-v1.ts';
 import { statDisplayLabel, statDisplayValue } from './stat-presentation.ts';
 
@@ -17,6 +18,20 @@ const row = (key: string, n: number): DetailRow => ({key, label: statDisplayLabe
 const freeze = <T>(value: T): T => { if (value && typeof value === 'object') { for (const v of Object.values(value)) freeze(v); Object.freeze(value); } return value; };
 const slotMatches = (item: ItemData, slot: string) => item.allowedSlots?.includes(slot as EquipSlot) || item.equipSlot === slot ||
   item.equipmentType === 'ring' && ['ring1','ring2'].includes(slot) || item.equipmentType === 'earring' && ['earring1','earring2'].includes(slot);
+
+/** Authoring readout only, including shop templates without an owned instance.
+ * Actor/source admission remains with the Game producer; this grants no binding. */
+function trainingSwordReferenceRange(item: DetailItem): Range | null {
+  const template = ITEM_CATALOG[BASIC_REFERENCE_B.templateId];
+  if (!template || item.templateId !== BASIC_REFERENCE_B.templateId || item.enhancementLevel !== 0 ||
+      item.authoredAttackVersion !== undefined || hasEquipmentAuthoring(item) ||
+      template.baseStats.attack !== 8 || item.baseStats.attack !== template.baseStats.attack ||
+      Object.entries(item.baseStats).some(([key,n]) => key !== 'attack' && n !== 0)) return null;
+  const identity = ['name','category','equipmentType','handedness','attackType','itemType','weaponType','rarity',
+    'levelRequirement','mainHand','offHand','twoHanded','equipSlot','requiredCoreJob','requiredSpecialJob','jobRequirement'] as const;
+  if (identity.some(key => item[key] !== template[key])) return null;
+  return BASIC_REFERENCE_B.baseRange;
+}
 
 /** Read-only display membership. No resolver call applies any set bonus here. */
 export function equipmentSetPresentation(item: DetailItem, owner?: Owner, sets: readonly ArmorSet[] = ARMOR_SETS) {
@@ -43,12 +58,18 @@ export function equipmentSetPresentation(item: DetailItem, owner?: Owner, sets: 
 export type SetDetail = ReturnType<typeof equipmentSetPresentation>[number];
 
 /** Presentation only: never create/normalize an item, call prepare, enroll, or mutate the owner. */
-export function equipmentDetail(item: DetailItem, context: {owner?: Owner; physicalRange?: Range | null; development?: boolean} = {}) {
+export function equipmentDetail(item: DetailItem, context: {owner?: Owner; physicalRange?: Range | null; development?: boolean; selected?: boolean} = {}) {
   const enhanced = calculateEnhancedBaseStats(item), zero = calculateEnhancedBaseStats({...item,enhancementLevel:0});
   const template = ITEM_CATALOG[item.templateId];
   const core: DetailRow[] = [], intrinsic: DetailRow[] = [], uncertain: DetailRow[] = [], options: DetailRow[] = [];
   const notes: string[] = [], diagnostics: string[] = [];
   let physical: Range | null = ironSwordAuthoredRange(item) ?? (context.development ? jayantaraAuthoredRange(item) : null) ?? context.physicalRange ?? null;
+  const trainingRange = context.development ? trainingSwordReferenceRange(item) : null;
+  if (trainingRange) {
+    physical = trainingRange;
+    diagnostics.push(BASIC_REFERENCE_B.version);
+    notes.push(context.selected ? 'Loadout diterima formula development.' : 'Range referensi development; penggunaan combat memerlukan loadout yang sah dan aktivasi formula.');
+  }
   let basePhysical = physical;
   let magic: Range | null = null, baseMagic: Range | null = null;
   if (context.development && hasEquipmentAuthoring(item)) {
@@ -57,7 +78,8 @@ export function equipmentDetail(item: DetailItem, context: {owner?: Owner; physi
       physical = authored.PATK; basePhysical = authored.profile.PATK ?? null;
       magic = authored.MATK; baseMagic = authored.profile.MATK ?? null;
       diagnostics.push(`${authored.version} / ${authored.profile.id}`, `Core enhancement ×${number(authored.multiplier)}`);
-      if (authored.PATK) notes.push('Range item tersedia; jalur combat compatibility belum memakai range versi ini.');
+      notes.push(context.selected?'Loadout diterima formula development.':'Item mapped development; belum diterima formula selected pada context ini.');
+      if (authored.PATK && !context.selected) notes.push('Range item tersedia; jalur combat compatibility belum memakai range versi ini.');
     } else { physical=null; basePhysical=null; notes.push('Range versi item ini belum tersedia.'); diagnostics.push(authored.reason); }
   }
   if (item.authoredAttackVersion) diagnostics.push(item.authoredAttackVersion);

@@ -3,10 +3,15 @@ import { createContext, useContext, type ReactNode } from 'react';
 import type { Game } from '@/lib/game/world';
 import { equipmentDetail, type DetailItem, type DetailRow, type SetDetail } from '@/lib/game/equipment-detail-presentation';
 import { JobText } from './job-presentation-context';
+import { developmentEquipmentAuthoring } from '@/lib/game/equipment-authoring-v1';
+import type { ItemData } from '@/lib/game/items';
 
 export const ItemRangeContext = createContext<Game | null>(null);
 export function readEquipmentDetail(item: DetailItem, game: Game | null) {
-  return equipmentDetail(item,{owner:game?.hero,development:process.env.NODE_ENV==='development',
+  // Pure template projection mirrors new acquisition; it never creates an instance or rolls sources.
+  const displayed=!item.id&&process.env.NODE_ENV==='development'?developmentEquipmentAuthoring(item as ItemData):item;
+  const selected=!!game&&!!item.id&&game.hero.inventory.includes(item as ItemData)&&Object.values(game.hero.equipment).includes(item.id)&&game.getDevelopmentAdventurerRange()?.ok===true;
+  return equipmentDetail(displayed,{owner:game?.hero,development:process.env.NODE_ENV==='development',selected,
     physicalRange:game?.getDevelopmentAdventurerItemRange(item)});
 }
 function Rows({rows}:{rows:readonly DetailRow[]}) {

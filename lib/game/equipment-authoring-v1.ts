@@ -247,6 +247,22 @@ export const DEVELOPMENT_WEAPON_MAPPINGS = Object.freeze(fields.flatMap(([field,
     twoHanded:type==='staff'||type==='bow',scalar:8+Math.floor(level*.8),profile:weaponProfileId(family,level)})];
 })));
 const mappedItem = (item:Partial<ItemData>) => DEVELOPMENT_WEAPON_MAPPINGS.find(m=>m.templateId===item.templateId);
+/** OWNER: five existing identities, balanced Lv1 only; fixed bonuses remain item sources. */
+export const DEVELOPMENT_BODY_MAPPINGS = Object.freeze([
+  ['arunika-head','Arunika Dawn Circlet','head'],
+  ['forest-vest','Wildwarden Vest','chest'],
+  ['arunika-gloves','Bronzegrip Gauntlets','gloves'],
+  ['arunika-legs','Woven Trailguards','legs'],
+  ['arunika-boots','Wildwood Striders','boots'],
+].map(([templateId,name,slot])=>Object.freeze({templateId,name,slot:slot as BodySlot,profile:`BODY_LV1_balanced_${slot}_V1`})));
+const mappedBody = (item:Partial<ItemData>) => DEVELOPMENT_BODY_MAPPINGS.find(m=>m.templateId===item.templateId);
+function bodyMappingMatches(item:Partial<ItemData>,m:typeof DEVELOPMENT_BODY_MAPPINGS[number]) {
+  const expected=m.slot==='chest'?{defense:10,dex:2,evasion:2}:{defense:3,hp:8};
+  return item.name===m.name && item.category==='armor' && item.itemType===m.slot && item.equipSlot===m.slot &&
+    item.levelRequirement===1 && item.rarity==='rare' && item.authoredAttackVersion===undefined &&
+    Object.entries(expected).every(([k,v])=>item.baseStats?.[k as keyof StatBlock]===v) &&
+    Object.entries(item.baseStats??{}).every(([k,v])=>v===0||expected[k as keyof typeof expected]===v);
+}
 function mappingMatches(item:Partial<ItemData>,m:typeof DEVELOPMENT_WEAPON_MAPPINGS[number]) {
   return item.name===m.name && item.category==='weapon' && item.itemType===m.type && item.equipmentType===m.family && item.weaponType===m.weaponType &&
     item.handedness===(m.twoHanded?'two_hand':'one_hand') && item.attackType===m.attackType && item.mainHand===true && item.offHand===false &&
@@ -261,6 +277,17 @@ function mappingMatches(item:Partial<ItemData>,m:typeof DEVELOPMENT_WEAPON_MAPPI
 export function resolveAuthoredEquipmentItem(item: Partial<ItemData>) {
   if (!hasEquipmentAuthoring(item)) return fail('LEGACY_UNMARKED');
   if (item.authoredEquipmentVersion !== EQUIPMENT_AUTHORING_VERSION) return fail('UNKNOWN_AUTHORING_VERSION');
+  const body=mappedBody(item);
+  if(body) {
+    if(item.authoredEquipmentProfile!==body.profile)return fail('ITEM_MAPPING_NOT_APPROVED');
+    if(!bodyMappingMatches(item,body))return fail('CONTRADICTORY_ITEM_MAPPING');
+    const core=resolveEquipmentCore(body.profile,item.enhancementLevel!);if(!core.ok)return core;
+    const retainedBase:StatBlock={...item.baseStats};delete retainedBase.defense;delete retainedBase.magicDefense;
+    return Object.freeze({...core,retainedBase:Object.freeze(retainedBase),
+      compatibilityBase:Object.freeze({...retainedBase,defense:core.PDEF!,magicDefense:core.MDEF!}),
+      legacyCombat:'SCALAR_COMPATIBILITY_NOT_AUTHORED_RANGE' as const,
+      bonusLayers:'OPTIONS_RUNE_SET_CONDITIONAL_RETAIN_SEPARATE' as const});
+  }
   const mapping=mappedItem(item);
   if (!mapping || item.authoredEquipmentProfile !== mapping.profile) return fail('ITEM_MAPPING_NOT_APPROVED');
   if (!mappingMatches(item,mapping)) return fail('CONTRADICTORY_ITEM_MAPPING');
@@ -279,6 +306,8 @@ export function resolveAuthoredEquipmentItem(item: Partial<ItemData>) {
 /** New acquisition only. Does not enroll an actor or change weapon permissions. */
 export function developmentEquipmentAuthoring(item: ItemData): ItemData {
   if (process.env.NODE_ENV !== 'development' || hasEquipmentAuthoring(item)) return item;
+  const body=mappedBody(item);
+  if(body&&bodyMappingMatches(item,body))return {...item,authoredEquipmentVersion:EQUIPMENT_AUTHORING_VERSION,authoredEquipmentProfile:body.profile};
   const mapping=mappedItem(item);
   if(!mapping || !mappingMatches(item,mapping))return item;
   return {...item, authoredEquipmentVersion:EQUIPMENT_AUTHORING_VERSION, authoredEquipmentProfile:mapping.profile};
