@@ -1,3 +1,4 @@
+import {approvedEquipmentEnabled,approvedQuestsEnabled} from './public-rollout';
 import {MAP_SCROLLS,mapScroll} from './map-scroll-contract.ts';
 import { ITEMIZATION_RULES, WEAPON_TUNING } from './canonical-config.ts';
 import type { CoreJobId, RuntimeCoreJobId, SpecializationId, WeaponType } from './skills.ts';
@@ -947,7 +948,7 @@ ITEM_CATALOG['jayantara-two-hand-sword']=base({templateId:'jayantara-two-hand-sw
 // Local development acquisition only. Public acquisition retains the Lv24
 // compatibility definition; authored saved instances retain their own fields.
 // buy/sell/source/socket rules are unchanged, not regenerated from requirement.
-if (process.env.NODE_ENV === 'development') {
+if (approvedEquipmentEnabled()) {
   ITEM_CATALOG[JAYANTARA_RANGE_V3.templateId].levelRequirement = JAYANTARA_RANGE_V3.requiredLevel;
   ITEM_CATALOG[JAYANTARA_RANGE_V3.templateId].authoredAttackVersion = JAYANTARA_RANGE_V3.version;
 }
@@ -1056,7 +1057,7 @@ export function createItem(
   overrides: Partial<ItemData> = {},
 ): ItemData {
   templateId=canonicalItemTemplateId(templateId);
-  if(process.env.NODE_ENV==='production'&&(mapScroll(templateId)||templateId==='quest-ironveil-survey-sample-v1'))throw new Error('DEVELOPMENT_ONLY');
+  if(!approvedQuestsEnabled()&&(mapScroll(templateId)||templateId==='quest-ironveil-survey-sample-v1'))throw new Error('DEVELOPMENT_ONLY');
   if(LEGACY_OPTIMIZER_MIGRATION[templateId])throw new Error('Optimizer lama hanya tersedia melalui migrasi save.');
   if(Object.hasOwn(RETIRED_NORMAL_MATERIALS,templateId))throw new Error(`Item tidak lagi tersedia: ${templateId}`);
   const template = ITEM_CATALOG[templateId] ?? ITEM_CATALOG['lumut-fiber'];
@@ -1507,7 +1508,7 @@ export function calculateEnhancedBaseStats(
   item: Pick<ItemData, 'baseStats' | 'enhancementLevel'> & Partial<ItemData>,
 ): StatBlock {
   const authored = resolveAuthoredEquipmentItem(item);
-  if (authored.ok && (authored.profile.kind!=='BODY'||process.env.NODE_ENV==='development')) return {...authored.compatibilityBase};
+  if (authored.ok && (authored.profile.kind!=='BODY'||approvedEquipmentEnabled())) return {...authored.compatibilityBase};
   // Unknown metadata remains visibly unavailable through the pure authoring API.
   // Unmigrated generic consumers retain compatibility data, never a guessed range.
   const factor = 1 + item.enhancementLevel * WEAPON_TUNING.enhancementPerLevel;

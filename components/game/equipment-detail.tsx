@@ -1,4 +1,5 @@
 'use client';
+import {approvedEquipmentEnabled} from '@/lib/game/public-rollout';
 import { createContext, useContext, type ReactNode } from 'react';
 import type { Game } from '@/lib/game/world';
 import { equipmentDetail, type DetailItem, type DetailRow, type SetDetail } from '@/lib/game/equipment-detail-presentation';
@@ -9,7 +10,7 @@ import type { ItemData } from '@/lib/game/items';
 export const ItemRangeContext = createContext<Game | null>(null);
 export function readEquipmentDetail(item: DetailItem, game: Game | null) {
   // Pure template projection mirrors new acquisition; it never creates an instance or rolls sources.
-  const displayed=!item.id&&process.env.NODE_ENV==='development'?developmentEquipmentAuthoring(item as ItemData):item;
+  const displayed=!item.id&&approvedEquipmentEnabled()?developmentEquipmentAuthoring(item as ItemData):item;
   const selected=!!game&&!!item.id&&game.hero.inventory.includes(item as ItemData)&&Object.values(game.hero.equipment).includes(item.id)&&game.getDevelopmentAdventurerRange()?.ok===true;
   return equipmentDetail(displayed,{owner:game?.hero,development:process.env.NODE_ENV==='development',selected,
     physicalRange:game?.getDevelopmentAdventurerItemRange(item)});

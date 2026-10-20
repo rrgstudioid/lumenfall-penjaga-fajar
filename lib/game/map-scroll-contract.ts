@@ -1,3 +1,4 @@
+import {approvedQuestsEnabled} from './public-rollout';
 /** Destination identities, not permission tokens. Acquisition/use stays development-only. */
 export const MAP_SCROLL_VERSION='MAP_INTRO_SCROLL_V2_EARLY_PRICE';
 export const MAP_SCROLLS=Object.freeze([
@@ -12,7 +13,7 @@ export const mapScroll=(templateId:string)=>MAP_SCROLLS.find(row=>row.templateId
 export const mapScrollReceipt=(region:string)=>`map-scroll-v1:claimed:${region}`;
 export const mapVisitReceipt=(region:string)=>`map-scroll-v1:visited:${region}`;
 export function availableMapScrollPacks(hero:{completedQuests:string[];cityProgress:Record<string,number>;questClaimed?:boolean},npcId:string) {
-  if(process.env.NODE_ENV==='production')return [];
+  if(!approvedQuestsEnabled())return [];
   return MAP_SCROLLS.filter(row=>row.npc===npcId&&(hero.completedQuests.includes(row.intro)||
     (row.intro==='main-verdant-bisikan'&&hero.questClaimed===true))&&!hero.cityProgress[mapScrollReceipt(row.region)]);
 }

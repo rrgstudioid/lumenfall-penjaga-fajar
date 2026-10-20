@@ -1,3 +1,4 @@
+import {approvedEquipmentEnabled} from './public-rollout';
 import { ITEM_CATALOG, calculateEnhancedBaseStats, calculateEquipmentUniqueStats, affixStats, equipmentUsageDescription, type ItemData, type StatBlock, type EquipSlot } from './items.ts';
 import { ARMOR_SETS, validateArmorSet, type ArmorSet } from './equipment-layers.ts';
 import { ironSwordAuthoredRange } from './iron-sword-range-v2.ts';
@@ -63,22 +64,22 @@ export function equipmentDetail(item: DetailItem, context: {owner?: Owner; physi
   const template = ITEM_CATALOG[item.templateId];
   const core: DetailRow[] = [], intrinsic: DetailRow[] = [], uncertain: DetailRow[] = [], options: DetailRow[] = [];
   const notes: string[] = [], diagnostics: string[] = [];
-  let physical: Range | null = ironSwordAuthoredRange(item) ?? (context.development ? jayantaraAuthoredRange(item) : null) ?? context.physicalRange ?? null;
-  const trainingRange = context.development ? trainingSwordReferenceRange(item) : null;
+  let physical: Range | null = ironSwordAuthoredRange(item) ?? ((context.development || approvedEquipmentEnabled()) ? jayantaraAuthoredRange(item) : null) ?? context.physicalRange ?? null;
+  const trainingRange = (context.development || approvedEquipmentEnabled()) ? trainingSwordReferenceRange(item) : null;
   if (trainingRange) {
     physical = trainingRange;
     diagnostics.push(BASIC_REFERENCE_B.version);
-    notes.push(context.selected ? 'Loadout diterima formula development.' : 'Range referensi development; penggunaan combat memerlukan loadout yang sah dan aktivasi formula.');
+    notes.push(context.selected ? 'Loadout diterima formula range.' : 'Range senjata tersedia; penggunaan formula range memerlukan loadout yang didukung.');
   }
   let basePhysical = physical;
   let magic: Range | null = null, baseMagic: Range | null = null;
-  if (context.development && hasEquipmentAuthoring(item)) {
+  if ((context.development || approvedEquipmentEnabled()) && hasEquipmentAuthoring(item)) {
     const authored = resolveAuthoredEquipmentItem(item);
     if (authored.ok) {
       physical = authored.PATK; basePhysical = authored.profile.PATK ?? null;
       magic = authored.MATK; baseMagic = authored.profile.MATK ?? null;
       diagnostics.push(`${authored.version} / ${authored.profile.id}`, `Core enhancement ×${number(authored.multiplier)}`);
-      notes.push(context.selected?'Loadout diterima formula development.':'Item mapped development; belum diterima formula selected pada context ini.');
+      notes.push(context.selected?'Loadout diterima formula range.':'Range item tersedia; loadout ini belum diterima formula range.');
       if (authored.PATK && !context.selected) notes.push('Range item tersedia; jalur combat compatibility belum memakai range versi ini.');
     } else { physical=null; basePhysical=null; notes.push('Range versi item ini belum tersedia.'); diagnostics.push(authored.reason); }
   }

@@ -1356,6 +1356,21 @@ body[data-hud-dragging] {
 .hud-quest > .hud-journal-button {
   margin-top: auto;
 }
+.hud-quest-dev {padding:0 12px 8px;overscroll-behavior:contain}
+.hud-quest-dev > header {height:32px;margin-bottom:2px;font-size:16px}
+.hud-quest-dev h2 {font-size:21px;line-height:1.25;overflow-wrap:anywhere}
+.hud-quest-dev .hud-quest-state {margin-top:4px}
+.hud-quest-dev .hud-objective-active {display:flex;gap:8px;align-items:flex-start;font:18px/1.4 Arial,sans-serif}
+.hud-quest-dev .hud-objective-active span {min-width:0;overflow-wrap:anywhere}
+.hud-quest-dev .hud-objective-active b {white-space:nowrap;color:var(--hud-gold)}
+.hud-quest-dev .hud-quest-report {font:17px/1.4 Arial,sans-serif;margin:5px 0;overflow-wrap:anywhere}
+.hud-objectives-more {display:block;text-align:left;color:var(--hud-gold);font:15px/1.4 Arial,sans-serif;background:none;border:0;padding:3px 0;text-decoration:underline;cursor:pointer}
+.hud-quest-dev .hud-rewards {font-size:16px;padding:5px 0;gap:12px}
+.hud-quest-dev > .hud-journal-button {min-height:29px;margin-top:3px;font-size:16px;padding:3px 0}
+@media (max-width:1000px) {
+  /* Keep the development objective readable when the general HUD scales down. */
+  .hud-frame:has(> .hud-quest-dev) {scale:.7 !important}
+}
 
 /* Direct manipulation stays on frames and headers, outside interactive content. */
 .hud-frame-handle {

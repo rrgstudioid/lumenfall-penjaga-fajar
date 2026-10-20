@@ -172,6 +172,7 @@ export function CharacterScreen({
   const range=game?.getDevelopmentAdventurerRange();
   const rangeSelected=range!==null && range!==undefined;
   const main=range?.ok ? range.value : null;
+  const publicCombat=game?.getPublicCombatStatus();
   const breakdown = characterStatBreakdown(hero),
     final = breakdown.final;
   const profile = combatProfile(hero);
@@ -360,7 +361,7 @@ export function CharacterScreen({
                         <EquipmentDetail item={item} game={game} compact/>
                         <p>Compare dengan <JobText>{equipped?.name ?? 'slot kosong'}</JobText></p>
                         <CombatPowerComparison comparison={comparison.combatPower} />
-                        {rangeSelected && <small>Legacy CP comparison; validated Physical Attack range is shown after Equip.</small>}
+                        {(rangeSelected || publicCombat) && <small>Perbandingan compatibility; range Physical Attack ditampilkan setelah Equip tervalidasi.</small>}
                         {comparison.validation.ok ? (
                           <dl>
                             {CHARACTER_STAT_ROWS.filter(
@@ -430,7 +431,7 @@ export function CharacterScreen({
                   : preview.validation.reason}
               </p>
               <CombatPowerComparison comparison={preview.combatPower} />
-              {rangeSelected && <p>Legacy CP comparison. Physical Attack range is shown after validated equipment is applied.</p>}
+              {(rangeSelected || publicCombat) && <p>Perbandingan CP memakai rumus compatibility. Range Physical Attack ditampilkan setelah Equip tervalidasi.</p>}
               {preview.validation.ok && (
                 <dl>
                   {CHARACTER_STAT_ROWS.filter(
@@ -464,7 +465,7 @@ export function CharacterScreen({
               {preview.validation.ok &&
                 CHARACTER_STAT_ROWS.filter(stat=>!rangeSelected || stat.id!=='physicalAttack').every(
                   (stat) => preview.after[stat.id] === preview.before[stat.id],
-                ) && <small>{rangeSelected ? 'Stat lain yang ditampilkan tetap; range Physical Attack divalidasi setelah Equip.' : 'Tidak mengubah statistik efektif.'}</small>}
+                ) && <small>{rangeSelected || publicCombat ? 'Stat compatibility yang dibandingkan tetap; range Physical Attack divalidasi setelah Equip.' : 'Tidak mengubah statistik efektif.'}</small>}
               <details>
                 <summary>Item details</summary>
                 {itemDetails(candidate)}
@@ -517,6 +518,10 @@ export function CharacterScreen({
                 {characterLabel(hero)}
               </p>
               <JobArchitecturePreview hero={hero} compact />
+              {publicCombat?.managed && <p data-combat-route={publicCombat.route}>
+                {publicCombat.route==='compatibility'?'Formula compatibility · equipment lama atau context belum didukung':
+                  main?'Formula range aktif':'Formula range tidak tersedia untuk kondisi saat ini'}
+              </p>}
               {getDaggerEquipmentLabel(hero) && <p>{getDaggerEquipmentLabel(hero)}</p>}
             </div>
           </div>

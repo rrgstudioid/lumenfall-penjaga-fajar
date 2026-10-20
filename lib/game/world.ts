@@ -1,3 +1,7 @@
+import {PUBLIC_ROLLOUT,approvedQuestsEnabled,publicCombatEnabled} from './public-rollout';
+import {hasEquipmentAuthoring,resolveAuthoredEquipmentItem} from './equipment-authoring-v1';
+import {ironSwordAuthoredRange} from './iron-sword-range-v2';
+import {jayantaraAuthoredRange} from './jayantara-range-v3';
 import {MAP_SCROLLS,mapScroll,mapScrollReceipt,mapVisitReceipt,availableMapScrollPacks} from './map-scroll-contract';
 import {developmentQuestNpcs,recordEarlyKill,recordEarlyVisits,MINE_SAMPLE_ID} from './early-quest-contract';
 import {regionNpcs,questTurnInInventory} from './regions';
@@ -677,6 +681,10 @@ export class Game {
       this.#adventurerRenewal.signature===adventurerLifecycleSignature(this.hero);
   }
   #renewAdventurerTransaction(authorized: boolean, reason: string) {
+    if(this.#publicCombatManaged && publicCombatEnabled()) {
+      this.#reconcilePublicCombat(reason,authorized&&(reason==='equipItem'||reason==='unequipItem'));
+      return;
+    }
     if(!authorized)return;
     if(this.#specializationSelected) {
       const opened=!this.dead&&!this.disposed ? openSpecializationBinding(this,this.#specializationSourceBinding) : undefined;
@@ -714,6 +722,49 @@ export class Game {
     return this.#adventurerRanksSelected ? adventurerReferenceSkillMetadata(id,rank) : null;
   }
   #warriorSelected=false;
+  #publicCombatManaged=false;
+  #publicCombatFailure?: FoundationFailure;
+  /** Called only by successful original transactions/start; never by a read/tick.
+   * Existing admission remains the sole authority for actor, owned items and sources. */
+  #reconcilePublicCombat(reason:string,legalEquipmentChange=false) {
+    if(!publicCombatEnabled()||!this.#publicCombatManaged||!this.started||this.dead||this.disposed||this.transitioning||this.regionLoadError)return;
+    const h=this.hero;
+    const route=h.job==='adventurer'&&h.level<=14?'adventurer':h.coreJob==='warrior'&&h.specialization===null&&h.level>=15&&h.level<=61?'warrior':
+      h.coreJob==='warrior'&&['berserker','blade_master'].includes(h.specialization??'')&&h.level>=60&&h.level<=80?'specialization':null;
+    const prior=route==='adventurer'?this.#adventurerRanksSelected:route==='warrior'?this.#warriorSelected:route==='specialization'?this.#specializationSelected:false;
+    const opened=route==='adventurer'?openAdventurerRanksBinding(this):route==='warrior'?openWarriorBinding(this,this.#warriorSourceBinding):route==='specialization'?openSpecializationBinding(this,this.#specializationSourceBinding):undefined;
+    this.#publicCombatFailure=opened&&!opened.ok?opened:undefined;
+    const invalidVersion=h.inventory.some(item=>Object.values(h.equipment).includes(item.id)&&
+      (hasEquipmentAuthoring(item)&&!resolveAuthoredEquipmentItem(item).ok ||
+       item.authoredAttackVersion!==undefined&&!ironSwordAuthoredRange(item)&&!jayantaraAuthoredRange(item)));
+    // Old/unsupported sources remain compatibility until first full admission.
+    // A successful original equip/unequip may leave the bounded source cohort.
+    // Switch at that transaction boundary, never by retrying a rejected attack.
+    // Direct/stale mutations and malformed version markers still fail closed.
+    const keepSelected=invalidVersion||prior&&!legalEquipmentChange||opened?.ok===true;
+    this.#adventurerRanksSelected=route==='adventurer'&&keepSelected;
+    this.#warriorSelected=route==='warrior'&&keepSelected;
+    this.#specializationSelected=route==='specialization'&&keepSelected;
+    this.#adventurerRanksBinding=route==='adventurer'&&opened?.ok?opened.value as AdventurerRanksBinding:undefined;
+    this.#warriorBinding=route==='warrior'&&opened?.ok?opened.value as WarriorBinding:undefined;
+    this.#specializationBinding=route==='specialization'&&opened?.ok?opened.value as SpecializationBinding:undefined;
+    if(route==='warrior')this.#warriorSourceBinding=this.#warriorBinding;
+    else this.#warriorSourceBinding=undefined;
+    if(route==='specialization')this.#specializationSourceBinding=this.#specializationBinding;
+    else this.#specializationSourceBinding=undefined;
+    this.#adventurerRanksFailure=this.#warriorFailure=this.#specializationFailure=this.#publicCombatFailure;
+    this.#adventurerRenewal=this.#adventurerRanksSelected?{hero:h,signature:adventurerLifecycleSignature(h)}:undefined;
+    this.#warriorRenewal=this.#warriorSelected?{hero:h,signature:warriorLifecycleSignature(h)}:undefined;
+    this.#specializationRenewal=this.#specializationSelected?{hero:h,signature:warriorLifecycleSignature(h)}:undefined;
+    const event=Object.freeze({reason,ok:opened?.ok===true});
+    this.#adventurerRenewalEvent=this.#warriorRenewalEvent=this.#specializationRenewalEvent=event;
+  }
+  /** Pure status; a range description never enables combat. */
+  getPublicCombatStatus() {
+    return Object.freeze({version:PUBLIC_ROLLOUT.version,managed:this.#publicCombatManaged,
+      route:this.#specializationSelected?'specialization':this.#warriorSelected?'warrior':this.#adventurerRanksSelected?'adventurer':'compatibility',
+      reason:this.#publicCombatFailure?.code??null});
+  }
   #specializationSelected=false;
   #specializationBinding?:SpecializationBinding;
   #specializationSourceBinding?:SpecializationBinding;
@@ -1903,8 +1954,10 @@ export class Game {
       return true;
     }
     if (!nearestItem) return false;
+    const renewal=this.#beginAdventurerTransaction();
     const result = addItemToInventory(this.hero.inventory, nearestItem.item, this.hero.inventoryCapacity);
-    this.hero.inventory = result.inventory;
+    // A rejected full-capacity pickup must not replace the current owned references.
+    if(result.remaining<nearestItem.item.quantity){this.hero.inventory=result.inventory;this.#renewAdventurerTransaction(renewal,'ground item pickup');}
     if (result.remaining) {
       nearestItem.item = { ...nearestItem.item, quantity: result.remaining };
       this.message('Inventory penuh. Kosongkan slot terlebih dahulu.');
@@ -2382,6 +2435,12 @@ export class Game {
         this.cameraFocus.copy(this.actor.position);
         await this.waitForRegionLoads();
         if(this.disposed || this.#adventurerRegionTransaction!==transaction || generation!==this.regionBuildToken || this.activeLocationId!==id)return;
+        // Correlate the unchanged actor/source BEFORE this transaction's own scroll debit.
+        // The debit legitimately changes the inventory signature; renewal still performs full admission.
+        const unchangedPrior=prior && this.started && !this.dead && prior.hero===this.hero &&
+          prior.item===this.hero.inventory.find(item=>item.id===this.hero.equipment.mainHand) &&
+          prior.offItem===(this.hero.equipment.offHand?this.hero.inventory.find(item=>item.id===this.hero.equipment.offHand):undefined) &&
+          prior.signature===(this.#warriorSelected||this.#specializationSelected?warriorLifecycleSignature(this.hero):adventurerLifecycleSignature(this.hero));
         if(scroll){
           if(this.#mapScrollPending!==scroll||this.hero!==scroll.hero||this.dead||this.hero.hp<=0||!this.hero.inventory.includes(scroll.item)||scroll.item.quantity!==scroll.quantity)
             throw new Error('Transaksi scroll tidak lagi valid.');
@@ -2389,14 +2448,11 @@ export class Game {
           if(debit.removed!==1)throw new Error('Item scroll tidak tersedia.');
           this.hero.inventory=debit.inventory;scrollCommitted=true;
         }
-        if(process.env.NODE_ENV!=='production'&&!this.dead&&this.hero.hp>0&&(id===MINE_ID||FIELDS[id]&&!FIELDS[id].warpOnly))
+        if(approvedQuestsEnabled()&&!this.dead&&this.hero.hp>0&&(id===MINE_ID||FIELDS[id]&&!FIELDS[id].warpOnly))
           this.hero.cityProgress[mapVisitReceipt(id)]=1;
         this.invincible=2;
         this.transitioning=false;
-        if(prior && this.started && !this.dead && prior.hero===this.hero &&
-            prior.item===this.hero.inventory.find(item=>item.id===this.hero.equipment.mainHand) &&
-            prior.offItem===(this.hero.equipment.offHand?this.hero.inventory.find(item=>item.id===this.hero.equipment.offHand):undefined) &&
-            prior.signature===(this.#warriorSelected||this.#specializationSelected?warriorLifecycleSignature(this.hero):adventurerLifecycleSignature(this.hero)))
+        if(unchangedPrior && this.started && !this.dead && prior.hero===this.hero)
           this.#renewAdventurerTransaction(true,'successful region transaction');
         this.save();
         this.message(message);
@@ -2436,10 +2492,26 @@ export class Game {
   }
   addNpcLabel(npc:NpcDefinition) {
     const element=document.createElement('div');element.className='npc-label';
-    const serviceElement=document.createElement('div');serviceElement.className='npc-service-badge';serviceElement.textContent=getNpcServiceLabel(npc,this.hero);
+    const checkpoint=approvedQuestsEnabled()&&developmentQuestNpcs().some(n=>n.id===npc.id);
+    const serviceElement=document.createElement(checkpoint?'button':'div');serviceElement.className='npc-service-badge';serviceElement.textContent=getNpcServiceLabel(npc,this.hero);
+    if(checkpoint){
+      serviceElement.setAttribute('type','button');serviceElement.setAttribute('aria-label',`Bicara dengan ${npc.name}`);
+      serviceElement.style.pointerEvents='auto';serviceElement.style.cursor='pointer';
+      serviceElement.addEventListener('click',()=>{if(this.canInteractDevelopmentQuestNpc(npc))this.openNpc(npc.id);else this.message('Dekati NPC melalui jalur yang dapat dilalui.');});
+    }
     const nameElement=document.createElement('div');nameElement.className='npc-name';nameElement.textContent=`◆ ${npc.name}`;
     element.appendChild(serviceElement);element.appendChild(nameElement);
     this.labelHost.appendChild(element);this.npcLabels.push({npc,element,nameElement});
+  }
+  /** Nearby checkpoint UI cannot bypass the existing distance or mine wall collision. */
+  canInteractDevelopmentQuestNpc(npc:NpcDefinition) {
+    if(!approvedQuestsEnabled()||!this.started||this.dead||this.paused||this.transitioning||this.regionLoadError||
+      !developmentQuestNpcs().some(n=>n.id===npc.id&&n.fieldId===this.activeLocationId)||
+      Math.hypot(this.hero.x-npc.x,this.hero.z-npc.z)>npc.interactionRange)return false;
+    if(this.isMineInterior&&!mineLineOfSight(this.hero,npc,.25))return false;
+    let p={x:this.hero.x,z:this.hero.z};const n=Math.max(1,Math.ceil(Math.hypot(npc.x-p.x,npc.z-p.z)/.25)),dx=(npc.x-p.x)/n,dz=(npc.z-p.z)/n;
+    for(let i=0;i<n;i++){const next=moveWithTreeCollisions(p,dx,dz,this.treeColliders,(a,x,z)=>this.moveHeroOnGround(a,x,z),(x,z)=>this.groundHeight(x,z));if(Math.hypot(next.x-p.x-dx,next.z-p.z-dz)>1e-5)return false;p=next;}
+    return true;
   }
   private buildDevelopmentQuestNpcs() {
     for(const npc of developmentQuestNpcs().filter(n=>n.fieldId===this.activeLocationId)){
@@ -2502,10 +2574,12 @@ export class Game {
     if(action==='scroll-pack'){
       const row=availableMapScrollPacks(this.hero,this.currentNpc!.id).find(row=>row.region===id);
       if(!row){this.message('Paket scroll tidak tersedia atau sudah diambil.');return false;}
+      const renewal=this.#beginAdventurerTransaction();
       const item=createItem(row.templateId,{quantity:5,source:{type:'quest',sourceId:row.intro,label:'Paket pengenalan map'}});
       const grant=addItemToInventory(this.hero.inventory,item,this.hero.inventoryCapacity);
       if(grant.remaining){this.message('Inventory penuh. Paket scroll belum diberikan.');return false;}
       this.hero.inventory=grant.inventory;this.hero.cityProgress[mapScrollReceipt(row.region)]=1;
+      this.#renewAdventurerTransaction(renewal,'quest scroll pack');
       this.save();this.emit();return true;
     }
     if(action==='heal'){healAtCity(this.hero);if(isResourceEnabled(this.hero, 'stamina'))this.stamina=derivedStats(this.hero).staminaMax;result={ok:true,reason:isResourceEnabled(this.hero, 'stamina')?'HP, Mana, stamina, dan status dipulihkan.':'HP, Mana, dan status dipulihkan.'};}
@@ -2526,7 +2600,7 @@ export class Game {
     }
     if(action==='complete'){
       const planned=regionQuestReward(id);
-      const scroll=process.env.NODE_ENV!=='production'?MAP_SCROLLS.find(row=>row.intro===id&&!this.hero.cityProgress[mapScrollReceipt(row.region)]):undefined;
+      const scroll=approvedQuestsEnabled()?MAP_SCROLLS.find(row=>row.intro===id&&!this.hero.cityProgress[mapScrollReceipt(row.region)]):undefined;
       const plannedItems=[...planned.items,...(scroll?[{templateId:scroll.templateId,quantity:5}]:[])];
       const rewardItems=plannedItems.map(reward=>createItem(reward.templateId,{quantity:reward.quantity}));
       let simulatedInventory=questTurnInInventory(this.hero,id);
@@ -2592,6 +2666,8 @@ export class Game {
   selectCharacter(slotId: string, _job: JobId = 'adventurer', gender: 'male'|'female' = 'male') {
     if (this.started) return;
     this.clearSkillRuntime();
+    this.#publicCombatManaged=false;
+    this.#adventurerRanksSelected=this.#warriorSelected=this.#specializationSelected=false;
     this.assasinPoison.clear(); this.assasinCombat.clear();
     this.closeNpcMenu();
     this.slotId = slotId;
@@ -2689,6 +2765,8 @@ export class Game {
     if (!this.started) this.setCameraMode('follow');
     this.started = true;
     this.paused = false;
+    this.#publicCombatManaged=publicCombatEnabled();
+    if(this.#publicCombatManaged)this.#reconcilePublicCombat('start/Continue');
     this.clearInput();
     this.save();
     this.renderer.domElement.focus({ preventScroll: true });
@@ -2788,6 +2866,7 @@ export class Game {
       : chooseCoreJob(this.hero, coreJob);
     if (changed) {
       this.skillCooldowns = retainFamilyCooldowns(this.skillCooldowns);
+      if(this.#publicCombatManaged){this.syncCombatModifiers();this.#reconcilePublicCombat('Core transition');}
       this.rebuildHeroAppearance();
       this.save();
       this.emit();
@@ -2807,6 +2886,7 @@ export class Game {
     if (chooseSpecialization(this.hero, specialization)) {
       if (specialization === 'rogue' || specialization === 'assasin') this.clearSkillRuntime();
       this.skillCooldowns = retainFamilyCooldowns(this.skillCooldowns);
+      if(this.#publicCombatManaged){this.syncCombatModifiers();this.#reconcilePublicCombat('specialization transition');}
       this.rebuildHeroAppearance();
       this.save();
       this.emit();
@@ -2918,9 +2998,9 @@ export class Game {
   useItem(itemId: string) {
     const scrollItem=this.hero.inventory.find(item=>item.id===itemId);
     if(scrollItem&&mapScroll(scrollItem.templateId))return this.useMapScroll(scrollItem);
-    // Only the explicitly selected Warrior policy renews through this exact
+    // Only an explicitly selected supported policy renews through this exact
     // original consumable transaction; item IDs alone never authorize a bind.
-    const warriorRenewal=(this.#warriorSelected||this.#specializationSelected) && this.#beginAdventurerTransaction() && (this.#specializationSelected?this.getDevelopmentSpecializationAvailability()?.ok:this.getDevelopmentWarriorAvailability()?.ok)===true;
+    const warriorRenewal=(this.#adventurerRanksSelected||this.#warriorSelected||this.#specializationSelected) && this.#beginAdventurerTransaction() && (this.#specializationSelected?this.getDevelopmentSpecializationAvailability()?.ok:this.#warriorSelected?this.getDevelopmentWarriorAvailability()?.ok:this.getDevelopmentAdventurerRange()?.ok)===true;
     const warriorPrior=warriorRenewal ? this.hero : undefined;
     const warriorSignature=warriorPrior ? warriorLifecycleSignature(warriorPrior) : undefined;
     this.hero={...this.hero,stamina:this.stamina};
@@ -2939,7 +3019,7 @@ export class Game {
   }
   private useMapScroll(item:ItemData) {
     const destination=mapScroll(item.templateId)?.region;
-    const reason=process.env.NODE_ENV==='production'?'DEVELOPMENT_ONLY':
+    const reason=!approvedQuestsEnabled()?'DEVELOPMENT_ONLY':
       !this.started||this.disposed||this.dead||this.hero.hp<=0?'Karakter harus hidup.':
       this.transitioning||this.regionLoadError||this.#mapScrollPending?'Tunggu perjalanan selesai.':
       !this.hero.inCity||this.hero.interiorId?'Scroll hanya dapat digunakan dari kota.':
@@ -3167,12 +3247,12 @@ export class Game {
   }
   resetSkillPoints() {
     const result=resetSkillPointsRules(this.hero);
-    if(result.ok){this.clearSkillRuntime();this.hero=validatePrimaryHotbar(result.hero);this.save();}
+    if(result.ok){this.clearSkillRuntime();this.hero=validatePrimaryHotbar(result.hero);if(this.#publicCombatManaged)this.#reconcilePublicCombat('resetSkillPoints');this.save();}
     if(!result.ok)this.message(result.reason);this.emit();return result.ok;
   }
   resetSkillFamilyBranch(skillId: string) {
     const result = resetSkillFamilyBranchRules(this.hero, skillId);
-    if (result.ok) { this.clearSkillRuntime(); this.hero = validatePrimaryHotbar(result.hero); this.save(); }
+    if (result.ok) { this.clearSkillRuntime(); this.hero = validatePrimaryHotbar(result.hero); if(this.#publicCombatManaged)this.#reconcilePublicCombat('resetSkillFamilyBranch'); this.save(); }
     this.message(result.reason); this.emit(); return result.ok;
   }
   resetJobToAdventurer() {
@@ -3181,6 +3261,7 @@ export class Game {
     if (result.ok) {
       this.clearSkillRuntime();
       this.hero = result.hero;
+      if(this.#publicCombatManaged)this.#reconcilePublicCombat('resetJobToAdventurer');
       this.rebuildHeroAppearance();
       this.save();
       this.emit();
@@ -5422,7 +5503,14 @@ export class Game {
       const name=`${trackedStatus==='ready_to_complete'?'?':trackedStatus==='active'?'!':'◆'} ${npc.name}`;
       if(nameElement.textContent!==name) nameElement.textContent=name;
       element.style.display=visible?'block':'none';
-      if(visible){position.project(this.camera);element.style.display=position.z>=-1&&position.z<=1?'block':'none';element.style.left=`${(position.x*.5+.5)*100}%`;element.style.top=`${(-position.y*.5+.5)*100}%`;}
+      if(visible){
+        position.project(this.camera);
+        const nearbyCheckpoint=this.canInteractDevelopmentQuestNpc(npc);
+        element.style.display=nearbyCheckpoint||position.z>=-1&&position.z<=1?'block':'none';
+        // A nearby lawful checkpoint stays clickable in Follow Camera without changing reach.
+        element.style.left=`${(nearbyCheckpoint?T.MathUtils.clamp(position.x*.5+.5,.5,.75):position.x*.5+.5)*100}%`;
+        element.style.top=`${(nearbyCheckpoint?T.MathUtils.clamp(-position.y*.5+.5,.28,.68):-position.y*.5+.5)*100}%`;
+      }
     }
     for (const loot of this.groundLoot) {
       const visible = this.started && loot.group.position.distanceTo(this.actor.position) < 18;

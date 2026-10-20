@@ -1,4 +1,6 @@
 'use client';
+import {approvedQuestsEnabled} from '@/lib/game/public-rollout';
+import {DevelopmentQuestSummary} from './development-quest-summary';
 import { isUnderwaterSubmap, UNDERWATER_GRID_SIZE } from '@/lib/game/underwater-regions';
 import { FROSTFIRE_ID } from '@/lib/game/frostfire-highlands-layout';
 import {
@@ -125,13 +127,13 @@ const QuestTracker = memo(function QuestTracker({
   onTrackQuest: (id: string | null) => void;
 }) {
   return (
-    <section className="hud-quest hud-panel" aria-label="Jurnal misi ringkas">
+    <section className={`hud-quest hud-panel ${approvedQuestsEnabled()?'hud-quest-dev':''}`} aria-label="Jurnal misi ringkas">
       <header>
         <span>
           <ScrollText size={14} /> JURNAL MISI
         </span>
       </header>
-      {quest ? (
+      {quest && approvedQuestsEnabled() ? <DevelopmentQuestSummary quest={quest} onOpen={onOpen}/> : quest ? (
         <>
           <small className="hud-quest-state">
             {quest.status === 'ready_to_complete'
@@ -195,7 +197,7 @@ const QuestTracker = memo(function QuestTracker({
         Buka Jurnal
         <ChevronRight size={17} />
       </button>
-      {process.env.NODE_ENV !== 'production' && quest && quest.category !== 'class' && (
+      {approvedQuestsEnabled() && quest && quest.category !== 'class' && (
         <button className="hud-journal-button" aria-pressed={trackedQuestId === quest.id}
           onClick={() => onTrackQuest(trackedQuestId === quest.id ? null : quest.id)}>
           {trackedQuestId === quest.id ? 'Berhenti melacak' : 'Lacak quest'}

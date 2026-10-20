@@ -1,4 +1,5 @@
 'use client';
+import {approvedQuestsEnabled} from '@/lib/game/public-rollout';
 import {developmentQuestNpcs} from '@/lib/game/early-quest-contract';
 import {MAP_SCROLLS,mapScrollReceipt,availableMapScrollPacks} from '../lib/game/map-scroll-contract';
 import { EquipmentDetail } from '@/components/game/equipment-detail';
@@ -1134,7 +1135,7 @@ export default function Home() {
               )}
               {currentNpc.services.includes('quest') && (
                 <div className="npc-shop-list">
-                  {process.env.NODE_ENV!=='production'&&availableMapScrollPacks(hero,currentNpc.id).map(pack=><article className="shop-row" key={pack.region}><div><strong>Paket pengenalan {pack.name}</strong><small>5 teleport scroll · sekali per map · tanpa EXP ulang</small></div><button onClick={()=>game.current?.cityAction('scroll-pack',pack.region)}>Ambil 5 Scroll</button></article>)}
+                  {approvedQuestsEnabled()&&availableMapScrollPacks(hero,currentNpc.id).map(pack=><article className="shop-row" key={pack.region}><div><strong>Paket pengenalan {pack.name}</strong><small>5 teleport scroll · sekali per map · tanpa EXP ulang</small></div><button onClick={()=>game.current?.cityAction('scroll-pack',pack.region)}>Ambil 5 Scroll</button></article>)}
                   {npcQuestEntries.map((entry) => {
                     const status = entry.status;
                     return (
@@ -1142,7 +1143,7 @@ export default function Home() {
                         <div>
                           <strong>{entry.title}</strong>
                           <small>{entry.description}</small>
-                          {process.env.NODE_ENV!=='production'&&MAP_SCROLLS.some(pack=>pack.intro===entry.id&&!hero.cityProgress[mapScrollReceipt(pack.region)])&&<small>Bonus pengenalan: 5 scroll tujuan map, sekali per map.</small>}
+                          {approvedQuestsEnabled()&&MAP_SCROLLS.some(pack=>pack.intro===entry.id&&!hero.cityProgress[mapScrollReceipt(pack.region)])&&<small>Bonus pengenalan: 5 scroll tujuan map, sekali per map.</small>}
                           <small>
                             Progress:{' '}
                             {entry.progress
@@ -2231,6 +2232,7 @@ export default function Home() {
                           <p>
                             <strong>Map tujuan:</strong> {entry.targetMapName}
                           </p>
+                          {approvedQuestsEnabled()&&<p><strong>Pelaporan:</strong> {entry.reportNpcName??entry.giverNpcName} · {entry.reportMapName??entry.giverMapName}</p>}
                           <p>
                             <strong>Level:</strong> {entry.requiredLevel} ·
                             Rekomendasi {entry.recommendedLevel}
@@ -2250,7 +2252,7 @@ export default function Home() {
                             </div>
                           )}
                           <div className="item-actions">
-                            {process.env.NODE_ENV !== 'production' && entry.category !== 'class' && ['available','active','ready_to_complete'].includes(entry.status) && (
+                            {approvedQuestsEnabled() && entry.category !== 'class' && ['available','active','ready_to_complete'].includes(entry.status) && (
                               <button className="secondary-button" aria-pressed={trackedQuestId === entry.id}
                                 onClick={() => setTrackedQuestId(trackedQuestId === entry.id ? null : entry.id)}>
                                 {trackedQuestId === entry.id ? 'Berhenti melacak' : 'Lacak quest'}
