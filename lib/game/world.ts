@@ -682,7 +682,7 @@ export class Game {
   }
   #renewAdventurerTransaction(authorized: boolean, reason: string) {
     if(this.#publicCombatManaged && publicCombatEnabled()) {
-      this.#reconcilePublicCombat(reason);
+      this.#reconcilePublicCombat(reason,authorized&&(reason==='equipItem'||reason==='unequipItem'));
       return;
     }
     if(!authorized)return;
@@ -726,7 +726,7 @@ export class Game {
   #publicCombatFailure?: FoundationFailure;
   /** Called only by successful original transactions/start; never by a read/tick.
    * Existing admission remains the sole authority for actor, owned items and sources. */
-  #reconcilePublicCombat(reason:string) {
+  #reconcilePublicCombat(reason:string,legalEquipmentChange=false) {
     if(!publicCombatEnabled()||!this.#publicCombatManaged||!this.started||this.dead||this.disposed||this.transitioning||this.regionLoadError)return;
     const h=this.hero;
     const route=h.job==='adventurer'&&h.level<=14?'adventurer':h.coreJob==='warrior'&&h.specialization===null&&h.level>=15&&h.level<=61?'warrior':
@@ -738,11 +738,13 @@ export class Game {
       (hasEquipmentAuthoring(item)&&!resolveAuthoredEquipmentItem(item).ok ||
        item.authoredAttackVersion!==undefined&&!ironSwordAuthoredRange(item)&&!jayantaraAuthoredRange(item)));
     // Old/unsupported sources remain compatibility until first full admission.
-    // An already-selected route fails closed on invalid sources, rather than silently
-    // switching the same skill to legacy damage. Returning legally is revalidated.
-    this.#adventurerRanksSelected=route==='adventurer'&&(prior||invalidVersion||opened?.ok===true);
-    this.#warriorSelected=route==='warrior'&&(prior||invalidVersion||opened?.ok===true);
-    this.#specializationSelected=route==='specialization'&&(prior||invalidVersion||opened?.ok===true);
+    // A successful original equip/unequip may leave the bounded source cohort.
+    // Switch at that transaction boundary, never by retrying a rejected attack.
+    // Direct/stale mutations and malformed version markers still fail closed.
+    const keepSelected=invalidVersion||prior&&!legalEquipmentChange||opened?.ok===true;
+    this.#adventurerRanksSelected=route==='adventurer'&&keepSelected;
+    this.#warriorSelected=route==='warrior'&&keepSelected;
+    this.#specializationSelected=route==='specialization'&&keepSelected;
     this.#adventurerRanksBinding=route==='adventurer'&&opened?.ok?opened.value as AdventurerRanksBinding:undefined;
     this.#warriorBinding=route==='warrior'&&opened?.ok?opened.value as WarriorBinding:undefined;
     this.#specializationBinding=route==='specialization'&&opened?.ok?opened.value as SpecializationBinding:undefined;

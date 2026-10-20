@@ -79,3 +79,12 @@ await test('production death/respawn preserves legitimate cooldown and freshly a
  const g=game(14);g.start();g.skillCooldowns['v3-adventurer-power-strike']=7;g.invincible=0;g.rand=()=>.99;g.hurtHero(1e6,'MECHANICAL_LETHAL');assert(g.dead);assert(!g.getDevelopmentAdventurerRange()?.ok);g.respawn();assert(!g.dead);assert(g.getDevelopmentAdventurerRange()?.ok);assert.equal(g.skillCooldowns['v3-adventurer-power-strike'],7);g.dispose();
 });
 after(()=>server.close());
+await test('legal existing Pet/legacy body switches to compatibility at equip boundary; return revalidates without free resources',()=>{
+ const g=game(14);g.start();const pet=g.hero.inventory.find(i=>i.templateId==='adventurer-pet-egg');g.hero.hp=100;g.hero.mana=20;g.skillCooldowns['v3-adventurer-power-strike']=7;const seed=g.seed;
+ assert(g.equipItem(pet.id,'pet'));assert.equal(g.getPublicCombatStatus().route,'compatibility');assert.equal(g.getDevelopmentAdventurerRange(),null);assert(g.hero.pet);assert.equal(g.hero.hp,100);assert.equal(g.hero.mana,20);assert.equal(g.skillCooldowns['v3-adventurer-power-strike'],7);assert.equal(g.seed,seed);
+ assert(g.unequipItem('pet'));assert(g.getDevelopmentAdventurerRange()?.ok);
+ g.dispose();
+ // Existing old-save fixture is present BEFORE admission, not injected into a live binding.
+ const legacy=game(14),old=own(legacy,'arunika-head');delete old.authoredEquipmentVersion;delete old.authoredEquipmentProfile;legacy.start();
+ assert(legacy.equipItem(old.id,'head'));assert.equal(legacy.getPublicCombatStatus().route,'compatibility');assert.equal(old.authoredEquipmentVersion,undefined);assert(legacy.unequipItem('head'));assert(legacy.getDevelopmentAdventurerRange()?.ok);legacy.dispose();
+});
