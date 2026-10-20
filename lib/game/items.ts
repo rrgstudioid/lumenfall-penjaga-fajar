@@ -1,9 +1,12 @@
+import {MAP_SCROLLS,mapScroll} from './map-scroll-contract.ts';
 import { ITEMIZATION_RULES, WEAPON_TUNING } from './canonical-config.ts';
 import type { CoreJobId, RuntimeCoreJobId, SpecializationId, WeaponType } from './skills.ts';
 import { STAMINA_ENABLED } from './gameplay-config.ts';
 import { statBonusText, statDisplayLabel } from './stat-presentation.ts';
 import { canonicalizeDaggerItem, isDaggerItem, isOneHandDagger, isThiefLineage } from './dagger.ts';
 import { IRON_SWORD_RANGE_V2 } from './iron-sword-range-v2.ts';
+import { JAYANTARA_RANGE_V3 } from './jayantara-range-v3.ts';
+import { developmentEquipmentAuthoring, resolveAuthoredEquipmentItem } from './equipment-authoring-v1.ts';
 
 export type ItemRarity = 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary' | 'mythic' | 'ancient' | 'normal' | 'unique' | 'legacy';
 export type EquipmentRarity = 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary' | 'mythic' | 'ancient';
@@ -126,7 +129,7 @@ export type ItemSource = { type: 'starter' | 'shop' | 'monster' | 'elite' | 'fie
 export type RuneOptimizerHistory = { rerollCount: number; lastOptimizerAt: number | null };
 
 export type SkillModifierMap = Record<string, number>;
-export type ItemUseEffect = { type: 'heal' | 'mana' | 'resource' | 'stamina' | 'buff' | 'ammunition' | 'mount' | 'developerLevel100'; amount?: number; percentage?: number; duration?: number; buffId?: string; mountId?: string };
+export type ItemUseEffect = { type: 'heal' | 'mana' | 'resource' | 'stamina' | 'buff' | 'ammunition' | 'mount' | 'developerLevel100' | 'mapTeleport'; amount?: number; percentage?: number; duration?: number; buffId?: string; mountId?: string };
 
 export const POTION_ALIASES: Record<string,string> = {
   'potion-light':'health-potion-1', 'minor-health-potion':'health-potion-1', 'small-health-potion':'health-potion-1',
@@ -159,6 +162,9 @@ export type ItemData = {
   levelRequirement: number;
   /** Additive Iron authoring provenance; absent on historical legacy instances. */
   authoredAttackVersion?: string;
+  /** Versioned development core authoring; never inherited by legacy load. */
+  authoredEquipmentVersion?: string;
+  authoredEquipmentProfile?: string;
   jobRequirement: string | null;
   requiredGender?: 'male' | 'female';
   stackable: boolean;
@@ -872,6 +878,9 @@ for (const [id,name] of Object.entries({iron:'Iron',titanium:'Titanium',vibraniu
   ITEM_CATALOG[id]=base({templateId:id,name,category:'material',itemType:'enhancementMaterial',stackable:true,maxStack:99,icon:'◆',buyValue:40,sellValue:8,rarity:id==='meteorite-core'?'legendary':id==='vibranium'?'unique':'normal',description:`Material ${name} dari field Chapter 1.`});
 }
 ITEM_CATALOG['monster-essence']=base({templateId:'monster-essence',name:'Monster Essence',category:'material',itemType:'monsterEssence',stackable:true,maxStack:99,icon:'✦',buyValue:0,sellValue:12,description:'Inti energi yang tersisa dari monster Lumenfall. Nama dan deskripsinya mengikuti spesies sumber.'});
+// Known in all modes so saved owned items survive normalization; no production acquisition/use.
+for(const row of MAP_SCROLLS) ITEM_CATALOG[row.templateId]=base({templateId:row.templateId,name:'Teleport Scroll: '+row.name,category:'consumable',itemType:'mapTeleportScroll',stackable:true,maxStack:99,icon:'↗',description:'Dari kota ke entry '+row.name+' yang pernah dikunjungi. Development saja.'+(row.price===null?' Pembelian belum tersedia.':''),isSellable:false,isSoulbound:true,sellValue:0,buyValue:row.price??0,usableFromHotbar:true,useEffect:{type:'mapTeleport'}});
+ITEM_CATALOG['quest-ironveil-survey-sample-v1']=base({templateId:'quest-ironveil-survey-sample-v1',name:'Sampel Survei Ironveil',category:'quest',itemType:'questSample',stackable:true,maxStack:5,icon:'◆',description:'Sampel dari Ore Grub Lv21 normal untuk laporan Surveyor Tambang.',isQuestItem:true,isSellable:false,isSoulbound:true,sellValue:0,buyValue:0});
 ITEM_CATALOG['rice-meal']=base({templateId:'rice-meal',name:'Blessed Rice Meal',category:'consumable',itemType:'food',stackable:true,maxStack:20,buyValue:30,icon:'◉',description:'Memulihkan stamina sepenuhnya.',usableFromHotbar:true,useEffect:{type:'stamina'},useCooldown:8});
 ITEM_CATALOG.magnifier=base({templateId:'magnifier',name:'Arcane Magnifier',category:'consumable',itemType:'magnifier',stackable:true,maxStack:99,icon:'⌕',description:'Mengungkap Unique Stats equipment yang masih terkunci.',isSellable:false});
 export const POTION_TIERS = [
@@ -935,6 +944,13 @@ const OFF_HAND_TEMPLATES: Array<Partial<ItemData> & Pick<ItemData,'templateId'|'
 ];
 for (const template of OFF_HAND_TEMPLATES) ITEM_CATALOG[template.templateId]=base(template);
 ITEM_CATALOG['jayantara-two-hand-sword']=base({templateId:'jayantara-two-hand-sword',name:'Jayantara Greatsword',category:'weapon',itemType:'twoHandSword',equipmentType:'two_hand_sword',icon:'⚔️',equipSlot:'mainHand',mainHand:true,twoHanded:true,handedness:'two_hand',attackType:'melee',allowedJobs:['warrior'],weaponType:'sword_shield',rarity:'epic',levelRequirement:24,baseStats:{attack:46,str:4},description:'Two-Hand Sword dengan damage besar yang menggunakan kedua tangan.'});
+// Local development acquisition only. Public acquisition retains the Lv24
+// compatibility definition; authored saved instances retain their own fields.
+// buy/sell/source/socket rules are unchanged, not regenerated from requirement.
+if (process.env.NODE_ENV === 'development') {
+  ITEM_CATALOG[JAYANTARA_RANGE_V3.templateId].levelRequirement = JAYANTARA_RANGE_V3.requiredLevel;
+  ITEM_CATALOG[JAYANTARA_RANGE_V3.templateId].authoredAttackVersion = JAYANTARA_RANGE_V3.version;
+}
 
 // Keep previous built-in copy only for save compatibility; the catalog remains
 // the single source of descriptions used by inventory and newly created items.
@@ -1040,6 +1056,7 @@ export function createItem(
   overrides: Partial<ItemData> = {},
 ): ItemData {
   templateId=canonicalItemTemplateId(templateId);
+  if(process.env.NODE_ENV==='production'&&(mapScroll(templateId)||templateId==='quest-ironveil-survey-sample-v1'))throw new Error('DEVELOPMENT_ONLY');
   if(LEGACY_OPTIMIZER_MIGRATION[templateId])throw new Error('Optimizer lama hanya tersedia melalui migrasi save.');
   if(Object.hasOwn(RETIRED_NORMAL_MATERIALS,templateId))throw new Error(`Item tidak lagi tersedia: ${templateId}`);
   const template = ITEM_CATALOG[templateId] ?? ITEM_CATALOG['lumut-fiber'];
@@ -1074,7 +1091,7 @@ export function createItem(
     uniqueEffect,
   });
   if (equipment) normalizedItem.description = equipmentUsageDescription(normalizedItem);
-  return canonicalizeDaggerItem(normalizedItem);
+  return developmentEquipmentAuthoring(canonicalizeDaggerItem(normalizedItem));
 }
 
 function legacyCategory(raw: Record<string, unknown>): ItemCategory {
@@ -1176,15 +1193,23 @@ export function normalizeItem(raw: unknown): ItemData | null {
     });
   }
   if(ITEM_CATALOG[templateId]?.potionType&&typeof value.quantity==='number'&&value.quantity<=0)return null;
-  const template = Object.hasOwn(RETIRED_NORMAL_MATERIALS,templateId) ? legacyRetiredMaterial(templateId,typeof value.id==='string'?value.id:undefined) : createItem(templateId, {
+  const template = mapScroll(templateId)||templateId==='quest-ironveil-survey-sample-v1' ? {...ITEM_CATALOG[templateId],id:typeof value.id==='string'?value.id:uniqueItemId()} : Object.hasOwn(RETIRED_NORMAL_MATERIALS,templateId) ? legacyRetiredMaterial(templateId,typeof value.id==='string'?value.id:undefined) : createItem(templateId, {
     id: typeof value.id === 'string' ? value.id : undefined,
     affixes: [],
   });
+  // Loading is not acquisition. Only exact saved fields may retain a new version.
+  delete template.authoredEquipmentVersion;
+  delete template.authoredEquipmentProfile;
   if (templateId === IRON_SWORD_RANGE_V2.templateId) {
     // Loading is not new acquisition: never inherit a current template marker.
     // Missing historical requirement stays on the old Lv8 compatibility path.
     delete template.authoredAttackVersion;
     if (!Object.hasOwn(value, 'authoredAttackVersion')) template.levelRequirement = 8;
+  }
+  if (templateId === JAYANTARA_RANGE_V3.templateId) {
+    delete template.authoredAttackVersion;
+    // Old missing fields mean old acquisition, regardless of current dev catalog.
+    template.levelRequirement = 24;
   }
   const rawCategory = typeof value.category === 'string' ? value.category : '';
   const rarityText = typeof value.rarity === 'string' ? value.rarity : '';
@@ -1477,8 +1502,12 @@ export function validateOffHandCompatibility(main: ItemData | null, offHand: Ite
 
 export function calculateBaseEquipmentStats(item: ItemData): StatBlock { return {...item.baseStats}; }
 export function calculateEnhancedBaseStats(
-  item: Pick<ItemData, 'baseStats' | 'enhancementLevel'>,
+  item: Pick<ItemData, 'baseStats' | 'enhancementLevel'> & Partial<ItemData>,
 ): StatBlock {
+  const authored = resolveAuthoredEquipmentItem(item);
+  if (authored.ok) return {...authored.compatibilityBase};
+  // Unknown metadata remains visibly unavailable through the pure authoring API.
+  // Unmigrated generic consumers retain compatibility data, never a guessed range.
   const factor = 1 + item.enhancementLevel * WEAPON_TUNING.enhancementPerLevel;
   return Object.fromEntries(
     Object.entries(item.baseStats).map(([key, value]) => [key, (value ?? 0) * factor]),

@@ -115,10 +115,14 @@ const QuestTracker = memo(function QuestTracker({
   quest,
   classQuest,
   onOpen,
+  trackedQuestId,
+  onTrackQuest,
 }: {
   quest: QuestJournalEntry | null;
   classQuest: string;
   onOpen: () => void;
+  trackedQuestId: string | null;
+  onTrackQuest: (id: string | null) => void;
 }) {
   return (
     <section className="hud-quest hud-panel" aria-label="Jurnal misi ringkas">
@@ -191,6 +195,12 @@ const QuestTracker = memo(function QuestTracker({
         Buka Jurnal
         <ChevronRight size={17} />
       </button>
+      {process.env.NODE_ENV !== 'production' && quest && quest.category !== 'class' && (
+        <button className="hud-journal-button" aria-pressed={trackedQuestId === quest.id}
+          onClick={() => onTrackQuest(trackedQuestId === quest.id ? null : quest.id)}>
+          {trackedQuestId === quest.id ? 'Berhenti melacak' : 'Lacak quest'}
+        </button>
+      )}
     </section>
   );
 });
@@ -303,6 +313,8 @@ export function GameplayHUD({
   modalOpen,
   fullscreen,
   quest,
+  trackedQuestId,
+  onTrackQuest,
   onOpen,
   onSound,
   onFullscreen,
@@ -317,6 +329,8 @@ export function GameplayHUD({
   modalOpen: boolean;
   fullscreen: boolean;
   quest: QuestJournalEntry | null;
+  trackedQuestId: string | null;
+  onTrackQuest: (id: string | null) => void;
   onOpen: (panel: string) => void;
   onSound: () => void;
   onFullscreen: () => void;
@@ -423,6 +437,8 @@ export function GameplayHUD({
         <HUDFrame id="quest" label="Jurnal misi">
           <QuestTracker
             quest={quest}
+            trackedQuestId={trackedQuestId}
+            onTrackQuest={onTrackQuest}
             classQuest={state.classQuest}
             onOpen={() => onOpen('quest')}
           />

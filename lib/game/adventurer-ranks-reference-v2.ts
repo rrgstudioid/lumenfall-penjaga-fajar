@@ -148,6 +148,7 @@ function admittedItem(hero: Hero, presentationItem?: ItemData): FoundationResult
   const matches = hero.inventory.filter(item => item.id === (presentationItem?.id ?? hero.equipment.mainHand));
   if (matches.length !== 1) return failure('AMBIGUOUS_OR_MISSING_INSTANCE', 'hero.inventory');
   const item = matches[0];
+  if(item.authoredEquipmentVersion !== undefined || item.authoredEquipmentProfile !== undefined)return failure('UNSUPPORTED_EQUIPMENT_AUTHORING','item');
   if(presentationItem && item!==presentationItem)return failure('ITEM_IDENTITY_MISMATCH','item');
   const iron=item.templateId===IRON_SWORD_RANGE_V2.templateId;
   const catalog=iron?ironCatalogSource:catalogSource;

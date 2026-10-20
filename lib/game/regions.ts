@@ -1,4 +1,8 @@
+import {PROTECTED_FIELD_QUESTS,protectedFieldQuest} from './protected-field-quests.ts';
+import {earlyQuests,earlyQuest,earlyProgress,objectiveKey,questTargetLevel,MINE_SAMPLE_ID,developmentQuestNpcs} from './early-quest-contract.ts';
+import {removeItemQuantity} from './items.ts';
 import { CHARACTER_RULES } from './canonical-config.ts';
+import { METEORFALL_ID, METEORFALL_ENTRY, METEORFALL_EXIT, METEORFALL_NPC, METEORFALL_PLATFORMS } from './meteorfall-citadel-layout.ts';
 import { IRONVEIL_ID, IRONVEIL_ENTRY, IRONVEIL_ENTRANCE, IRONVEIL_POCKETS } from './ironveil-mines-layout.ts';
 import { PLAINS_ID, PLAINS_ENTRY, PLAINS_EXIT } from './verdant-plains-layout.ts';
 import { WILDS_ID, WILDS_ENTRY, WILDS_LANDMARKS } from './whispering-wilds-layout.ts';
@@ -20,7 +24,7 @@ export const MONSTER_VARIANTS: Record<MonsterVariant, { hpMultiplier:number; dam
  elite:{hpMultiplier:2.5,damageMultiplier:1.5,defenseMultiplier:1.25,expMultiplier:2,respawnTime:60,visualScale:1.5,nameColor:'#f0b66b',statusLabel:'Elite'},
  boss:{hpMultiplier:10,damageMultiplier:2,defenseMultiplier:1.5,expMultiplier:5,respawnTime:120,visualScale:2.35,nameColor:'#e8a4ee',statusLabel:'Field Boss'},
 };
-export type MonsterDefinition = { id: string; name: string; level: number; rank: MonsterVariant; variant: MonsterVariant; exp: number; maxHP:number; attack:number; defense:number; magicDefense:number; attackSpeed:number; movementSpeed:number; attackRange:number; dropRate:number; lootTable:string[]; respawnTime:number; visualScale:number; nameColor:string; statusLabel:string; respawn:number };
+export type MonsterDefinition = { id: string; name: string; level: number; rewardLevel?:number; rank: MonsterVariant; variant: MonsterVariant; exp: number; maxHP:number; attack:number; defense:number; magicDefense:number; attackSpeed:number; movementSpeed:number; attackRange:number; dropRate:number; lootTable:string[]; respawnTime:number; visualScale:number; nameColor:string; statusLabel:string; respawn:number };
 export type NpcDefinition = { id: string; name: string; type: string; service: string; services: string[]; description: string; interactionRange: number; shopInventory: string[]; x: number; z: number; fieldId?: string };
 export type CityDefinition = { id: string; displayName: string; chapter: number; minLevel: number; recommendedLevel: string; npcList: NpcDefinition[]; connectedFields: string[]; unlockQuest: string | null; musicId: string; ambientId: string };
 export type FieldDefinition = { id: string; cityId: string; displayName: string; codename: string; chapter: number; minLevel: number; recommendedLevel: string; maxLevel: number; subAreas: string[]; normalMonsters: MonsterDefinition[]; eliteMonsters: MonsterDefinition[]; fieldBoss: MonsterDefinition | null; dropTable: string[]; materialTable: { id: string; chance: number }[]; unlockQuest: string | null; previousField: string | null; nextMap: string | null; musicId: string; ambientId: string; isUnlocked: boolean; color: string; questList: string[]; entry: {x:number;z:number}; exit: {x:number;z:number}; contentFamilyId?:string; cityDirection?:'north'|'east'; regionType?:'field'; warpOnly?:boolean };
@@ -28,10 +32,11 @@ export type RegionQuestStatus = 'locked'|'active'|'ready_to_complete'|'completed
 export type QuestReward = { xp: number; gold: number; items: Array<{ templateId: string; quantity: number }> };
 export type QuestJournalEntry = {
  id: string; title: string; chapter: number; category: 'main'|'side'|'daily'|'class';
+ reportNpcId?: string; reportNpcName?: string; reportMapId?: string; reportMapName?: string;
  giverNpcId: string; giverNpcName: string; giverNpcRole: string; giverMapId: string; giverMapName: string;
  recommendedLevel: number; requiredLevel: number; requiredQuestIds: string[]; requiredMapId: string|null; requiredJob: string|null;
  targetMapId: string; targetMapName: string; description: string; objectives: Array<{type:string;targetId:string;targetName:string;required:number}>;
- rewards: QuestReward; repeatable: boolean; cooldownHours: number; status: RegionQuestStatus; progress: Array<{current:number;required:number}>;
+ rewards: QuestReward; repeatable: boolean; cooldownHours: number; status: RegionQuestStatus; progress: Array<{current:number;required:number;unavailable?:boolean}>;
 };
 
 const npcServices = ['story','tutorial','core','forge','equipment','consumable','storage','healer','pet','teleport','quests'];
@@ -212,6 +217,8 @@ fieldDefinitions[ABYSAL_TRENCH_ID]={
  dropTable:[...sunkenContent.dropTable],materialTable:sunkenContent.materialTable.map(m=>({...m})),recommendedLevel:'58–60',maxLevel:60,
  subAreas:['Trench Landing','Tectonic Maze','Tectonic Basin'],entry:{...ABYSAL_TRENCH_ENTRY},exit:{x:0,z:350},color:'#0b2943',
 };
+// Environment replacement only: keep the existing content, access and quest definitions.
+Object.assign(fieldDefinitions[METEORFALL_ID], {displayName:'Meteorfall Citadel',codename:'Meteorfall Citadel',entry:{...METEORFALL_ENTRY},exit:{x:METEORFALL_EXIT.x,z:METEORFALL_EXIT.z},subAreas:METEORFALL_PLATFORMS.map(p=>p.name),color:'#3a0b16'});
 export const FIELDS: Record<string, FieldDefinition> = Object.fromEntries([
  [PLAINS_ID, fieldDefinitions[PLAINS_ID]],
  ...Object.entries(fieldDefinitions).filter(([id])=>id!==PLAINS_ID&&id!=='verdant-plains'&&id!==WILDS_ID&&id!==IRONVEIL_ID)
@@ -227,6 +234,8 @@ for(const field of Object.values(FIELDS)) {
 }
 
 fieldDefinitions[PLAINS_ID].nextMap=IRONVEIL_ID;
+// Copy only selected regional normal definitions; no shared legacy object mutation.
+for(const id of [PLAINS_ID,IRONVEIL_ID])FIELDS[id].normalMonsters=FIELDS[id].normalMonsters.map(m=>questTargetLevel(m,id));
 
 export const startingFieldIds = () => Object.values(FIELDS).filter(field=>field.isUnlocked&&field.chapter<=WORLD_CONFIG.chapterCap).map(field=>field.id);
 export function fieldContent(fieldId:string):FieldDefinition {
@@ -242,9 +251,11 @@ export const FIELD_NPCS: Record<string, NpcDefinition> = {
  'meteorfall-citadel': {id:'field-npc-meteor',name:'Penjaga Benteng Meteor',type:'merchant',service:'field-camp',services:['buy','sell','teleport','quest'],interactionRange:2.5,shopInventory:[],description:'Quest field, teleport, dan toko kebutuhan farming Benteng Hujan Meteor.',x:-26,z:28,fieldId:'meteorfall-citadel'},
 };
 
+Object.assign(FIELD_NPCS[METEORFALL_ID],METEORFALL_NPC,{name:'Citadel Warden',description:'Field quests, travel, and supplies at Arrival Bastion.'});
 FIELD_NPCS['east-gate-arunika']={id:'field-npc-east-gate',name:'Penjaga Pos Timur',type:'merchant',service:'field-camp',services:['buy','sell','teleport','quest'],interactionRange:2.5,shopInventory:[],description:'Perbekalan, perjalanan, dan misi perbatasan East Gate Arunika.',x:-38,z:28,fieldId:'east-gate-arunika'};
 Object.assign(FIELD_NPCS['east-gate-arunika'],EAST_GATE_TERRAIN.camp);
-export function monsterXP(monster:MonsterDefinition, playerLevel:number) { return Math.max(1, Math.floor(monster.exp * Math.max(0.05, 1 - Math.max(0, playerLevel-monster.level-5)*0.08))); }
+export function monsterXP(monster:MonsterDefinition, playerLevel:number) { return Math.max(1, Math.floor(monster.exp * Math.max(0.05, 1 - Math.max(0, playerLevel-(monster.rewardLevel??monster.level)-5)*0.08))); }
+export function regionNpcs(id:string) {return [...(CITIES[id]?.npcList??(FIELD_NPCS[id]?[FIELD_NPCS[id]]:[])),...developmentQuestNpcs().filter(n=>n.fieldId===id)];}
 export function unlockReason(hero:Hero, id:string):string {
  const region=FIELDS[id]??CITIES[id];
  if(!region) return 'Wilayah tidak ditemukan.';
@@ -276,6 +287,14 @@ export function travel(hero:Hero,id:string,portalId?:string) {
  return {ok:true,reason:`Tiba di ${(CITIES[id]??FIELDS[id]).displayName}.`};
 }
 export function acceptRegionQuest(hero:Hero,id:string) {
+ const entry=getQuestRegistry().find(q=>q.id===id);
+ if(!entry||(!protectedFieldQuest(id)&&getQuestRequirements(entry,hero).length)||questProgressIssue(hero,id))return false;
+ const early=earlyQuest(id);
+ if(early){
+  if(hero.completedQuests.includes(id)||hero.activeQuests.includes(id))return false;
+  hero.acceptedQuests=Array.from(new Set([...hero.acceptedQuests,id]));hero.activeQuests.push(id);
+  early.objectives.forEach((_,i)=>{hero.cityProgress[objectiveKey(id,i)]=0;});return true;
+ }
  if(id==='main-verdant-bisikan') {
   if(hero.completedQuests.includes(id)||hero.questClaimed) return false;
   if(!hero.activeQuests.includes(id)) {
@@ -296,11 +315,19 @@ export function acceptRegionQuest(hero:Hero,id:string) {
  return true;
 }
 export function regionQuestStatus(hero:Hero,id:string,now=Date.now()):RegionQuestStatus {
+ const early=earlyQuest(id);
+ if(early){
+  if(hero.completedQuests.includes(id))return 'completed';
+  if(questProgressIssue(hero,id))return 'locked';
+  if(hero.activeQuests.includes(id))return earlyProgress(hero,early).every(p=>p.current>=p.required)?'ready_to_complete':'active';
+  return getQuestRequirements(early,hero).length?'locked':'available';
+ }
  const field=fieldForQuest(id);
  if(!field) return 'completed';
  const info=fieldQuestInfo(field,id);
- if((hero.questCooldowns[id]??0)>now) return 'cooldown';
  if(hero.completedQuests.includes(id)) return 'completed';
+ if(questProgressIssue(hero,id))return 'locked';
+ if((hero.questCooldowns[id]??0)>now) return 'cooldown';
  if(!hero.activeQuests.includes(id)&&hero.level<info.requiredLevel) return 'locked';
  if(!hero.activeQuests.includes(id)) return 'available';
  const ready=(hero.fieldProgress[field.id]??0)-(hero.cityProgress[`baseline-${id}`]??0)>=info.target;
@@ -308,7 +335,7 @@ export function regionQuestStatus(hero:Hero,id:string,now=Date.now()):RegionQues
 }
 type FieldQuestDifficulty='easy'|'veteran'|'elite';
 function fieldQuestDifficulty(id:string):FieldQuestDifficulty { return id.endsWith('-veteran')?'veteran':id.endsWith('-elite')?'elite':'easy'; }
-export function fieldForQuest(id:string) { return Object.values(FIELDS).find(field=>field.questList.includes(id)); }
+export function fieldForQuest(id:string) { const fixed=protectedFieldQuest(id); return fixed?FIELDS[fixed.region]:Object.values(FIELDS).find(field=>field.questList.includes(id)); }
 export function migrateFieldQuestId(id:string) {
  if(id==='story-ironveil-mines')return 'field-ironveil-mines-easy';
  if(id==='story-verdant-plains')return 'field-verdant-plains-easy';
@@ -316,11 +343,13 @@ export function migrateFieldQuestId(id:string) {
  return id;
 }
 export function fieldQuestInfo(field:FieldDefinition,id:string) {
+ const fixed=protectedFieldQuest(id); if(fixed)return {difficulty:fixed.difficulty,requiredLevel:fixed.requiredLevel,target:fixed.target};
  const difficulty=fieldQuestDifficulty(id), span=Math.max(0,field.maxLevel-field.minLevel);
  const requiredLevel=difficulty==='easy'?field.minLevel:difficulty==='veteran'?Math.min(field.maxLevel,field.minLevel+Math.max(1,Math.floor(span*.35))):Math.min(field.maxLevel,field.minLevel+Math.max(2,Math.floor(span*.7)));
  return {difficulty,requiredLevel,target:difficulty==='easy'?5:difficulty==='veteran'?10:15};
 }
 export function getQuestStatus(quest:QuestJournalEntry,hero:Hero,now=Date.now()):RegionQuestStatus {
+ if(earlyQuest(quest.id))return regionQuestStatus(hero,quest.id,now);
  if(fieldForQuest(quest.id)) return regionQuestStatus(hero,quest.id,now);
  if(quest.id==='main-verdant-bisikan') return hero.questClaimed||hero.completedQuests.includes(quest.id)?'completed':hero.activeQuests.includes(quest.id)?hero.kills>=6?'ready_to_complete':'active':'available';
  if(quest.id==='class-core') return hero.coreQuestClaimed?'completed':hero.level>=10?'available':'locked' as RegionQuestStatus;
@@ -328,14 +357,26 @@ export function getQuestStatus(quest:QuestJournalEntry,hero:Hero,now=Date.now())
  if(quest.id==='class-mastery') return hero.masteryQuestClaimed?'completed':hero.level<40||!hero.specialization?'locked' as RegionQuestStatus:'available';
  return 'locked';
 }
+export function getQuestReportLocation(quest:QuestJournalEntry) { return {mapId:quest.reportMapId??quest.giverMapId,mapName:quest.reportMapName??quest.giverMapName,npcId:quest.reportNpcId??quest.giverNpcId,npcName:quest.reportNpcName??quest.giverNpcName}; }
 export function getQuestGiverLocation(quest:QuestJournalEntry) { return {mapId:quest.giverMapId,mapName:quest.giverMapName,npcId:quest.giverNpcId,npcName:quest.giverNpcName}; }
+export function questProgressIssue(hero:Hero,id:string) {
+ if(hero.completedQuests.includes(id))return '';
+ if(hero.questProgressHolds?.[id])return 'Progres quest ini memerlukan pemeriksaan; data lama dipertahankan.';
+ const field=fieldForQuest(id);
+ if(field&&hero.activeQuests.includes(id)){
+   const baseline=hero.cityProgress[`baseline-${id}`],count=hero.fieldProgress[field.id];
+   if(!Number.isFinite(baseline)||baseline<0||count!==undefined&&(!Number.isFinite(count)||count<baseline))return 'Baseline progres quest tidak dapat dipastikan; quest lain tetap tersedia.';
+ }
+ return '';
+}
 export function getQuestRequirements(quest:QuestJournalEntry,hero:Hero) {
  const unmet:string[]=[];
+ const issue=questProgressIssue(hero,quest.id);if(issue)unmet.push(issue);
  if(hero.level<quest.requiredLevel) unmet.push(`Level minimum: ${quest.requiredLevel}`);
  if(quest.requiredJob==='core'&&!hero.coreJob) unmet.push('Pilih Core Job terlebih dahulu');
  if(quest.requiredJob==='specialization'&&!hero.specialization) unmet.push('Pilih Special Job terlebih dahulu');
  if(quest.requiredJob&&![ 'core','specialization' ].includes(quest.requiredJob)&&hero.job!==quest.requiredJob&&hero.specialization!==quest.requiredJob) unmet.push(`Job: ${quest.requiredJob}`);
- for(const id of quest.requiredQuestIds) if(!hero.completedQuests.includes(id)) unmet.push(`Selesaikan quest: ${id}`);
+ for(const id of quest.requiredQuestIds) if(!hero.completedQuests.includes(id)&&!(id==='main-verdant-bisikan'&&hero.questClaimed)) unmet.push(`Selesaikan quest: ${id}`);
  if(quest.requiredMapId&&!hero.unlockedFields.includes(quest.requiredMapId)&&!hero.unlockedCities.includes(quest.requiredMapId)) unmet.push(`Buka akses: ${quest.requiredMapId}`);
  return unmet;
 }
@@ -346,21 +387,23 @@ export function getQuestRegistry():QuestJournalEntry[] {
   {id:'class-specialization',title:'Specialization Quest',chapter:1,category:'class',giverNpcId:'jaya-1',giverNpcName:'Mahaguru Silsilah',giverNpcRole:'Job NPC',giverMapId:'jayantara',giverMapName:CITIES.jayantara.displayName,recommendedLevel:25,requiredLevel:25,requiredQuestIds:[],requiredMapId:'jayantara',requiredJob:'core',targetMapId:'jayantara',targetMapName:CITIES.jayantara.displayName,description:'Pilih Special Job dan bentuk identitas utama karakter.',objectives:[{type:'job',targetId:'specialization',targetName:'Special Job',required:1}],rewards:{xp:0,gold:0,items:[]},repeatable:false,cooldownHours:0,status:'locked',progress:[]},
   {id:'class-mastery',title:'Mastery Quest',chapter:1,category:'class',giverNpcId:'jaya-1',giverNpcName:'Mahaguru Silsilah',giverNpcRole:'Job NPC',giverMapId:'jayantara',giverMapName:CITIES.jayantara.displayName,recommendedLevel:40,requiredLevel:40,requiredQuestIds:[],requiredMapId:'jayantara',requiredJob:'specialization',targetMapId:'jayantara',targetMapName:CITIES.jayantara.displayName,description:'Buka pilihan Mastery untuk memodifikasi skill.',objectives:[{type:'job',targetId:'mastery',targetName:'Mastery',required:1}],rewards:{xp:0,gold:0,items:[]},repeatable:false,cooldownHours:0,status:'locked',progress:[]},
  ];
- for(const field of Object.values(FIELDS)) for(const id of field.questList){
+ for(const field of Object.values(FIELDS)) for(const id of new Set([...field.questList,...PROTECTED_FIELD_QUESTS.filter(q=>q.region===field.id).map(q=>q.id)])){
   const giver=FIELD_NPCS[field.id], info=fieldQuestInfo(field,id); const difficultyLabel=info.difficulty==='easy'?'Easy':info.difficulty==='veteran'?'Veteran':'Elite';
-  registry.push({id,title:`${field.displayName} · ${difficultyLabel}`,chapter:field.chapter,category:'side',giverNpcId:giver.id,giverNpcName:giver.name,giverNpcRole:'Field Quest NPC',giverMapId:field.id,giverMapName:field.displayName,recommendedLevel:field.minLevel,requiredLevel:info.requiredLevel,requiredQuestIds:[],requiredMapId:field.id,requiredJob:null,targetMapId:field.id,targetMapName:field.displayName,description:regionQuestDescription(id),objectives:[{type:'kill',targetId:field.id,targetName:`Monster ${difficultyLabel}`,required:info.target}],rewards:regionQuestReward(id),repeatable:false,cooldownHours:0,status:'locked',progress:[]});
+  registry.push({id,title:`${field.displayName} · ${difficultyLabel}`,chapter:field.chapter,category:'side',giverNpcId:giver.id,giverNpcName:giver.name,giverNpcRole:'Field Quest NPC',giverMapId:field.id,giverMapName:field.displayName,recommendedLevel:info.requiredLevel,requiredLevel:info.requiredLevel,requiredQuestIds:[],requiredMapId:field.id,requiredJob:null,targetMapId:field.id,targetMapName:field.displayName,description:regionQuestDescription(id),objectives:[{type:'kill',targetId:field.id,targetName:`Monster ${difficultyLabel}`,required:info.target}],rewards:regionQuestReward(id),repeatable:false,cooldownHours:0,status:'locked',progress:[]});
  }
- return registry;
+ return [...registry,...earlyQuests()];
 }
 export function getAllQuestJournalEntries(hero:Hero,now=Date.now()):QuestJournalEntry[] {
  return getQuestRegistry().filter(quest=>showJobQuest(hero,quest)).map(quest=>{
   const status=getQuestStatus(quest,hero,now);
-  let progress=quest.objectives.map(objective=>({current:0,required:objective.required}));
-  if(quest.id==='main-verdant-bisikan') {
+  let progress:QuestJournalEntry['progress']=quest.objectives.map(objective=>({current:0,required:objective.required}));
+  const early=earlyQuest(quest.id);
+  if(early)progress=hero.activeQuests.includes(quest.id)||hero.completedQuests.includes(quest.id)?earlyProgress(hero,early):progress;
+  else if(quest.id==='main-verdant-bisikan') {
    progress=[{current:Math.min(6,hero.kills),required:6}];
   } else if(fieldForQuest(quest.id)) {
    const fieldProgress=regionQuestProgress(hero,quest.id);
-   progress=[{current:fieldProgress.current,required:fieldProgress.target}];
+   progress=[{current:!hero.activeQuests.includes(quest.id)&&!hero.completedQuests.includes(quest.id)?0:fieldProgress.current,required:fieldProgress.target,...(fieldProgress.unavailable?{unavailable:true}:{})}];
   }
   return {...quest,status,progress};
  });
@@ -375,15 +418,26 @@ export function regionQuestProgress(hero:Hero,id:string) {
  const field=fieldForQuest(id);
  if(!field) return {current:0,target:0};
  const target=fieldQuestInfo(field,id).target;
+ if(questProgressIssue(hero,id))return {current:0,target,unavailable:true};
  return {current:Math.min(target,Math.max(0,(hero.fieldProgress[field.id]??0)-(hero.cityProgress[`baseline-${id}`]??0))),target};
 }
 export function regionQuestReward(id:string):QuestReward {
+ const early=earlyQuest(id);if(early)return early.rewards;
+ if(id==='main-verdant-bisikan')return {xp:80,gold:80,items:[]};
+ const fixed=protectedFieldQuest(id); if(fixed)return {xp:fixed.reward.xp,gold:fixed.reward.gold,items:fixed.reward.items.map(item=>({...item}))};
  const field=fieldForQuest(id);
  if(!field) return {xp:0,gold:0,items:[]};
  const info=fieldQuestInfo(field,id), multiplier=info.difficulty==='easy'?1:info.difficulty==='veteran'?1.8:3;
  return {xp:Math.floor(field.minLevel*35*multiplier),gold:Math.floor((field.minLevel*15+35)*multiplier),items:[{templateId:field.materialTable[0].id,quantity:info.difficulty==='elite'?5:info.difficulty==='veteran'?3:2}]};
 }
 export function completeRegionQuest(hero:Hero,id:string,_day=new Date().toISOString().slice(0,10)) {
+ const early=earlyQuest(id);
+ if(early){
+  if(regionQuestStatus(hero,id)!=='ready_to_complete')return {ok:false,reason:'Objective belum selesai atau reward sudah diterima.',reward:{xp:0,gold:0,items:[]}};
+  hero.inventory=questTurnInInventory(hero,id);
+  hero.completedQuests.push(id);hero.activeQuests=hero.activeQuests.filter(q=>q!==id);hero.acceptedQuests=hero.acceptedQuests.filter(q=>q!==id);
+  return {ok:true,reason:`Quest selesai: ${early.title}.`,reward:early.rewards};
+ }
  if(id==='main-verdant-bisikan') {
   if(!hero.activeQuests.includes(id)||hero.questClaimed||hero.completedQuests.includes(id)) return {ok:false,reason:'Quest belum diambil atau reward sudah diklaim.',reward:{xp:0,gold:0,items:[]}};
   if(hero.kills<6) return {ok:false,reason:'Kalahkan 6 Lumut Liar terlebih dahulu.',reward:{xp:0,gold:0,items:[]}};
@@ -403,4 +457,13 @@ export function completeRegionQuest(hero:Hero,id:string,_day=new Date().toISOStr
  hero.activeQuests=hero.activeQuests.filter(quest=>quest!==id);
  refreshUnlocks(hero);
  return {ok:true,reason:`Quest selesai: ${field.displayName}.`,reward};
+}
+/** Pure post-consume inventory for capacity preflight; no payment or receipt here. */
+export function questTurnInInventory(hero:Hero,id:string) {
+ const q=earlyQuest(id),required=q?.objectives.find(o=>o.type==='collect')?.required??0;
+ let inventory=hero.inventory,remaining=required;
+ for(const item of inventory.filter(i=>i.templateId===MINE_SAMPLE_ID)){
+  const n=Math.min(item.quantity,remaining);if(n){inventory=removeItemQuantity(inventory,item.id,n).inventory;remaining-=n;}
+ }
+ return inventory;
 }

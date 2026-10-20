@@ -1,5 +1,5 @@
 import { WEAPON_TUNING } from './canonical-config.ts';
-import { calculateEquipmentStats } from './items.ts';
+import { calculateEquipmentStats, calculateEnhancedBaseStats } from './items.ts';
 import type { ItemData, StatBlock } from './items.ts';
 import type { ResolvedSkillAction } from './skill-action.ts';
 
@@ -64,7 +64,8 @@ export type WeaponAttackContext = {
 };
 
 export const weaponAttack = (item: ItemData | null, hand: WeaponHand = 'MAIN', efficiency: number = WEAPON_TUNING.offHandBaseline) => item ?
-  (item.baseStats.attack ?? 0) * (1 + item.enhancementLevel * WEAPON_TUNING.enhancementPerLevel) *
+  // Scalar compatibility only; selected range samplers do not call this helper.
+  (calculateEnhancedBaseStats(item).attack ?? 0) *
   (WEAPON_TUNING.contribution[item.equipmentType ?? ''] ?? 1) * (hand === 'OFF' ? efficiency : 1) : 0;
 export function offHandEfficiency(hero: { specialization: string | null; skillProgressionV3?: { skillRanks: Record<string, number> } }) {
   const rogue = hero.specialization === 'rogue';

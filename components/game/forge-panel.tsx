@@ -1,6 +1,6 @@
 'use client';
 import { JobText } from './job-presentation-context';
-import { statDisplayLabel, statDisplayValue, statBonusText } from '@/lib/game/stat-presentation';
+import { equipmentDetailComparison } from '@/lib/game/equipment-detail-presentation';
 
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { Hammer, ShieldCheck } from 'lucide-react';
@@ -8,14 +8,14 @@ import { CITIES, forgeAccessReason } from '@/lib/game/regions';
 import {
   enhancementPreview,
   isEnhanceableEquipment,
-  itemStats,
   type Hero,
 } from '@/lib/game/rules';
-import { ITEM_CATALOG, RARITY_META, type ItemData, type StatBlock } from '@/lib/game/items';
+import { ITEM_CATALOG, RARITY_META, type ItemData } from '@/lib/game/items';
 import { CHARACTER_SLOTS } from '@/lib/game/character-view';
 import type { Game } from '@/lib/game/world';
 import { ItemIcon } from './entry-icon';
 import { ItemHover } from './item-hover';
+import { EquipmentDetail, readEquipmentDetail } from './equipment-detail';
 import { Progress } from '@/components/ui/progress';
 import { DraggableAlertDialogContent } from './draggable-window';
 import {
@@ -27,8 +27,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-
-const statLabel = statDisplayLabel;
 
 /** Presentation over the existing inventory and enhancement transaction; no copied equipment state. */
 export function ForgePanel({
@@ -88,14 +86,13 @@ export function ForgePanel({
   if (!hasSeal && useSeal) setUseSeal(false);
   if (!hasFateRune && useFateRune) setUseFateRune(false);
   const preview = selected ? enhancementPreview(hero, selected.id, useSeal, useFateRune) : null;
-  const current = selected ? itemStats(selected) : {};
-  const next =
+  const comparison =
     selected && preview
-      ? itemStats({
+      ? equipmentDetailComparison(readEquipmentDetail(selected, game), readEquipmentDetail({
           ...selected,
           enhancementLevel: selected.enhancementLevel + 1,
-        })
-      : current;
+        }, game))
+      : [];
   const blocked =
     accessReason || !game
       ? accessReason || 'Forge Master belum tersedia.'
@@ -155,8 +152,8 @@ export function ForgePanel({
               <JobText>{result.before.name}</JobText>: +{result.before.enhancementLevel} → {result.after ? `+${result.after.enhancementLevel}` : 'Destroyed'}
             </p>}
             {result.before && result.after && result.attempted && <dl className="forge-result-stats">
-              {Object.entries(itemStats(result.before)).filter(([key, value]) => value !== itemStats(result.after!)[key as keyof StatBlock]).map(([key, value]) => (
-                <div key={key}><dt>{statLabel(key)}</dt><dd>{statDisplayValue(key, value!, false)} → {statDisplayValue(key, itemStats(result.after!)[key as keyof StatBlock] ?? 0, false)}</dd></div>
+              {equipmentDetailComparison(readEquipmentDetail(result.before, game), readEquipmentDetail(result.after, game)).filter(row => row.before !== row.after).map(row => (
+                <div key={row.id}><dt>{row.label}</dt><dd>{row.before} → {row.after}</dd></div>
               ))}
             </dl>}
             <small>{result.uncertain ? 'Jangan ulangi percobaan sebelum memeriksa inventory.' : result.attempted ? 'Bahan dan hasil equipment sudah diperbarui. Biaya: 0 GOLD.' : 'Tidak ada bahan atau GOLD yang digunakan.'}</small>
@@ -249,48 +246,23 @@ export function ForgePanel({
               <div className="forge-stats">
                 <h4>Stat saat ini → setelah berhasil</h4>
                 <small>
-                  Memakai perhitungan equipment yang sama dengan Character dan
-                  combat.
+                  Sumber rincian sama dengan tooltip equipment. Proyeksi stat bukan izin tempa; batas transaksi tetap berlaku.
                 </small>
                 <dl>
-                  {Object.entries(current).map(([key, value]) => (
-                    <div key={key}>
-                      <dt>{statLabel(key)}</dt>
+                  {comparison.map(row => (
+                    <div key={row.id}>
+                      <dt>{row.label}</dt>
                       <dd>
-                        {statDisplayValue(key, value!, false)} <span>→</span>{' '}
-                        {statDisplayValue(key, next[key as keyof StatBlock] ?? 0, false)}
+                        {row.before} <span>→</span>{' '}
+                        {row.after}
                       </dd>
                     </div>
                   ))}
                 </dl>
               </div>
               <details className="forge-options" open>
-                <summary>Base stat, Unique Stats & Rune</summary>
-                <p>
-                  Base:{' '}
-                  {Object.entries(selected.baseStats)
-                    .map(([key, value]) => statBonusText(key, value!))
-                    .join(' · ') || '—'}
-                </p>
-                <p>{selected.uniqueStatsLocked ? 'Unique Stats tersembunyi · Gunakan Arcane Magnifier.' :
-                  'Unique Stats: ' + (Object.entries(selected.bonusStats).map(([key, value]) => statBonusText(key, value!)).join(' · ') || '—')}</p>
-                <p>
-                  Socket:{' '}
-                  {selected.sockets
-                    .map((socket) => (socket.rune ? '●' : '○'))
-                    .join(' ') || 'Tidak memiliki socket'}
-                </p>
-                {selected.sockets.map((socket, index) => (
-                  <ItemHover as="div" item={socket.rune} key={socket.id} className="forge-rune">
-                    {socket.rune && <ItemIcon item={socket.rune} />}
-                    <span>
-                      Socket {index + 1}:{' '}
-                      <JobText>{socket.rune
-                        ? `${socket.rune.name} (${socket.rune.runeRarity}) — ${socket.rune.affixes.map((a) => statBonusText(a.stat, a.value)).join(' · ')}`
-                        : 'Kosong'}</JobText>
-                    </span>
-                  </ItemHover>
-                ))}
+                <summary>Rincian equipment</summary>
+                <EquipmentDetail item={selected} game={game}/>
               </details>
               {preview && material && (
                 <div className="forge-costs">
@@ -416,7 +388,7 @@ export function ForgePanel({
             <AlertDialogTitle>Konfirmasi tempa equipment</AlertDialogTitle>
             <AlertDialogDescription>
               <JobText>{confirmationValid && selected && preview
-                  ? `$<JobText>{selected.name}</JobText> +${selected.enhancementLevel} → +${selected.enhancementLevel + 1}. Peluang sukses ${Math.round(preview.finalChance * 100)}%. Biaya ${preview.materialRequired} ${material?.name}, 0 GOLD.${preview.runeBonus ? ' Fate Rune terpakai dan menambah +8% success chance.' : ' Fate Rune tidak dipakai.'} ${preview.risk} Material tetap terpakai saat gagal.`
+                  ? `${selected.name} +${selected.enhancementLevel} → +${selected.enhancementLevel + 1}. Peluang sukses ${Math.round(preview.finalChance * 100)}%. Biaya ${preview.materialRequired} ${material?.name}, 0 GOLD.${preview.runeBonus ? ' Fate Rune terpakai dan menambah +8% success chance.' : ' Fate Rune tidak dipakai.'} ${preview.risk} Material tetap terpakai saat gagal.`
                 : blocked ||
                   'Equipment berubah. Batalkan dan periksa preview kembali.'}</JobText>
             </AlertDialogDescription>

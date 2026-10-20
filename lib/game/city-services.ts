@@ -1,12 +1,23 @@
+import {mapScroll,mapVisitReceipt} from './map-scroll-contract.ts';
 import {addItemToInventory,createItem,ITEM_CATALOG,POTION_IDS,removeItemQuantity,type ItemData} from './items.ts';
 import {maxHP,derivedStats,restoreMana,type Hero} from './rules.ts';
-import {FIELDS, WORLD_CONFIG, fieldContent} from './regions.ts';
+import {FIELDS, WORLD_CONFIG, fieldContent, unlockReason} from './regions.ts';
+import {IRONVEIL_ID,IRONVEIL_TRANSITION} from './ironveil-mines-layout.ts';
+import {MINE_ID} from './ironveil-interior-layout.ts';
 import { isResourceEnabled } from './gameplay-config.ts';
+import { JAYANTARA_RANGE_V3 } from './jayantara-range-v3.ts';
 export function shopStock(hero:Hero,service:string) {
- return Object.values(ITEM_CATALOG).filter(item=>service==='developer-materials'?(item.category==='material'||item.itemType==='eternalSeal'||item.templateId==='dragon-veil-wings'||item.templateId==='developer-level-100-potion'):service==='equipment'?item.templateId!=='dragon-veil-wings'&&['weapon','armor','accessory'].includes(item.category):service==='seal'?['fateRune','eternalSeal'].includes(item.itemType):service==='consumable'?item.templateId!=='developer-level-100-potion'&&['consumable','potion'].includes(item.category):false);
+ return Object.values(ITEM_CATALOG).filter(item=>{
+ const scroll=mapScroll(item.templateId);
+ if(scroll)return process.env.NODE_ENV!=='production'&&service==='consumable'&&hero.inCity&&scroll.price!==null&&hero.cityProgress[mapVisitReceipt(scroll.region)]===1&&
+  (scroll.region!==MINE_ID||IRONVEIL_TRANSITION.available)&&!unlockReason(hero,scroll.region===MINE_ID?IRONVEIL_ID:scroll.region);
+ return service==='developer-materials'?(item.category==='material'||item.itemType==='eternalSeal'||item.templateId==='dragon-veil-wings'||item.templateId==='developer-level-100-potion'):service==='equipment'?item.templateId!=='dragon-veil-wings'&&['weapon','armor','accessory'].includes(item.category):service==='seal'?['fateRune','eternalSeal'].includes(item.itemType):service==='consumable'?item.templateId!=='developer-level-100-potion'&&['consumable','potion'].includes(item.category):false;
+ });
 }
-export function shopItemPrice(item:Pick<ItemData,'buyValue'|'sellValue'|'levelRequirement'>,service:string) {
- return service==='developer-materials'?0:item.buyValue||Math.max(60,item.sellValue*4+item.levelRequirement*5);
+export function shopItemPrice(item:Pick<ItemData,'buyValue'|'sellValue'|'levelRequirement'> & Partial<Pick<ItemData,'templateId'|'authoredAttackVersion'>>,service:string) {
+ const scroll=item.templateId&&mapScroll(item.templateId);if(scroll)return process.env.NODE_ENV!=='production'&&scroll.price!==null?scroll.price:Infinity;
+ const pricingLevel=item.templateId===JAYANTARA_RANGE_V3.templateId&&item.authoredAttackVersion===JAYANTARA_RANGE_V3.version?24:item.levelRequirement;
+ return service==='developer-materials'?0:item.buyValue||Math.max(60,item.sellValue*4+pricingLevel*5);
 }
 export function fieldShopStock(fieldId:string) {
  const field=FIELDS[fieldId]??Object.values(FIELDS).find(candidate=>candidate.contentFamilyId===fieldId); if(!field) return [];
@@ -37,6 +48,7 @@ export function sellInventoryItem(hero:Hero,itemId:string,quantity:number,allowe
  return {ok:true,reason:'Item berhasil dijual',earned};
 }
 export function buyShopItem(hero:Hero,templateId:string,service:string,quantity=1) {
+ if(mapScroll(templateId)&&(!Number.isSafeInteger(quantity)||quantity<1))return {ok:false,reason:'Jumlah scroll tidak valid.'};
  const template=shopStock(hero,service).find(item=>item.templateId===templateId);
  if(!hero.inCity||!template) return {ok:false,reason:'Item tidak tersedia di toko ini.'};
  const amount=Math.max(1,Math.floor(quantity));
@@ -53,6 +65,7 @@ export function transferStorage(hero:Hero,id:string,withdraw=false,quantity=1) {
  const source=withdraw?hero.storage:hero.inventory;const destination=withdraw?hero.inventory:hero.storage;
  const item=source.find(item=>item.id===id);
  if(!item) return {ok:false,reason:'Item tidak ditemukan.'};
+ if(item.templateId==='quest-ironveil-survey-sample-v1')return {ok:false,reason:'Sampel quest tetap di inventory hingga dilaporkan.'};
  if(!withdraw&&Object.values(hero.equipment).includes(id)) return {ok:false,reason:'Lepas equipment dahulu.'};
  const amount=Math.max(1,Math.min(Math.floor(quantity),item.quantity));
  const transferItem={...item,quantity:amount};
