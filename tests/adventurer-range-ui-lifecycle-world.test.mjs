@@ -15,7 +15,7 @@ const element = () => ({ style: {}, children: [], clientWidth: 1600, clientHeigh
   getBoundingClientRect: () => ({ left: 0, top: 0, width: 1600, height: 1000 }), remove() {},
   getContext: () => ({ clearRect() {}, fillRect() {} }) });
 Object.assign(globalThis, { localStorage: memory, devicePixelRatio: 1,
-  window: { localStorage: memory, location: { hostname: 'localhost', pathname: '/tests/offline-basic' }, addEventListener() {}, removeEventListener() {} },
+  window: { localStorage: memory, location: { hostname: 'localhost', pathname: '/tests/offline-basic' }, dispatchEvent() {}, addEventListener() {}, removeEventListener() {} },
   document: { querySelector: () => null, createElement: element, addEventListener() {}, removeEventListener() {} },
   ResizeObserver: class { observe() {} disconnect() {} }, cancelAnimationFrame() {}, requestAnimationFrame: () => 0 });
 const server = await createServer({ configFile: false, appType: 'custom',
@@ -97,6 +97,12 @@ function commitment(g) {
 const producer=await load('adventurer-ranks-reference-v2');
 const activate=g=>assert(g.enableDevelopmentAdventurerRanksReference({lifecycleRenewal:true}).ok);
 const range=g=>{const result=g.getDevelopmentAdventurerRange();assert(result?.ok,JSON.stringify(result));return result.value;};
+function visitQuestNpc(g,mapId,npcId){
+ // Mechanical relocation in an offline render stub; use actual NPC identity,
+ // map and interaction range instead of a fabricated {services:['quest']} object.
+ const npc=regions.regionNpcs(mapId).find(n=>n.id===npcId);assert(npc);
+ g.hero.x=npc.x;g.hero.z=npc.z;g.actor.position.set(npc.x,0,npc.z);assert(g.openNpc(npc.id));
+}
 for(let level=1;level<=14;level++)for(const allocation of ['neutral','STR','mixed'])await test('RANGE Lv'+level+' '+allocation+': shared preparation and getter pure',async()=>{
  const g=game({kind:'quick',rank:1,level});activate(g);
  for(let i=0,n=g.hero.statPoints;i<n&&allocation!=='neutral';i++)assert(g.allocateStatPoint(allocation==='STR'?'str':['str','vit','dex','int'][i%4]));
@@ -156,7 +162,7 @@ await test('QUEST reward renews only after original successful completion; dupli
  const g=game({kind:'quick',rank:1});
  // Existing quest grants 80 XP, not a guaranteed full level from fresh zero XP.
  rules.gainXP(g.hero,rules.xpNeeded(1)-80);activate(g);
- g.currentNpc={services:['quest']};g.activeNpcMenu={};
+ visitQuestNpc(g,'arunika','aruna-0');
  assert(g.cityAction('accept','main-verdant-bisikan'));
  for(let i=0;i<6;i++){
   const e=target(g,{hp:1,defense:0});e.definition.level=1;e.definition.exp=0;e.definition.dropRate=0;e.definition.lootTable=[];
@@ -182,7 +188,7 @@ await test('QUEST inventory reward: pre-transaction authority survives actual ma
  // A source-existing material quest, offline transaction proof only, not map fidelity.
  const quest=regions.getQuestRegistry().find(q=>q.category==='side'&&q.requiredLevel<=g.hero.level&&q.rewards.items.length>0);
  assert(quest);assert(regions.travel(g.hero,quest.giverMapId).ok);activate(g);
- assert(quest && quest.rewards.items.length>0);g.currentNpc={services:['quest']};g.activeNpcMenu={};
+ assert(quest && quest.rewards.items.length>0);visitQuestNpc(g,quest.giverMapId,quest.giverNpcId);
  assert(g.cityAction('accept',quest.id));
  for(let i=0;i<quest.objectives[0].required;i++){
   const e=target(g,{hp:1,defense:0});e.definition.level=1;e.definition.exp=0;e.definition.dropRate=0;e.definition.lootTable=[];g.hurtEnemy(e,100,0);

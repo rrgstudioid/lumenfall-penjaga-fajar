@@ -1083,6 +1083,8 @@ export function createItem(
     quantity: overrides.quantity ?? (template.stackable ? 1 : 1),
     ...overrides,
     rarity,
+    // Each acquisition owns its base sources; instance edits cannot alter the catalog.
+    baseStats: {...(overrides.baseStats ?? template.baseStats)},
     source:{...source},
     affixes:affixes.map(affix=>({...affix})),
     sockets:sockets.map(socket=>({...socket,rune:socket.rune?{...socket.rune,affixes:socket.rune.affixes.map(affix=>({...affix}))}:null})),
@@ -1505,7 +1507,7 @@ export function calculateEnhancedBaseStats(
   item: Pick<ItemData, 'baseStats' | 'enhancementLevel'> & Partial<ItemData>,
 ): StatBlock {
   const authored = resolveAuthoredEquipmentItem(item);
-  if (authored.ok) return {...authored.compatibilityBase};
+  if (authored.ok && (authored.profile.kind!=='BODY'||process.env.NODE_ENV==='development')) return {...authored.compatibilityBase};
   // Unknown metadata remains visibly unavailable through the pure authoring API.
   // Unmigrated generic consumers retain compatibility data, never a guessed range.
   const factor = 1 + item.enhancementLevel * WEAPON_TUNING.enhancementPerLevel;

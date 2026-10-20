@@ -10,6 +10,13 @@ try {
  const saved=items.normalizeItem({...item,id:'own-saved-new',authoredEquipmentVersion:core.EQUIPMENT_AUTHORING_VERSION,authoredEquipmentProfile:core.TRAINING_DAGGER_PROFILE,enhancementLevel:10});
  assert.equal(saved.id,'own-saved-new');assert(core.resolveAuthoredEquipmentItem(saved).ok);
  assert.equal(items.createItem('forest-vest').authoredEquipmentVersion,undefined);assert.equal(items.createItem('dragon-veil-wings').maxEnhancementLevel,0);
+ for(const m of core.DEVELOPMENT_BODY_MAPPINGS){
+  const fresh=items.createItem(m.templateId);assert.equal(fresh.authoredEquipmentVersion,undefined);
+  const savedBody=items.normalizeItem({...fresh,authoredEquipmentVersion:core.EQUIPMENT_AUTHORING_VERSION,authoredEquipmentProfile:m.profile,enhancementLevel:5});
+  assert.equal(savedBody.authoredEquipmentProfile,m.profile);assert.equal(savedBody.enhancementLevel,5);
+  assert.deepEqual(items.calculateEnhancedBaseStats(savedBody),items.calculateEnhancedBaseStats({...fresh,enhancementLevel:5}));
+  assert.equal(items.ITEM_CATALOG[m.templateId].authoredEquipmentVersion,undefined);
+ }
  const hero=rules.createV3AdventurerHero('production-own');hero.inventory.push(saved);assert.match(rules.enhancementPreview(hero,saved.id).blockedReason,/HOLD/);
  for(const name of ['enableDevelopmentWarriorSpecializationReference','enableDevelopmentWarriorReference','enableDevelopmentAdventurerRanksReference'])assert.equal(Game.prototype[name].call({}).code,'DEVELOPMENT_ONLY');
  assert.equal(items.createItem('jayantara-two-hand-sword').levelRequirement,24);
