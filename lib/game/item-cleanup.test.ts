@@ -16,7 +16,7 @@ import {
   retireUnusedNormalItems,
   RUNE_OPTIMIZER_CRAFT_RECIPES,
 } from './rules.ts';
-import { FIELDS, getQuestRegistry } from './regions.ts';
+import { FIELDS, fieldContent, getQuestRegistry } from './regions.ts';
 import { shopStock, fieldShopStock } from './city-services.ts';
 
 const retiredIds = Object.keys(RETIRED_NORMAL_MATERIALS);
@@ -80,7 +80,7 @@ await test('all field, monster, shop, crafting and quest references remain valid
     ['meteorfall-citadel', 'meteorite-core'],
   ])
     assert.equal(
-      FIELDS[field].materialTable.find((item) => item.id === id)!.chance,
+      fieldContent(field).materialTable.find((item) => item.id === id)!.chance,
       0.15,
     );
   for (const quest of getQuestRegistry())

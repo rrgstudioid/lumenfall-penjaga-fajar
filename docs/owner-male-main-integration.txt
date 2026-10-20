@@ -1,0 +1,82 @@
+OWNER MALE CHARACTER - DEV-GADANG / MAIN INTEGRATION CHECK
+17 October 2026, Asia/Bangkok
+
+AUTHORIZATION AND SOURCE REVISION
+Owner: "commit dan push ke dev-gadang ... push atau fast forward ke main".
+Fresh origin fetch: local dev-gadang, local main, origin/dev-gadang and
+origin/main all start at 066f2941fb6c12bd085b0de0cac52963a82132d7.
+No incoming collaborator changes or branch conflicts at this checkpoint.
+Integrate the reviewed working tree into dev-gadang, then fast-forward main.
+Use ordinary pushes without rewriting history. Final remote refs and the
+commit are verified after pushing and recorded in the task result and
+work/owner-male/integration/git-result.json. No public Site deployment step.
+
+1. LATEST OWNER-APPROVED IMPLEMENTATIONS TO PRESERVE
+- Use the owner's bald male GLB and all ten supplied hairstyles with the
+  existing Male V2 rig, persistent appearance IDs, save/preview/animation,
+  texture fallback and equipment paths. Approval: owner implementation request
+  followed by iterative acceptance in this conversation. Provenance and
+  original GLB SHA256 values: docs/owner-male-ingest.txt and asset manifest.
+- Preserve the accepted Mohawk root placement, Ponytail scalp coverage,
+  Bowl fit, Cornrows continuity, reduced Messy Spikes volume/rear coverage,
+  even recolorable skin, and Long Hair Tied right/rear scalp coverage.
+  Later owner corrections supersede the earlier fitted versions. The final
+  rear correction was accepted immediately before this Git request.
+- Preserve Meteorfall Citadel layout/population, travel/save behavior and
+  visual corrections, restored Dragon Veil four-piece armor, retired Gloves
+  compatibility, and grandfathered saved Wings enhancement.
+  Sources: docs/meteorfall-citadel-main-integration.txt,
+  docs/gameplay-authority/WINGS_GRANDFATHER_CORRECTION.txt and baseline 066f294.
+- Preserve canonical progression/combat/enhancement and held undefined data.
+  Sources: docs/gameplay-authority/canonical/HANDOFF.txt and the preceding
+  integration record. This commit introduces no new gameplay design values.
+
+2. SUPERSEDED BEHAVIOR THAT MUST NOT RETURN
+- Previous male body, reconstructed/alternate scalp, hidden base hair,
+  generic basic hairstyle under another selection, and hair/body atlas mixing.
+- Floating Mohawk roots, exposed scalp gaps on the corrected full hairstyles,
+  disconnected Cornrows, excess Messy volume and baked orange skin patches.
+- The obsolete map/equipment/progression behaviors listed in the preceding
+  Meteorfall integration record, including active Gloves, Wings reset or new
+  Wings upgrades, Lv80 hard cap, SP150/278 and invented +13..15 tuning.
+  Retained save compatibility and unrelated legacy files are not reactivated
+  by this change and do not authorize a global cleanup.
+
+3. FINAL SOURCE COMPARISON AND CONFLICT RESOLUTION
+The commit contains five runtime/test TypeScript files, 44 geometry derivatives,
+shared character textures, ten thumbnails, manifest/provenance, authoring/QA
+scripts, a model reference fixture and the two owner-male reports.
+Geometry total: 12,009,692 bytes. Hair/body cache revisions:
+owner-hair-revision-20261017-7 / owner-even-skin-20261017-2.
+All existing gameplay/map/equipment changes remain present through ancestry.
+world.ts, rules.ts, items.ts, canonical-config.ts, gameplay-config.ts,
+accuracy-evasion-fixture.ts, Dragon Veil runtime and Meteorfall files have no
+diff from the incoming baseline. The modular character adapter still invokes
+Dragon Veil coverage and equipment attachment.
+There is no branch conflict requiring a design choice; main is an incoming
+baseline rather than independent authority over later owner corrections.
+Source GLBs, original Blender files, tool installations/checkpoints, local
+saves, build output and QA screenshots remain outside the commit. Authoring
+scripts require the existing local Blender/toolchain checkpoints; runtime
+assets are included and do not depend on these authoring tools.
+The final tree/remote-ref checks confirm the reviewed source is what both
+branches receive; they are not a claim to have audited all CLASS history.
+
+4. COMBINED VERIFICATION
+Fresh integration run: 170/170 tests pass across 27 test files, covering
+canonical gameplay/shared stats, character models/UI/appearance/cache/LOD,
+female preservation, hair color, all owner geometry, Dragon Veil/Wings,
+save compatibility, equipment, Meteorfall, field travel, Whispering Wilds,
+Sunken save migration and Frostfire. Project semantic type check passes.
+Evidence: work/owner-male/integration/regression-tests.log and
+work/owner-male/integration-types.log.
+The exact runtime source already passed the latest local production build
+(exit 0), lint, Blender four-LOD/three-head-pose verification, and actual browser
+creation renderer checks including six actions with hair_10 and Dragon Veil.
+Those results are reused because only this audit record is added in the Git
+integration turn. Evidence: docs/owner-male-ingest.txt,
+output/tied-rear-review/{verification,blender-verification,scope-verification}.json
+and work/owner-male/tied-rear-build-exit.json. git diff --check passes.
+Existing build warnings, far-LOD faceting, rigid head-bound hair and the
+documented angle/pose/equipment/performance verification limits remain.
+No new public deployment or remote CI result is claimed.

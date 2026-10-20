@@ -7,7 +7,7 @@ import { freshHero, createItem, chooseCoreJob, equipItem } from './rules.ts';
 function equipped() {
   const hero = freshHero();
   const source = createItem('legacy-fajar-blade');
-  for (const slot of ['mainHand', 'gloves', 'boots', 'legs', 'ring1', 'necklace', 'earring1'] as const) {
+  for (const slot of ['mainHand', 'boots', 'legs', 'ring1', 'necklace', 'earring1'] as const) {
     const item = { ...source, id: `model-test-${slot}` };
     hero.inventory.push(item); hero.equipment[slot] = item.id;
   }
@@ -65,9 +65,8 @@ await test('walk moves both full leg chains in opposite phases and settles when 
 await test('equipment follows its owning joints during walk, attack and body turn', () => {
   const m = createCharacterModel(equipped(), { aura: false });
   const weapon = m.actor.getObjectByName('equipment:mainHand')!;
-  const glove = m.actor.getObjectByName('equipment:gloves:right')!;
   const boot = m.actor.getObjectByName('equipment:boots:right')!;
-  assert.equal(glove.parent, m.rig.rightHand);
+  assert.equal(m.actor.getObjectByName('equipment:gloves:right'), undefined, 'retired Gloves have no attachment');
   assert.equal(boot.parent, m.rig.rightFoot);
   assert.equal(m.actor.getObjectByName('equipment:ring1')!.parent, m.rig.rightHand);
   assert.equal(m.actor.getObjectByName('equipment:earring1')!.parent, m.rig.head);
@@ -77,7 +76,7 @@ await test('equipment follows its owning joints during walk, attack and body tur
   assert.ok(point(weapon).distanceTo(point(m.rig.rightHand)) < 1e-6);
   assert.ok(point(boot).distanceTo(point(m.rig.rightFoot)) < 1e-6);
   m.actor.rotation.y = 1.4; m.actor.position.set(12, 3, -5);
-  assert.ok(point(weapon).distanceTo(point(glove)) < 1e-6);
+  assert.ok(point(weapon).distanceTo(point(m.rig.rightHand)) < 1e-6);
   disposeCharacterModel(m.actor);
 });
 

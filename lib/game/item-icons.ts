@@ -1,12 +1,21 @@
 import { canonicalItemTemplateId } from './items.ts';
 import { ITEM_ICON_MANIFEST } from './item-icon-manifest.ts';
+import {
+  resolveDragonVeilTemplateId,
+  type DragonVeilItemIdentity,
+} from './dragon-veil.ts';
 
 export { ITEM_ICON_MANIFEST };
 export const FALLBACK_ITEM_ICON = '/assets/icons/items/unknown-item.svg';
 
 /** Accept the catalog/template ID, never a unique inventory instance ID or display name. */
-export function getItemIconPath(templateId: string): string {
-  const id = canonicalItemTemplateId(templateId);
+export function getItemIconPath(
+  templateId: string,
+  identity?: Omit<DragonVeilItemIdentity, 'templateId'>,
+): string {
+  const id = canonicalItemTemplateId(
+    resolveDragonVeilTemplateId({ ...identity, templateId }),
+  );
   return Object.hasOwn(ITEM_ICON_MANIFEST, id)
     ? ITEM_ICON_MANIFEST[id]
     : FALLBACK_ITEM_ICON;

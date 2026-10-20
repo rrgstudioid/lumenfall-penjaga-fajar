@@ -1,6 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
+import { resolve } from 'node:path';
+import { pathToFileURL } from 'node:url';
 import * as T from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js';
@@ -15,10 +17,13 @@ import {
   derivedStats,
   normalizeAppearance,
 } from './rules.ts';
-const root = new URL(
+const publicRoot = new URL(
   '../../public/assets/characters/male-v2/',
   import.meta.url,
 );
+const root = process.env.LUMENFALL_ASSET_STAGE
+  ? pathToFileURL(resolve(process.env.LUMENFALL_ASSET_STAGE) + '/')
+  : publicRoot;
 const loader = new GLTFLoader().setMeshoptDecoder(MeshoptDecoder);
 async function load(path: string) {
   const bytes = await readFile(new URL(path, root));
@@ -26,24 +31,6 @@ async function load(path: string) {
     bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength),
     '',
   );
-}
-// Raycasting does not execute the visibility shader. Select exactly the
-// triangles used by an alternate hairstyle before inspecting its bald base.
-function selectBaldSurface(scene: T.Object3D) {
-  scene.traverse((o) => {
-    if (!(o instanceof T.SkinnedMesh)) return;
-    const g = o.geometry.clone(),
-      c = g.getAttribute('color'),
-      index = g.index!;
-    const active: number[] = [];
-    for (let i = 0; i < index.count; i += 3) {
-      const b = c.getZ(index.getX(i));
-      if (b > 0.25 && b < 0.75) continue;
-      active.push(index.getX(i), index.getX(i + 1), index.getX(i + 2));
-    }
-    o.geometry = g;
-    g.setIndex(active);
-  });
 }
 await test('all 44 derivatives share the canonical bind pose and stay inside their geometry budget', async () => {
   const manifest = JSON.parse(
@@ -61,6 +48,14 @@ await test('all 44 derivatives share the canonical bind pose and stay inside the
     const mesh = meshes[0];
     assert.equal(mesh.skeleton.bones.length, 20, item.path);
     assert.equal(mesh.geometry.index!.count / 3, item.triangles);
+    const budget = item.path.startsWith('body/')
+      ? [5000, 3700, 1900, 900]
+      : [11000, 7200, 3900, 1700];
+    assert.ok(item.triangles <= budget[item.lod], item.path);
+    assert.ok(
+      mesh.geometry.getAttribute('uv'),
+      'Owner atlas UVs missing: ' + item.path,
+    );
     reference ??= mesh.skeleton;
     assert.deepEqual(
       mesh.skeleton.bones.map((b) => b.name),
@@ -92,186 +87,89 @@ await test('all 44 derivatives share the canonical bind pose and stay inside the
     mesh.skeleton.dispose();
   }
 });
-await test('source body preserves atlas UVs and keeps the alternate scalp separate at every LOD', async () => {
-  for (let lod = 0; lod < 4; lod++) {
-    const asset = await load(`body/body-lod${lod}.glb`);
-    asset.scene.traverse((o) => {
-      if (!(o instanceof T.SkinnedMesh)) return;
-      const g = o.geometry,
-        c = g.getAttribute('color'),
-        uv = g.getAttribute('uv'),
-        p = g.getAttribute('position'),
-        index = g.index!;
-      assert.ok(c && uv, 'Missing original UVs or hidden-scalp tag');
-      let original = 0,
-        cap = 0;
-      for (let i = 0; i < index.count; i += 3) {
-        const tags = [0, 1, 2].map((n) => c.getZ(index.getX(i + n)));
-        assert.ok(
-          tags.every((v) => v === 0 || v === 1 || Math.abs(v - 0.5) < 0.01),
-        );
-        assert.equal(
-          new Set(tags).size,
-          1,
-          'Hidden cap merged into source surface',
-        );
-        if (tags[0] > 0.75) cap++;
-        else original++;
-      }
-      assert.ok(original > 100 && cap > 20);
-      for (let i = 0; i < p.count; i++) {
-        assert.ok(Number.isFinite(p.getY(i)));
-        if (p.getY(i) < 0.3)
-          assert.equal(c.getZ(i), 0, 'Source bare foot lost');
-        // The back/nape of the clean head uses skin, never the source atlas.
-        if (c.getZ(i) > 0.75 && p.getZ(i) < -0.03)
-          assert.equal(
-            c.getY(i),
-            0,
-            `LOD${lod}: facial/source texture projected onto back ${p.getX(i)},${p.getY(i)},${p.getZ(i)}`,
-          );
-      }
-    });
-    disposeCharacterModel(asset.scene);
-  }
-});
-await test('LOD0 visible body and default hair retain the source mesh positions and UVs', async () => {
+await test('owner bald face retains source positions/UVs, with no alternate scalp or old hair surface', async () => {
   const ref = JSON.parse(
     await readFile(
       new URL(
-        '../../tests/fixtures/chibi-source-reference.json',
+        '../../tests/fixtures/owner-male-reference.json',
         import.meta.url,
       ),
       'utf8',
     ),
   );
-  let triangles = 0,
-    maxPositionError = 0,
-    maxUVError = 0;
-  for (const path of ['body/body-lod0.glb', 'hair/hair_01-lod0.glb']) {
-    const asset = await load(path);
-    asset.scene.traverse((o) => {
-      if (!(o instanceof T.SkinnedMesh)) return;
-      const g = o.geometry,
-        p = g.getAttribute('position'),
-        uv = g.getAttribute('uv'),
-        c = g.getAttribute('color'),
-        index = g.index!;
-      for (let i = 0; i < index.count; i += 3)
-        if (!c || c.getZ(index.getX(i)) < 0.75) triangles++;
-      for (let i = 0; i < p.count; i++) {
-        if (c && c.getZ(i) > 0.75) continue;
-        let nearest = Infinity,
-          uvError = Infinity;
-        for (const v of ref.vertices) {
-          const d = Math.hypot(
-            p.getX(i) - v[0],
-            p.getY(i) - v[1],
-            p.getZ(i) - v[2],
-          );
-          if (d < 1e-5) {
-            nearest = Math.min(nearest, d);
-            uvError = Math.min(
-              uvError,
-              Math.hypot(uv.getX(i) - v[3], uv.getY(i) - v[4]),
-            );
-          }
-        }
-        maxPositionError = Math.max(maxPositionError, nearest);
-        maxUVError = Math.max(maxUVError, uvError);
-      }
-    });
-    disposeCharacterModel(asset.scene);
-  }
-  assert.equal(triangles, ref.triangles);
-  assert.ok(
-    maxPositionError < 1e-5,
-    `Source geometry changed: ${maxPositionError}`,
+  const manifest = JSON.parse(
+    await readFile(new URL('manifest.json', root), 'utf8'),
   );
-  assert.ok(maxUVError < 0.0001, `Source atlas changed: ${maxUVError}`);
-});
-await test('base body has a smooth bald crown independent of selected hairstyle', async () => {
-  const ray = new T.Raycaster(),
-    center = new T.Vector3(0, 1.706, -0.025);
-  for (let lod = 0; lod < 4; lod++) {
-    const asset = await load(`body/body-lod${lod}.glb`);
-    selectBaldSurface(asset.scene);
-    asset.scene.updateMatrixWorld(true);
-    for (let i = 0; i < 32; i++) {
-      // Avoid rays exactly on welded meridians: floating-point edge tests can
-      // reject both adjacent triangles at x=0 despite a watertight surface.
-      const a = ((i + 0.17) * Math.PI) / 16,
-        direction = new T.Vector3(
-          Math.cos(a) * 0.3,
-          1,
-          Math.sin(a) * 0.3,
-        ).normalize();
-      ray.set(
-        center.clone().addScaledVector(direction, 1),
-        direction.clone().negate(),
+  assert.equal(manifest.sources[0].sha256, ref.sha256);
+  const asset = await load('body/body-lod0.glb');
+  let body: T.SkinnedMesh | undefined;
+  asset.scene.traverse((o) => {
+    if (o instanceof T.SkinnedMesh) body = o;
+  });
+  const g = body!.geometry,
+    pos = g.getAttribute('position'),
+    uv = g.getAttribute('uv');
+  assert.equal(g.index!.count / 3, ref.triangles);
+  assert.equal(
+    g.getAttribute('color'),
+    undefined,
+    'Legacy scalp visibility tags remain',
+  );
+  for (const v of ref.headVertices) {
+    let best = Infinity;
+    for (let i = 0; i < pos.count; i++) {
+      const delta = Math.hypot(
+        pos.getX(i) - v[0],
+        pos.getY(i) - v[1],
+        pos.getZ(i) - v[2],
       );
-      const hit = ray.intersectObject(asset.scene, true)[0];
-      assert.ok(hit, `LOD${lod} ray${i}: bald crown hole`);
-      const delta = hit.point.clone().sub(center);
-      const surface = Math.sqrt(
-        (delta.x / 0.202) ** 2 +
-          (delta.y / 0.232) ** 2 +
-          (delta.z / 0.215) ** 2,
-      );
-      assert.ok(
-        Math.abs(surface - 1) < (lod < 2 ? 0.018 : lod === 2 ? 0.045 : 0.1),
-        `LOD${lod}: crew-cut ridge or dent remains (${surface})`,
-      );
-      assert.ok(hit.point.y <= 1.94, 'base contains raised hairstyle geometry');
+      if (delta < 1e-5)
+        best = Math.min(best, Math.hypot(uv.getX(i) - v[3], uv.getY(i) - v[4]));
     }
-    disposeCharacterModel(asset.scene);
+    assert.ok(
+      best < 0.0001,
+      'Original face vertex or atlas changed: ' + v.join(','),
+    );
   }
+  disposeCharacterModel(asset.scene);
 });
-await test('optional hair attachments stay connected after refitting', async () => {
-  for (let style = 2; style <= 10; style++)
-    for (let lod = 0; lod < 4; lod++) {
+await test('every hairstyle shares head motion exactly at all LODs and keeps finite geometry', async () => {
+  for (let lod = 0; lod < 4; lod++)
+    for (let style = 1; style <= 10; style++) {
       const path = `hair/hair_${String(style).padStart(2, '0')}-lod${lod}.glb`;
       const asset = await load(path);
       let mesh: T.SkinnedMesh | undefined;
       asset.scene.traverse((o) => {
         if (o instanceof T.SkinnedMesh) mesh = o;
       });
-      const geometry = mesh!.geometry,
-        positions = geometry.getAttribute('position'),
-        index = geometry.index!;
-      // glTF duplicates vertices at normal/attribute seams; connectivity is geometric.
-      const ids = new Map<string, number>(),
-        canonical: number[] = [],
-        parent: number[] = [];
-      for (let i = 0; i < positions.count; i++) {
-        const key = [positions.getX(i), positions.getY(i), positions.getZ(i)]
-          .map((n) => Math.round(n * 100000))
-          .join(',');
-        let id = ids.get(key);
-        if (id === undefined) {
-          id = ids.size;
-          ids.set(key, id);
-          parent.push(id);
-        }
-        canonical.push(id);
+      const g = mesh!.geometry,
+        p = g.getAttribute('position'),
+        w = g.getAttribute('skinWeight'),
+        j = g.getAttribute('skinIndex');
+      const head = mesh!.skeleton.bones.findIndex((b) => b.name === 'head');
+      for (let i = 0; i < p.count; i++) {
+        assert.ok(Number.isFinite(p.getX(i) + p.getY(i) + p.getZ(i)), path);
+        assert.ok(
+          Math.abs(p.getX(i)) < 0.65 &&
+            p.getY(i) > 1.1 &&
+            p.getY(i) < 2.5 &&
+            Math.abs(p.getZ(i)) < 0.65,
+          path,
+        );
+        assert.equal(j.getX(i), head, path);
+        assert.ok(
+          w.getX(i) > 0.999 && w.getY(i) + w.getZ(i) + w.getW(i) < 0.001,
+          path,
+        );
       }
-      const find = (i: number): number =>
-        parent[i] === i ? i : (parent[i] = find(parent[i]));
-      const used = new Set<number>();
-      for (let i = 0; i < index.count; i += 3) {
-        const a = canonical[index.getX(i)],
-          b = canonical[index.getX(i + 1)],
-          c = canonical[index.getX(i + 2)];
-        parent[find(b)] = find(a);
-        parent[find(c)] = find(a);
-        used.add(a);
-        used.add(b);
-        used.add(c);
-      }
-      assert.equal(
-        new Set([...used].map(find)).size,
-        1,
-        `${path}: detached hair surface`,
+      const bone = mesh!.skeleton.bones[head];
+      const sample = mesh!.getVertexPosition(0, new T.Vector3());
+      bone.rotation.z += 0.5;
+      asset.scene.updateMatrixWorld(true);
+      mesh!.skeleton.update();
+      assert.ok(
+        mesh!.getVertexPosition(0, new T.Vector3()).distanceTo(sample) > 0.005,
+        path + ' hair failed to follow head',
       );
       disposeCharacterModel(asset.scene);
     }
@@ -281,7 +179,7 @@ await test('new male rig keeps finite bounds through native and procedural actio
   source.scene.userData.characterVisualProfile = MALE_V2_PROFILE;
   source.scene.userData.preserveAuthoredAppearance = true;
   const motion = JSON.parse(
-    await readFile(new URL('animations/motion.json', root), 'utf8'),
+    await readFile(new URL('animations/motion.json', publicRoot), 'utf8'),
   );
   source.scene.userData.lumenfallAnimations = motion.clips.map(
     (c: Parameters<typeof T.AnimationClip.parse>[0]) =>
@@ -313,92 +211,317 @@ await test('new male rig keeps finite bounds through native and procedural actio
   }
   disposeCharacterModel(model.actor);
 });
-await test('hair LODs cover their intended scalp regions; shaved presets leave sides bare', async () => {
-  const center = new T.Vector3(0, 1.706, -0.025);
-  const directions: T.Vector3[] = [];
-  // Inspect the top and upper ring from every azimuth, including the previous
-  // bald gaps between the source's disconnected spikes.
-  for (const elevation of [0.5, 0.9, 1.3])
-    for (let i = 0; i < 16; i++) {
-      const angle = ((i + 0.17) * Math.PI) / 8;
-      directions.push(
-        new T.Vector3(
-          Math.cos(angle) * Math.cos(elevation),
-          Math.sin(elevation),
-          Math.sin(angle) * Math.cos(elevation),
-        ),
-      );
+await test('hair derivatives contain no generic scalp and retain source detail at close range', async () => {
+  // Counts from the supplied hair montage, before any fitting or simplification.
+  const sourceTriangles = [
+    3429, 10893, 2740, 6666, 6672, 3996, 5639, 6935, 5217, 5535,
+  ];
+  for (let lod = 0; lod < 4; lod++)
+    for (let style = 1; style <= 10; style++) {
+      const path = `hair/hair_${String(style).padStart(2, '0')}-lod${lod}.glb`;
+      const asset = await load(path);
+      asset.scene.traverse((o) => {
+        if (!(o instanceof T.SkinnedMesh)) return;
+        const g = o.geometry,
+          uv = g.getAttribute('uv'),
+          index = g.index!;
+        if (lod === 0)
+          assert.equal(
+            index.count / 3,
+            sourceTriangles[style - 1] -
+              (style === 8 ? 279 : 0) +
+              (style === 1
+                ? 119
+                : style === 5
+                  ? 165
+                  : style === 8
+                    ? 654
+                    : style === 10
+                      ? 101
+                      : 0),
+            path + ' lost source detail or added geometry',
+          );
+        for (let i = 0; i < index.count; i += 3) {
+          const cap = [0, 1, 2].every(
+            (j) =>
+              Math.abs(uv.getX(index.getX(i + j)) - 0.5) < 0.0001 &&
+              Math.abs(uv.getY(index.getX(i + j)) - 0.5) < 0.0001,
+          );
+          assert.ok(!cap, path + ' contains a generated basic hair surface');
+        }
+      });
+      disposeCharacterModel(asset.scene);
     }
+});
+await test('full hair keeps rear and crown coverage after LOD reduction; shaved temples stay bare', async () => {
+  const ray = new T.Raycaster(),
+    failures: string[] = [];
+  for (let lod = 0; lod < 4; lod++) {
+    const body = await load(`body/body-lod${lod}.glb`);
+    body.scene.updateMatrixWorld(true);
+    for (let style = 1; style <= 10; style++) {
+      const asset = await load(
+        `hair/hair_${String(style).padStart(2, '0')}-lod${lod}.glb`,
+      );
+      asset.scene.updateMatrixWorld(true);
+      if (![3, 4, 8].includes(style)) {
+        const probes: { origin: T.Vector3; direction: T.Vector3 }[] = [];
+        for (const x of [-0.1, 0, 0.1])
+          for (const y of [1.74, 1.82, 1.9])
+            probes.push({
+              origin: new T.Vector3(x, y, -1),
+              direction: new T.Vector3(0, 0, 1),
+            });
+        for (const x of [-0.06, 0.06])
+          for (const z of [-0.06, 0.06])
+            probes.push({
+              origin: new T.Vector3(x, 2.5, z),
+              direction: new T.Vector3(0, -1, 0),
+            });
+        for (const { origin, direction } of probes) {
+          ray.set(origin, direction);
+          const skin = ray.intersectObject(body.scene, true)[0],
+            hair = ray.intersectObject(asset.scene, true)[0];
+          if (skin && !(hair && hair.distance < skin.distance + 0.002))
+            failures.push(
+              `hair_${style} LOD${lod}: exposed scalp at ${origin.toArray().join(',')}`,
+            );
+        }
+      } else if (style !== 8) {
+        ray.set(new T.Vector3(0.8, 1.67, -0.025), new T.Vector3(-1, 0, 0));
+        const skin = ray.intersectObject(body.scene, true)[0],
+          hair = ray.intersectObject(asset.scene, true)[0];
+        assert.ok(
+          skin && (!hair || hair.distance > skin.distance),
+          `hair_${style} LOD${lod}: shaved temple covered`,
+        );
+      }
+      disposeCharacterModel(asset.scene);
+    }
+    disposeCharacterModel(body.scene);
+  }
+  assert.deepEqual(failures, []);
+});
+await test('ponytail covers the rear scalp and bowl cut fits the head at every LOD', async () => {
   const ray = new T.Raycaster();
-  const sections = [
-    ...[1.495, 1.56, 1.66, 1.795].map((y) => ({
-      origin: new T.Vector3(0, y, -1),
-      direction: new T.Vector3(0, 0, 1),
-    })),
-    ...[-1, 1].flatMap((side) => [
-      {
-        origin: new T.Vector3(side, 1.77, -0.025),
-        direction: new T.Vector3(-side, 0, 0),
-      },
-      {
-        origin: new T.Vector3(side * 0.9, 1.704, 0.4),
-        direction: new T.Vector3(-side * 0.9, 0, -0.425).normalize(),
-      },
-      {
-        origin: new T.Vector3(side * 0.8, 1.616, -0.8),
-        direction: new T.Vector3(-side * 0.8, 0, 0.775).normalize(),
-      },
-    ]),
+  for (let lod = 0; lod < 4; lod++) {
+    const body = await load(`body/body-lod${lod}.glb`);
+    const pony = await load(`hair/hair_05-lod${lod}.glb`);
+    const bowl = await load(`hair/hair_06-lod${lod}.glb`);
+    for (const asset of [body, pony, bowl]) asset.scene.updateMatrixWorld(true);
+    for (const angle of [-60, -40, -20, 0, 20, 40, 60])
+      for (const y of [1.65, 1.69, 1.73, 1.77, 1.81, 1.85]) {
+        const a = (angle * Math.PI) / 180;
+        const direction = new T.Vector3(Math.sin(a), 0, -Math.cos(a));
+        ray.set(
+          new T.Vector3(direction.x, y, direction.z - 0.025),
+          direction.clone().negate(),
+        );
+        const skin = ray.intersectObject(body.scene, true)[0];
+        const hair = ray.intersectObject(pony.scene, true)[0];
+        assert.ok(
+          skin && hair && hair.distance <= skin.distance + 0.002,
+          `Ponytail LOD${lod}: exposed rear scalp at ${angle} degrees, height ${y}`,
+        );
+      }
+    const bounds = new T.Box3().setFromObject(bowl.scene);
+    assert.ok(
+      bounds.max.y <= 2.045,
+      `Bowl LOD${lod}: crown sits too high (${bounds.max.y})`,
+    );
+    assert.ok(
+      bounds.max.x - bounds.min.x <= 0.565,
+      `Bowl LOD${lod}: silhouette is too wide`,
+    );
+    for (const asset of [body, pony, bowl]) disposeCharacterModel(asset.scene);
+  }
+});
+await test('messy spikes covers the lower rear scalp from rear-quarter views at every LOD', async () => {
+  const ray = new T.Raycaster();
+  const failures: string[] = [];
+  for (let lod = 0; lod < 4; lod++) {
+    const body = await load(`body/body-lod${lod}.glb`);
+    const hair = await load(`hair/hair_01-lod${lod}.glb`);
+    for (const asset of [body, hair]) asset.scene.updateMatrixWorld(true);
+    for (const angle of [-60, -40, -20, 0, 20, 40, 60])
+      for (const y of [1.63, 1.66, 1.69, 1.72, 1.76, 1.8, 1.85, 1.9]) {
+        const a = (angle * Math.PI) / 180;
+        const direction = new T.Vector3(Math.sin(a), 0, -Math.cos(a));
+        ray.set(
+          new T.Vector3(direction.x, y, direction.z - 0.025),
+          direction.clone().negate(),
+        );
+        const skin = ray.intersectObject(body.scene, true)[0];
+        const lock = ray.intersectObject(hair.scene, true)[0];
+        if (skin && (!lock || lock.distance > skin.distance + 0.002))
+          failures.push(
+            `Messy Spikes LOD${lod}: rear gap at ${angle} degrees, height ${y}`,
+          );
+      }
+    for (const asset of [body, hair]) disposeCharacterModel(asset.scene);
+  }
+  assert.deepEqual(failures, []);
+});
+await test('messy spikes stays compact and long tied hair covers the right temple at every LOD', async () => {
+  const ray = new T.Raycaster(),
+    failures: string[] = [];
+  for (let lod = 0; lod < 4; lod++) {
+    const body = await load(`body/body-lod${lod}.glb`);
+    const messy = await load(`hair/hair_01-lod${lod}.glb`);
+    const tied = await load(`hair/hair_10-lod${lod}.glb`);
+    for (const asset of [body, messy, tied])
+      asset.scene.updateMatrixWorld(true);
+    const bounds = new T.Box3().setFromObject(messy.scene),
+      size = bounds.getSize(new T.Vector3());
+    if (size.x > 0.6 || size.z > 0.57 || bounds.max.y > 2.09)
+      failures.push(
+        `Messy LOD${lod}: excess volume (${size.x}, ${size.z}, crown ${bounds.max.y})`,
+      );
+    for (const y of [1.72, 1.74, 1.76, 1.78, 1.8, 1.82, 1.84, 1.86, 1.88, 1.9])
+      for (const z of [
+        -0.12, -0.1, -0.08, -0.06, -0.04, -0.02, 0, 0.02, 0.04, 0.06, 0.08, 0.1,
+      ]) {
+        ray.set(new T.Vector3(-1, y, z), new T.Vector3(1, 0, 0));
+        const skin = ray.intersectObject(body.scene, true)[0],
+          hair = ray.intersectObject(tied.scene, true)[0];
+        if (skin && (!hair || hair.distance > skin.distance + 0.002))
+          failures.push(
+            `Long Hair Tied LOD${lod}: right scalp exposed at ${y},${z}`,
+          );
+      }
+    for (const asset of [body, messy, tied]) disposeCharacterModel(asset.scene);
+  }
+  assert.deepEqual(failures, []);
+});
+await test('long tied hair covers the lower rear scalp and rear quarters at every LOD', async () => {
+  const ray = new T.Raycaster(),
+    failures: string[] = [];
+  for (let lod = 0; lod < 4; lod++) {
+    const body = await load(`body/body-lod${lod}.glb`);
+    const tied = await load(`hair/hair_10-lod${lod}.glb`);
+    for (const asset of [body, tied]) asset.scene.updateMatrixWorld(true);
+    for (const angle of [-65, -50, -35, -20, 0, 20, 35, 50, 65])
+      for (const y of [1.62, 1.65, 1.68, 1.71, 1.74, 1.77, 1.8, 1.84, 1.88]) {
+        const a = (angle * Math.PI) / 180;
+        const direction = new T.Vector3(Math.sin(a), 0, -Math.cos(a));
+        ray.set(
+          new T.Vector3(direction.x, y, direction.z - 0.025),
+          direction.clone().negate(),
+        );
+        const skin = ray.intersectObject(body.scene, true)[0];
+        const hair = ray.intersectObject(tied.scene, true)[0];
+        if (skin && (!hair || hair.distance > skin.distance + 0.002))
+          failures.push(
+            `Long Hair Tied LOD${lod}: rear gap at ${angle} degrees, height ${y}`,
+          );
+      }
+    for (const asset of [body, tied]) disposeCharacterModel(asset.scene);
+  }
+  assert.deepEqual(failures, []);
+});
+await test('cornrow tubes are closed and the two rear rows stay continuous at every LOD', async () => {
+  const ray = new T.Raycaster();
+  const probes = [
+    [-0.099, 0.147, 1.879],
+    [-0.099, 0.162, 1.864],
+    [-0.099, 0.18, 1.846],
+    [-0.085, 0.2, 1.815],
+    [0.05, 0.19, 1.871],
+    [0.04, 0.21, 1.849],
+    [0.04, 0.225, 1.823],
+    [0.05, 0.235, 1.8],
   ];
   for (let lod = 0; lod < 4; lod++) {
     const body = await load(`body/body-lod${lod}.glb`);
-    selectBaldSurface(body.scene);
+    const hair = await load(`hair/hair_08-lod${lod}.glb`);
     body.scene.updateMatrixWorld(true);
-    // Original hair keeps the source cut-out silhouette; its fidelity has a
-    // separate source-surface gate and the generated scalp is hidden for it.
-    for (let style = 2; style <= 10; style++) {
-      const path = `hair/hair_${String(style).padStart(2, '0')}-lod${lod}.glb`;
-      const hair = await load(path);
-      hair.scene.updateMatrixWorld(true);
-      const shaved = style === 3 || style === 4;
-      const requiredDirections = shaved
-        ? directions.filter(
-            (d) => d.y > 0.96 && (style !== 3 || Math.abs(d.x) < 0.1),
-          )
-        : directions;
-      for (const direction of requiredDirections) {
-        ray.set(
-          center.clone().addScaledVector(direction, 2),
-          direction.clone().negate(),
-        );
-        const skinHit = ray.intersectObject(body.scene, true)[0];
-        const hairHit = ray.intersectObject(hair.scene, true)[0];
-        assert.ok(
-          skinHit && hairHit && hairHit.distance <= skinHit.distance + 0.003,
-          `${path}: exposed scalp toward ${direction.toArray().join(',')} skin=${skinHit?.distance} hair=${hairHit?.distance}`,
-        );
+    hair.scene.updateMatrixWorld(true);
+    hair.scene.traverse((o) => {
+      if (!(o instanceof T.SkinnedMesh)) return;
+      const position = o.geometry.getAttribute('position'),
+        index = o.geometry.index!;
+      // Weld UV/normal seams by position before checking geometric boundaries.
+      const keys = Array.from({ length: position.count }, (_, i) =>
+        [position.getX(i), position.getY(i), position.getZ(i)]
+          .map((v) => Math.round(v * 1e6))
+          .join(','),
+      );
+      const edges = new Map<string, number>();
+      for (let i = 0; i < index.count; i += 3) {
+        const vertices = [0, 1, 2].map((j) => keys[index.getX(i + j)]);
+        for (let j = 0; j < 3; j++) {
+          if (vertices[j] === vertices[(j + 1) % 3]) continue;
+          const key = [vertices[j], vertices[(j + 1) % 3]].sort().join('|');
+          edges.set(key, (edges.get(key) ?? 0) + 1);
+        }
       }
-      for (const { origin, direction } of shaved ? [] : sections) {
-        ray.set(origin, direction);
-        const skinHit = ray.intersectObject(body.scene, true)[0],
-          hairHit = ray.intersectObject(hair.scene, true)[0];
-        assert.ok(
-          skinHit && hairHit && hairHit.distance <= skinHit.distance + 0.003,
-          `${path}: exposed rear/temple at ${origin.toArray().join(',')} skin=${skinHit?.distance} hair=${hairHit?.distance}`,
-        );
-      }
-      if (shaved) {
-        ray.set(new T.Vector3(1, 1.704, -0.025), new T.Vector3(-1, 0, 0));
-        const skin = ray.intersectObject(body.scene, true)[0],
-          attachment = ray.intersectObject(hair.scene, true)[0];
-        assert.ok(
-          skin && (!attachment || attachment.distance > skin.distance + 0.01),
-          `${path}: shaved temple covered by generic cap`,
-        );
-      }
-      disposeCharacterModel(hair.scene);
+      assert.equal(
+        [...edges.values()].filter((n) => n === 1).length,
+        0,
+        `Cornrows LOD${lod}: open cuts remain in braid tubes`,
+      );
+    });
+    for (const [x, y, z] of probes) {
+      const center = new T.Vector3(0, 1.73, -0.025);
+      const direction = new T.Vector3(x, z, -y).sub(center).normalize();
+      ray.set(center.clone().add(direction), direction.clone().negate());
+      const skin = ray.intersectObject(body.scene, true)[0],
+        braid = ray.intersectObject(hair.scene, true)[0];
+      assert.ok(
+        skin && braid && braid.distance <= skin.distance + 0.002,
+        `Cornrows LOD${lod}: rear row gap at ${x},${y},${z}`,
+      );
     }
     disposeCharacterModel(body.scene);
+    disposeCharacterModel(hair.scene);
+  }
+});
+await test('mohawk roots contact the scalp along the crest at every LOD', async () => {
+  const ray = new T.Raycaster();
+  for (let lod = 0; lod < 4; lod++) {
+    const body = await load(`body/body-lod${lod}.glb`);
+    const hair = await load(`hair/hair_03-lod${lod}.glb`);
+    for (const asset of [body, hair]) {
+      asset.scene.updateMatrixWorld(true);
+      asset.scene.traverse((o) => {
+        if (o instanceof T.Mesh)
+          for (const material of Array.isArray(o.material)
+            ? o.material
+            : [o.material])
+            material.side = T.DoubleSide;
+      });
+    }
+    let contacts = 0;
+    for (const x of [-0.025, 0, 0.025])
+      for (let step = 0; step < 13; step++) {
+        const z = 0.14 - step * 0.02;
+        ray.set(new T.Vector3(x, 2.6, z), new T.Vector3(0, -1, 0));
+        const skin = ray.intersectObject(body.scene, true)[0];
+        ray.set(new T.Vector3(x, 1.4, z), new T.Vector3(0, 1, 0));
+        const root = ray.intersectObject(hair.scene, true)[0];
+        if (!skin || !root) continue;
+        contacts++;
+        assert.ok(
+          root.point.y - skin.point.y <= 0.004,
+          `Mohawk LOD${lod}: floating root at ${x},${z}, gap ${root.point.y - skin.point.y}`,
+        );
+      }
+    assert.ok(
+      contacts >= 30,
+      `Mohawk LOD${lod}: incomplete root coverage (${contacts})`,
+    );
+    for (const x of [-0.025, 0, 0.025, 0.05])
+      for (const y of [1.78, 1.81, 1.84, 1.87]) {
+        ray.set(new T.Vector3(x, y, -1), new T.Vector3(0, 0, 1));
+        const skin = ray.intersectObject(body.scene, true)[0];
+        const tip = ray.intersectObject(hair.scene, true)[0];
+        assert.ok(
+          skin && (!tip || tip.distance > skin.distance),
+          `Mohawk LOD${lod}: isolated rear tip at ${x},${y}`,
+        );
+      }
+    disposeCharacterModel(body.scene);
+    disposeCharacterModel(hair.scene);
   }
 });
 await test('appearance migration preserves inventory, progression, stats and female payloads', () => {

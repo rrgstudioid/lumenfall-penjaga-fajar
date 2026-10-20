@@ -1,0 +1,85 @@
+METEORFALL CITADEL — SURFACE / CLIFF / CENTRAL POPULATION FIX
+15 October 2026, Asia/Bangkok
+Baseline HEAD: 3df72dc08220c75742a12936c67e77adf9ea5cab (tidak berubah)
+Perubahan lokal; tidak ada commit, push, merge, publikasi, atau penggunaan kredit baru.
+
+OTORITAS
+Owner melaporkan terrain/path berkedip dan batu melintang pada screenshot
+Screenshot 2026-10-15 003634.png, lalu meminta monster di area tengah.
+Jawaban jumlah tambahan: "Tambah 72: 24 per area tengah, total 294 monster (disarankan)".
+Ini menggantikan batas total 222 pada docs/meteorfall-citadel-revision-2.txt dan
+ketentuan awal bahwa Crucible Plaza tidak mendapat populasi tambahan.
+Layout, safe Arrival Bastion, elite/boss, identity/timer, Dragon Veil, Wings, quest,
+loot, combat dan progression yang sudah berjalan tetap dipertahankan.
+
+AKAR MASALAH DAN PERBAIKAN
+1. Z-fighting: bagian landing 20 unit memiliki top terrain dan deck ramp yang
+   bertumpuk pada ketinggian sama. Approach roads juga memakai overlay plane,
+   termasuk bagian yang saling berpotongan pada pusat platform.
+   Kini setiap sel terrain dipotong menurut deck dan gabungan road polygons.
+   Basalt, road dan landing menjadi patch terpisah, tanpa luas lantai ganda.
+   Ground sampler mengikuti polygon/triangle yang sama dengan render.
+   Seam guard sepanjang 0.001 unit hanya di endpoint deck tetap dipakai untuk
+   menutup pembulatan float32; bukan lagi overlap sepanjang landing.
+2. Batu melintang berasal dari cliff accents yang batas atasnya dapat mencapai
+   dua unit di atas lantai platform, bahkan lebih terhadap landing yang miring.
+   meteorfall-citadel-cliff-accents.ts kini membatasi seluruh bounding box batu,
+   termasuk rotasi dan interpolasi sel di dekatnya, di bawah terrain/landing.
+   Tidak mengubah source rock GLB dan tidak menambah collider di tengah jalan.
+3. Floor emblem/ring memakai depth bias terpisah. Retakan emissive memakai
+   screen-space derivative untuk meredam aliasing garis tipis saat kamera bergerak.
+4. Lower Crossing, Crucible Plaza dan Meteor Forecourt masing-masing mendapat
+   24 normal. Total: 288 normal + 5 elite + 1 boss = 294 monster.
+   Spawn baru memakai ID 400–471; seluruh 222 instance sebelumnya tetap identik.
+   Anchors menghindari tepi/void, exposed magma, landing docking dan elite yang ada.
+   Species/stats/loot/aggro/leash/respawn rules tidak diubah.
+
+FILE UTAMA
+lib/game/meteorfall-citadel-layout.ts — partition dan shared height sampler
+lib/game/meteorfall-citadel-map.ts — floor meshes tanpa overlap, cliff placement
+lib/game/meteorfall-citadel-materials.ts — depth bias dan anti-aliasing fissure
+lib/game/meteorfall-citadel-cliff-accents.ts — bound dekorasi terhadap landing
+lib/game/meteorfall-citadel-population.ts — 72 spawn tengah dengan ID baru
+lib/game/meteorfall-citadel-surfaces.test.ts — luas patch dan clearance semua batu
+lib/game/meteorfall-citadel.test.ts — roster/identity/placement terbaru
+scripts/test-meteorfall-surfaces-browser.mjs — real geometry dan draw-order checks
+Existing browser fixtures diperbarui untuk roster 294 dan evidence revision3.
+accuracy-evasion-fixture.ts, equipment Dragon Veil/Wings, library asli dan .blend
+tidak diubah dalam revisi ini. Working tree sebelumnya dipertahankan.
+
+VERIFIKASI
+PASS 147/147 unit/regression tests, termasuk partition semua sel, semua rotated
+rock bounds, traversal/radius, save/quest/timer, equipment, Wings dan combat contract.
+PASS targeted oxlint, TypeScript noEmit, git diff --check, production build.
+Build masih mengeluarkan warning proyek npm/chunk size/klasifikasi route Vinext.
+PASS actual browser runtime pada isolated memory-only fixture (save owner tidak diakses):
+- 294 monster, 72 ID pusat, M travel, NPC, portal dan sepuluh siklus disposal.
+- Semua 28 arah traversal bridge; maksimum selisih raycast/height 0.0000031 unit.
+- 4,300 titik walkable: tepat satu top surface, tanpa hit dekorasi tebing di atasnya.
+- Urutan render lantai dibalik pada L/C/A dan dua posisi citadel approach:
+  0 piksel berubah di masing-masing frame 640 x 400 setelah toleransi warna 3/255.
+- Orbit/zoom kamera dan retry load; tidak ada unexpected runtime/shader error.
+- Screenshot citadel approach diperiksa: batu yang melintang sudah tidak masuk jalan.
+- UI Dragon Veil dan jejak magma tetap berfungsi; 24 central instances aktif pada
+  uji gerak di Crucible Plaza. Median 60 FPS, p95 17.0–17.1 ms dengan armor dan jejak aktif.
+- Basic attack, dash executor, knockback, boss history, kill progression, respawn
+  deadlines dan round trip map lulus kembali pada roster terbaru.
+Hasil ini menguji overlap geometry dan view yang disampel, bukan klaim seluruh GPU
+atau setiap kemungkinan posisi kamera sudah diuji.
+
+BENCHMARK WARM RUNTIME
+Chrome 155 headless, ANGLE D3D11, RTX 3060 Laptop, viewport 1440 x 900.
+Full roster 294: lima view lama dan tiga area tengah, quality Low/Medium.
+Area tengah: median 60 FPS; p95 16.8–17.1 ms setelah warm-up 1.2 detik,
+sampel sekitar 4.2 detik per view. Cold shader compilation tidak termasuk target ini.
+CPU submission terpisah; GPU timestamp dan multiplayer nyata tidak diukur.
+
+EVIDENCE
+work/meteorfall-citadel/revision3/{regression-tests,surface-tests,types,lint,build}.log
+work/meteorfall-citadel/revision3/{browser,surfaces-browser,ui-browser,combat-browser}.log
+work/meteorfall-citadel/revision3/qa/runtime-report.json
+work/meteorfall-citadel/revision3/surfaces/report.json
+work/meteorfall-citadel/revision3/surfaces/crown-approach.png
+work/meteorfall-citadel/revision3/ui/hunting-light.png
+Laporan revision2 dan implementasi awal adalah bukti historis; jumlah monster terbaru
+dan penjelasan perbaikan ada di laporan ini.

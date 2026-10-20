@@ -15,9 +15,10 @@ const textureCache = new CharacterAssetCache(
         `?v=${MALE_BODY_ASSET_REVISION}`,
     );
     texture.flipY = false;
-    texture.colorSpace = key.includes('basecolor')
-      ? T.SRGBColorSpace
-      : T.NoColorSpace;
+    texture.colorSpace =
+      key.includes('basecolor') || key === 'hair-detail.webp'
+        ? T.SRGBColorSpace
+        : T.NoColorSpace;
     texture.userData.sharedCharacter = true;
     return texture;
   },
@@ -90,7 +91,7 @@ export async function loadMaleTextures(
     cache.acquire(`body-basecolor-${size}.webp`),
     cache.acquire('body-skin-mask.png'),
     cache.acquire(`body-normal-${size}.png`),
-    textureCache.acquire('head-basecolor.png'),
+    textureCache.acquire('hair-detail.webp'),
   ]);
   if (entries.some((e) => e.status === 'rejected')) {
     entries.forEach((e) => {
@@ -104,7 +105,7 @@ export async function loadMaleTextures(
     if (!textureCache.stats().users) textureCache.trim(true);
     throw Error('Tekstur karakter gagal dimuat');
   }
-  const [base, mask, normal, head] = entries.map(
+  const [base, mask, normal, hair] = entries.map(
     (e) =>
       (
         e as PromiseFulfilledResult<
@@ -117,14 +118,14 @@ export async function loadMaleTextures(
     base: base.value,
     mask: mask.value,
     normal: normal.value,
-    head: head.value,
+    hair: hair.value,
     release: () => {
       if (released) return;
       released = true;
       base.release();
       mask.release();
       normal.release();
-      head.release();
+      hair.release();
       if (!textureCache.stats().users) textureCache.trim(true);
       if (context && !cache.stats().users) {
         cache.trim(true);
@@ -136,29 +137,25 @@ export async function loadMaleTextures(
 }
 export function createMaleHairMaterial(
   appearance: MaleAppearance,
-  textures?: Awaited<ReturnType<typeof loadMaleTextures>>,
+  textures: Awaited<ReturnType<typeof loadMaleTextures>>,
 ) {
   const mat = new T.MeshStandardMaterial({
     color: appearance.hairColor,
     roughness: 0.7,
     metalness: 0,
-    map: textures?.base ?? null,
-    normalMap: textures?.normal ?? null,
-    normalScale: new T.Vector2(0.5, 0.5),
+    map: textures.hair,
   });
   mat.name = 'MAT_Hair';
-  if (textures) {
-    mat.onBeforeCompile = (shader) => {
-      shader.fragmentShader = shader.fragmentShader.replace(
-        '#include <map_fragment>',
-        `
-        vec4 hairTexel=texture2D(map,vMapUv);
-        diffuseColor.rgb *= clamp(hairTexel.rgb/vec3(.159,.058,.034),vec3(.35),vec3(2.2));
-      `,
-      );
-    };
-    mat.customProgramCacheKey = () => 'source-chibi-hair-v1';
-  }
+  // The shared atlas contains neutral strand shading from the owner's hair GLB.
+  // Keep every dye neutral (including white); never sample the body atlas.
+  mat.onBeforeCompile = (shader) => {
+    shader.fragmentShader = shader.fragmentShader.replace(
+      '#include <map_fragment>',
+      `vec3 detail=texture2D(map,vMapUv).rgb;
+       diffuseColor.rgb *= clamp(detail/vec3(.16),vec3(.3),vec3(2.2));`,
+    );
+  };
+  mat.customProgramCacheKey = () => 'owner-hair-detail-v1';
   return mat;
 }
 export function createMaleBodyMaterial(
@@ -167,60 +164,30 @@ export function createMaleBodyMaterial(
 ) {
   const mat = new T.MeshStandardMaterial({
     map: textures.base,
-    vertexColors: true,
     normalMap: textures.normal,
-    normalScale: new T.Vector2(0.65, 0.65),
+    normalScale: new T.Vector2(0.5, 0.5),
     roughness: 0.83,
     metalness: 0,
   });
   mat.name = 'MAT_Body';
   const tint = { value: new T.Color() };
   const mask = { value: textures.mask };
-  const headAtlas = { value: textures.head };
-  const sourceHair = { value: appearance.hairStyleId === 'hair_01' ? 1 : 0 };
-  const scalpTransform = '#include <begin_vertex>';
-  const depth = new T.MeshDepthMaterial({
-    depthPacking: T.RGBADepthPacking,
-    vertexColors: true,
-  });
-  const distance = new T.MeshDistanceMaterial({ vertexColors: true });
-  for (const shadow of [depth, distance]) {
-    shadow.onBeforeCompile = (shader) => {
-      shader.uniforms.sourceHair = sourceHair;
-      shader.vertexShader =
-        'uniform float sourceHair; varying float vHiddenScalp;\n' +
-        shader.vertexShader;
-      shader.vertexShader = shader.vertexShader.replace(
-        '#include <begin_vertex>',
-        scalpTransform + '\n vHiddenScalp=color.b;',
-      );
-      shader.fragmentShader =
-        'uniform float sourceHair; varying float vHiddenScalp;\n' +
-        shader.fragmentShader;
-      shader.fragmentShader = shader.fragmentShader.replace(
-        'void main() {',
-        'void main() { if((vHiddenScalp>.75 && sourceHair>.5)||(vHiddenScalp>.25 && vHiddenScalp<.75 && sourceHair<.5)) discard;',
-      );
-    };
-    shadow.customProgramCacheKey = () => 'source-chibi-scalp-shadow-v2';
-  }
+  // The supplied bald head is complete. All hairstyles share this one surface,
+  // including shadow passes; there is no reconstructed/hidden alternate scalp.
+  const depth = new T.MeshDepthMaterial({ depthPacking: T.RGBADepthPacking });
+  const distance = new T.MeshDistanceMaterial();
   mat.userData.depthMaterial = depth;
   mat.userData.distanceMaterial = distance;
   mat.addEventListener('dispose', () => {
     depth.dispose();
     distance.dispose();
   });
-  mat.userData.setScalpVisible = (visible: boolean) => {
-    sourceHair.value = visible ? 0 : 1;
-  };
   mat.userData.setTextures = (next: typeof textures) => {
     mat.map = next.base;
     mat.normalMap = next.normal;
     mask.value = next.mask;
-    headAtlas.value = next.head;
   };
   const apply = (a: MaleAppearance) => {
-    sourceHair.value = a.hairStyleId === 'hair_01' ? 1 : 0;
     tint.value.set(
       MALE_SKIN_TONES.find((t) => t.id === a.skinToneId)?.color ?? '#e8b18f',
     );
@@ -229,57 +196,30 @@ export function createMaleBodyMaterial(
   apply(appearance);
   mat.onBeforeCompile = (shader) => {
     shader.uniforms.skinMask = mask;
-    shader.uniforms.headAtlas = headAtlas;
     shader.uniforms.skinTint = tint;
-    shader.uniforms.sourceHair = sourceHair;
-    shader.vertexShader = 'uniform float sourceHair;\n' + shader.vertexShader;
-    shader.vertexShader = shader.vertexShader.replace(
-      '#include <begin_vertex>',
-      scalpTransform,
-    );
-    // Soften the projected face's normals without carrying the source fringe's
-    // creases into the bald head. The original Messy Spikes surface is unchanged.
-    shader.vertexShader = shader.vertexShader.replace(
-      '#include <beginnormal_vertex>',
-      `#include <beginnormal_vertex>
-      float cleanFace=step(.75,color.b)*color.g;
-      objectNormal=normalize(mix(objectNormal,normalize(vec3(position.x*.6,.2,1.)),cleanFace*.65));
-    `,
-    );
     shader.fragmentShader =
-      'uniform sampler2D skinMask; uniform sampler2D headAtlas; uniform vec3 skinTint; uniform float sourceHair;\n' +
+      'uniform sampler2D skinMask; uniform vec3 skinTint;\n' +
       shader.fragmentShader;
-    shader.fragmentShader = shader.fragmentShader.replace(
-      '#include <color_fragment>',
-      '',
-    );
     shader.fragmentShader = shader.fragmentShader.replace(
       '#include <map_fragment>',
       `#include <map_fragment>
-      vec3 regions=texture2D(skinMask,vMapUv).rgb;
-      // The owner's source mesh/atlas remain intact. Only the authored skin
-      // mask can receive tint; cloth, rope, eyes and eyebrows retain their atlas.
-      float alternate=step(.75,vColor.b);
-      if((alternate>.5 && sourceHair>.5)||(vColor.b>.25 && vColor.b<.75 && sourceHair<.5)) discard;
-      float cap=alternate;
-      float forehead=cap;
-      float skinAmount=max(mix(regions.r,1.0,cap),forehead)*step(.5,vColor.r);
-      vec3 skinDetail=clamp(diffuseColor.rgb/vec3(.922,.356,.184),vec3(.68),vec3(1.2));
-      diffuseColor.rgb=mix(diffuseColor.rgb,skinTint*mix(skinDetail,vec3(1.),max(cap,alternate)),skinAmount);
-      if(alternate>.5){
-        vec4 face=texture2D(headAtlas,vMapUv);
-        diffuseColor.rgb=mix(skinTint,mix(face.rgb,skinTint,face.a),vColor.g);
-      }
-
-    `,
+       vec2 skinChannels=texture2D(skinMask,vMapUv).rg;
+       float skinAmount=skinChannels.r;
+       // Keep subtle value detail, but remove the source's orange chroma and
+       // baked color patches. Lighting still supplies the anatomical shading.
+       float skinLuma=dot(diffuseColor.rgb,vec3(.2126,.7152,.0722));
+       float skinDetail=clamp(1.0+(skinLuma/.463-1.0)*.12,.94,1.04);
+       skinDetail=mix(skinDetail,clamp(skinLuma/.463,.5,1.04),skinChannels.g);
+       diffuseColor.rgb=mix(diffuseColor.rgb,skinTint*skinDetail,skinAmount);`,
     );
     shader.fragmentShader = shader.fragmentShader.replace(
       '#include <normal_fragment_maps>',
-      `vec3 smoothSkinNormal=normal;
-      #include <normal_fragment_maps>
-      normal=normalize(mix(normal,smoothSkinNormal,max(skinAmount*mix(.65,1.,alternate),cap)));`,
+      T.ShaderChunk.normal_fragment_maps.replace(
+        'mapN.xy *= normalScale;',
+        'mapN.xy *= normalScale * mix(1.0,0.25,skinAmount);',
+      ),
     );
   };
-  mat.customProgramCacheKey = () => 'male-source-chibi-skin-v2';
+  mat.customProgramCacheKey = () => 'owner-bald-body-even-skin-v2';
   return mat;
 }

@@ -1,0 +1,124 @@
+METEORFALL CITADEL / DRAGON VEIL — OWNER REVISION 2
+Catatan historis: revision 3 menambah 72 monster tengah (total 294) dan memperbaiki
+overlap lantai serta cliff accents. Lihat docs/meteorfall-citadel-revision-3.txt.
+Tanggal lokal: 14–15 October 2026
+Baseline: 3df72dc08220c75742a12936c67e77adf9ea5cab (HEAD tidak berubah)
+Status: implementasi lokal; tidak ada commit, push, merge, upload, atau deployment.
+
+ARAHAN OWNER TERBARU
+1. Monster Meteorfall dibuat jauh lebih banyak; jawaban lanjutan: "6× normal: 216 monster".
+   Lima elite dan satu boss tetap, sehingga total 222 instance.
+2. Periksa update equipment Dragonveil yang terasa terhapus; jawaban lanjutan:
+   "semua nya kecuali wings . lalu kenapa slot gloves masih ada , padahal update
+   sebelumnya sudah di hapus."
+3. Jalan memiliki magma menyala.
+4. Footstep meninggalkan jejak seperti menginjak magma.
+Arahan ini menggantikan batas roster 36 normal dan penundaan full Dragon Veil sebelumnya.
+Tidak ada generasi berbayar baru atau perubahan terhadap scope batch sebelumnya.
+
+PENYEBAB DRAGON VEIL TERASA HILANG
+Commit b229218ead928c9b7914c56c9127ac4672e6d154 berisi empat armor, model, ikon,
+penghapusan Gloves, serta perubahan enhancement yang lebih luas.
+Integrasi 3f0c79c / merge 59d00fc mempertahankan hasil rekonsiliasi lokal, sehingga
+seluruh isi commit tersebut tidak otomatis aktif. Catatan approval saat itu secara
+eksplisit menyatakan "no Dragon Veil/glove/skill tables adoption":
+docs/gameplay-authority/records/main-local-reconciliation-run-03-APPROVAL.json, policy.
+docs/gameplay-authority/WINGS_GRANDFATHER_CORRECTION.txt juga menunda full Dragon Veil.
+Jadi ini berasal dari keputusan integrasi sebelumnya, bukan penghapusan oleh map Meteorfall.
+Pemeriksaan memakai bukti terpilih tersebut dan canonical/HANDOFF.txt; tidak mengklaim
+membaca seluruh percakapan CLASS DI LUMENFALL atau semua reference historis.
+
+EMPAT CHECK PRESERVASI DESAIN
+1. Harus aktif: layout Meteorfall yang sudah disetujui, 216 normal/5 elite/1 boss;
+   empat armor Dragon Veil beserta model/ikon/toko/stats; Gloves bukan equip slot;
+   saved Wings mempertahankan enhancement, Wings baru +0 dan tidak dapat ditingkatkan;
+   cap enhancement umum 15 dengan langkah di atas 12 yang belum ditetapkan tetap diblokir.
+2. Tidak boleh diaktifkan kembali: roster 42 sebagai hasil akhir revisi ini; slot Gloves;
+   penundaan empat armor Dragon Veil; reset Wings tersimpan ke +0; upgrade Wings sampai
+   +12 dari commit lama; cap global 12; formula/class tables lama dari commit yang sama.
+3. Resolusi: pulihkan empat armor dan aset dari b229218 secara selektif. Pertahankan
+   aturan Wings dan enhancement saat ini. Stats empat armor adalah data implementasi
+   terdahulu yang dipulihkan sesuai permintaan owner, bukan balance canonical baru.
+   Tidak membuat set bonus, tarif/chance enhancement baru, atau formula combat baru.
+4. Verifikasi gabungan: UI toko/Character aktual, save migration, empat model dan LOD,
+   Wings regression, combat contract, traversal/timer, full roster, dan benchmark browser.
+Ini integrasi working tree terarah, bukan Git merge atau klaim parity seluruh main.
+
+HASIL IMPLEMENTASI
+- meteorfall-citadel-population.ts: 36 normal lama tetap dengan ID, species dan posisi
+  semula. Tambahan 180 memakai ID 200–379. Setiap hunting island memiliki 36 normal;
+  anchors deterministik menghindari void, obstacle, magma terbuka dan bridge docking.
+  Elite 90–94 dan boss 100 tetap; format respawn key/timer tidak diubah.
+- meteorfall-citadel-materials.ts / map.ts: shared road material dengan jaringan retakan
+  magma lebih rapat, emission lebih terang dan pulse lambat; dipakai bridge/causeway dan
+  pendekatan jalan. Pijakan tetap basalt walkable dengan collision yang sama.
+- meteorfall-citadel-footprints.ts: jejak kaki kiri/kanan berbasis jarak 0.85 unit, mengikuti
+  ground/ramp, membara lalu mendingin dan hilang dalam 6 detik. Pool maksimal 128 dalam
+  satu InstancedMesh, tanpa tekstur/lampu/damage tambahan. Tidak muncul saat idle,
+  teleport, pause atau di void. Resource ikut dilepas pada disposal map.
+- Dragon Veil Head, Armor, Legs, Boots: model Male V2, empat LOD per bagian, ikon asli,
+  data item/stats terdahulu dan pembelian 0 GOLD di Developer Material Lab dipulihkan.
+  Aset runtime dipulihkan byte-for-byte dari b229218: 16 GLB + provenance manifest
+  (15,055,295 bytes), ditambah empat ikon WebP. Source library/.blend tidak diubah.
+- Alias Dragon Veil Pants tetap menuju Legs, termasuk model/ikon pada item lama.
+  Owned instance ID, enhancement dan rune tetap. Keempat armor hanya untuk male;
+  tidak muncul sebagai normal loot dan tidak memiliki set bonus tambahan.
+- Gloves dihapus dari EquipSlot, empty loadout, Character UI, attachment dan toko.
+  Item Gloves lama tetap bisa dibaca/dimiliki, tidak dapat dipakai, dan tidak memberi
+  stats aktif. Migrasi melepaskannya; jika bag penuh, instance masuk pendingLoot tanpa
+  kehilangan enhancement/rune. Migrasi reload berikutnya idempotent.
+- Readiness/error/retry model Dragon Veil kembali aktif; ikon independen tetap disimpan
+  oleh extract-item-icons.py agar regenerasi sheet tidak menghapus mapping tersebut.
+- Wings, formula combat, skill definitions, accuracy-evasion-fixture.ts, dan source
+  aset asli tidak diubah. Perubahan sebelumnya di working tree tetap dipertahankan.
+
+VERIFIKASI REVISI INI
+PASS 145/145 tests: Meteorfall layout/navigation/population/migration, footsteps pada
+frame rate berbeda, Dragon Veil alias/GLB binding/stats/shop/enhancement/Gloves migration,
+Wings, character model/UI/LOD/cache, items/shop, terrain/travel/quest, Whispering Wilds,
+Sunken migration dan canonical gameplay contract.
+Dua assertion tes lama diperbarui: CHARACTER_SLOTS sebelumnya sudah berisi 12 entry
+tetapi tes mengharapkan 11; item-cleanup mengakses ID field Ironveil/Frostfire yang sudah
+diganti. Tes kini memeriksa slot yang benar dan resolver fieldContent. Tidak mengubah
+runtime map lain untuk meloloskan tes.
+PASS targeted oxlint, TypeScript noEmit, git diff --check, production build.
+Build masih memiliki warning proyek npm, chunk besar dan klasifikasi route Vinext.
+
+PASS browser Chrome 155 headless / ANGLE D3D11 / RTX 3060 Laptop:
+- App Home aktual melalui fixture memory-only, tidak membaca/menulis save owner.
+- Empat pembelian gratis dengan ikon 256px, equip lewat popup masing-masing slot,
+  preview armor, 13 slot tanpa Gloves, dan parse save yang mempertahankan equipment.
+- Dragon Veil: kombinasi armor, animasi, 4 LOD, request race, failure/retry, late-load
+  disposal; cache kembali nol. Tidak ada unexpected runtime/shader error.
+- M, 222 monster, NPC, return portal, seluruh bridge dua arah, height/raycast,
+  orbit/zoom, load failure/retry, serta 10 siklus keluar-masuk map/resource disposal.
+- Basic attack, dash executor, player/normal/boss knockback, kill progression,
+  boss history, exact respawn deadlines dan invalid-position recovery.
+- WASD dengan armor Dragon Veil menghasilkan 25–26 footprints pada sampel 2.2 detik;
+  setelah berhenti jejak mendingin/hilang. Gambar jalan dan jejak diperiksa secara visual.
+
+BENCHMARK WARM, BUKAN GPU TIMESTAMP
+Low dan Medium, 5 view (entry/intersection/bridge/citadel/orbit), full 222 roster:
+median 60 FPS; p95 16.8 ms. Environment terukur 23–93 calls, 101,266–208,990 triangles.
+4/12 static player proxies: median 60 FPS, p95 16.8 ms; bukan multiplayer/networking.
+Tambahan dense hunting, empat armor Dragon Veil + WASD + 50/51 jejak aktif,
+32 monster dalam radius 100 unit: median 60 FPS, p95 16.8 ms Low dan Medium.
+CPU submission p95 4.2 / 4.7 ms; viewport 1440×1000, drawing buffer Low 1152×800 dan
+Medium 1440×1000 sesuai preset. Sampel sekitar 4.2 detik setelah warm-up 1.2 detik.
+Ini hasil perangkat/skenario terukur; bukan jaminan FPS perangkat lain atau endurance test.
+High/Ultra dan multiplayer nyata belum dibenchmark. Batas art/Blender dari laporan awal
+tetap berlaku; revisi ini tidak mengklaim cleanup Blender telah selesai.
+
+EVIDENCE DAN FILE UTAMA
+work/meteorfall-citadel/revision2/{regression-tests,types,lint,build}.log
+work/meteorfall-citadel/revision2/{meteor-browser,combat-browser,dragon-browser,ui-browser}.log
+work/meteorfall-citadel/revision2/qa/{runtime-report,combat-report}.json
+work/meteorfall-citadel/revision2/dragon-veil/browser/report.json
+work/meteorfall-citadel/revision2/ui/report.json
+work/meteorfall-citadel/revision2/ui/character-four-pieces-no-gloves.png
+work/meteorfall-citadel/revision2/ui/{magma-road-and-footsteps,footprints-close,hunting-light}.png
+work/meteorfall-citadel/revision2/qa/bridge-medium.png
+scripts/test-meteorfall-revision-browser.mjs — reproducible UI/dense hunting check
+scripts/test-dragon-veil-browser.mjs — equipment geometry/LOD/lifecycle checks
+tests/browser/meteorfall-citadel.tsx — localhost-only in-memory app fixture
+docs/meteorfall-citadel-implementation.txt — laporan tahap awal, angka roster lama bersifat historis

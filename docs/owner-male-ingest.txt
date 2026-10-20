@@ -1,0 +1,315 @@
+﻿LUMENFALL - Integrasi karakter owner dan koreksi 10 hairstyle
+Pemeriksaan lokal: 17 Oktober 2026 (Asia/Bangkok)
+
+STATUS DAN KOREKSI OWNER
+REVISI BELAKANG LONG HAIR TIED — 17 Oktober 2026
+- Pangkal rambut hair_10 di sisi ikatan diteruskan ke tengkuk dan dirapatkan
+  mengikuti kepala. Penutup celah lokal memakai UV rambut sumber, dengan
+  batas bawah mengikuti kurva tengkuk. Perbaikan pelipis kanan tetap efektif.
+- Total penutup lokal menjadi 101 triangle (sebelumnya 27). Detail penutup
+  dipertahankan pada LOD rendah dan dipasang terpisah dari penyederhanaan
+  helai panjang, agar tidak mengembang menjadi batas tengkuk yang tebal.
+  LOD3 mempertahankan lebih banyak helai pangkal, masih di bawah batas
+  1.700 triangle yang sudah berlaku. Triangle akhir: 5.636 / 3.663 / 1.973 / 1.409.
+- Hanya empat GLB hair_10, thumbnail hair_10 dan manifest yang berubah di
+  public/assets/characters/male-v2. SHA256 body, skin/tekstur, sembilan gaya
+  rambut lain, animasi dan kedua GLB sumber tetap sama dari awal revisi.
+  Geometry total 12.009.692 byte (+48.656 byte). Cache rambut sekarang
+  owner-hair-revision-20261017-7; cache body tetap owner-even-skin-20261017-2.
+
+Validasi: 27 tes lulus, termasuk 81 probe belakang/sudut miring per LOD dan
+120 probe pelipis kanan per LOD. Tes belakang baru terbukti gagal pada aset
+sebelum revisi. Blender MCP memeriksa mesh runtime empat LOD dalam tiga pose
+kepala masing-masing: nol vertex invalid, galat rigid maksimum 2,39e-7 m.
+Browser aktual memeriksa 40 kombinasi hairstyle/LOD, empat sisi dan tambahan
+dua sudut belakang hair_10, pergantian pilihan serentak, enam gerakan serta
+Dragon Veil dengan hair_10; errors=[]. Lint dan build lokal exit 0.
+Peringatan build ukuran chunk/klasifikasi route vinext yang sudah ada tetap
+tercatat. LOD jauh tetap memiliki faceting sesuai penyederhanaannya; pemeriksaan
+ini mencakup sudut, pose dan probe yang disebutkan, bukan seluruh kombinasi
+animasi/equipment di permainan. Tidak ada commit, push atau publish.
+
+Source/pipeline yang berubah dalam revisi ini:
+scripts/repair-owner-hairstyles.py, scripts/ingest-owner-male.py,
+scripts/test-owner-male-browser.mjs, lib/game/modular-male-character.test.ts,
+lib/game/character-appearance.ts, serta laporan ini.
+
+Bukti:
+output/tied-rear-review/before-after.png
+output/tied-rear-review/hair-10-rear-all-lods.png
+output/tied-rear-review/{verification,blender-verification,scope-verification}.json
+work/owner-male/tied-rear-{tests,browser,lint,build}.log
+work/owner-male/tied-rear-build-exit.json
+work/owner-male/Runtime_Verified.blend (scene QA terpisah dari sumber)
+
+RIWAYAT REVISI VOLUME MESSY SPIKES / SISI KANAN LONG HAIR TIED — 17 Oktober 2026
+- Messy Spikes (hair_01): jarak berlebih dari permukaan kepala dikurangi 28%,
+  sehingga akar tidak ikut mengecil menembus kepala. Lebar LOD0 berubah dari
+  63,65 menjadi 56,40 cm (-11,4%), ketebalan depan-belakang 61,71 menjadi
+  54,07 cm (-12,4%), dan puncak turun 5,62 cm. Arah spike tetap dipertahankan.
+  Penutup celah lokal dihitung ulang menjadi 119 triangle, dengan UV rambut
+  sumber. Kulit kepala belakang tetap tertutup pada pemeriksaan empat LOD.
+- Long Hair Tied (hair_10): pangkal rambut asli di atas telinga kanan (-X
+  pada rig) diperluas ke bawah, ditambah 27 triangle penutup celah lokal.
+  Fitting berulang juga menutup titik kecil kulit yang menembus bagian atas.
+  Poni, ikatan samping dan karakter rambut panjang tetap dipertahankan.
+- Fitting LOD diterapkan per bagian tersambung pada dua gaya ini. Clearance
+  penutup celah tidak lagi mengembangkan seluruh rambut. Messy LOD3 memakai
+  710 triangle agar overlap belakang tidak hilang saat penyederhanaan; masih
+  di bawah anggaran rambut/crowd yang sudah ada. Tidak ada basic hair bersama.
+  Triangle Messy: 3.548 / 2.306 / 1.242 / 710.
+  Triangle Long Hair Tied: 5.562 / 3.613 / 1.946 / 833.
+
+Validasi revisi ini: 26 tes lulus. Regresi baru terbukti gagal pada aset lama.
+Tes memeriksa batas volume Messy, 56 probe belakang Messy per LOD, serta 120
+probe sisi kanan Long Hair Tied per LOD. Browser aktual memeriksa 40 kombinasi
+hairstyle/LOD dari empat sisi, pergantian pilihan serentak, animasi dan
+equipment; errors=[]. Blender memeriksa kedua mesh runtime dalam tiga pose
+kepala: nol vertex invalid, galat rigid maksimum 0,000000239348090 meter.
+Lint terarah dan build lokal lulus (exit 0); peringatan ukuran chunk dan
+klasifikasi route vinext yang sudah ada tetap tercatat.
+
+Lingkup: delapan GLB hair_01/hair_10, dua thumbnail, manifest, revisi cache,
+scripts/repair-owner-hairstyles.py, scripts/ingest-owner-male.py,
+lib/game/modular-male-character.test.ts dan lib/game/character-appearance.ts.
+SHA256 body, delapan hairstyle lain, seluruh tekstur termasuk skin mask yang
+sudah disetujui, animasi dan kedua GLB sumber tetap sama dari awal revisi ini.
+Geometry total 11.961.036 byte (+14.520 byte). Cache hair terbaru:
+owner-hair-revision-20261017-6; cache body tetap owner-even-skin-20261017-2.
+Tidak ada commit, push atau publish.
+
+Bukti revisi ini:
+output/spikes-tied-review/before-after.png
+output/spikes-tied-review/hair-{1,10}-all-lods.png
+output/spikes-tied-review/{verification,blender-verification,scope-verification}.json
+work/owner-male/spikes-tied-{tests,browser,lint,build}.log
+work/owner-male/spikes-tied-build-exit.json
+work/owner-male/Runtime_Verified.blend (scene QA terpisah dari sumber)
+
+RIWAYAT REVISI MESSY SPIKES / SKIN BELANG — 17 Oktober 2026
+- Messy Spikes (hair_01): helai belakang/samping dirapatkan ke kepala tanpa
+  memanjangkan ujung menjadi tirai. Celah lokal diperiksa dengan sinar radial
+  dan pandangan horizontal belakang/miring; 125 triangle mengikuti kepala
+  untuk menutup celah antarhelai. UV memakai atlas rambut sumber. Bagian depan
+  dan puncak dipertahankan; tidak ada basic hair bersama yang ditambahkan.
+  LOD akhir: 3.554 / 2.310 / 1.244 / 533 triangle.
+- Skin: masker lama melewatkan kulit dada/bahu karena batas posisi, serta
+  meninggalkan garis sambungan UV. Masker baru mengikuti palet kulit di seluruh
+  atlas termasuk padding. R menyimpan cakupan kulit, G mempertahankan detail
+  garis mulut asli sebagai terang/gelap yang ikut warna skin.
+- Shader menghilangkan chroma oranye asli dari bagian kulit dan membatasi
+  variasi albedo yang menyebabkan belang. Intensitas normal map pada kulit
+  dikurangi; mata, alis, pakaian dan detail mulut tetap dipertahankan.
+  Bayangan akibat bentuk mesh/pencahayaan tetap ada; ini bukan tekstur flat
+  tanpa shading. GLB sumber dan tekstur albedo sumber tidak ditimpa.
+
+Verifikasi revisi ini:
+- 25 tes lulus, termasuk 56 probe belakang/miring per LOD Messy Spikes.
+  Tes baru sebelumnya menemukan 24 kegagalan pada empat LOD aset lama.
+- Browser aktual: 40 kombinasi hairstyle/LOD, empat sisi, pergantian pilihan
+  serentak, enam animasi, equipment Dragon Veil; tanpa error render/page.
+- Lima skin tone diuji memakai KTX2 dan fallback PNG/WebP, dari depan/belakang
+  dan dekat wajah, dengan pencahayaan runtime serta netral. Uji atlas GPU
+  memeriksa warna kulit dan pakaian secara terpisah: p99 selisih kulit dari
+  median 2-3 tingkat RGB/255, nol outlier >15; selisih rata-rata warna kain
+  saat mengganti skin <0,003 tingkat RGB/255. KTX/fallback konsisten.
+- Create/save/reload karakter, masuk dunia dan gerak berhasil; errors=[];
+  pemilihan warna tidak memuat ulang body (bodyLoads=1).
+- Blender MCP memeriksa Medium/Dark dan empat sisi Messy Spikes. Tiga pose
+  kepala: nol vertex invalid, galat rigid maksimum 0,000000240389493 meter.
+  Preview skin Blender memakai bake persamaan runtime; shader/normal map
+  sebenarnya diperiksa di browser. QA tersimpan di work/owner-male/Runtime_Verified.blend.
+- Lint terarah dan build produksi lokal lulus (exit 0). Peringatan ukuran
+  chunk dan klasifikasi route vinext yang sudah ada tetap tercatat di log.
+
+Lingkup aset: empat GLB hair_01, thumbnail hair_01, dua format skin mask, dan
+manifest. SHA256 body, sembilan hairstyle lain, basecolor/normal/hair atlas,
+animasi dan kedua GLB sumber tetap sama dengan awal revisi ini.
+Geometry total: 11.946.516 byte (bertambah 11.328 byte dari revisi sebelumnya).
+Cache body: owner-even-skin-20261017-2; hair: owner-hair-revision-20261017-5.
+Tidak ada commit, push atau publish.
+
+File kode/pipeline yang diubah pada revisi ini:
+lib/game/character-materials.ts
+lib/game/character-appearance.ts
+lib/game/modular-male-character.test.ts
+scripts/ingest-owner-male.py
+scripts/repair-owner-hairstyles.py
+scripts/test-owner-male-browser.mjs
+scripts/test-owner-skin-browser.mjs
+
+Bukti:
+output/messy-skin-review/before-after.png
+output/messy-skin-review/messy-all-lods.png
+output/messy-skin-review/skin-tones-{front,back,face}.png
+output/messy-skin-review/{verification,skin-verification,blender-verification,scope-verification}.json
+work/owner-male/messy-skin-{tests,browser,tones,world,lint,build}.log
+work/owner-male/messy-skin-build-exit.json
+
+RIWAYAT REVISI PONYTAIL / BOWL CUT / CORNROWS — 17 Oktober 2026
+- Ponytail (hair_05): pangkal rambut asli dirapatkan mengikuti kepala dan
+  diperluas ke belakang telinga/tengkuk. Sebanyak 165 triangle penutup celah
+  lokal memakai UV kontinu dari atlas rambut sumber. Ini bagian khusus mesh
+  ponytail, bukan basic hair bersama atau cap penuh untuk semua hairstyle.
+  Pemetaan UV kontinu juga menghilangkan pola silang pada tambalan. Ekor dan
+  poni sumber dipertahankan. Long Hair Tied (hair_10) diperiksa, tidak direvisi.
+- Bowl Cut (hair_06): bagian atas diturunkan sekitar 4,4 cm dan lebar dekat
+  dikurangi sekitar 2 cm. Fitting tetap diuji terhadap kepala setiap LOD,
+  dengan jarak lebih rapat agar penyederhanaan tidak mengembangkannya lagi.
+- Cornrows (hair_08): dua baris belakang tersambung ke terminal dan bagian
+  menjuntai miliknya dengan pengulangan ruas kepang sumber. Terminal samping
+  dirapatkan ke ujung barisnya; lubang kecil bekas pemisahan scalp ditutup.
+  Total tambahan 654 triangle: 620 ruas penghubung dan 34 penutup lubang.
+  Semua LOD sekarang memiliki nol sisi batas terbuka pada tabung kepang.
+  Detail LOD dipertahankan pada 7.310 / 5.200 / 3.500 / 1.600 triangle, tetap
+  di bawah anggaran maksimum rambut dan crowd yang sudah ada.
+
+Revisi ini hanya mengganti 12 GLB, tiga thumbnail, manifest, revisi cache,
+pipeline fitting dan tes terkait. SHA256 body, tujuh hairstyle lain (termasuk
+Mohawk), tekstur, serta kedua GLB sumber tidak berubah dari awal revisi ini.
+Cache pada revisi tiga gaya: owner-hair-revision-20261017-4. Tidak ada commit/publish.
+
+Verifikasi revisi tiga gaya: 24 tes lulus. Regresi baru gagal pada aset sebelum revisi
+dan lulus sesudahnya: 42 sinar coverage ponytail per LOD, batas tinggi/lebar
+Bowl Cut, nol sisi terbuka dan delapan titik sambungan Cornrows per LOD.
+Browser aktual: 40 kombinasi hairstyle/LOD, empat sisi setiap kombinasi,
+pergantian pilihan serentak, animasi dan equipment tanpa page/render error.
+Blender MCP memeriksa hasil runtime tiga gaya dan tiga pose kepala: nol posisi
+invalid, galat rigid maksimum 0,0000002462075895 meter. Lint terarah dan build
+produksi lokal lulus; build tetap memberi peringatan ukuran chunk/route vinext.
+
+BUKTI REVISI TIGA GAYA
+output/three-styles-review/before-after.png
+output/three-styles-review/hair-{5,6,8}-all-lods.png
+output/three-styles-review/blender-verification.json
+output/three-styles-review/verification.json
+output/three-styles-review/scope-verification.json
+work/owner-male/three-styles-{tests,browser,lint,build}.log
+work/owner-male/three-styles-build-exit.json
+scripts/repair-owner-hairstyles.py - perbaikan khusus tiga gaya, dipanggil ingest.
+
+RIWAYAT KOREKSI MOHAWK
+Koreksi lanjutan: owner melihat Mohawk melayang. Akar bagian tengah memang
+terlalu maju dan berjarak sekitar 6-12 cm dari kulit kepala. Koreksi sebelumnya
+belum menguji kontak akar Mohawk secara khusus; pemeriksaan coverage saja tidak
+cukup untuk model terbuka ini.
+
+Turunan hair_03 sekarang dimundurkan 10 cm, dimiringkan -0,20 radian pada sumbu
+X Blender, dan diturunkan hingga akar masuk sekitar 2 mm di bawah kulit pada
+titik tertinggi pengukuran celah. Penyesuaian vertikal tambahan memakai kepala
+LOD yang sesuai. Bentuk puncak, ketebalan helai, UV dan jumlah triangle tetap.
+Ujung belakang yang sebagian terkubur dirapikan agar tidak menyembul terpisah.
+Tidak ditambahkan basic hair. Hanya empat GLB Mohawk, thumbnail Mohawk dan
+manifest yang berubah di direktori aset pada koreksi lanjutan ini; hash body,
+sembilan gaya lain, tekstur dan kedua sumber GLB tetap sama.
+
+Regresi baru: kontak akar 39 titik per LOD serta 16 titik belakang tanpa ujung
+terpisah. Tes ini gagal pada aset lama (contoh celah 8,97 cm) dan lulus sesudah
+koreksi. Blender memeriksa hasil runtime dan tiga pose kepala; galat rigid
+maksimum 0,0000002421152116 meter. Bukti Mohawk terbaru:
+output/mohawk-review/before-after.png
+output/mohawk-review/mohawk-all-lods.png
+output/mohawk-review/blender-verification.json
+output/mohawk-review/scope-verification.json
+work/owner-male/mohawk-tests.log
+work/owner-male/mohawk-browser.log
+work/owner-male/mohawk-creation.log
+work/owner-male/mohawk-build.log
+work/owner-male/mohawk-build-exit.json
+
+Owner melaporkan hampir semua model masih cacat dan masih terlihat basic hair.
+Laporan ini menggantikan kesimpulan verifikasi sebelumnya. Tes load/rig saja
+ternyata tidak cukup untuk menilai kualitas visual fitting rambut.
+
+PERBAIKAN
+- Lapisan HairRootLining tambahan dihapus dari semua turunan. Tidak ada cap
+  generik baru yang disisipkan untuk menutup kulit kepala.
+- Detail helai sumber dipertahankan pada LOD0. Voxel remesh dan target 3.000
+  triangle seragam yang merusak beberapa rambut dihapus dari pipeline.
+- Helai belakang gaya penuh dipasang ulang ke tengkuk dengan deformasi halus,
+  mempertahankan bagian depan, belahan, dan panjang helai yang menjuntai.
+- Cornrows: 279 triangle permukaan kepala pajangan dan sisa serpih dibuang.
+  Kepang dipasang lebih dekat ke kepala; dua kepang yang menjuntai disambungkan
+  posisinya ke akar kepang samping. Tidak ditambah geometri kepala pengganti.
+- LOD tetap empat tingkat. Fitting setelah penyederhanaan menggeser ketebalan
+  helai bersama-sama; tidak menjepit kedua sisi helai ke permukaan yang sama.
+- Thumbnail diperbarui dari renderer game. Cache rambut menggunakan
+  owner-hair-revision-20261017-4; body masih owner-bald-hair-20261017-1.
+
+INTEGRASI YANG DIPERTAHANKAN
+Rig 20 tulang, ID hair_01 sampai hair_10, warna, skin tone, save migration,
+preview, animasi dan equipment tetap memakai arsitektur Male V2. Tidak ada
+perubahan gameplay, angka desain, map, karakter perempuan, commit atau publish.
+Body dari integrasi awal tidak diubah lagi pada koreksi rambut ini.
+
+SUMBER READ-ONLY
+D:/Lumenfall/male character bald 3d model.glb
+SHA256: 0e9152889ab1b768f9c269fb5419d4cc025f88528f64ef9917a373976a0a98fd
+D:/Lumenfall/10 hair styles 3d model.glb
+SHA256: 7022d7460e27de43e734d65f73b2baecc448002571c9ade9a61a0e46345353a9
+Kedua hash akhir sama dengan sumber awal. Scene awal pengguna dan file .blend
+sumber proyek tidak ditimpa. Perubahan Blender hanya pada scene QA/turunan kerja.
+
+FILE UTAMA
+scripts/ingest-owner-male.py - fitting, pemisahan dan ekspor staging Blender.
+scripts/pack-owner-male.mjs - pengemasan meshopt dan salinan inspeksi Blender.
+scripts/test-owner-male-browser.mjs - browser QA dan 160 gambar empat sisi.
+lib/game/character-appearance.ts - revisi cache.
+lib/game/character-quality.ts - estimasi biaya geometry untuk crowd.
+lib/game/modular-male-character.test.ts - regresi tanpa cap dan detail sumber.
+public/assets/characters/male-v2/hair/ - 40 turunan rambut.
+public/assets/characters/male-v2/thumbnails/ - 10 thumbnail aktual.
+public/assets/characters/male-v2/manifest.json - provenance dan jumlah geometry.
+Perubahan body/material dari integrasi awal tetap tercatat dalam working tree.
+
+BIAYA GEOMETRY
+44 GLB body+rambut terkompresi berjumlah 11.935.188 byte. Peningkatan dibanding
+revisi lama diperlukan untuk mempertahankan detail sumber pada tampilan dekat.
+Maksimum body+rambut: LOD0 15.583, LOD1 10.679, LOD2 5.612, LOD3 2.483 triangle.
+Estimasi planner disesuaikan menjadi 16.000 / 11.000 / 6.000 / 2.600, sementara
+anggaran total dan ambang jarak kualitas tidak diubah. Tidak ada benchmark
+performa perangkat rendah baru; biaya geometry lebih tinggi dari revisi lama.
+
+VERIFIKASI
+- 24 unit/asset tests lulus. Termasuk 44 bind pose, bobot, UV/wajah sumber,
+  batas geometry, tanpa triangle cap UV konstan, detail LOD0, coverage titik
+  belakang/crown, bare temple gaya cukur, gerak kepala dan save migration.
+- Browser aktual: 40 kombinasi hairstyle/LOD, satu rambut aktif dan skeleton
+  bersama. Empat sisi untuk SEMUA LOD: 160 tangkapan, delapan lembar audit.
+- 35 request hairstyle serentak: hanya pilihan terakhir yang tetap terpasang.
+- Idle/run/attack/cast/hit/death dan native run dengan Dragon Veil: lulus.
+- Rambut disembunyikan sementara dalam sesi QA: kepala benar-benar botak;
+  bukti bald-front.png dan bald-back.png tidak memperlihatkan basic hair.
+- Create/save/reload/masuk world/bergerak serta picker warna/skin tone lulus,
+  tanpa page error. Sesi pengujian terpisah dari penyimpanan pemain.
+- Blender MCP: hasil ekspor runtime dilepas kompresinya untuk inspeksi.
+  Semua 10 rambut: nol posisi invalid dan bobot head tunggal. Tiga pose kepala
+  memberi galat gerak rigid maksimum 0,0000002421152116 meter.
+- Lint terarah lulus. Build produksi lokal selesai dengan peringatan ukuran
+  chunk dan klasifikasi route vinext; lihat log dan status proses di bawah.
+
+BUKTI TERBARU
+output/owner-male/audit-lod0-0.png - gaya 1-5, empat sisi.
+output/owner-male/audit-lod0-1.png - gaya 6-10, empat sisi.
+output/owner-male/audit-lod{1,2,3}-{0,1}.png - pemeriksaan LOD lain.
+output/owner-male/verification.json
+output/owner-male/blender-verification.json
+output/owner-male/blender-head-motion.json
+work/new-male/hair-correction-tests.log
+work/new-male/hair-correction-lint.log
+work/new-male/hair-correction-browser.log
+work/new-male/hair-correction-creation.log
+work/new-male/hair-correction-customization.log
+work/new-male/hair-correction-build-process.log
+work/new-male/hair-correction-build-exit.json
+work/owner-male/Runtime_Verified.blend
+Scene aktif Blender: LUMENFALL Hair Correction Final.
+
+BATAS PEMERIKSAAN
+Hasil adalah turunan fitting, bukan salinan geometri tanpa perubahan. Mohawk,
+undercut dan sela cornrows mempertahankan kulit yang terbuka sesuai bentuk
+potongannya. LOD jauh memang lebih kasar dan tidak ditujukan untuk close-up.
+Rambut mengikuti tulang kepala secara rigid, tanpa fisika atau collider rambut.
+Pengujian tidak menjamin setiap sudut sub-pixel, seluruh pose ekstrem, atau
+semua kombinasi equipment; penilaian visual owner tetap diperlukan bila ada
+bagian yang belum sesuai bentuk sumber yang dimaksud.

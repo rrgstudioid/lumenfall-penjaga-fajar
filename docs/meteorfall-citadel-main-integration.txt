@@ -1,0 +1,82 @@
+METEORFALL CITADEL - DEV-GADANG / MAIN INTEGRATION CHECK
+15 October 2026, Asia/Bangkok
+
+AUTHORIZATION AND SOURCE REVISION
+Owner: "commit dan push ke dev-gadang ... push atau fast forward ke main".
+Fetched origin before integration. Local dev-gadang, local main, origin/dev-gadang
+and origin/main all started at:
+3df72dc08220c75742a12936c67e77adf9ea5cab
+No new incoming collaborator commits or branch conflicts at this checkpoint.
+Integration uses the approved working tree followed by ordinary fast-forward;
+no force push, history rewrite, public Site upload or deployment operation.
+Final commit/ref verification is recorded in the task result and local evidence:
+work/meteorfall-citadel/integration/git-result.json.
+
+1. LATEST OWNER-APPROVED FEATURES TO PRESERVE
+- Meteorfall replaces the existing meteorfall-citadel field: 1000 x 1000 layout,
+  11 floating platforms, 14 bridges, safe arrival, existing M travel/NPC/portal,
+  deterministic navigation and position-only save migration.
+  Source: owner implementation request; docs/meteorfall-citadel-implementation.txt.
+- Outer normal population 216; then 72 additional central normals, 24 each in
+  Lower Crossing, Crucible Plaza and Meteor Forecourt. Final roster is
+  288 normal + 5 elite + 1 boss = 294. Preserve existing IDs/species/timers.
+  Source: owner's "6x normal: 216 monster" and later "Tambah 72 ... total 294";
+  docs/meteorfall-citadel-revision-2.txt and revision-3.txt.
+- Restore Dragon Veil Head/Armor/Legs/Boots, including models, icons, developer
+  acquisition and prior item stats. Remove active Gloves slot with lossless
+  save compatibility. Owner: "semua nya kecuali wings ... slot gloves ... di hapus".
+  Selective restoration from b229218ead928c9b7914c56c9127ac4672e6d154;
+  docs/meteorfall-citadel-revision-2.txt records scope and reconciliation.
+- Retain saved Wings enhancement; new Wings remain +0 and cannot be upgraded.
+  Source: docs/gameplay-authority/WINGS_GRANDFATHER_CORRECTION.txt and incoming
+  dc189c1. The newer armor request does not override this Wings decision.
+- Glowing magma roads and fading ground footprints; disjoint top surfaces and
+  cliff accents below the road address the reported flicker/stray rocks.
+  Source: owner revisions and docs/meteorfall-citadel-revision-{2,3}.txt.
+- Fire grains use Frostfire-style persistent world positions and bounded
+  recycling; retain their orange color, size and quality caps.
+  Source: owner's particle correction and revision-4.txt.
+- Existing approved combat/progression/enhancement rules, including Lv100,
+  SP199 at Lv80, +15 schema and held undefined +13..15 attempts, remain effective.
+  Source: docs/gameplay-authority/canonical/HANDOFF.txt and current contract tests.
+
+2. SUPERSEDED BEHAVIOR THAT MUST NOT RETURN
+- Generic small Meteorfall terrain, final roster 42 or 222, empty central areas.
+- Active Gloves UI/equip/stats, or loss of the retired owned instance/runes.
+- Earlier hold on the four Dragon Veil armor pieces. This is a narrow supersession
+  of the prior no-Dragon-Veil/no-Gloves adoption policy; unrelated held skill or
+  numeric tables are not adopted from the historical armor commit.
+- Resetting saved Wings to +0, new Wings upgrades, global enhancement cap +12,
+  or historical class/combat formulas from that same asset source commit.
+- Overlapping landing/road floor planes, rocks projecting through the road,
+  and ember positions reconstructed from hero displacement each frame.
+
+3. FINAL SOURCE COMPARISON AND CONFLICT RESOLUTION
+The incoming main baseline is unchanged. Its relevant collaborator work is
+retained by ancestry; no merge resolution selected one branch wholesale.
+meteorfall-citadel-population.ts and tests assert 294 instances and stable old IDs.
+items/rules/character code implements the narrow armor/Gloves correction while
+dragon-veil-wings.ts, canonical-config.ts, gameplay-config.ts and
+accuracy-evasion-fixture.ts have no diff from the incoming baseline.
+The map uses disjoint surface patches, bounded cliff decorations and the new
+world-space ember pool. Source libraries, original Blender files, staging
+generations, local saves, build output and local QA media are outside the commit.
+The integration promotes this tested source tree; equality of both remote heads
+is verified after the pushes. This is scoped preservation, not a claim to have
+audited all CLASS DI LUMENFALL branch history or established global design parity.
+
+4. COMBINED VERIFICATION
+New integration run: PASS 150/150 tests covering canonical combat/progression,
+character/cache/LOD/UI, Dragon Veil, Wings, inventory overflow migration,
+equipment shops, Meteorfall navigation/population/surfaces/footprints/embers,
+field quest/travel, Whispering Wilds, Sunken save migration and Frostfire.
+Evidence: work/meteorfall-citadel/integration/regression-tests.log.
+
+Same production source already passed TypeScript, targeted lint and build in
+revision4, plus real browser particle movement/orbit/quality/disposal checks.
+Revision3 browser runs cover M travel, central population, Dragon Veil/Gloves UI,
+footprints, combat, boss timers, terrain overlap and repeated map disposal.
+These earlier results are reused because this integration changes Git history
+and adds this record, without additional runtime edits or incoming code.
+git diff --check passes. Existing build warnings and the previously reported
+Blender/art and benchmark limitations remain; no new public deployment tested.

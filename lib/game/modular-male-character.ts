@@ -159,11 +159,9 @@ export async function loadModularMaleCharacter(
   }
   let currentBodyLease = bodyLease;
   const bodyMaterial = createMaleBodyMaterial(textures, appearance),
-    hairMaterial = createMaleHairMaterial(appearance),
-    sourceHairMaterial = createMaleHairMaterial(appearance, textures);
+    hairMaterial = createMaleHairMaterial(appearance, textures);
   bodyMaterial.userData.modularOwned = true;
   hairMaterial.userData.modularOwned = true;
-  sourceHairMaterial.userData.modularOwned = true;
   for (const mesh of meshes(scene)) {
     mesh.material = bodyMaterial;
     mesh.customDepthMaterial = bodyMaterial.userData.depthMaterial;
@@ -227,10 +225,7 @@ export async function loadModularMaleCharacter(
             slot,
             path,
             lease,
-            mesh: bindMesh(
-              meshes(lease.value.scene)[0],
-              path.includes('/hair_01-') ? sourceHairMaterial : hairMaterial,
-            ),
+            mesh: bindMesh(meshes(lease.value.scene)[0], hairMaterial),
           };
         }),
       );
@@ -240,6 +235,7 @@ export async function loadModularMaleCharacter(
         if (r.status === 'rejected') throw r.reason;
         return r.value;
       });
+      // A slow body/hair request must not replace a newer appearance or LOD.
       if (disposed || token !== revision) {
         acquired.forEach((l) => l.release());
         newTextures?.release();
@@ -272,11 +268,9 @@ export async function loadModularMaleCharacter(
       lod = nextLOD;
       bodyMaterial.userData.applyAppearance(desired);
       hairMaterial.color.set(desired.hairColor);
-      sourceHairMaterial.color.set(desired.hairColor);
       if (newTextures) {
         bodyMaterial.userData.setTextures(newTextures);
-        sourceHairMaterial.map = newTextures.base;
-        sourceHairMaterial.normalMap = newTextures.normal;
+        hairMaterial.map = newTextures.hair;
         textures.release();
         textures = newTextures;
         textureSize = desiredSize;
@@ -300,7 +294,6 @@ export async function loadModularMaleCharacter(
     slots.clear();
     bodyMaterial.dispose();
     hairMaterial.dispose();
-    sourceHairMaterial.dispose();
     currentBodyLease.release();
     textures.release();
   };
