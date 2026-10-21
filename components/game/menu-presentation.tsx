@@ -100,19 +100,19 @@ export function MenuPresentation(props: {
             const hero = slot.hero;
             const compatible = isCompatibleCharacterSave(hero);
             return <button key={slot.id} className={`menu-slot ${selectedSlot === slot.id ? 'is-selected' : ''} ${hero ? '' : 'is-empty'}`}
-              aria-pressed={selectedSlot === slot.id} disabled={selectionMode === 'load' && !hero} onClick={() => props.onSlot(slot.id)}>
+              aria-pressed={selectedSlot === slot.id} disabled={!!slot.unavailableReason || (selectionMode === 'load' && !hero)} onClick={() => props.onSlot(slot.id)}>
               <span className="menu-slot-sigil" aria-hidden="true">{hero ? <><Sparkles size={25} strokeWidth={1} /><small>0{index + 1}</small></> : <Plus size={30} strokeWidth={1} />}</span>
-              <span className="menu-slot-copy"><strong>{hero?.characterName ?? 'Empty Slot'}</strong>
+              <span className="menu-slot-copy"><strong>{hero?.characterName ?? (slot.unavailableReason ? 'Save dipertahankan' : 'Empty Slot')}</strong>
                 {hero ? compatible ? <><span>Lv. {hero.level} · {characterLabel(hero)}</span><span className="menu-slot-location"><MapPin size={12} />{hero.inCity ? CITIES[hero.currentCity]?.displayName : FIELDS[hero.currentField]?.displayName}</span>
                   <span className="menu-slot-history"><span><Clock3 size={12} />{Math.floor(hero.playTimeSeconds / 3600)}h {Math.floor(hero.playTimeSeconds / 60) % 60}m</span><span><CalendarDays size={12} />{hero.lastPlayedAt ? new Date(hero.lastPlayedAt).toLocaleDateString('id-ID') : 'Belum dimainkan'}</span></span></> 
                   : <span className="menu-slot-incompatible">Old development save · create a new character</span>
-                  : <span>Create New Character</span>}
+                  : <span>{slot.unavailableReason ?? "Create New Character"}</span>}
               </span>
               {hero && <ChevronRight size={15} aria-hidden="true" />}
             </button>;
           })}
         </div>
-        {selectionMode === 'new' && roster.every(slot => slot.hero) && <p className="menu-slot-help">Semua slot terisi. Hapus salah satu karakter untuk membuat penjaga baru.</p>}
+        {selectionMode === 'new' && roster.every(slot => slot.hero || slot.unavailableReason) && <p className="menu-slot-help">Semua slot terisi. Hapus salah satu karakter untuk membuat penjaga baru.</p>}
       </div>
       <div className="menu-model-stage selection-model-stage">
         {selected?.hero ? <CharacterPreview hero={selected.hero} presentation="menu" /> : <div className="menu-empty-stage"><Sparkles size={30} strokeWidth={1} /><span>Perjalanan baru menantimu</span></div>}
@@ -122,7 +122,7 @@ export function MenuPresentation(props: {
         <div className="menu-footer-actions">
           {selected?.hero && <button className="fantasy-button menu-delete" onClick={() => props.onDelete(selected)}><Trash2 size={15} />DELETE CHARACTER</button>}
           {selectionMode === 'load' ? <button className="fantasy-button fantasy-primary" disabled={!props.ready || !selected?.hero || !isCompatibleCharacterSave(selected.hero)} onClick={props.onEnter}><Sparkles size={17} />ENTER WORLD</button>
-            : <button className="fantasy-button fantasy-primary" disabled={!props.ready || !!selected?.hero} onClick={() => props.onSlot(selectedSlot)}><Plus size={17} />CREATE CHARACTER</button>}
+            : <button className="fantasy-button fantasy-primary" disabled={!props.ready || !!selected?.hero || !!selected?.unavailableReason} onClick={() => props.onSlot(selectedSlot)}><Plus size={17} />CREATE CHARACTER</button>}
         </div>
       </footer>
     </>}

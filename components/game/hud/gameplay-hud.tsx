@@ -1,5 +1,7 @@
 'use client';
 import {approvedQuestsEnabled} from '@/lib/game/public-rollout';
+import {ExperienceBar} from './experience-bar';
+import {LEGACY_CONTENT_CAP} from '@/lib/game/progression';
 import {DevelopmentQuestSummary} from './development-quest-summary';
 import { isUnderwaterSubmap, UNDERWATER_GRID_SIZE } from '@/lib/game/underwater-regions';
 import { FROSTFIRE_ID } from '@/lib/game/frostfire-highlands-layout';
@@ -521,25 +523,25 @@ export function GameplayHUD({
         >
           <BuffTray indicators={indicators} statuses={statuses} />
         </HUDFrame>
-        <div className="hud-exp">
+        {process.env.NODE_ENV !== 'production' ? <ExperienceBar level={state.hero.level} xp={state.hero.xp} saved={state.saved} /> : <div className="hud-exp">
           <strong>Lv. {state.hero.level}</strong>
           <Progress
             value={
-              state.hero.level === 50
+              state.hero.level === LEGACY_CONTENT_CAP
                 ? 100
                 : (state.hero.xp / xpNeeded(state.hero.level)) * 100
             }
             aria-label="Pengalaman level"
           />
           <span>
-            {state.hero.level === 50
+            {state.hero.level === LEGACY_CONTENT_CAP
               ? 'LEVEL MAKSIMAL'
               : `${state.hero.xp} / ${xpNeeded(state.hero.level)} EXP`}
           </span>
           <small>
             {state.saved ? 'TERSIMPAN LOKAL' : 'PENYIMPANAN TIDAK TERSEDIA'}
           </small>
-        </div>
+        </div>}
       </div>
       <HotbarLayer>
         <div

@@ -647,7 +647,7 @@ export default function Home() {
   const openNewGame = () => {
     setSelectionMode('new');
     setCreationError('');
-    const empty = roster.find(slot => !slot.hero)?.id ?? 'slot-1';
+    const empty = roster.find(slot => !slot.hero && !slot.unavailableReason)?.id ?? 'slot-1';
     setSelectedSlot(empty);
     setFlow('selection');
   };
@@ -1139,8 +1139,12 @@ export default function Home() {
                   {npcQuestEntries.map((entry) => {
                     const status = entry.status;
                     return (
-                      <article className="shop-row" key={entry.id}>
-                        <div>
+                      <article
+                        className="shop-row"
+                        key={entry.id}
+                        style={process.env.NODE_ENV !== 'production' ? { display: 'flex', flexWrap: 'wrap' } : undefined}
+                      >
+                        <div style={process.env.NODE_ENV !== 'production' ? { minWidth: 0, flex: '1 1 240px', overflowWrap: 'anywhere' } : undefined}>
                           <strong>{entry.title}</strong>
                           <small>{entry.description}</small>
                           {approvedQuestsEnabled()&&MAP_SCROLLS.some(pack=>pack.intro===entry.id&&!hero.cityProgress[mapScrollReceipt(pack.region)])&&<small>Bonus pengenalan: 5 scroll tujuan map, sekali per map.</small>}

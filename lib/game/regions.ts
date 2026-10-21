@@ -1,3 +1,4 @@
+import { expP1Enabled, expP1NormalBaseline } from './exp-progression-p1.ts';
 import {PROTECTED_FIELD_QUESTS,protectedFieldQuest} from './protected-field-quests.ts';
 import {earlyQuests,earlyQuest,earlyProgress,objectiveKey,questTargetLevel,MINE_SAMPLE_ID,developmentQuestNpcs} from './early-quest-contract.ts';
 import {removeItemQuantity} from './items.ts';
@@ -254,7 +255,13 @@ export const FIELD_NPCS: Record<string, NpcDefinition> = {
 Object.assign(FIELD_NPCS[METEORFALL_ID],METEORFALL_NPC,{name:'Citadel Warden',description:'Field quests, travel, and supplies at Arrival Bastion.'});
 FIELD_NPCS['east-gate-arunika']={id:'field-npc-east-gate',name:'Penjaga Pos Timur',type:'merchant',service:'field-camp',services:['buy','sell','teleport','quest'],interactionRange:2.5,shopInventory:[],description:'Perbekalan, perjalanan, dan misi perbatasan East Gate Arunika.',x:-38,z:28,fieldId:'east-gate-arunika'};
 Object.assign(FIELD_NPCS['east-gate-arunika'],EAST_GATE_TERRAIN.camp);
-export function monsterXP(monster:MonsterDefinition, playerLevel:number) { return Math.max(1, Math.floor(monster.exp * Math.max(0.05, 1 - Math.max(0, playerLevel-(monster.rewardLevel??monster.level)-5)*0.08))); }
+export function monsterXP(monster:MonsterDefinition, playerLevel:number) {
+ const normalP1=expP1Enabled()&&monster.rank==='normal'&&monster.variant==='normal';
+ const base=normalP1?expP1NormalBaseline(monster.level):monster.exp;
+ const comparison=expP1Enabled()?monster.level:(monster.rewardLevel??monster.level);
+ if(expP1Enabled()&&(!Number.isInteger(playerLevel)||playerLevel<1||playerLevel>100))throw new RangeError('INVALID_EXP_ACTOR_LEVEL');
+ return Math.max(1,Math.floor(base*Math.max(.05,1-Math.max(0,playerLevel-comparison-5)*.08)));
+}
 export function regionNpcs(id:string) {return [...(CITIES[id]?.npcList??(FIELD_NPCS[id]?[FIELD_NPCS[id]]:[])),...developmentQuestNpcs().filter(n=>n.fieldId===id)];}
 export function unlockReason(hero:Hero, id:string):string {
  const region=FIELDS[id]??CITIES[id];
