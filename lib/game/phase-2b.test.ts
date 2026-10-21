@@ -154,21 +154,21 @@ void test('2B save writes ownership but strips ephemeral combat modifiers withou
     else Reflect.deleteProperty(globalThis, 'localStorage');
   }
 });
-void test('2B progression: explicit canonical caps and SP199, original XP formula, incremental rewards and locked jobs', () => {
+void test('2B progression: explicit canonical caps and SP199, approved development EXP-P1, incremental rewards and locked jobs', () => {
   const legacy = freshHero(),
     v2 = createV2TestHero();
-  gainXP(legacy, 9999999);
-  gainXP(v2, 9999999);
+  gainXP(legacy, 156725300);
+  gainXP(v2, 156725300);
   assert.equal(legacy.level, 100);
   assert.equal(v2.level, 100);
   assert.equal(legacy.skillPoints, 199);
   assert.equal(v2.skillPoints, 199);
   assert.equal(v2.statPoints, 198);
-  gainXP(v2, 9999999);
+  gainXP(v2, 156725300);
   assert.equal(v2.level, 100);
   assert.equal(v2.skillPoints, 199);
   assert.equal(ABSOLUTE_MAX_LEVEL, 100);
-  assert.equal(xpNeeded(79), 90 + 79 * 40);
+  assert.equal(xpNeeded(79), 2832000);
   assert.equal(progressionRules(v2).coreLevel, 15);
   assert.equal(progressionRules(v2).specializationLevel, 60);
   assert(Object.values(JOB_V2_REGISTRY).every((j) => !j.playable));

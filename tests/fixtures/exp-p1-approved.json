@@ -1,0 +1,606 @@
+{
+  "authority": "Direct OWNER message: APPROVED EXP-P1 / CHARACTER PROGRESSION / BOTTOM EXP BAR. No invented messageID/time. Separate prior100-row proposal not recovered in targeted workspace search.",
+  "version": "LUMENFALL_EXP_P1_V1",
+  "table": [
+    {
+      "level": 1,
+      "K": 8,
+      "normalEXP": 20,
+      "requiredEXP": 160
+    },
+    {
+      "level": 2,
+      "K": 11,
+      "normalEXP": 30,
+      "requiredEXP": 330
+    },
+    {
+      "level": 3,
+      "K": 14,
+      "normalEXP": 40,
+      "requiredEXP": 560
+    },
+    {
+      "level": 4,
+      "K": 17,
+      "normalEXP": 50,
+      "requiredEXP": 850
+    },
+    {
+      "level": 5,
+      "K": 20,
+      "normalEXP": 60,
+      "requiredEXP": 1200
+    },
+    {
+      "level": 6,
+      "K": 24,
+      "normalEXP": 70,
+      "requiredEXP": 1680
+    },
+    {
+      "level": 7,
+      "K": 28,
+      "normalEXP": 80,
+      "requiredEXP": 2240
+    },
+    {
+      "level": 8,
+      "K": 32,
+      "normalEXP": 90,
+      "requiredEXP": 2880
+    },
+    {
+      "level": 9,
+      "K": 36,
+      "normalEXP": 100,
+      "requiredEXP": 3600
+    },
+    {
+      "level": 10,
+      "K": 40,
+      "normalEXP": 110,
+      "requiredEXP": 4400
+    },
+    {
+      "level": 11,
+      "K": 46,
+      "normalEXP": 120,
+      "requiredEXP": 5520
+    },
+    {
+      "level": 12,
+      "K": 52,
+      "normalEXP": 130,
+      "requiredEXP": 6760
+    },
+    {
+      "level": 13,
+      "K": 58,
+      "normalEXP": 140,
+      "requiredEXP": 8120
+    },
+    {
+      "level": 14,
+      "K": 64,
+      "normalEXP": 150,
+      "requiredEXP": 9600
+    },
+    {
+      "level": 15,
+      "K": 70,
+      "normalEXP": 160,
+      "requiredEXP": 11200
+    },
+    {
+      "level": 16,
+      "K": 78,
+      "normalEXP": 170,
+      "requiredEXP": 13260
+    },
+    {
+      "level": 17,
+      "K": 86,
+      "normalEXP": 180,
+      "requiredEXP": 15480
+    },
+    {
+      "level": 18,
+      "K": 94,
+      "normalEXP": 190,
+      "requiredEXP": 17860
+    },
+    {
+      "level": 19,
+      "K": 102,
+      "normalEXP": 200,
+      "requiredEXP": 20400
+    },
+    {
+      "level": 20,
+      "K": 110,
+      "normalEXP": 210,
+      "requiredEXP": 23100
+    },
+    {
+      "level": 21,
+      "K": 122,
+      "normalEXP": 220,
+      "requiredEXP": 26840
+    },
+    {
+      "level": 22,
+      "K": 134,
+      "normalEXP": 230,
+      "requiredEXP": 30820
+    },
+    {
+      "level": 23,
+      "K": 146,
+      "normalEXP": 240,
+      "requiredEXP": 35040
+    },
+    {
+      "level": 24,
+      "K": 158,
+      "normalEXP": 250,
+      "requiredEXP": 39500
+    },
+    {
+      "level": 25,
+      "K": 170,
+      "normalEXP": 260,
+      "requiredEXP": 44200
+    },
+    {
+      "level": 26,
+      "K": 184,
+      "normalEXP": 270,
+      "requiredEXP": 49680
+    },
+    {
+      "level": 27,
+      "K": 198,
+      "normalEXP": 280,
+      "requiredEXP": 55440
+    },
+    {
+      "level": 28,
+      "K": 212,
+      "normalEXP": 290,
+      "requiredEXP": 61480
+    },
+    {
+      "level": 29,
+      "K": 226,
+      "normalEXP": 300,
+      "requiredEXP": 67800
+    },
+    {
+      "level": 30,
+      "K": 240,
+      "normalEXP": 310,
+      "requiredEXP": 74400
+    },
+    {
+      "level": 31,
+      "K": 258,
+      "normalEXP": 320,
+      "requiredEXP": 82560
+    },
+    {
+      "level": 32,
+      "K": 276,
+      "normalEXP": 330,
+      "requiredEXP": 91080
+    },
+    {
+      "level": 33,
+      "K": 294,
+      "normalEXP": 340,
+      "requiredEXP": 99960
+    },
+    {
+      "level": 34,
+      "K": 312,
+      "normalEXP": 350,
+      "requiredEXP": 109200
+    },
+    {
+      "level": 35,
+      "K": 330,
+      "normalEXP": 360,
+      "requiredEXP": 118800
+    },
+    {
+      "level": 36,
+      "K": 354,
+      "normalEXP": 370,
+      "requiredEXP": 130980
+    },
+    {
+      "level": 37,
+      "K": 378,
+      "normalEXP": 380,
+      "requiredEXP": 143640
+    },
+    {
+      "level": 38,
+      "K": 402,
+      "normalEXP": 390,
+      "requiredEXP": 156780
+    },
+    {
+      "level": 39,
+      "K": 426,
+      "normalEXP": 400,
+      "requiredEXP": 170400
+    },
+    {
+      "level": 40,
+      "K": 450,
+      "normalEXP": 410,
+      "requiredEXP": 184500
+    },
+    {
+      "level": 41,
+      "K": 480,
+      "normalEXP": 420,
+      "requiredEXP": 201600
+    },
+    {
+      "level": 42,
+      "K": 510,
+      "normalEXP": 430,
+      "requiredEXP": 219300
+    },
+    {
+      "level": 43,
+      "K": 540,
+      "normalEXP": 440,
+      "requiredEXP": 237600
+    },
+    {
+      "level": 44,
+      "K": 570,
+      "normalEXP": 450,
+      "requiredEXP": 256500
+    },
+    {
+      "level": 45,
+      "K": 600,
+      "normalEXP": 460,
+      "requiredEXP": 276000
+    },
+    {
+      "level": 46,
+      "K": 640,
+      "normalEXP": 470,
+      "requiredEXP": 300800
+    },
+    {
+      "level": 47,
+      "K": 680,
+      "normalEXP": 480,
+      "requiredEXP": 326400
+    },
+    {
+      "level": 48,
+      "K": 720,
+      "normalEXP": 490,
+      "requiredEXP": 352800
+    },
+    {
+      "level": 49,
+      "K": 760,
+      "normalEXP": 500,
+      "requiredEXP": 380000
+    },
+    {
+      "level": 50,
+      "K": 800,
+      "normalEXP": 510,
+      "requiredEXP": 408000
+    },
+    {
+      "level": 51,
+      "K": 850,
+      "normalEXP": 520,
+      "requiredEXP": 442000
+    },
+    {
+      "level": 52,
+      "K": 900,
+      "normalEXP": 530,
+      "requiredEXP": 477000
+    },
+    {
+      "level": 53,
+      "K": 950,
+      "normalEXP": 540,
+      "requiredEXP": 513000
+    },
+    {
+      "level": 54,
+      "K": 1000,
+      "normalEXP": 550,
+      "requiredEXP": 550000
+    },
+    {
+      "level": 55,
+      "K": 1050,
+      "normalEXP": 560,
+      "requiredEXP": 588000
+    },
+    {
+      "level": 56,
+      "K": 1110,
+      "normalEXP": 570,
+      "requiredEXP": 632700
+    },
+    {
+      "level": 57,
+      "K": 1170,
+      "normalEXP": 580,
+      "requiredEXP": 678600
+    },
+    {
+      "level": 58,
+      "K": 1230,
+      "normalEXP": 590,
+      "requiredEXP": 725700
+    },
+    {
+      "level": 59,
+      "K": 1290,
+      "normalEXP": 600,
+      "requiredEXP": 774000
+    },
+    {
+      "level": 60,
+      "K": 1350,
+      "normalEXP": 610,
+      "requiredEXP": 823500
+    },
+    {
+      "level": 61,
+      "K": 1430,
+      "normalEXP": 620,
+      "requiredEXP": 886600
+    },
+    {
+      "level": 62,
+      "K": 1510,
+      "normalEXP": 630,
+      "requiredEXP": 951300
+    },
+    {
+      "level": 63,
+      "K": 1590,
+      "normalEXP": 640,
+      "requiredEXP": 1017600
+    },
+    {
+      "level": 64,
+      "K": 1670,
+      "normalEXP": 650,
+      "requiredEXP": 1085500
+    },
+    {
+      "level": 65,
+      "K": 1750,
+      "normalEXP": 660,
+      "requiredEXP": 1155000
+    },
+    {
+      "level": 66,
+      "K": 1850,
+      "normalEXP": 670,
+      "requiredEXP": 1239500
+    },
+    {
+      "level": 67,
+      "K": 1950,
+      "normalEXP": 680,
+      "requiredEXP": 1326000
+    },
+    {
+      "level": 68,
+      "K": 2050,
+      "normalEXP": 690,
+      "requiredEXP": 1414500
+    },
+    {
+      "level": 69,
+      "K": 2150,
+      "normalEXP": 700,
+      "requiredEXP": 1505000
+    },
+    {
+      "level": 70,
+      "K": 2250,
+      "normalEXP": 710,
+      "requiredEXP": 1597500
+    },
+    {
+      "level": 71,
+      "K": 2380,
+      "normalEXP": 720,
+      "requiredEXP": 1713600
+    },
+    {
+      "level": 72,
+      "K": 2510,
+      "normalEXP": 730,
+      "requiredEXP": 1832300
+    },
+    {
+      "level": 73,
+      "K": 2640,
+      "normalEXP": 740,
+      "requiredEXP": 1953600
+    },
+    {
+      "level": 74,
+      "K": 2770,
+      "normalEXP": 750,
+      "requiredEXP": 2077500
+    },
+    {
+      "level": 75,
+      "K": 2900,
+      "normalEXP": 760,
+      "requiredEXP": 2204000
+    },
+    {
+      "level": 76,
+      "K": 3060,
+      "normalEXP": 770,
+      "requiredEXP": 2356200
+    },
+    {
+      "level": 77,
+      "K": 3220,
+      "normalEXP": 780,
+      "requiredEXP": 2511600
+    },
+    {
+      "level": 78,
+      "K": 3380,
+      "normalEXP": 790,
+      "requiredEXP": 2670200
+    },
+    {
+      "level": 79,
+      "K": 3540,
+      "normalEXP": 800,
+      "requiredEXP": 2832000
+    },
+    {
+      "level": 80,
+      "K": 3700,
+      "normalEXP": 810,
+      "requiredEXP": 2997000
+    },
+    {
+      "level": 81,
+      "K": 3900,
+      "normalEXP": 820,
+      "requiredEXP": 3198000
+    },
+    {
+      "level": 82,
+      "K": 4100,
+      "normalEXP": 830,
+      "requiredEXP": 3403000
+    },
+    {
+      "level": 83,
+      "K": 4300,
+      "normalEXP": 840,
+      "requiredEXP": 3612000
+    },
+    {
+      "level": 84,
+      "K": 4500,
+      "normalEXP": 850,
+      "requiredEXP": 3825000
+    },
+    {
+      "level": 85,
+      "K": 4700,
+      "normalEXP": 860,
+      "requiredEXP": 4042000
+    },
+    {
+      "level": 86,
+      "K": 4960,
+      "normalEXP": 870,
+      "requiredEXP": 4315200
+    },
+    {
+      "level": 87,
+      "K": 5220,
+      "normalEXP": 880,
+      "requiredEXP": 4593600
+    },
+    {
+      "level": 88,
+      "K": 5480,
+      "normalEXP": 890,
+      "requiredEXP": 4877200
+    },
+    {
+      "level": 89,
+      "K": 5740,
+      "normalEXP": 900,
+      "requiredEXP": 5166000
+    },
+    {
+      "level": 90,
+      "K": 6000,
+      "normalEXP": 910,
+      "requiredEXP": 5460000
+    },
+    {
+      "level": 91,
+      "K": 6340,
+      "normalEXP": 920,
+      "requiredEXP": 5832800
+    },
+    {
+      "level": 92,
+      "K": 6680,
+      "normalEXP": 930,
+      "requiredEXP": 6212400
+    },
+    {
+      "level": 93,
+      "K": 7020,
+      "normalEXP": 940,
+      "requiredEXP": 6598800
+    },
+    {
+      "level": 94,
+      "K": 7360,
+      "normalEXP": 950,
+      "requiredEXP": 6992000
+    },
+    {
+      "level": 95,
+      "K": 7700,
+      "normalEXP": 960,
+      "requiredEXP": 7392000
+    },
+    {
+      "level": 96,
+      "K": 8150,
+      "normalEXP": 970,
+      "requiredEXP": 7905500
+    },
+    {
+      "level": 97,
+      "K": 8600,
+      "normalEXP": 980,
+      "requiredEXP": 8428000
+    },
+    {
+      "level": 98,
+      "K": 9050,
+      "normalEXP": 990,
+      "requiredEXP": 8959500
+    },
+    {
+      "level": 99,
+      "K": 9500,
+      "normalEXP": 1000,
+      "requiredEXP": 9500000
+    },
+    {
+      "level": 100,
+      "K": null,
+      "normalEXP": 1010,
+      "requiredEXP": null
+    }
+  ]
+}

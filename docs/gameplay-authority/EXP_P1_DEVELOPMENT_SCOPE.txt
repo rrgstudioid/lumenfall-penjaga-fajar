@@ -1,0 +1,25 @@
+EXP-P1 DEVELOPMENT CONTRACT — direct OWNER approval in this conversation.
+Source: OWNER prompt “APPROVED EXP-P1 / CHARACTER PROGRESSION / BOTTOM EXP BAR”.
+No message identifier or approval timestamp is asserted by this copy.
+
+Version LUMENFALL_EXP_P1_V1. DEVELOPMENT ONLY; no public curve activation.
+B(M)=10*(M+1), normal combat levels1–100. T(L)=B(L)*K(L), L1–99.
+K linear anchors:
+1:8,5:20,10:40,15:70,20:110,25:170,30:240,35:330,40:450,45:600,
+50:800,55:1050,60:1350,65:1750,70:2250,75:2900,80:3700,85:4700,
+90:6000,95:7700,99:9500. Cap100; no level101 requirement.
+Literal independent table: tests/fixtures/exp-p1-approved.json.
+Normal classification uses actual rank/variant. Actual combat level also supplies
+the overlevel comparison. No positive-gap multiplier. Existing penalty/expGain once.
+Gold/drop/quest rewards, monster combat stats/population, class/gear unchanged.
+Elite/unique/boss EXP remains existing authoring, pending separate calibration.
+
+Old valid level and absolute in-level EXP survive load, without percent conversion,
+relevel, compensation/refund/refill. Existing gainXP carry/SP/primary/refill remain.
+Marked EXP-P1 saves must not silently use an unsupported production curve; preserve
+raw save, show unavailability and prevent silent overwrite. Other slots remain usable.
+Formula activation remains independent; New Game/Continue retain existing policy.
+Already-approved public equipment/combat/quest rollout remains enabled as before.
+
+OWNER subsequently requested commit/push to dev-ngemper. That does not approve
+merging main or production EXP-P1 activation.

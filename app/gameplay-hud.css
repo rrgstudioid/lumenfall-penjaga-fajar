@@ -1221,6 +1221,18 @@ body[data-hud-dragging] {
   height: calc(5px * var(--hud-scale));
 }
 
+/* EXP-P1 is mounted only by the development HUD. Keep full figures readable. */
+.hud-exp-p1 { gap: 10px; height: max(24px, calc(24px * var(--hud-scale))); font-size: max(12px, calc(12px * var(--hud-scale))); }
+.hud-exp-p1 strong { font-size: max(14px, calc(16px * var(--hud-scale))); }
+.hud-exp-p1 small { font-size: max(10px, calc(10px * var(--hud-scale))); }
+.hud-exp-p1 > [data-slot='progress'] { min-width: 32px; }
+@media (max-width: 600px) {
+  .hud-exp-p1 { display: flex; height: 18px; font-size: 11px; line-height: 18px; gap: 6px; }
+  .hud-exp-p1 strong { font-size: 13px; }
+  .hud-exp-p1 > span { text-align: right; white-space: nowrap; }
+  .hud-exp-p1 > [data-slot='progress'] { min-width: 20px; }
+}
+
 /* Details shared by the emerald and gold HUD panels. */
 .hud-health > svg {
   color: #f34842;

@@ -1,4 +1,5 @@
 import {approvedQuestsEnabled} from './public-rollout';
+import { EXP_P1_VERSION, expP1Enabled, characterXPRequirement, expProgressionSaveIssue, assertEXPActor } from './exp-progression-p1.ts';
 import { decodeCharacterV2, serializeSaveCollection } from './save-v2.ts';
 import { approvedResourceProfile, intrinsicClassResources } from './resource-profiles.ts';
 import { resolveArmorSets } from './equipment-layers.ts';
@@ -402,6 +403,7 @@ export type Hero = PrimaryHotbarState & {
   weaponType: WeaponType;
   level: number;
   xp: number;
+  expProgressionVersion?: string;
   gold: number;
   kills: number;
   hp: number;
@@ -442,7 +444,7 @@ export type Hero = PrimaryHotbarState & {
   enhancementSealEnabled?: boolean;
 };
 
-export type CharacterSlot = { id: string; hero: Hero | null };
+export type CharacterSlot = { id: string; hero: Hero | null; unavailableReason?: string };
 export type SaveCollection = {
   preservedCharacters?: Record<string, unknown>;
   version: 3;
@@ -639,6 +641,7 @@ export function freshHero(
     weaponType: profile.weapon,
     level: 1,
     xp: 0,
+    ...(expP1Enabled()?{expProgressionVersion:EXP_P1_VERSION}:{}),
     gold: 0,
     kills: 0,
     hp: profile.hp + vitalityHPContribution(1, BASE_PRIMARY_STAT),
@@ -1262,7 +1265,7 @@ export function daggerAttackContextForHero(hero: Hero, mode: WeaponContributionM
     offHandWeaponAttack: raw.offHandWeaponAttack * factor, totalWeaponAttack: raw.totalWeaponAttack * factor };
 }
 
-export const xpNeeded = (level: number) => 90 + level * 40;
+export const xpNeeded = characterXPRequirement;
 export const forgeCost = (weapon: number) => 60 + weapon * 50;
 export const manaResourceName = () => 'Mana';
 export const activeSkills = (hero: Hero): SkillDefinition[] =>
@@ -1668,6 +1671,8 @@ export function warriorLineageSkillPointsAtLevel(level: number) {
 }
 
 export function gainXP(hero: Hero, amount: number) {
+  assertEXPActor(hero, amount);
+  if(expP1Enabled())hero.expProgressionVersion=EXP_P1_VERSION;
   hero.xp += Math.max(0, amount);
   let levels = 0;
   const cap=progressionRules(hero).contentCap;
@@ -2641,6 +2646,7 @@ function normalizedHero(value: Record<string, unknown>, slotId = 'slot-1') {
     typeof value.gold !== 'number'
   )
     return null;
+  if(expProgressionSaveIssue(value))return null;
   value = migrateFrostfireSave(value);
   value = migrateWildsSave(value);
   value = migrateIronveilSave(value);
@@ -2728,7 +2734,8 @@ function normalizedHero(value: Record<string, unknown>, slotId = 'slot-1') {
     cityProgress: recordNumbers(value.cityProgress), fieldProgress: recordNumbers(value.fieldProgress),
     storage: Array.isArray(value.storage) ? value.storage.map(normalizeItem).filter((item):item is ItemData=>Boolean(item)) : [],
     level,
-    xp: integer(value.xp, 0, 1000000, 0),
+    xp: expP1Enabled() ? value.xp as number : integer(value.xp, 0, 1000000, 0),
+    ...(expP1Enabled()?{expProgressionVersion:EXP_P1_VERSION}:{}),
     gold: integer(value.gold, 0, 999999999, 0),
     kills: integer(value.kills, 0, 999999, 0),
     potions: integer(value.potions, 0, 50, 3),
@@ -3063,11 +3070,14 @@ export function listCharacters(): CharacterSlot[] {
   return ['slot-1', 'slot-2', 'slot-3'].map((id) => ({
     id,
     hero: collection.characters[id] ?? null,
+    ...(collection.preservedCharacters?.[id]?{unavailableReason:expProgressionSaveIssue(decodeCharacterV2(collection.preservedCharacters[id])??{})??'Save dipertahankan; perlu pemeriksaan sebelum digunakan.'}:{}),
   }));
 }
 
 export function loadCharacter(slotId: string): Hero {
-  return readCollection().characters[slotId] ?? freshHero(slotId);
+  const collection=readCollection();
+  if(collection.preservedCharacters?.[slotId])throw new Error('SAVE_PRESERVED_UNAVAILABLE');
+  return collection.characters[slotId] ?? freshHero(slotId);
 }
 
 export function saveCharacter(hero: Hero, required = false) {
@@ -3078,6 +3088,7 @@ export function saveCharacter(hero: Hero, required = false) {
     if (hero.progressionArchitecture !== 'v2_test') return;
   }
   const collection = readCollection();
+  if(collection.preservedCharacters?.[hero.slotId])throw new Error('SAVE_PRESERVED_UNAVAILABLE');
   collection.activeSlot = hero.slotId;
   const saved={...hero,gameplayContractVersion:2 as const,version:3 as const, equipment: reconcileDaggerEquipment(hero, hero.inventory, hero.equipment)};
   if (hero.skillProgressionV3) {

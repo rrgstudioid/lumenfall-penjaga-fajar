@@ -72,7 +72,7 @@ for(const [suffix,level,previous,xp,gold,potions,objectives] of expected)await t
  h.completedQuests=[...q.requiredQuestIds];rules.gainXP(h,rules.xpNeeded(h.level));regions.refreshUnlocks(h);assert(regions.acceptRegionQuest(h,q.id));
  const high=rules.createV3AdventurerHero('overlevel');while(high.level<80)rules.gainXP(high,rules.xpNeeded(high.level));high.completedQuests=[...q.requiredQuestIds];regions.refreshUnlocks(high);assert(regions.acceptRegionQuest(high,q.id));
 });
-await test('retier changes level only; prototype combat/reward/population preserved',()=>{
+await test('retier preserves combat/drop/population; EXP-P1 uses actual combat level',()=>{
  // Independent numeric formulas are the PRE-edit prototype generator, not output of the retier provider.
  // Literal pre-retier identities/levels are retained here so a checkout needs no ignored checkpoint files.
  const preRetierLevels=[
@@ -84,7 +84,7 @@ await test('retier changes level only; prototype combat/reward/population preser
  assert.equal(selected.length,14); // seven Verdant, three exterior, four interior
  assert.deepEqual(selected.map(m=>[m.id,m.rewardLevel]),preRetierLevels);
  for(const m of selected){const l=m.rewardLevel;assert.equal(m.maxHP,30+16*l);assert.equal(m.attack,Math.round(8+2.2*l));assert.equal(m.defense,Math.round(4+1.1*l));assert.equal(m.magicDefense,3+l);assert.equal(m.respawnTime,25);assert.equal(m.dropRate,.35);
-  assert.equal(regions.monsterXP(m,50),Math.max(1,Math.floor(m.exp*Math.max(.05,1-Math.max(0,50-l-5)*.08))));}
+  assert.equal(regions.monsterXP(m,50),Math.max(1,Math.floor((10*(m.level+1))*Math.max(.05,1-Math.max(0,50-m.level-5)*.08))));}
  assert.equal(mineMonsterSpawns().length,480);assert.equal(regions.FIELDS['east-gate-arunika'].normalMonsters[1].level,3);
 });
 await test('exact region definition level variant; visit and sample quota capacity',()=>{
