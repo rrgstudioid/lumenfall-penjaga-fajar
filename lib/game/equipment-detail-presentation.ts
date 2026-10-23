@@ -92,9 +92,9 @@ export function equipmentDetail(item: DetailItem, context: {owner?: Owner; physi
   for (const [key,n] of nonzero(enhanced)) {
     if (key==='attack' && physical || key==='magicAttack' && magic) continue;
     if (coreKeys.includes(key)) {
-      const label = ({attack:'Physical Attack · scalar',magicAttack:'Magic Attack · scalar',defense:'Physical Defense',magicDefense:'Magic Defense'} as Record<string,string>)[key];
+      const label = ({attack:'Physical Attack',magicAttack:'Magic Attack',defense:'Physical Defense',magicDefense:'Magic Defense'} as Record<string,string>)[key];
       core.push({key,label,value:Number.isFinite(n)?number(n!):'Tidak tersedia',base:number(zero[key as keyof StatBlock]??0),enhancement:number(n!-(zero[key as keyof StatBlock]??0))});
-      if (key==='attack'||key==='magicAttack') notes.push('Nilai scalar legacy; bukan range min–max.');
+      if (key==='attack'||key==='magicAttack') diagnostics.push('Legacy scalar input; no authored min–max range.');
     } else (template && item.baseStats[key as keyof StatBlock] === template.baseStats[key as keyof StatBlock] ? intrinsic : uncertain).push(row(key,n!));
   }
   // createItem merges fixed template bonuses and random Unique Stats into one block.

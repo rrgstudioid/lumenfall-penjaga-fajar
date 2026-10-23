@@ -8,7 +8,8 @@ const items=await server.ssrLoadModule('/lib/game/items.ts'),p=await server.ssrL
 const copy=id=>({...structuredClone(items.ITEM_CATALOG[id]),id:'test-'+id,quantity:1});
 const newDagger=()=>({...copy(core.TRAINING_DAGGER_TEMPLATE),authoredEquipmentVersion:core.EQUIPMENT_AUTHORING_VERSION,authoredEquipmentProfile:core.TRAINING_DAGGER_PROFILE});
 const detail=i=>p.equipmentDetail(i,{development:true});
-await test('Training Sword shop and owned +0 share approved9–11 without granting admission; production stays scalar8',async()=>{
+const assertScalar=d=>{assert.equal(d.core[0].label,'Physical Attack');assert(!d.core[0].value.includes('–'));assert(d.diagnostics.includes('Legacy scalar input; no authored min–max range.'));assert(!d.notes.some(n=>/scalar|legacy/i.test(n)));};
+await test('Training Sword shop and owned +0 share approved9–11 without granting admission; approved public range stays9–11',async()=>{
  const {readEquipmentDetail,EquipmentDetail}=await server.ssrLoadModule('/components/game/equipment-detail.tsx');
  const template=structuredClone(items.ITEM_CATALOG['field-verdant-plains-sword']),owned=copy(template.templateId);
  const before=JSON.stringify([template,owned]),oldRandom=Math.random;let draws=0;
@@ -17,13 +18,13 @@ await test('Training Sword shop and owned +0 share approved9–11 without granti
   for(const i of [template,owned]) {
    const d=detail(i);assert.equal(d.core[0].value,'9–11');assert.equal(d.core[0].base,'9–11');assert.equal(d.core[0].enhancement,'0–0');
    assert(d.notes.some(n=>n.includes('memerlukan loadout')));assert(!d.notes.some(n=>n.includes('scalar legacy')));
-   assert.equal(p.equipmentDetail(i,{development:false}).core[0].value,'8');
-   assert.match(p.equipmentDetail(i,{development:false}).core[0].label,/scalar/);
+   assert.equal(p.equipmentDetail(i,{development:false}).core[0].value,'9–11');
+   assert.equal(p.equipmentDetail(i,{development:false}).core[0].label,'Physical Attack');
   }
   assert(detail(owned).diagnostics.includes('Q2_Q4_BASIC_REFERENCE_B_1'));
-  assert(p.equipmentDetail(owned,{development:true,selected:true}).notes.includes('Loadout diterima formula development.'));
+  assert(p.equipmentDetail(owned,{development:true,selected:true}).notes.includes('Loadout diterima formula range.'));
   for(const altered of [{enhancementLevel:1},{authoredAttackVersion:'UNKNOWN'},{levelRequirement:2},{equipmentType:'dagger'},{baseStats:{attack:99}}])
-   assert.match(detail({...owned,...altered}).core[0].label,/scalar/);
+   assertScalar(detail({...owned,...altered}));
   assert.equal(readEquipmentDetail(template,null).core[0].value,'9–11');
   const html=renderToStaticMarkup(React.createElement(EquipmentDetail,{item:template,game:null,compact:true}));
   assert(html.includes('9–11'));assert(!html.includes('scalar legacy'));
@@ -37,7 +38,7 @@ await test('Iron and Jay new exact markers versus grandfather scalar, +N does no
  const iron={...copy('field-ironveil-mines-sword'),levelRequirement:10,authoredAttackVersion:'IRON_SWORD_LV10_BASE_V1'};
  const jay={...copy('jayantara-two-hand-sword'),levelRequirement:45,authoredAttackVersion:'JAYANTARA_LV45_BASE_V1'};
  assert.equal(detail(iron).core[0].value,'32–36');assert.equal(detail(jay).core[0].value,'196–204');assert.equal(detail(jay).intrinsic.find(r=>r.key==='str').value,'+4');
- for(const [i,level,scalar] of [[iron,8,'14'],[jay,24,'46']]){const old={...i,levelRequirement:level,authoredAttackVersion:undefined};assert.equal(detail(old).core[0].value,scalar);assert.match(detail(old).core[0].label,/scalar/);assert.match(detail({...i,enhancementLevel:1}).core[0].label,/scalar/);}
+ for(const [i,level,scalar] of [[iron,8,'14'],[jay,24,'46']]){const old={...i,levelRequirement:level,authoredAttackVersion:undefined};assert.equal(detail(old).core[0].value,scalar);assertScalar(detail(old));assertScalar(detail({...i,enhancementLevel:1}));}
 });
 await test('armor fixed base+template bonus stay intrinsic; not all bonusStats are options',()=>{
  const d=detail(copy('arunika-head'));assert.equal(d.core[0].label,'Physical Defense');assert.equal(d.core[0].value,'3');assert.deepEqual(d.intrinsic.map(r=>[r.key,r.value]),[['hp','+8'],['vit','+1']]);assert.equal(d.options.length,0);assert.equal(d.description,null);
@@ -75,7 +76,7 @@ await test('presentation and legal equipment preview preserve actor, item, RNG a
  try{for(let n=0;n<50;n++){const d=p.equipmentDetail(i,{owner:hero,development:true});assert(Object.isFrozen(d)&&Object.isFrozen(d.intrinsic));const preview=view.previewEquipmentChange(hero,i,'head');assert(preview.validation.ok);assert.equal(preview.hero.equipment.head,i.id);}assert.equal(JSON.stringify(hero),before);assert.equal(draws,0);}finally{Math.random=oldRandom;}
 });
 await test('unknown authored source visibly unavailable; input not normalized or mutated',()=>{
- const i={...newDagger(),authoredEquipmentVersion:'UNKNOWN'},before=JSON.stringify(i);const d=detail(i);assert(d.notes.some(n=>n.includes('belum tersedia')));assert.match(d.core[0].label,/scalar/);assert.equal(JSON.stringify(i),before);assert(d.diagnostics.length);
+ const i={...newDagger(),authoredEquipmentVersion:'UNKNOWN'},before=JSON.stringify(i);const d=detail(i);assert(d.notes.some(n=>n.includes('belum tersedia')));assertScalar(d);assert.equal(JSON.stringify(i),before);assert(d.diagnostics.length);
 });
 await test('shared renderer orders sources and hides diagnostics behind disclosure, no false set',async()=>{
  const {EquipmentDetail}=await server.ssrLoadModule('/components/game/equipment-detail.tsx');

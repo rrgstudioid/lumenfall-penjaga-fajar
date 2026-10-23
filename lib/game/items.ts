@@ -1,3 +1,4 @@
+import {DRAGON_VEIL_PIECES,DRAGON_VEIL_REVISION,isDragonVeil,canonicalDragonVeilTemplateId,resolveDragonVeilTemplateId} from './dragon-veil.ts';
 import {approvedEquipmentEnabled,approvedQuestsEnabled} from './public-rollout';
 import {MAP_SCROLLS,mapScroll} from './map-scroll-contract.ts';
 import { ITEMIZATION_RULES, WEAPON_TUNING } from './canonical-config.ts';
@@ -136,7 +137,7 @@ export const POTION_ALIASES: Record<string,string> = {
   'potion-light':'health-potion-1', 'minor-health-potion':'health-potion-1', 'small-health-potion':'health-potion-1',
   'potion-mana':'mana-potion-1', 'minor-mana-potion':'mana-potion-1', 'small-mana-potion':'mana-potion-1',
 };
-export const canonicalItemTemplateId = (id:string) => POTION_ALIASES[id] ?? id;
+export const canonicalItemTemplateId = (id:string) => POTION_ALIASES[id] ?? canonicalDragonVeilTemplateId(id);
 export const itemCooldownKey = (item:Pick<ItemData,'templateId'|'potionType'>) => item.potionType ? `potion:${item.potionType}` : item.templateId;
 export const getItemCooldownRemaining = (cooldowns:Record<string,number>,item:Pick<ItemData,'templateId'|'potionType'>,now=Date.now()) => Math.max(0,((cooldowns[itemCooldownKey(item)] ?? 0)-now)/1000);
 export const potionRestoreAmount = (item:Pick<ItemData,'restoreType'|'restoreValue'>,maximum:number) => item.restoreType==='percentage' ? Math.ceil(maximum*(item.restoreValue??0)/100) : Math.max(0,item.restoreValue??0);
@@ -832,6 +833,18 @@ ITEM_CATALOG['dragon-veil-wings']=base({
   source:{type:'shop',sourceId:'aruna-developer-materials',label:'Developer Material Lab'},
 });
 
+// OWNER restored the original b229218 Dragon Veil for public restoration.
+// Keep its authored stats intact; do not map it to the balanced armor profiles.
+for(const piece of DRAGON_VEIL_PIECES){
+ const icon=`/assets/icons/items/${piece.id}.webp?v=${DRAGON_VEIL_REVISION}`;
+ ITEM_CATALOG[piece.id]=base({templateId:piece.id,name:piece.name,category:'armor',itemType:piece.slot,
+  equipmentType:piece.slot==='head'?'helmet':piece.slot==='chest'?'armor':piece.slot,
+  equipSlot:piece.slot,rarity:'ancient',levelRequirement:1,requiredGender:'male',
+  baseStats:piece.stats,bonusStats:{},maxEnhancementLevel:12,buyValue:0,sellValue:0,isSellable:false,isTradable:false,isSoulbound:true,
+  description:'Dragon Veil: perlengkapan endgame khusus laki-laki. Tersedia di Developer Material Lab.',
+  asset:{icon,sprite:icon,model:`/assets/equipment/dragon-veil/${piece.piece}-lod0.glb`,fallback:piece.slot},
+  source:{type:'shop',sourceId:'aruna-developer-materials',label:'Developer Material Lab'}});
+}
 ITEM_CATALOG['developer-level-100-potion']=base({
   templateId:'developer-level-100-potion',name:'Developer Level 100 Potion',
   category:'consumable',itemType:'developerPotion',icon:'✦',
@@ -901,6 +914,7 @@ ITEM_CATALOG['arrows']=base({templateId:'arrows',name:'Hunter Arrows',category:'
 // Named equipment with a fixed rarity, including old saves and random loot rolls.
 /** Training weapons are deliberately Common in every acquisition path. */
 const FIXED_ITEM_RARITIES: Readonly<Partial<Record<string, ItemRarity>>> = {
+  ...Object.fromEntries(DRAGON_VEIL_PIECES.map(p=>[p.id,'ancient' as const])),
   'field-verdant-plains-sword': 'common',
   'field-verdant-plains-dagger': 'common',
   'field-verdant-plains-staff': 'common',
@@ -1180,6 +1194,7 @@ export function normalizeItem(raw: unknown): ItemData | null {
                 ? 'forest-vest'
                 : `legacy-${typeof value.id === 'string' ? value.id : uniqueItemId()}`;
   templateId=canonicalItemTemplateId(templateId);
+  if(!ITEM_CATALOG[templateId])templateId=resolveDragonVeilTemplateId({templateId,name:typeof value.name==='string'?value.name:undefined,category:typeof value.category==='string'?value.category:undefined,equipSlot:typeof value.equipSlot==='string'?value.equipSlot:undefined,itemType:typeof value.itemType==='string'?value.itemType:undefined});
   if (isLegacyGenericOptimizer(value, templateId)) {
     templateId = 'rune-optimizer-basic';
     const current = ITEM_CATALOG[templateId];
@@ -1248,7 +1263,7 @@ export function normalizeItem(raw: unknown): ItemData | null {
     useCooldown: Math.max(0,Math.min(3600,Number(value.useCooldown ?? template.useCooldown)||0)),
     category:normalizedCategory,
     requiredGender:template.requiredGender ?? (value.requiredGender === 'male' || value.requiredGender === 'female' ? value.requiredGender : undefined),
-    maxEnhancementLevel: templateId === 'dragon-veil-wings' ? 0 : isEquipment ? ITEMIZATION_RULES.maxEnhancement : template.maxEnhancementLevel,
+    maxEnhancementLevel: templateId === 'dragon-veil-wings' ? 0 : isDragonVeil(templateId)?12:isEquipment ? ITEMIZATION_RULES.maxEnhancement : template.maxEnhancementLevel,
     // Grandfather saved Wings enhancement; their zero cap still prevents new upgrades.
     enhancementLevel: Math.max(0, Math.min(ITEMIZATION_RULES.maxEnhancement, Math.floor(Number(value.enhancementLevel) || 0))),
     equipmentType:migratedEquipmentType,

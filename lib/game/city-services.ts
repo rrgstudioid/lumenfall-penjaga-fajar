@@ -1,3 +1,4 @@
+import {isDragonVeil} from './dragon-veil.ts';
 import {approvedQuestsEnabled} from './public-rollout';
 import {mapScroll,mapVisitReceipt} from './map-scroll-contract.ts';
 import {addItemToInventory,createItem,ITEM_CATALOG,POTION_IDS,removeItemQuantity,type ItemData} from './items.ts';
@@ -9,6 +10,7 @@ import { isResourceEnabled } from './gameplay-config.ts';
 import { JAYANTARA_RANGE_V3 } from './jayantara-range-v3.ts';
 export function shopStock(hero:Hero,service:string) {
  return Object.values(ITEM_CATALOG).filter(item=>{
+ if(isDragonVeil(item.templateId))return service==='developer-materials';
  const scroll=mapScroll(item.templateId);
  if(scroll)return approvedQuestsEnabled()&&service==='consumable'&&hero.inCity&&scroll.price!==null&&hero.cityProgress[mapVisitReceipt(scroll.region)]===1&&
   (scroll.region!==MINE_ID||IRONVEIL_TRANSITION.available)&&!unlockReason(hero,scroll.region===MINE_ID?IRONVEIL_ID:scroll.region);

@@ -1,4 +1,6 @@
 import * as T from 'three';
+import {dragonVeilVisualEnabled, type DragonVeilLoadout} from './dragon-veil-visual.ts';
+import type {DragonVeilEnhancements} from './dragon-veil.ts';
 import {
   GLTFLoader,
   type GLTF,
@@ -136,6 +138,8 @@ export async function loadModularMaleCharacter(
   initialLOD: CharacterLOD = 1,
   renderer?: T.WebGLRenderer,
   animated = true,
+  equipment: DragonVeilLoadout = {},
+  enhancements: DragonVeilEnhancements = {},
 ) {
   let appearance = normalizeMaleAppearance(value),
     lod = initialLOD,
@@ -161,6 +165,11 @@ export async function loadModularMaleCharacter(
   const bodyMaterial = createMaleBodyMaterial(textures, appearance),
     hairMaterial = createMaleHairMaterial(appearance, textures);
   bodyMaterial.userData.modularOwned = true;
+  // The restored mesh carries no gameplay values. Production never loads it.
+  const equipmentModule = dragonVeilVisualEnabled() && Object.keys(equipment).length
+    ? await import('./dragon-veil-model.ts') : null;
+  const equipmentVisual = equipmentModule?.createDragonVeilVisual(scene, body, equipment, enhancements);
+  if (equipmentModule) equipmentModule.applyDragonVeilCoverage(bodyMaterial, equipment);
   hairMaterial.userData.modularOwned = true;
   for (const mesh of meshes(scene)) {
     mesh.material = bodyMaterial;
@@ -241,6 +250,12 @@ export async function loadModularMaleCharacter(
         newTextures?.release();
         return;
       }
+      await equipmentVisual?.update(nextLOD);
+      if (disposed || token !== revision) {
+        acquired.forEach((l) => l.release());
+        newTextures?.release();
+        return;
+      }
       if (bodyNext) {
         const template = meshes(bodyNext.value.scene)[0];
         bindMesh(template, bodyMaterial);
@@ -292,6 +307,7 @@ export async function loadModularMaleCharacter(
       item.lease.release();
     }
     slots.clear();
+    equipmentVisual?.dispose();
     bodyMaterial.dispose();
     hairMaterial.dispose();
     currentBodyLease.release();
@@ -301,6 +317,7 @@ export async function loadModularMaleCharacter(
   scene.userData.setAppearance = update;
   scene.userData.characterVisualProfile = MALE_V2_PROFILE;
   scene.userData.preserveAuthoredAppearance = true;
+  scene.userData.preserveHairWithHeadEquipment = !!equipmentModule && !!equipment.head;
   scene.userData.importedSwordGripRoll = 0;
   try {
     await update(appearance, lod);

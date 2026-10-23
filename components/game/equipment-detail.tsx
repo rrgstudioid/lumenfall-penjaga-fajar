@@ -18,7 +18,7 @@ export function readEquipmentDetail(item: DetailItem, game: Game | null) {
 function Rows({rows}:{rows:readonly DetailRow[]}) {
   return <dl className="eq-detail-rows">{rows.map((row,index)=><div key={`${row.key}-${index}`}>
     <dt>{row.label}</dt><dd>{row.value}</dd>
-    {row.base!==undefined && <small>+0: {row.base}{row.enhancement && !['0','0–0'].includes(row.enhancement)?` · Enhancement: +${row.enhancement}`:''}</small>}
+    {row.base!==undefined && <small className="eq-detail-breakdown"><span>Base (+0): {row.base}</span>{row.enhancement && !['0','0–0'].includes(row.enhancement)&&<span>Enhancement: +{row.enhancement}</span>}</small>}
   </div>)}</dl>;
 }
 /** Display only. Fixture values never reach the gameplay registry/resolver. */

@@ -1,4 +1,5 @@
 import * as T from 'three';
+import {dragonVeilLoadout} from './dragon-veil-visual.ts';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { RARITY_META, type ItemData } from './items.ts';
 import type { Hero } from './rules.ts';
@@ -116,6 +117,9 @@ export function createCharacterModel(hero: Hero, options: { aura?: boolean; asse
 
   const layers = getCharacterEquipmentLayers(hero);
   const bySlot = (slot: string) => layers.find((layer) => layer.slot === slot)?.item;
+  const restoredArmor = female ? {} : dragonVeilLoadout(layers);
+  const restoredEnhancements=Object.fromEntries(layers.filter(l=>Object.hasOwn(restoredArmor,l.slot)).map(l=>[l.slot,l.item.enhancementLevel]));
+  const genericSlot = (slot: string) => !Object.hasOwn(restoredArmor, slot) && bySlot(slot);
   const material = (color: string, metal = false) => new T.MeshStandardMaterial({ color, roughness: metal ? 0.45 : 0.84, metalness: metal ? 0.6 : 0 });
   const leather = material('#35423d'), metal = material('#d8dfd0', true), gold = material('#d5b96c', true);
   const equipmentMaterials = new Map<string, T.MeshStandardMaterial>();
@@ -134,19 +138,19 @@ export function createCharacterModel(hero: Hero, options: { aura?: boolean; asse
   // retired blue procedural body while the asset is loading.
   actor.userData.heightMeters = 2.4;
 
-  const headLayer = layerFor('head', head); if (bySlot('head')) mesh(new T.SphereGeometry(0.31, 10, 7), rarityMaterial(bySlot('head')!), headLayer, 0, 0.02, 0);
-  const armor = layerFor('chest', chest); if (bySlot('chest')) capsule(0.38, 0.5, rarityMaterial(bySlot('chest')!), armor, 0, 0.02, 0);
+  const headLayer = layerFor('head', head); if (genericSlot('head')) mesh(new T.SphereGeometry(0.31, 10, 7), rarityMaterial(bySlot('head')!), headLayer, 0, 0.02, 0);
+  const armor = layerFor('chest', chest); if (genericSlot('chest')) capsule(0.38, 0.5, rarityMaterial(bySlot('chest')!), armor, 0, 0.02, 0);
   for (const [side, upper, lower, hand, thigh, shin, foot] of [
     ['right', rightUpperArm, rightLowerArm, rightHand, rightUpperLeg, rightLowerLeg, rightFoot],
     ['left', leftUpperArm, leftLowerArm, leftHand, leftUpperLeg, leftLowerLeg, leftFoot],
   ] as const) {
-    if (bySlot('chest')) mesh(new T.SphereGeometry(.17, 8, 6), metal, layerFor('chest', upper, side), 0, .02, 0);
+    if (genericSlot('chest')) mesh(new T.SphereGeometry(.17, 8, 6), metal, layerFor('chest', upper, side), 0, .02, 0);
     if (bySlot('gloves')) {
       mesh(new T.SphereGeometry(.13, 8, 6), rarityMaterial(bySlot('gloves')!), layerFor('gloves', hand, side));
       capsule(.113, .12, rarityMaterial(bySlot('gloves')!), layerFor('gloves', lower, `${side}-cuff`), 0, -.3, 0);
     }
-    if (bySlot('boots')) mesh(new T.BoxGeometry(.3, .18, .52), rarityMaterial(bySlot('boots')!), layerFor('boots', foot, side), 0, -.02, -.1);
-    if (bySlot('legs')) {
+    if (genericSlot('boots')) mesh(new T.BoxGeometry(.3, .18, .52), rarityMaterial(bySlot('boots')!), layerFor('boots', foot, side), 0, -.02, -.1);
+    if (genericSlot('legs')) {
       capsule(.17, .35, rarityMaterial(bySlot('legs')!), layerFor('legs', thigh, side), 0, -.23, 0);
       capsule(.13, .32, rarityMaterial(bySlot('legs')!), layerFor('legs', shin, `${side}-shin`), 0, -.22, 0);
     }
@@ -425,7 +429,7 @@ export function createCharacterModel(hero: Hero, options: { aura?: boolean; asse
   let quality=options.quality??loadPlainsQuality();
   let visualLOD:CharacterLOD=quality==='office'?1:0;
   let lodCheck=0;
-  const source = options.assetSource ?? (typeof window !== 'undefined' ? female?loadFemaleCharacter:()=>loadModularMaleCharacter(currentAppearance,visualLOD,options.renderer,!options.preview) : undefined);
+  const source = options.assetSource ?? (typeof window !== 'undefined' ? female?loadFemaleCharacter:()=>loadModularMaleCharacter(currentAppearance,visualLOD,options.renderer,!options.preview,restoredArmor,restoredEnhancements) : undefined);
   actor.visible = !source;
   actor.userData.modelStatus = source ? 'loading' : 'fallback';
   const ready = source ? source().then(scene => {
@@ -501,7 +505,7 @@ export function disposeCharacterModel(model: T.Object3D) {
   const skeletons = new Set<T.Skeleton>();
   const disposers=new Set<()=>void>();
   model.traverse(object=>{if(typeof object.userData.disposeCharacterResources==='function')disposers.add(object.userData.disposeCharacterResources);});
-  model.traverse(object => { if (object instanceof T.SkinnedMesh) skeletons.add(object.skeleton); });
+  model.traverse(object => { if (object instanceof T.SkinnedMesh && !object.userData.dragonVeil) skeletons.add(object.skeleton); });
   skeletons.forEach(skeleton => skeleton.dispose());
   model.traverse((object) => { if (object instanceof T.Mesh || object instanceof T.Line) { geometries.add(object.geometry); for (const mat of Array.isArray(object.material) ? object.material : [object.material]) materials.add(mat); } });
   materials.forEach(material => { for (const value of Object.values(material)) if (value instanceof T.Texture) textures.add(value); });
