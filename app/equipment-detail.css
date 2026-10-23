@@ -7,9 +7,12 @@
 .eq-detail .eq-detail-rows { display: grid; gap: 5px; margin: 0; padding: 0; }
 .eq-detail .eq-detail-rows > div { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 2px 12px; }
 .eq-detail-rows dt { color: #c9d0c3; }
-.eq-detail-rows dd { margin: 0; color: #f0e7c8; font-weight: 700; font-variant-numeric: tabular-nums; }
+.eq-detail-rows dd { margin: 0; color: #f0e7c8; font-weight: 700; font-variant-numeric: tabular-nums; text-align: right; }
 .eq-detail-rows small { grid-column: 1 / -1; }
 .eq-detail small, .eq-detail-note { color: #abb7a5; font-size: 11px; }
+.eq-detail .eq-detail-rows > div { padding: 4px 0; border-bottom: 1px solid #c8d6a314; }
+.eq-detail .eq-detail-rows > div:last-child { border-bottom: 0; }
+.eq-detail-breakdown { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 2px 12px; }
 .eq-detail-socket { margin-top: 8px; padding-left: 8px; border-left: 2px solid #789d93; }
 .eq-detail-inspection { margin-top: 10px; border: 1px dashed #758b76; border-radius: 4px; padding: 7px; }
 .eq-detail-inspection summary { cursor: pointer; color: #b2c2b0; }

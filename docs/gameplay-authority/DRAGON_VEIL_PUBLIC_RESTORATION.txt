@@ -1,0 +1,11 @@
+OWNER PUBLIC RESTORATION — provenance: direct request in current conversation, recorded 23 October 2026; no message ID/timestamp fabricated.
+Owner requested Dragon Veil as originally authored by dev-gadang, including original bonuses, then explicitly requested merge and public Vercel restoration. Earlier visual-only/development-only restriction is superseded for these four pieces only.
+Source b229218ead928c9b7914c56c9127ac4672e6d154: dragon-veil.ts, dragon-veil-model.ts, equipment-emissive.ts, 16 LOD assets/four icons/manifest. Historical proposals remain untouched.
+Preserve original IDs, male requirement, ancient rarity, Lv1, four literal stat blocks, Developer Material Lab zero price, enhancement cap12/glow. Gloves stays; Wings grandfather and shared stat/resource caps remain approved current behavior. No rebalance or selected admission expansion.
+Preserve saved identity/custom stats/enhancement; narrow Pants alias only. Restore renderer/icon/catalog in production. Menu and compact equipment detail presentation plus hotbar scaling isolation are UI fixes.
+EXP-P1 and quest reward pilot remain development-only. No Meteorfall map edit, no new class/itemization/CP.
+Visual test oracle changed from production disabled to enabled solely under this public approval; literal numeric assertions unchanged. Runtime gameplay approval is not inferred from test success.
+
+Presentation regression oracle maintenance: Training Sword public display9–11 and text "formula range" already approved/shipped in PR46 (main ancestor151bbaf). Old test expected disabled public8 and old wording. Correct these three exact assertions without changing source arithmetic or compatibility assertions. Counterfactual attempts remain evidence, not shipping acceptance.
+
+OWNER follow-up: complained player-visible scalar wording degraded earlier presentation. Move scalar/legacy explanation to development diagnostics; keep Physical/Magic Attack labels and exact single-number/range values. Unsupported version warnings remain visible. No numeric change. Source history first records label in86a1190; Git author metadata alone is not individual attribution.
